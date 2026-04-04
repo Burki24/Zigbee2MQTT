@@ -332,6 +332,9 @@ class Zigbee2MQTTBridge extends IPSModule
     public function RequestAction($ident, $value)
     {
         switch ($ident) {
+            case 'CreateHook':
+                $this->CreateHook();
+                break;
             case 'permit_join':
                 $this->SetPermitJoin((bool) $value);
                 break;
