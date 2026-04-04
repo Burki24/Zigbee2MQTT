@@ -988,8 +988,10 @@ class Zigbee2MQTTBridge extends IPSModule
         }
         return false;
     }
-    public function ProcessHookData()
+    public function ProcessHookData($Hook)
     {
+        $this->SendDebug(__FUNCTION__, 'Hook: ' . $Hook, 0);
+    
         $instanceID = intval($_GET['instance'] ?? 0);
         $action = $_GET['action'] ?? '';
     
