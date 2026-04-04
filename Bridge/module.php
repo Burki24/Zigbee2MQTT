@@ -638,7 +638,13 @@ class Zigbee2MQTTBridge extends IPSModule
         foreach ($hooks as $hook) {
             if (!isset($hook['Hook']) || $hook['Hook'] !== '/z2m/ui') {
                 $newHooks[] = $hook;
+            }
         }
+    
+        IPS_SetProperty($webhookID, 'Hooks', $newHooks);
+        IPS_ApplyChanges($webhookID);
+    
+        $this->SendDebug(__FUNCTION__, 'Hook entfernt', 0);
     }
     
     /**
