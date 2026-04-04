@@ -562,6 +562,23 @@ class Zigbee2MQTTBridge extends IPSModule
         }
         return false;
     }
+    
+    /**
+     * CreateHook
+     *
+     * Registriert den zentralen WebHook für die Zigbee2MQTT UI (/hook/z2m/ui).
+     * Kann mehrfach aufgerufen werden, da RegisterHook idempotent ist.
+     *
+     * @return void
+     *
+     * @uses Zigbee2MQTTBridge::RegisterHook()
+     * @uses Zigbee2MQTTBridge::SendDebug()
+     */
+    public function CreateHook()
+    {
+        $this->RegisterHook('/z2m/ui');
+        $this->SendDebug(__FUNCTION__, 'Hook /z2m/ui registriert', 0);
+    }
 
     /**
      * CreateGroup
