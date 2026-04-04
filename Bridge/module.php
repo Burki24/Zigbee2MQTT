@@ -581,7 +581,7 @@ class Zigbee2MQTTBridge extends IPSModule
      */
     public function CreateHook()
     {
-        $webhookID = IPS_GetInstanceIDByName('WebHook Control', 0);
+        $webhookID = $this->GetWebHookInstanceID();
     
         if ($webhookID === false) {
             trigger_error('WebHook Control not found!', E_USER_WARNING);
@@ -609,7 +609,7 @@ class Zigbee2MQTTBridge extends IPSModule
      */
     public function DeleteHook()
     {
-        $webhookID = IPS_GetInstanceIDByName('WebHook Control', 0);
+        $webhookID = $this->GetWebHookInstanceID();
     
         if ($webhookID === false) {
             return;
@@ -634,7 +634,7 @@ class Zigbee2MQTTBridge extends IPSModule
      */
     public function HasHook(): bool
     {
-        $webhookID = IPS_GetInstanceIDByName('WebHook Control', 0);
+        $webhookID = $this->GetWebHookInstanceID();
     
         if ($webhookID === false) {
             return false;
@@ -954,6 +954,16 @@ class Zigbee2MQTTBridge extends IPSModule
         ]));
     
         echo $result;
+    }
+    private function GetWebHookInstanceID()
+    {
+        $ids = IPS_GetInstanceListByModuleID('{015A6EB8-D71F-4A38-9F0E-1A5FDD6F4F6F}');
+    
+        if (count($ids) === 0) {
+            return 0;
+        }
+    
+        return $ids[0];
     }
 
 }
