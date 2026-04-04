@@ -5,6 +5,7 @@ require_once dirname(__DIR__) . '/libs/BufferHelper.php';
 require_once dirname(__DIR__) . '/libs/SemaphoreHelper.php';
 require_once dirname(__DIR__) . '/libs/VariableProfileHelper.php';
 require_once dirname(__DIR__) . '/libs/MQTTHelper.php';
+require_once dirname(__DIR__) . '/libs/WebHookHelper.php';
 
 /**
  * Zigbee2MQTTBridge
@@ -21,6 +22,7 @@ class Zigbee2MQTTBridge extends IPSModule
     use \Zigbee2MQTT\Semaphore;
     use \Zigbee2MQTT\VariableProfileHelper;
     use \Zigbee2MQTT\SendData;
+    use \zigbee2MQTT\WebHookHelper;
 
     /** @var array ZH Version zu Erweiterung  */
     private const EXTENSION_ZH_VERSION = [
