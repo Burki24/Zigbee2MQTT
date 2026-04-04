@@ -588,59 +588,48 @@ class Zigbee2MQTTBridge extends IPSModule
             return;
         }
     
-        // 🔧 Schritt 1: Hooks sauber laden
+        // 🔧 Hooks laden (immer als STRING behandeln!)
         $hooksRaw = IPS_GetProperty($webhookID, 'Hooks');
     
-        if (is_string($hooksRaw)) {
-            $hooks = json_decode($hooksRaw, true);
-        } elseif (is_array($hooksRaw)) {
-            $hooks = $hooksRaw;
-        } else {
-            $hooks = [];
-        }
+        $hooks = json_decode($hooksRaw, true);
     
         if (!is_array($hooks)) {
             $hooks = [];
         }
     
-        // 🔧 Schritt 2: vorhandene Hooks bereinigen
-        $cleanHooks = [];
+        // 🔧 sauber normalisieren (EXTREM wichtig)
+        $normalized = [];
     
         foreach ($hooks as $hook) {
-            if (isset($hook['Hook']) && isset($hook['TargetID'])) {
-                $cleanHooks[] = [
+            if (is_array($hook) && isset($hook['Hook']) && isset($hook['TargetID'])) {
+                $normalized[] = [
                     'Hook'     => (string) $hook['Hook'],
                     'TargetID' => (int) $hook['TargetID']
                 ];
             }
         }
     
-        $hooks = $cleanHooks;
+        $hooks = $normalized;
     
-        // 🔧 Schritt 3: prüfen ob Hook schon existiert
-        $exists = false;
-    
+        // 🔧 prüfen ob schon vorhanden
         foreach ($hooks as $hook) {
             if ($hook['Hook'] === '/z2m/ui') {
-                $exists = true;
-                break;
+                $this->SendDebug(__FUNCTION__, 'Hook existiert bereits', 0);
+                return;
             }
         }
     
-        // 🔧 Schritt 4: hinzufügen wenn nicht vorhanden
-        if (!$exists) {
-            $hooks[] = [
-                'Hook'     => '/z2m/ui',
-                'TargetID' => (int) $this->InstanceID
-            ];
+        // 🔧 hinzufügen
+        $hooks[] = [
+            'Hook'     => '/z2m/ui',
+            'TargetID' => (int) $this->InstanceID
+        ];
     
-            IPS_SetProperty($webhookID, 'Hooks', $hooks);
-            IPS_ApplyChanges($webhookID);
+        // 🔥 DER FIX!!!
+        IPS_SetProperty($webhookID, 'Hooks', json_encode($hooks));
+        IPS_ApplyChanges($webhookID);
     
-            $this->SendDebug(__FUNCTION__, 'Hook /z2m/ui registriert', 0);
-        } else {
-            $this->SendDebug(__FUNCTION__, 'Hook existiert bereits', 0);
-        }
+        $this->SendDebug(__FUNCTION__, 'Hook /z2m/ui registriert', 0);
     }
     
     /**
@@ -670,7 +659,7 @@ class Zigbee2MQTTBridge extends IPSModule
             }
         }
     
-        IPS_SetProperty($webhookID, 'Hooks', $newHooks);
+        IPS_SetProperty($webhookID, 'Hooks', json_encode($newHooks));
         IPS_ApplyChanges($webhookID);
     
         $this->SendDebug(__FUNCTION__, 'Hook entfernt', 0);
@@ -685,27 +674,24 @@ class Zigbee2MQTTBridge extends IPSModule
     {
         $webhookID = $this->GetWebHookInstanceID();
     
-        // 🔥 richtige Prüfung
         if ($webhookID === 0 || !IPS_ObjectExists($webhookID)) {
             return false;
         }
     
-        // 🔥 sicher lesen
         $hooksRaw = IPS_GetProperty($webhookID, 'Hooks');
-    
-        if ($hooksRaw === false) {
-            return false;
-        }
-    
-        // 🔥 sicher decodieren
         $hooks = json_decode($hooksRaw, true);
     
         if (!is_array($hooks)) {
             return false;
         }
     
-        // 🔥 eigentliche Prüfung
-        return isset($hooks['/z2m/ui']);
+        foreach ($hooks as $hook) {
+            if (isset($hook['Hook']) && $hook['Hook'] === '/z2m/ui') {
+                return true;
+            }
+        }
+    
+        return false;
     }
 
     /**
