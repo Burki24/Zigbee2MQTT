@@ -335,6 +335,9 @@ class Zigbee2MQTTBridge extends IPSModule
             case 'CreateHook':
                 $this->CreateHook();
                 break;
+                case 'DeleteHook':
+                $this->DeleteHook();
+                break;
             case 'permit_join':
                 $this->SetPermitJoin((bool) $value);
                 break;
@@ -372,6 +375,14 @@ class Zigbee2MQTTBridge extends IPSModule
         if ($this->ConfigPermitJoin) {
             $Form['actions'][2]['visible'] = true;
         }
+        $status = $this->HasHook()
+            ? 'WebHook Status: ✅ Aktiv'
+            : 'WebHook Status: ❌ Nicht vorhanden';
+    
+        $Form['elements'][] = [
+            'type' => 'Label',
+            'caption' => $status
+        ];
         return json_encode($Form);
     }
 
@@ -566,18 +577,72 @@ class Zigbee2MQTTBridge extends IPSModule
     /**
      * CreateHook
      *
-     * Registriert den zentralen WebHook für die Zigbee2MQTT UI (/hook/z2m/ui).
-     * Kann mehrfach aufgerufen werden, da RegisterHook idempotent ist.
-     *
      * @return void
-     *
-     * @uses Zigbee2MQTTBridge::RegisterHook()
-     * @uses Zigbee2MQTTBridge::SendDebug()
      */
     public function CreateHook()
     {
-        $this->RegisterHook('/z2m/ui');
+        $webhookID = IPS_GetInstanceIDByName('WebHook Control', 0);
+    
+        if ($webhookID === false) {
+            trigger_error('WebHook Control not found!', E_USER_WARNING);
+            return;
+        }
+    
+        $hooks = json_decode(IPS_GetProperty($webhookID, 'Hooks'), true);
+    
+        if (!isset($hooks['/z2m/ui'])) {
+            $hooks['/z2m/ui'] = [
+                'TargetID' => $this->InstanceID
+            ];
+    
+            IPS_SetProperty($webhookID, 'Hooks', json_encode($hooks));
+            IPS_ApplyChanges($webhookID);
+        }
+    
         $this->SendDebug(__FUNCTION__, 'Hook /z2m/ui registriert', 0);
+    }
+    
+    /**
+     * DeleteHook
+     *
+     * @return void
+     */
+    public function DeleteHook()
+    {
+        $webhookID = IPS_GetInstanceIDByName('WebHook Control', 0);
+    
+        if ($webhookID === false) {
+            return;
+        }
+    
+        $hooks = json_decode(IPS_GetProperty($webhookID, 'Hooks'), true);
+    
+        if (isset($hooks['/z2m/ui'])) {
+            unset($hooks['/z2m/ui']);
+    
+            IPS_SetProperty($webhookID, 'Hooks', json_encode($hooks));
+            IPS_ApplyChanges($webhookID);
+        }
+    
+        $this->SendDebug(__FUNCTION__, 'Hook /z2m/ui entfernt', 0);
+    }
+    
+    /**
+     * HasHook
+     *
+     * @return bool
+     */
+    public function HasHook(): bool
+    {
+        $webhookID = IPS_GetInstanceIDByName('WebHook Control', 0);
+    
+        if ($webhookID === false) {
+            return false;
+        }
+    
+        $hooks = json_decode(IPS_GetProperty($webhookID, 'Hooks'), true);
+    
+        return isset($hooks['/z2m/ui']);
     }
 
     /**
@@ -870,6 +935,25 @@ class Zigbee2MQTTBridge extends IPSModule
             return $Result['status'] == 'ok';
         }
         return false;
+    }
+    public function ProcessHookData()
+    {
+        $instanceID = intval($_GET['instance'] ?? 0);
+        $action = $_GET['action'] ?? '';
+    
+        if ($instanceID === 0 || !IPS_InstanceExists($instanceID)) {
+            echo json_encode(['error' => 'Invalid instance']);
+            return;
+        }
+    
+        $data = file_get_contents('php://input');
+    
+        $result = IPS_RequestAction($instanceID, 'Z2M_HOOK', json_encode([
+            'action' => $action,
+            'data'   => $data
+        ]));
+    
+        echo $result;
     }
 
 }
