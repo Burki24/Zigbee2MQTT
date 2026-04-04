@@ -583,12 +583,21 @@ class Zigbee2MQTTBridge extends IPSModule
     {
         $webhookID = $this->GetWebHookInstanceID();
     
-        if ($webhookID === false) {
+        if ($webhookID === 0 || !IPS_ObjectExists($webhookID)) {
             trigger_error('WebHook Control not found!', E_USER_WARNING);
             return;
         }
     
-        $hooks = json_decode(IPS_GetProperty($webhookID, 'Hooks'), true);
+        $hooksRaw = IPS_GetProperty($webhookID, 'Hooks');
+    
+        if ($hooksRaw === false) {
+            $hooks = [];
+        } else {
+            $hooks = json_decode($hooksRaw, true);
+            if (!is_array($hooks)) {
+                $hooks = [];
+            }
+        }
     
         if (!isset($hooks['/z2m/ui'])) {
             $hooks['/z2m/ui'] = [
@@ -597,9 +606,11 @@ class Zigbee2MQTTBridge extends IPSModule
     
             IPS_SetProperty($webhookID, 'Hooks', json_encode($hooks));
             IPS_ApplyChanges($webhookID);
-        }
     
-        $this->SendDebug(__FUNCTION__, 'Hook /z2m/ui registriert', 0);
+            $this->SendDebug(__FUNCTION__, 'Hook /z2m/ui registriert', 0);
+        } else {
+            $this->SendDebug(__FUNCTION__, 'Hook /z2m/ui existiert bereits', 0);
+        }
     }
     
     /**
@@ -611,11 +622,21 @@ class Zigbee2MQTTBridge extends IPSModule
     {
         $webhookID = $this->GetWebHookInstanceID();
     
-        if ($webhookID === false) {
+        if ($webhookID === 0) {
             return;
         }
     
-        $hooks = json_decode(IPS_GetProperty($webhookID, 'Hooks'), true);
+        $hooksRaw = IPS_GetProperty($webhookID, 'Hooks');
+    
+        if ($hooksRaw === false) {
+            return;
+        }
+    
+        $hooks = json_decode($hooksRaw, true);
+    
+        if (!is_array($hooks)) {
+            $hooks = [];
+        }
     
         if (isset($hooks['/z2m/ui'])) {
             unset($hooks['/z2m/ui']);
@@ -636,12 +657,26 @@ class Zigbee2MQTTBridge extends IPSModule
     {
         $webhookID = $this->GetWebHookInstanceID();
     
-        if ($webhookID === false) {
+        // 🔥 richtige Prüfung
+        if ($webhookID === 0 || !IPS_ObjectExists($webhookID)) {
             return false;
         }
     
-        $hooks = json_decode(IPS_GetProperty($webhookID, 'Hooks'), true);
+        // 🔥 sicher lesen
+        $hooksRaw = IPS_GetProperty($webhookID, 'Hooks');
     
+        if ($hooksRaw === false) {
+            return false;
+        }
+    
+        // 🔥 sicher decodieren
+        $hooks = json_decode($hooksRaw, true);
+    
+        if (!is_array($hooks)) {
+            return false;
+        }
+    
+        // 🔥 eigentliche Prüfung
         return isset($hooks['/z2m/ui']);
     }
 
