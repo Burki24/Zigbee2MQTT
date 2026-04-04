@@ -588,30 +588,59 @@ class Zigbee2MQTTBridge extends IPSModule
             return;
         }
     
-        $hooks = IPS_GetProperty($webhookID, 'Hooks');
+        // 🔧 Schritt 1: Hooks sauber laden
+        $hooksRaw = IPS_GetProperty($webhookID, 'Hooks');
+    
+        if (is_string($hooksRaw)) {
+            $hooks = json_decode($hooksRaw, true);
+        } elseif (is_array($hooksRaw)) {
+            $hooks = $hooksRaw;
+        } else {
+            $hooks = [];
+        }
     
         if (!is_array($hooks)) {
             $hooks = [];
         }
     
-        // 🔍 prüfen ob Hook schon existiert
+        // 🔧 Schritt 2: vorhandene Hooks bereinigen
+        $cleanHooks = [];
+    
         foreach ($hooks as $hook) {
-            if (isset($hook['Hook']) && $hook['Hook'] === '/z2m/ui') {
-                $this->SendDebug(__FUNCTION__, 'Hook existiert bereits', 0);
-                return;
+            if (isset($hook['Hook']) && isset($hook['TargetID'])) {
+                $cleanHooks[] = [
+                    'Hook'     => (string) $hook['Hook'],
+                    'TargetID' => (int) $hook['TargetID']
+                ];
             }
         }
     
-        // ✅ korrektes Format!
-        $hooks[] = [
-            'Hook'     => '/z2m/ui',
-            'TargetID' => $this->InstanceID
-        ];
+        $hooks = $cleanHooks;
     
-        IPS_SetProperty($webhookID, 'Hooks', $hooks);
-        IPS_ApplyChanges($webhookID);
+        // 🔧 Schritt 3: prüfen ob Hook schon existiert
+        $exists = false;
     
-        $this->SendDebug(__FUNCTION__, 'Hook /z2m/ui registriert', 0);
+        foreach ($hooks as $hook) {
+            if ($hook['Hook'] === '/z2m/ui') {
+                $exists = true;
+                break;
+            }
+        }
+    
+        // 🔧 Schritt 4: hinzufügen wenn nicht vorhanden
+        if (!$exists) {
+            $hooks[] = [
+                'Hook'     => '/z2m/ui',
+                'TargetID' => (int) $this->InstanceID
+            ];
+    
+            IPS_SetProperty($webhookID, 'Hooks', $hooks);
+            IPS_ApplyChanges($webhookID);
+    
+            $this->SendDebug(__FUNCTION__, 'Hook /z2m/ui registriert', 0);
+        } else {
+            $this->SendDebug(__FUNCTION__, 'Hook existiert bereits', 0);
+        }
     }
     
     /**
