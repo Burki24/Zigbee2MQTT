@@ -588,29 +588,30 @@ class Zigbee2MQTTBridge extends IPSModule
             return;
         }
     
-        $hooksRaw = IPS_GetProperty($webhookID, 'Hooks');
+        $hooks = IPS_GetProperty($webhookID, 'Hooks');
     
-        if ($hooksRaw === false) {
+        if (!is_array($hooks)) {
             $hooks = [];
-        } else {
-            $hooks = json_decode($hooksRaw, true);
-            if (!is_array($hooks)) {
-                $hooks = [];
+        }
+    
+        // 🔍 prüfen ob Hook schon existiert
+        foreach ($hooks as $hook) {
+            if (isset($hook['Hook']) && $hook['Hook'] === '/z2m/ui') {
+                $this->SendDebug(__FUNCTION__, 'Hook existiert bereits', 0);
+                return;
             }
         }
     
-        if (!isset($hooks['/z2m/ui'])) {
-            $hooks['/z2m/ui'] = [
-                'TargetID' => $this->InstanceID
-            ];
+        // ✅ korrektes Format!
+        $hooks[] = [
+            'Hook'     => '/z2m/ui',
+            'TargetID' => $this->InstanceID
+        ];
     
-            IPS_SetProperty($webhookID, 'Hooks', $hooks);
-            IPS_ApplyChanges($webhookID);
+        IPS_SetProperty($webhookID, 'Hooks', $hooks);
+        IPS_ApplyChanges($webhookID);
     
-            $this->SendDebug(__FUNCTION__, 'Hook /z2m/ui registriert', 0);
-        } else {
-            $this->SendDebug(__FUNCTION__, 'Hook /z2m/ui existiert bereits', 0);
-        }
+        $this->SendDebug(__FUNCTION__, 'Hook /z2m/ui registriert', 0);
     }
     
     /**
@@ -622,30 +623,22 @@ class Zigbee2MQTTBridge extends IPSModule
     {
         $webhookID = $this->GetWebHookInstanceID();
     
-        if ($webhookID === 0) {
+        if ($webhookID === 0 || !IPS_ObjectExists($webhookID)) {
             return;
         }
     
-        $hooksRaw = IPS_GetProperty($webhookID, 'Hooks');
-    
-        if ($hooksRaw === false) {
-            return;
-        }
-    
-        $hooks = json_decode($hooksRaw, true);
+        $hooks = IPS_GetProperty($webhookID, 'Hooks');
     
         if (!is_array($hooks)) {
-            $hooks = [];
+            return;
         }
     
-        if (isset($hooks['/z2m/ui'])) {
-            unset($hooks['/z2m/ui']);
+        $newHooks = [];
     
-            IPS_SetProperty($webhookID, 'Hooks', json_encode($hooks));
-            IPS_ApplyChanges($webhookID);
+        foreach ($hooks as $hook) {
+            if (!isset($hook['Hook']) || $hook['Hook'] !== '/z2m/ui') {
+                $newHooks[] = $hook;
         }
-    
-        $this->SendDebug(__FUNCTION__, 'Hook /z2m/ui entfernt', 0);
     }
     
     /**
