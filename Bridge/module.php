@@ -990,15 +990,19 @@ class Zigbee2MQTTBridge extends IPSModule
     
         echo $result;
     }
-    private function GetWebHookInstanceID()
+    private function GetWebHookInstanceID(): int
     {
-        $ids = IPS_GetInstanceListByModuleID('{015A6EB8-D71F-4A38-9F0E-1A5FDD6F4F6F}');
+        $instances = IPS_GetInstanceList();
     
-        if (count($ids) === 0) {
-            return 0;
+        foreach ($instances as $instanceID) {
+            $moduleInfo = IPS_GetModule(IPS_GetInstance($instanceID)['ModuleInfo']['ModuleID']);
+    
+            if ($moduleInfo['ModuleName'] === 'WebHook Control') {
+                return $instanceID;
+            }
         }
     
-        return $ids[0];
+        return 0;
     }
 
 }
