@@ -312,6 +312,7 @@ class Zigbee2MQTTBridge extends IPSModule
                 $this->SetValue('extension_loaded', $foundExtension);
                 $this->SetValue('extension_version', $Version);
                 $this->SetValue('extension_is_current', $this->actualExtensionVersion == (float) $Version);
+                $this->UpdateDeviceCache($ReceiveTopic, $Payload);
                 if (!$foundExtension) {
                     $this->LogMessage($this->Translate('No Symcon Extension in Zigbee2MQTT installed. Please install the extension.'), KL_ERROR);
                 }
