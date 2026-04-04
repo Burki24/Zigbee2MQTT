@@ -604,7 +604,7 @@ class Zigbee2MQTTBridge extends IPSModule
                 'TargetID' => $this->InstanceID
             ];
     
-            IPS_SetProperty($webhookID, 'Hooks', json_encode($hooks));
+            IPS_SetProperty($webhookID, 'Hooks', $hooks);
             IPS_ApplyChanges($webhookID);
     
             $this->SendDebug(__FUNCTION__, 'Hook /z2m/ui registriert', 0);
