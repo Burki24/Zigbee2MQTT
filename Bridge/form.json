@@ -25,6 +25,11 @@
         },
         {
             "type": "Button",
+            "caption": "Create WebHook",
+            "onClick": "IPS_RequestAction($id, 'CreateHook', true);"
+        },
+        {
+            "type": "Button",
             "name": "PermitJoinOption",
             "caption": "Disable permit_join option in Z2M configuration.yaml",
             "onClick": "Z2M_SetPermitJoinOption($id, false);",
