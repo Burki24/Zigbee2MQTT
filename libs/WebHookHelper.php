@@ -1,5 +1,5 @@
 <?php
-
+namespace Zigbee2MQTT;
 declare(strict_types=1);
 
 trait WebHookHelper
