@@ -1342,6 +1342,7 @@ abstract class ModulBase extends \IPSModule
 
                     // 🔹 Variable registrieren
                     $varID = $this->registerVariable($feature);
+                    $this->SendDebug('VAR ID TEST', $varID, 0);
 
                     // 🔥 NEU: Constraints anwenden (Tile-Visu!)
                     if (is_int($varID)) {
