@@ -1307,7 +1307,7 @@ abstract class ModulBase extends \IPSModule
      * @see is_array()
      * @see json_encode()
      */
-    protected function mapExposesToVariables(array $exposes): int
+    protected function mapExposesToVariables(array $exposes): void
     {
         $this->SendDebug(__FUNCTION__ . ' :: All Exposes', json_encode($exposes), 0);
 
@@ -1342,8 +1342,6 @@ abstract class ModulBase extends \IPSModule
 
                     // 🔹 Variable registrieren
                     $varID = $this->registerVariable($feature);
-                    return $this->GetIDForIdent($ident);
-                    $this->SendDebug('VAR ID TEST', $varID, 0);
 
                     // 🔥 NEU: Constraints anwenden (Tile-Visu!)
                     if (is_int($varID)) {
@@ -3872,7 +3870,7 @@ abstract class ModulBase extends \IPSModule
         }
 
         $this->SendDebug(__FUNCTION__ . ' Registriere Variable für Property: ', $featureProperty, 0);
-
+        $ident = $this->BuildIdent($data['property'] ?? '');
         // Übergebe das komplette Feature-Array für Access-Check
         $stateConfig = $this->getStateConfiguration($featureProperty, \is_array($feature) ? $feature : null);
         if ($stateConfig !== null) {
