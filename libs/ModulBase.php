@@ -1307,7 +1307,7 @@ abstract class ModulBase extends \IPSModule
      * @see is_array()
      * @see json_encode()
      */
-    protected function mapExposesToVariables(array $exposes): void
+    protected function mapExposesToVariables(array $exposes): int
     {
         $this->SendDebug(__FUNCTION__ . ' :: All Exposes', json_encode($exposes), 0);
 
