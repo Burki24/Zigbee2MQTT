@@ -1536,6 +1536,40 @@ abstract class ModulBase extends \IPSModule
         return $result;
     }
 
+    protected function applyFeatureConstraints(int $varID, array $data): void
+    {
+        // Zigbee Standard (value_*)
+        if (isset($data['value_min'])) {
+            IPS_SetVariableCustomMinValue($varID, $data['value_min']);
+        }
+    
+        if (isset($data['value_max'])) {
+            IPS_SetVariableCustomMaxValue($varID, $data['value_max']);
+        }
+    
+        if (isset($data['value_step'])) {
+            IPS_SetVariableCustomStepSize($varID, $data['value_step']);
+        }
+    
+        // Fallback (andere Geräte / future proof)
+        if (isset($data['min'])) {
+            IPS_SetVariableCustomMinValue($varID, $data['min']);
+        }
+    
+        if (isset($data['max'])) {
+            IPS_SetVariableCustomMaxValue($varID, $data['max']);
+        }
+    
+        if (isset($data['step'])) {
+            IPS_SetVariableCustomStepSize($varID, $data['step']);
+        }
+    
+        // Einheit
+        if (isset($data['unit'])) {
+            IPS_SetVariableCustomSuffix($varID, ' ' . $data['unit']);
+        }
+    }
+
     /**
      * convertToSnakeCase
      *
