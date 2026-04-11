@@ -2640,6 +2640,84 @@ protected function mapExposesToVariables(array $exposes): void
      * @see sprintf()
      * @see gettype()
      */
+
+        // Spezialvariablen & Konvertierung
+
+    /**
+     * processSpecialVariable
+     *
+     * Verarbeitet spezielle Variablen mit besonderen Anforderungen
+     *
+     * Verarbeitungsschritte:
+     * 1. Prüft ob Variable in specialVariables definiert
+     * 2. Konvertiert Property zu Ident und Label
+     * 3. Registriert Variable falls nicht vorhanden
+     * 4. Passt Wert entsprechend Variablentyp an
+     * 5. Setzt Wert mit Debug-Ausgaben
+     *
+     * @param string $key Name der zu verarbeitenden Property
+     * @param mixed $value Zu setzender Wert
+     *                    Kann sein:
+     *                    - String: Direkter Wert
+     *                    - Array: Wird konvertiert
+     *                    - Bool: Wird angepasst
+     *                    - Int/Float: Wird skaliert
+     *
+     * @return bool True wenn Variable verarbeitet wurde,
+     *              False wenn keine Spezialvariable
+     *
+     * Beispiel:
+     * ```php
+     * // Verarbeitet Farbtemperatur
+     * $this->processSpecialVariable("color_temp", 4000);
+     *
+     * // Verarbeitet RGB-Farbe
+     * $this->processSpecialVariable("color", ["r" => 255, "g" => 0, "b" => 0]);
+     * ```
+     *
+     * @see \Zigbee2MQTT\ModulBase::processPayload() Ruft diese Methode auf
+     * @see \Zigbee2MQTT\ModulBase::processVariable() Ruft diese Methode auf
+     *
+     * @see \Zigbee2MQTT\ModulBase::convertLabelToName()
+     * @see \Zigbee2MQTT\ModulBase::getOrRegisterVariable()
+     * @see \Zigbee2MQTT\ModulBase::adjustSpecialValue()
+     * @see \Zigbee2MQTT\ModulBase::SetValueDirect()
+     * @see \IPSModule::SendDebug()
+     * @see is_array()
+     * @see json_encode()
+     * @see sprintf()
+     * @see gettype()
+     */
+    private function processSpecialVariable(string $key, mixed $value): bool
+    {
+        if (!isset(self::$specialVariables[$key])) {
+            return false;
+        }
+
+        $variableProps = ['property' => $key];
+        $ident = $key;
+        $formattedLabel = $this->convertLabelToName($key);
+        $variableID = $this->getOrRegisterVariable($ident, $variableProps, $formattedLabel);
+
+        if (!$variableID) {
+            return true;
+        }
+
+        // Spezielle Verarbeitung für die Variable
+        $adjustedValue = $this->adjustSpecialValue($ident, $value);
+
+        // Debug-Ausgabe des verarbeiteten Wertes
+        $debugValue = \is_array($adjustedValue) ? json_encode($adjustedValue) : $adjustedValue;
+        $this->SendDebug(__FUNCTION__ . ' :: ' . __LINE__ . ' :: ', $key . ' verarbeitet: ' . $key . ' => ' . $debugValue, 0);
+
+        // Wert setzen
+        $this->SetValueDirect($ident, $adjustedValue);
+
+        $this->SendDebug(__FUNCTION__, \sprintf('SetValueDirect aufgerufen für %s mit Wert: %s (Typ: %s)', $ident, \is_array($adjustedValue) ? json_encode($adjustedValue) : $adjustedValue, gettype($adjustedValue)), 0);
+        // Allgemeine Aktualisierung von Preset-Variablen
+        $this->updatePresetVariable($ident, $adjustedValue);
+        return true;
+    }
     private function processSpecialCases(string $key, mixed &$value, string $lowerKey, array $variableProps): bool
     {
         /* -----------------------------------------------------------
