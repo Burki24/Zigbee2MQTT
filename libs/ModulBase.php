@@ -3965,15 +3965,19 @@ private function registerVariableProfile(array $expose): string
                 break;
     
             case 'numeric':
-    
-                $isFloat = isset($data['value_step']) && is_float($data['value_step']);
-    
-                if ($isFloat) {
+            
+                // zentrale Logik nutzen
+                $result = $this->registerNumericProfile($data);
+            
+                $profile = $result['mainProfile'];
+                $varType = $result['type'];
+            
+                if ($varType === 'float') {
                     $this->RegisterVariableFloat($ident, $name, $profile);
                 } else {
                     $this->RegisterVariableInteger($ident, $name, $profile);
                 }
-    
+            
                 break;
     
             case 'enum':
