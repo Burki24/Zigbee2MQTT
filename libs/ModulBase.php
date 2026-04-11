@@ -560,79 +560,105 @@ abstract class ModulBase extends \IPSModule
      * @see \Zigbee2MQTT\ModulBase::handleStandardVariable()
      * @see json_encode()
      */
-    public function RequestAction($ident, $value)
-    {
-        $this->SendDebug(__FUNCTION__, 'Aufgerufen für Ident: ' . $ident . ' mit Wert: ' . json_encode($value), 0);
-
-        $handled = match (true) {
-            // Behandelt UpdateInfo
-            $ident == 'UpdateInfo' => function ()
-            {
-                $this->SendDebug(__FUNCTION__, 'Verarbeite UpdateInfo', 0);
-                return $this->UpdateDeviceInfo();
-            },
-            // Behandelt ShowMissingTranslations
-            $ident == 'ShowMissingTranslations' => function ()
-            {
-                $this->SendDebug(__FUNCTION__, 'Verarbeite ShowMissingTranslations', 0);
-                return $this->ShowMissingTranslations();
-            },
-            // Behandelt Presets - WICHTIG: Vor dem Composite Key Check!
-            strpos($ident, 'presets') !== false => function () use ($ident, $value)
-            {
-                $this->SendDebug(__FUNCTION__, 'Verarbeite Preset: ' . $ident, 0);
-                return $this->handlePresetVariable($ident, $value);
-            },
-            // Behandelt _and_ Keys - WICHTIG: Vor dem Composite Key Check!
-            strpos($ident, '_and_') !== false => function () use ($ident, $value)
-            {
-                $ident = str_replace('_and_', '&', $ident);
-                $this->SendDebug(__FUNCTION__, 'recall action: ' . $ident, 0);
-                return $this->RequestAction($ident, $value);
-            },
-            // Behandelt Composite Keys (z.B. color_options__execute_if_off)
-            strpos($ident, '__') !== false => function () use ($ident, $value)
-            {
-                $this->SendDebug(__FUNCTION__, 'Verarbeite Composite Key: ' . $ident, 0);
-                $payload = $this->buildNestedPayload($ident, $value);
-                return $this->SendSetCommand($payload);
-            },
-            // Behandelt String-Variablen ohne Rückmeldung
-            \in_array($ident, self::$stringVariablesNoResponse) => function () use ($ident, $value)
-            {
-                $this->SendDebug(__FUNCTION__, 'Verarbeite String ohne Rückmeldung: ' . $ident, 0);
-                return $this->handleStringVariableNoResponse($ident, (string) $value);
-            },
-            // Behandelt Farbvariablen (exakte Namen prüfen)
-            \in_array($ident, ['color', 'color_hs', 'color_rgb', 'color_temp_kelvin']) => function () use ($ident, $value)
-            {
-                $this->SendDebug(__FUNCTION__, 'Verarbeite Farbvariable: ' . $ident, 0);
-                return $this->handleColorVariable($ident, $value);
-            },
-            // Behandelt Status-Variablen
-            preg_match(self::STATE_PATTERN['SYMCON'], $ident) => function () use ($ident, $value)
-            {
-                $this->SendDebug(__FUNCTION__, 'Verarbeite Status-Variable: ' . $ident, 0);
-                return $this->handleStateVariable($ident, $value);
-            },
-            // Behandelt Standard-Variablen
-            default => function () use ($ident, $value)
-            {
-                $this->SendDebug(__FUNCTION__, 'Verarbeite Standard-Variable: ' . $ident, 0);
-                return $this->handleStandardVariable($ident, $value);
-            },
-        };
-
-        $result = $handled();
-
-        if ($result === false) {
-            //hier eine exception werfen?
-            $this->SendDebug(__FUNCTION__, 'Fehler beim Verarbeiten der Aktion: ' . $ident . ' (Rückgabewert false)', 0);
-        } else {
-            $this->SendDebug(__FUNCTION__, 'Aktion erfolgreich verarbeitet: ' . $ident, 0);
-        }
-
+public function RequestAction($ident, $value)
+{
+    // Guard
+    if (!is_string($ident) || $ident === '') {
+        return;
     }
+
+    $this->SendDebug(__FUNCTION__, 'Ident: ' . $ident . ' | Value: ' . json_encode($value), 0);
+
+    $handled = match (true) {
+
+        /* -----------------------------------------------------------
+         * SYSTEM ACTIONS
+         * ----------------------------------------------------------- */
+        $ident === 'UpdateInfo' => function () {
+            return $this->UpdateDeviceInfo();
+        },
+
+        $ident === 'ShowMissingTranslations' => function () {
+            return $this->ShowMissingTranslations();
+        },
+
+        /* -----------------------------------------------------------
+         * PRESETS
+         * ----------------------------------------------------------- */
+        str_contains($ident, 'presets') => function () use ($ident, $value) {
+            return $this->handlePresetVariable($ident, $value);
+        },
+
+        /* -----------------------------------------------------------
+         * _and_ → & (Legacy Support)
+         * ----------------------------------------------------------- */
+        str_contains($ident, '_and_') => function () use ($ident, $value) {
+            $newIdent = str_replace('_and_', '&', $ident);
+            return $this->RequestAction($newIdent, $value);
+        },
+
+        /* -----------------------------------------------------------
+         * COMPOSITE KEYS (z. B. color_options__execute_if_off)
+         * ----------------------------------------------------------- */
+        str_contains($ident, '__') => function () use ($ident, $value) {
+
+            $payload = $this->buildNestedPayload($ident, $value);
+
+            $this->SendDebug(__FUNCTION__, 'Composite Payload: ' . json_encode($payload), 0);
+
+            return $this->SendSetCommand($payload);
+        },
+
+        /* -----------------------------------------------------------
+         * STRING VARIABLES (NO RESPONSE)
+         * ----------------------------------------------------------- */
+        \in_array($ident, self::$stringVariablesNoResponse, true) => function () use ($ident, $value) {
+            return $this->handleStringVariableNoResponse($ident, (string) $value);
+        },
+
+        /* -----------------------------------------------------------
+         * COLOR VARIABLES
+         * ----------------------------------------------------------- */
+        \in_array($ident, ['color', 'color_hs', 'color_rgb', 'color_temp_kelvin'], true) => function () use ($ident, $value) {
+
+            $this->SendDebug(__FUNCTION__, 'Color handling for: ' . $ident, 0);
+
+            return $this->handleColorVariable($ident, $value);
+        },
+
+        /* -----------------------------------------------------------
+         * STATE VARIABLES (optional Mapping)
+         * ----------------------------------------------------------- */
+        preg_match(self::STATE_PATTERN['SYMCON'], $ident) === 1 => function () use ($ident, $value) {
+
+            $this->SendDebug(__FUNCTION__, 'State handling for: ' . $ident, 0);
+
+            return $this->handleStateVariable($ident, $value);
+        },
+
+        /* -----------------------------------------------------------
+         * DEFAULT → DIREKT AN Z2M
+         * ----------------------------------------------------------- */
+        default => function () use ($ident, $value) {
+
+            $payload = [
+                $ident => $value
+            ];
+
+            $this->SendDebug(__FUNCTION__, 'Default Payload: ' . json_encode($payload), 0);
+
+            return $this->SendSetCommand($payload);
+        },
+    };
+
+    $result = $handled();
+
+    if ($result === false) {
+        $this->SendDebug(__FUNCTION__, 'ERROR processing: ' . $ident, 0);
+    } else {
+        $this->SendDebug(__FUNCTION__, 'OK: ' . $ident, 0);
+    }
+}
     /**
      * ReceiveData
      *
