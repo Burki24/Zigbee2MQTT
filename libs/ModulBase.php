@@ -1987,65 +1987,6 @@ protected function mapExposesToVariables(array $exposes): void
         $this->SendDebug(__FUNCTION__, 'Inhalt: ' . json_encode($value), 0);
     }
 
-    private function processSpecialCases(string $key, mixed &$value, string $lowerKey, array $variableProps): bool
-    {
-        /* -----------------------------------------------------------
-         * BRIGHTNESS (0–255 → 0–100)
-         * ----------------------------------------------------------- */
-        if ($lowerKey === 'brightness') {
-    
-            // nur für Lichtgruppen sinnvoll
-            if (($variableProps['group_type'] ?? '') === 'light') {
-    
-                // wenn Gerät 0–255 liefert
-                $max = $variableProps['value_max'] ?? 255;
-    
-                if ($max === 255) {
-                    $this->SendDebug(__FUNCTION__, 'Brightness 255 → 100', 0);
-    
-                    $value = (int) round($value / 255 * 100);
-                }
-            }
-    
-            return false;
-        }
-    
-        /* -----------------------------------------------------------
-         * VOLTAGE (mV → V)
-         * ----------------------------------------------------------- */
-        if ($lowerKey === 'voltage') {
-    
-            $this->SendDebug(__FUNCTION__, 'Voltage vor Konvertierung: ' . $value, 0);
-    
-            // nur wenn Wert offensichtlich mV ist
-            if ($value > 1000) {
-                $value = self::convertMillivoltToVolt($value);
-            }
-    
-            $this->SendDebug(__FUNCTION__, 'Voltage nach Konvertierung: ' . $value, 0);
-    
-            return false;
-        }
-    
-        /* -----------------------------------------------------------
-         * LAST_SEEN (ms → s)
-         * ----------------------------------------------------------- */
-        if ($lowerKey === 'last_seen') {
-    
-            if ($value > 1000000000000) { // ms timestamp
-                $this->SendDebug(__FUNCTION__, 'last_seen ms → s', 0);
-                $value = (int) round($value / 1000);
-            }
-    
-            return false;
-        }
-    
-        /* -----------------------------------------------------------
-         * DEFAULT
-         * ----------------------------------------------------------- */
-        return false;
-    }
-
     /**
      * handleStandardVariable
      *
