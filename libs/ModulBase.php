@@ -1319,13 +1319,23 @@ abstract class ModulBase extends \IPSModule
          * ----------------------------------------------------------- */
         $singleProperties = [];
     
-        foreach ($exposes as $expose) {
-            if (!isset($expose['features'])) {
-                $prop = $expose['property'] ?? $expose['name'] ?? '';
-                if ($prop !== '') {
-                    $singleProperties[$prop] = true;
-                }
+        foreach ($expose['features'] as $feature) {
+        
+            $property = $feature['property'] ?? '';
+        
+            // 🔥 HIER EINBAUEN
+            if (isset($singleProperties[$property])) {
+                $this->SendDebug(__FUNCTION__, 'Skip duplicate group feature: ' . $property, 0);
+                continue;
             }
+        
+            if ($property !== '' && \in_array($property, $aFiltered, true)) {
+                continue;
+            }
+        
+            $feature['group_type'] = $exposeType;
+        
+            $this->registerVariable($feature, $singleProperties);
         }
     
         /* -----------------------------------------------------------
