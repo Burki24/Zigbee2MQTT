@@ -1351,83 +1351,113 @@ public function RequestAction($ident, $value)
      * @see is_array()
      * @see json_encode()
      */
-protected function mapExposesToVariables(array $exposes): void
-{
-    $this->SendDebug(__FUNCTION__ . ' :: All Exposes', json_encode($exposes), 0);
-
-    $aFiltered = $this->ReadAttributeArray(self::ATTRIBUTE_FILTERED);
-
-    /* -----------------------------------------------------------
-     * SINGLE PROPERTIES SAMMELN (für Deduplizierung)
-     * ----------------------------------------------------------- */
-    $singleProperties = [];
-
-    foreach ($exposes as $expose) {
-        if (!isset($expose['features'])) {
-            $prop = $expose['property'] ?? $expose['name'] ?? '';
-            if ($prop !== '') {
-                $singleProperties[$prop] = true;
+    protected function mapExposesToVariables(array $exposes): void
+    {
+        $this->SendDebug(__FUNCTION__ . ' :: All Exposes', json_encode($exposes), 0);
+    
+        // Gefilterte Attribute (Z2M Config)
+        $aFiltered = $this->ReadAttributeArray(self::ATTRIBUTE_FILTERED);
+    
+        /* -----------------------------------------------------------
+         * SINGLE PROPERTIES SAMMELN (für Deduplizierung)
+         * ----------------------------------------------------------- */
+        $singleProperties = [];
+    
+        foreach ($exposes as $expose) {
+            if (!isset($expose['features'])) {
+                $prop = $expose['property'] ?? $expose['name'] ?? '';
+                if ($prop !== '') {
+                    $singleProperties[$prop] = true;
+                }
+            }
+        }
+    
+        /* -----------------------------------------------------------
+         * HAUPT-LOOP
+         * ----------------------------------------------------------- */
+        foreach ($exposes as $expose) {
+    
+            /* -----------------------------------------------------------
+             * GROUP EXPOSES (light, cover, etc.)
+             * ----------------------------------------------------------- */
+            if (isset($expose['features']) && \is_array($expose['features'])) {
+    
+                $this->SendDebug(__FUNCTION__, 'Found group: ' . ($expose['type'] ?? ''), 0);
+    
+                foreach ($expose['features'] as $feature) {
+    
+                    $property = $feature['property'] ?? '';
+                    $name     = $feature['name'] ?? '';
+    
+                    // 🔹 Skip ungültig / gefiltert
+                    if ($property === '' || \in_array($property, $aFiltered, true)) {
+                        continue;
+                    }
+    
+                    /* -----------------------------------------------------------
+                     * 🔥 COLOR HANDLING (SPEZIAL!)
+                     * ----------------------------------------------------------- */
+                    if ($name !== '' && str_starts_with($name, 'color')) {
+    
+                        $this->SendDebug(__FUNCTION__, 'Color feature detected: ' . $name, 0);
+    
+                        $this->registerColorVariable($feature);
+    
+                        continue;
+                    }
+    
+                    /* -----------------------------------------------------------
+                     * 🔥 DUPLIKATE VERMEIDEN (z. B. state)
+                     * ----------------------------------------------------------- */
+                    if (isset($singleProperties[$property])) {
+                        $this->SendDebug(__FUNCTION__, 'Skip duplicate group feature: ' . $property, 0);
+                        continue;
+                    }
+    
+                    /* -----------------------------------------------------------
+                     * STANDARD FEATURE
+                     * ----------------------------------------------------------- */
+                    $this->registerVariable($feature);
+                }
+    
+                continue;
+            }
+    
+            /* -----------------------------------------------------------
+             * SINGLE EXPOSES
+             * ----------------------------------------------------------- */
+            $property = $expose['property'] ?? '';
+    
+            if ($property === '' || \in_array($property, $aFiltered, true)) {
+                continue;
+            }
+    
+            $this->SendDebug(__FUNCTION__, 'Processing single expose: ' . json_encode($expose), 0);
+    
+            $this->registerVariable($expose);
+    
+            /* -----------------------------------------------------------
+             * PRESETS
+             * ----------------------------------------------------------- */
+            if (isset($expose['presets'])) {
+    
+                $variableType = $this->getVariableTypeFromProfile(
+                    $expose['type'],
+                    $expose['property'],
+                    $expose['unit'] ?? '',
+                    $expose['value_step'] ?? 1.0,
+                    null
+                );
+    
+                $this->registerPresetVariables(
+                    $expose['presets'],
+                    $expose['property'],
+                    $variableType,
+                    $expose
+                );
             }
         }
     }
-
-    foreach ($exposes as $expose) {
-
-        /* -----------------------------------------------------------
-         * GROUP EXPOSES → NUR Features verarbeiten, wenn NICHT global
-         * ----------------------------------------------------------- */
-        if (isset($expose['features']) && \is_array($expose['features'])) {
-
-            foreach ($expose['features'] as $feature) {
-
-                $property = $feature['property'] ?? '';
-
-                if ($property === '' || \in_array($property, $aFiltered, true)) {
-                    continue;
-                }
-
-                // 🔥 WICHTIG: globale Properties NICHT doppelt anlegen
-                if (isset($singleProperties[$property])) {
-                    continue;
-                }
-
-                $this->registerVariable($feature);
-            }
-
-            continue;
-        }
-
-        /* -----------------------------------------------------------
-         * SINGLE EXPOSES
-         * ----------------------------------------------------------- */
-        $property = $expose['property'] ?? '';
-
-        if ($property === '' || \in_array($property, $aFiltered, true)) {
-            continue;
-        }
-
-        $this->registerVariable($expose);
-
-        // Presets
-        if (isset($expose['presets'])) {
-
-            $variableType = $this->getVariableTypeFromProfile(
-                $expose['type'],
-                $expose['property'],
-                $expose['unit'] ?? '',
-                $expose['value_step'] ?? 1.0,
-                null
-            );
-
-            $this->registerPresetVariables(
-                $expose['presets'],
-                $expose['property'],
-                $variableType,
-                $expose
-            );
-        }
-    }
-}
 
     /**
      * LoadDeviceInfo
