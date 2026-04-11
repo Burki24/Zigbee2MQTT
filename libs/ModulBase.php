@@ -1417,8 +1417,7 @@ public function RequestAction($ident, $value)
                     /* -----------------------------------------------------------
                      * 🔥 COLOR HANDLING (SPEZIAL!)
                      * ----------------------------------------------------------- */
-                    if ($name !== '' && str_starts_with($name, 'color')) {
-    
+                    if ($name !== '' && \in_array($name, ['color_xy', 'color_hs', 'color_rgb'], true))    
                         $this->SendDebug(__FUNCTION__, 'Color feature detected: ' . $name, 0);
     
                         $this->registerColorVariable($feature);
