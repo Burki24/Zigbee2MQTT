@@ -3982,6 +3982,12 @@ private function registerVariableProfile(array $expose): string
      */
     protected function registerVariable(array $data, array $singleProperties = []): int
     {
+        {
+        // 🔥 FIX: falsche Übergaben abfangen (Legacy-Kompatibilität)
+        if (!is_array($singleProperties)) {
+            $this->SendDebug(__FUNCTION__, 'Invalid singleProperties, fallback used', 0);
+            $singleProperties = [];
+        }
         /* -----------------------------------------------------------
          * PROPERTY / IDENT
          * ----------------------------------------------------------- */
