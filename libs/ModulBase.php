@@ -1314,6 +1314,23 @@ abstract class ModulBase extends \IPSModule
         // Gefilterte Attribute laden (Z2M config)
         $aFiltered = $this->ReadAttributeArray(self::ATTRIBUTE_FILTERED);
     
+        /* -----------------------------------------------------------
+         * 🔥 STEP 1: SINGLE PROPERTIES SAMMELN
+         * ----------------------------------------------------------- */
+        $singleProperties = [];
+    
+        foreach ($exposes as $expose) {
+            if (!isset($expose['features'])) {
+                $prop = $expose['property'] ?? $expose['name'] ?? '';
+                if ($prop !== '') {
+                    $singleProperties[$prop] = true;
+                }
+            }
+        }
+    
+        /* -----------------------------------------------------------
+         * HAUPT-LOOP
+         * ----------------------------------------------------------- */
         foreach ($exposes as $expose) {
     
             $exposeType = $expose['type'] ?? '';
@@ -1335,16 +1352,21 @@ abstract class ModulBase extends \IPSModule
                         continue;
                     }
     
+                    // 🔥 AUTO-DETECTION: doppelte globale Properties vermeiden
+                    if (isset($singleProperties[$property])) {
+                        $this->SendDebug(__FUNCTION__, 'Skip group feature (global handled): ' . $property, 0);
+                        continue;
+                    }
+    
                     $this->SendDebug(__FUNCTION__, 'Processing feature: ' . json_encode($feature), 0);
     
                     // Kontext setzen
                     $feature['group_type'] = $exposeType;
     
                     // Variable registrieren
-                    $this->registerVariable($feature);
+                    $this->registerVariable($feature, $singleProperties);
                 }
     
-                // 🔥 WICHTIG: hier gehört das continue hin!
                 continue;
             }
     
@@ -1361,7 +1383,7 @@ abstract class ModulBase extends \IPSModule
             $this->SendDebug(__FUNCTION__, 'Processing single expose: ' . json_encode($expose), 0);
     
             // Variable registrieren
-            $this->registerVariable($expose);
+            $this->registerVariable($expose, $singleProperties);
     
             // Presets (bestehende Logik bleibt)
             if (isset($expose['presets'])) {
