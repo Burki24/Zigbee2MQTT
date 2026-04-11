@@ -1341,7 +1341,7 @@ abstract class ModulBase extends \IPSModule
                     $feature['group_type'] = $exposeType;
 
                     // 🔹 Variable registrieren
-                    $varID = $this->registerVariable($feature);
+                    $this->registerVariable($feature);
 
                 continue;
             }
@@ -1359,7 +1359,7 @@ abstract class ModulBase extends \IPSModule
             $this->SendDebug(__FUNCTION__, 'Processing single expose: ' . json_encode($expose), 0);
 
             // 🔹 Variable registrieren
-            $varID = $this->registerVariable($expose);
+            $this->registerVariable($expose);
 
             // 🔹 Presets (bestehende Logik bleibt!)
             if (isset($expose['presets'])) {
