@@ -2737,8 +2737,7 @@ protected function mapExposesToVariables(array $exposes): void
          * ----------------------------------------------------------- */
         if ($lowerKey === 'brightness') {
             if ($value > 100) {
-                $value = (int) round($value / 255 * 100);
-            }
+                $value = $this->normalizeValueToRange((float)$value, true);            }
             return false;
         }
     
