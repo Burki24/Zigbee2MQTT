@@ -2970,71 +2970,153 @@ abstract class ModulBase extends \IPSModule
      * @see str_replace()
      *
      */
-    private function registerVariableProfile(array $expose): string
-    {
-        $type = $expose['type'] ?? '';
-        $property = $expose['property'] ?? $expose['name'];
-        $ProfileName = 'Z2M.' . strtolower($property);
+private function registerVariableProfile(array $expose): string
+{
+    $type     = $expose['type'] ?? '';
+    $property = $expose['property'] ?? $expose['name'] ?? '';
 
-        // Entferne das doppelte Präfix, falls vorhanden
-        $ProfileName = str_replace('Z2M.Z2M_', 'Z2M.', $ProfileName);
-        $ProfileName = str_replace('&', '_and_', $ProfileName);
-
-        // State-Mapping prüfen
-        if (isset(self::$stateDefinitions[$property])) {
-            return $this->registerStateMappingProfile($property);
-        }
-
-        // Enum-Profil-Logik
-        if ($type === 'enum' && isset($expose['values'])) {
-            return $this->registerEnumProfile($expose, $ProfileName);
-        }
-
-        // Standard-Profil prüfen
-        if ($type === 'binary') {
-            if (isset($expose['value_on']) && isset($expose['value_off'])) {
-                $valueOn = $expose['value_on'];
-                $valueOff = $expose['value_off'];
-
-                // Prüfen, ob die Werte Strings sind, bevor strtoupper verwendet wird
-                if (
-                    ($valueOn === true && $valueOff === false) ||
-                    ($valueOn === false && $valueOff === true) ||
-                    (
-                        \is_string($valueOn) && \is_string($valueOff) &&
-                        (
-                            (strtoupper($valueOn) === 'ON' && strtoupper($valueOff) === 'OFF') ||
-                            (strtoupper($valueOn) === 'TRUE' && strtoupper($valueOff) === 'FALSE')
-                        )
-                    )
-                ) {
-                    return '~Switch';
-                } else {
-                    // Erstelle Profilwerte für boolean-Variable
-                    $profileValues = [
-                        [false, $this->convertLabelToName($valueOff), '', 0xFF0000],  // Rot für Aus (false)
-                        [true, $this->convertLabelToName($valueOn), '', 0x00FF00]     // Grün für An (true)
-                    ];
-
-                    // Registriere das Boolean-Profil direkt
-                    $this->RegisterProfileBooleanEx(
-                        $ProfileName,
-                        'Power',  // Icon
-                        '',       // Prefix
-                        '',       // Suffix
-                        $profileValues
-                    );
-
-                    $this->SendDebug(__FUNCTION__, 'Custom Boolean-Profil erstellt: ' . $ProfileName . ' mit Werten: ' . json_encode($profileValues), 0);
-                    return $ProfileName;
-                }
-            }
-            return '~Switch';
-        }
-
-        // Typ-spezifisches Profil erstellen
-        return $this->handleProfileType($type, $expose, $ProfileName);
+    if ($property === '') {
+        $this->SendDebug(__FUNCTION__, 'Property fehlt!', 0);
+        return '';
     }
+
+    /* -----------------------------------------------------------
+     * PROFILENAME BASIS
+     * ----------------------------------------------------------- */
+    $ProfileName = 'Z2M.' . strtolower($property);
+
+    // Cleanup
+    $ProfileName = str_replace('Z2M.Z2M_', 'Z2M.', $ProfileName);
+    $ProfileName = str_replace('&', '_and_', $ProfileName);
+
+    /* -----------------------------------------------------------
+     * STATE MAPPING (BEHALTEN!)
+     * ----------------------------------------------------------- */
+    if (isset(self::$stateDefinitions[$property])) {
+        return $this->registerStateMappingProfile($property);
+    }
+
+    /* -----------------------------------------------------------
+     * ENUM (Dropdown in Tile)
+     * ----------------------------------------------------------- */
+    if ($type === 'enum' && isset($expose['values'])) {
+        $profileName = 'Z2M.Enum.' . strtolower($property);
+        return $this->registerEnumProfile($expose, $profileName);
+    }
+
+    /* -----------------------------------------------------------
+     * BINARY
+     * ----------------------------------------------------------- */
+    if ($type === 'binary') {
+
+        if (isset($expose['value_on'], $expose['value_off'])) {
+
+            $valueOn  = $expose['value_on'];
+            $valueOff = $expose['value_off'];
+
+            // Standardfälle → ~Switch nutzen
+            if (
+                ($valueOn === true && $valueOff === false) ||
+                ($valueOn === false && $valueOff === true) ||
+                (
+                    \is_string($valueOn) && \is_string($valueOff) &&
+                    (
+                        (strtoupper($valueOn) === 'ON' && strtoupper($valueOff) === 'OFF') ||
+                        (strtoupper($valueOn) === 'TRUE' && strtoupper($valueOff) === 'FALSE')
+                    )
+                )
+            ) {
+                return '~Switch';
+            }
+
+            // Custom Boolean-Profil nur wenn nötig
+            $profileName = 'Z2M.Bool.' . strtolower($property);
+
+            if (!\IPS_VariableProfileExists($profileName)) {
+
+                $profileValues = [
+                    [false, $this->convertLabelToName($valueOff), '', 0xFF0000],
+                    [true,  $this->convertLabelToName($valueOn),  '', 0x00FF00]
+                ];
+
+                $this->RegisterProfileBooleanEx(
+                    $profileName,
+                    'Power',
+                    '',
+                    '',
+                    $profileValues
+                );
+
+                $this->SendDebug(__FUNCTION__, 'Custom Boolean-Profil erstellt: ' . $profileName, 0);
+            }
+
+            return $profileName;
+        }
+
+        return '~Switch';
+    }
+
+    /* -----------------------------------------------------------
+     * NUMERIC (dein System: property_min_max)
+     * ----------------------------------------------------------- */
+    if ($type === 'numeric') {
+
+        // Standardprofile zuerst (verhindert Profil-Flut)
+        if (str_contains($property, 'temperature')) {
+            return '~Temperature';
+        }
+
+        if ($property === 'humidity') {
+            return '~Humidity';
+        }
+
+        if ($property === 'battery') {
+            return '~Battery.100';
+        }
+
+        if ($property === 'brightness') {
+            return '~Intensity.255';
+        }
+
+        if ($property === 'position') {
+            return '~Shutter';
+        }
+
+        // 🔥 Dein gewünschtes Schema
+        if (isset($expose['value_min'], $expose['value_max'])) {
+
+            $min = (int)$expose['value_min'];
+            $max = (int)$expose['value_max'];
+
+            $profileName = 'Z2M.' . strtolower($property) . '_' . $min . '_' . $max;
+
+            if (!\IPS_VariableProfileExists($profileName)) {
+
+                $isFloat = isset($expose['value_step']) && is_float($expose['value_step']);
+                $varType = $isFloat ? VARIABLETYPE_FLOAT : VARIABLETYPE_INTEGER;
+
+                \IPS_CreateVariableProfile($profileName, $varType);
+
+                $step = $expose['value_step'] ?? 1;
+
+                \IPS_SetVariableProfileValues($profileName, $min, $max, $step);
+
+                if (isset($expose['unit'])) {
+                    \IPS_SetVariableProfileText($profileName, '', ' ' . $expose['unit']);
+                }
+
+                $this->SendDebug(__FUNCTION__, 'Numeric-Profil erstellt: ' . $profileName, 0);
+            }
+
+            return $profileName;
+        }
+    }
+
+    /* -----------------------------------------------------------
+     * FALLBACK
+     * ----------------------------------------------------------- */
+    return $this->handleProfileType($type, $expose, $ProfileName);
+}
 
     /**
      * getStandardProfile
