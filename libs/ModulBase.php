@@ -1426,6 +1426,27 @@ public function RequestAction($ident, $value)
                     }
     
                     /* -----------------------------------------------------------
+                     * 🔥 COLOR TEMP → KELVIN VARIABLE VORAB ANLEGEN
+                     * ----------------------------------------------------------- */
+                    if ($property === 'color_temp') {
+    
+                        $kelvinIdent = 'color_temp_kelvin';
+    
+                        if (@\IPS_GetObjectIDByIdent($kelvinIdent, $this->InstanceID) === false) {
+    
+                            $this->SendDebug(__FUNCTION__, 'Pre-create Kelvin variable (group)', 0);
+    
+                            $this->RegisterVariableInteger(
+                                $kelvinIdent,
+                                $this->Translate('Color temperature (Kelvin)'),
+                                ''
+                            );
+    
+                            $this->checkAndEnableAction($kelvinIdent, null, true);
+                        }
+                    }
+    
+                    /* -----------------------------------------------------------
                      * 🔥 DUPLIKATE VERMEIDEN (z. B. state)
                      * ----------------------------------------------------------- */
                     if (isset($singleProperties[$property])) {
@@ -1452,6 +1473,27 @@ public function RequestAction($ident, $value)
             }
     
             $this->SendDebug(__FUNCTION__, 'Processing single expose: ' . json_encode($expose), 0);
+    
+            /* -----------------------------------------------------------
+             * 🔥 COLOR TEMP → KELVIN VARIABLE VORAB ANLEGEN
+             * ----------------------------------------------------------- */
+            if ($property === 'color_temp') {
+    
+                $kelvinIdent = 'color_temp_kelvin';
+    
+                if (@\IPS_GetObjectIDByIdent($kelvinIdent, $this->InstanceID) === false) {
+    
+                    $this->SendDebug(__FUNCTION__, 'Pre-create Kelvin variable (single)', 0);
+    
+                    $this->RegisterVariableInteger(
+                        $kelvinIdent,
+                        $this->Translate('Color temperature (Kelvin)'),
+                        ''
+                    );
+    
+                    $this->checkAndEnableAction($kelvinIdent, null, true);
+                }
+            }
     
             $this->registerVariable($expose);
     
