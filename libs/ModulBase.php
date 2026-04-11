@@ -3980,7 +3980,7 @@ private function registerVariableProfile(array $expose): string
      * @see ucfirst()
      * @see str_replace()
      */
-    protected function registerVariable(array $data): int
+    protected function registerVariable(array $data, array $singleProperties = []): int
     {
         /* -----------------------------------------------------------
          * PROPERTY / IDENT
