@@ -3906,7 +3906,7 @@ private function registerVariableProfile(array $expose): string
             return 0;
         }
     
-        // 👉 MQTT-konformer Ident
+        // MQTT-konformer Ident
         $ident = ($group !== '')
             ? strtolower($group . '_' . $property)
             : strtolower($property);
@@ -3914,68 +3914,24 @@ private function registerVariableProfile(array $expose): string
         $name = ucfirst(str_replace('_', ' ', $property));
     
         /* -----------------------------------------------------------
+         * PROFIL HOLEN (🔥 DEIN SYSTEM!)
+         * ----------------------------------------------------------- */
+        $profile = $this->registerVariableProfile($data);
+    
+        /* -----------------------------------------------------------
          * TYPE ERKENNUNG
          * ----------------------------------------------------------- */
         $type = $data['type'] ?? '';
     
-        /* -----------------------------------------------------------
-         * ENUM (z. B. presets, modes)
-         * ----------------------------------------------------------- */
-        if ($type === 'enum' && isset($data['values'])) {
+        switch ($type) {
     
-            $profile = 'Z2M.' . ucfirst($property);
-    
-            if (!IPS_VariableProfileExists($profile)) {
-                IPS_CreateVariableProfile($profile, VARIABLETYPE_STRING);
-    
-                foreach ($data['values'] as $value) {
-                    IPS_SetVariableProfileAssociation($profile, $value, $value, '', -1);
-                }
-            }
-    
-            $this->RegisterVariableString($ident, $name, $profile);
-    
-            return $this->GetIDForIdent($ident);
-        }
-    
-        /* -----------------------------------------------------------
-         * PROFIL BESTIMMUNG (leicht & modern)
-         * ----------------------------------------------------------- */
-        $profile = '';
-    
-        switch (true) {
-    
-            // 🔹 Boolean / Switch
-            case $type === 'binary':
-                $profile = '~Switch';
+            case 'binary':
                 $this->RegisterVariableBoolean($ident, $name, $profile);
                 break;
     
-            // 🔹 Numeric
-            case $type === 'numeric':
+            case 'numeric':
     
-                // Float oder Integer unterscheiden
                 $isFloat = isset($data['value_step']) && is_float($data['value_step']);
-    
-                // Temperatur
-                if (str_contains($property, 'temperature')) {
-                    $profile = '~Temperature';
-                }
-    
-                // Helligkeit
-                elseif ($property === 'brightness') {
-                    $profile = '~Intensity.255';
-                }
-    
-                // Position (Cover)
-                elseif ($property === 'position') {
-                    $profile = '~Shutter';
-                }
-    
-                // Batterie
-                elseif ($property === 'battery') {
-                    $profile = '~Battery.100';
-                }
     
                 if ($isFloat) {
                     $this->RegisterVariableFloat($ident, $name, $profile);
@@ -3985,14 +3941,17 @@ private function registerVariableProfile(array $expose): string
     
                 break;
     
-            // 🔹 Fallback
+            case 'enum':
+                $this->RegisterVariableString($ident, $name, $profile);
+                break;
+    
             default:
-                $this->RegisterVariableString($ident, $name);
+                $this->RegisterVariableString($ident, $name, $profile);
                 break;
         }
     
         /* -----------------------------------------------------------
-         * VAR ID ZURÜCKGEBEN (WICHTIG!)
+         * VAR ID ZURÜCKGEBEN
          * ----------------------------------------------------------- */
         $varID = @IPS_GetObjectIDByIdent($ident, $this->InstanceID);
     
