@@ -598,6 +598,24 @@ public function RequestAction($ident, $value)
         },
 
         /* -----------------------------------------------------------
+         * BRIGHTNESS (🔥 WICHTIG!)
+         * ----------------------------------------------------------- */
+        $ident === 'brightness' => function () use ($ident, $value) {
+        
+            $this->SendDebug(__FUNCTION__, 'Brightness handling (normalize to device)', 0);
+        
+            $value = $this->normalizeValueToRange((float)$value, true);
+        
+            $payload = [
+                $ident => $value
+            ];
+        
+            $this->SendDebug(__FUNCTION__, 'Brightness Payload: ' . json_encode($payload), 0);
+        
+            return $this->SendSetCommand($payload);
+        },
+
+        /* -----------------------------------------------------------
          * COMPOSITE KEYS (z. B. color_options__execute_if_off)
          * ----------------------------------------------------------- */
         str_contains($ident, '__') => function () use ($ident, $value) {
