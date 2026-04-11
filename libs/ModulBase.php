@@ -4057,32 +4057,8 @@ public function RequestAction($ident, $value)
             return 0;
         }
     
-        // 🔥 FINAL: KEINE GROUP MEHR
         $ident = strtolower($property);
         $name  = ucfirst(str_replace('_', ' ', $property));
-    
-        /* -----------------------------------------------------------
-         * 🔥 COLOR HANDLING (WICHTIG!)
-         * ----------------------------------------------------------- */
-        if (\in_array($property, ['color', 'color_rgb'], true)) {
-    
-            $this->SendDebug(__FUNCTION__, 'Register color as INTEGER', 0);
-    
-            $this->RegisterVariableInteger($ident, $name, '~HexColor');
-            $this->checkAndEnableAction($ident, $data, true);
-    
-            return \IPS_GetObjectIDByIdent($ident, $this->InstanceID);
-        }
-    
-        if (\in_array($property, ['color_temp', 'color_temp_kelvin'], true)) {
-    
-            $this->SendDebug(__FUNCTION__, 'Register color_temp as INTEGER', 0);
-    
-            $this->RegisterVariableInteger($ident, $name, '~ColorTemperature');
-            $this->checkAndEnableAction($ident, $data);
-    
-            return \IPS_GetObjectIDByIdent($ident, $this->InstanceID);
-        }
     
         /* -----------------------------------------------------------
          * SPECIAL VARIABLES (höchste Priorität)
@@ -4117,46 +4093,42 @@ public function RequestAction($ident, $value)
     
             $this->checkAndEnableAction($ident, $data, true);
     
-            return \IPS_GetObjectIDByIdent($ident, $this->InstanceID);
+            $varID = @\IPS_GetObjectIDByIdent($ident, $this->InstanceID);
+            return $varID === false ? 0 : $varID;
         }
     
         /* -----------------------------------------------------------
-         * TYPE
-         * ----------------------------------------------------------- */
-        $type = $data['type'] ?? '';
-    
-        /* -----------------------------------------------------------
-         * NUMERIC (zentral)
-         * ----------------------------------------------------------- */
-        if ($type === 'numeric') {
-    
-            $result  = $this->registerNumericProfile($data);
-            $profile = $result['mainProfile'];
-            $varType = $result['type'];
-    
-            if ($varType === 'float') {
-                $this->RegisterVariableFloat($ident, $name, $profile);
-            } else {
-                $this->RegisterVariableInteger($ident, $name, $profile);
-            }
-    
-            $this->checkAndEnableAction($ident, $data);
-    
-            return \IPS_GetObjectIDByIdent($ident, $this->InstanceID);
-        }
-    
-        /* -----------------------------------------------------------
-         * PROFILE
+         * PROFILE (🔥 ZENTRALE LOGIK WIEDERHERGESTELLT)
          * ----------------------------------------------------------- */
         $profile = $this->registerVariableProfile($data);
     
         /* -----------------------------------------------------------
-         * REST
+         * TYPE ERKENNUNG
          * ----------------------------------------------------------- */
+        $type = $data['type'] ?? '';
+    
         switch ($type) {
     
             case 'binary':
                 $this->RegisterVariableBoolean($ident, $name, $profile);
+                break;
+    
+            case 'numeric':
+    
+                // 🔥 WICHTIG: Typ bestimmen (int vs float)
+                $variableType = $this->getVariableTypeFromProfile(
+                    $type,
+                    $property,
+                    $data['unit'] ?? '',
+                    $data['value_step'] ?? 1.0,
+                    null
+                );
+    
+                if ($variableType === 'float') {
+                    $this->RegisterVariableFloat($ident, $name, $profile);
+                } else {
+                    $this->RegisterVariableInteger($ident, $name, $profile);
+                }
                 break;
     
             case 'enum':
@@ -4168,9 +4140,22 @@ public function RequestAction($ident, $value)
                 break;
         }
     
+        /* -----------------------------------------------------------
+         * ACTION HANDLING
+         * ----------------------------------------------------------- */
         $this->checkAndEnableAction($ident, $data);
     
-        return \IPS_GetObjectIDByIdent($ident, $this->InstanceID);
+        /* -----------------------------------------------------------
+         * RETURN
+         * ----------------------------------------------------------- */
+        $varID = @\IPS_GetObjectIDByIdent($ident, $this->InstanceID);
+    
+        if ($varID === false) {
+            $this->SendDebug(__FUNCTION__, 'Variable not found: ' . $ident, 0);
+            return 0;
+        }
+    
+        return $varID;
     }
 
     /**
