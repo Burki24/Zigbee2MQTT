@@ -2594,55 +2594,6 @@ protected function mapExposesToVariables(array $exposes): void
     }
 
     // Spezialvariablen & Konvertierung
-
-    /**
-     * processSpecialVariable
-     *
-     * Verarbeitet spezielle Variablen mit besonderen Anforderungen
-     *
-     * Verarbeitungsschritte:
-     * 1. Prüft ob Variable in specialVariables definiert
-     * 2. Konvertiert Property zu Ident und Label
-     * 3. Registriert Variable falls nicht vorhanden
-     * 4. Passt Wert entsprechend Variablentyp an
-     * 5. Setzt Wert mit Debug-Ausgaben
-     *
-     * @param string $key Name der zu verarbeitenden Property
-     * @param mixed $value Zu setzender Wert
-     *                    Kann sein:
-     *                    - String: Direkter Wert
-     *                    - Array: Wird konvertiert
-     *                    - Bool: Wird angepasst
-     *                    - Int/Float: Wird skaliert
-     *
-     * @return bool True wenn Variable verarbeitet wurde,
-     *              False wenn keine Spezialvariable
-     *
-     * Beispiel:
-     * ```php
-     * // Verarbeitet Farbtemperatur
-     * $this->processSpecialVariable("color_temp", 4000);
-     *
-     * // Verarbeitet RGB-Farbe
-     * $this->processSpecialVariable("color", ["r" => 255, "g" => 0, "b" => 0]);
-     * ```
-     *
-     * @see \Zigbee2MQTT\ModulBase::processPayload() Ruft diese Methode auf
-     * @see \Zigbee2MQTT\ModulBase::processVariable() Ruft diese Methode auf
-     *
-     * @see \Zigbee2MQTT\ModulBase::convertLabelToName()
-     * @see \Zigbee2MQTT\ModulBase::getOrRegisterVariable()
-     * @see \Zigbee2MQTT\ModulBase::adjustSpecialValue()
-     * @see \Zigbee2MQTT\ModulBase::SetValueDirect()
-     * @see \IPSModule::SendDebug()
-     * @see is_array()
-     * @see json_encode()
-     * @see sprintf()
-     * @see gettype()
-     */
-
-        // Spezialvariablen & Konvertierung
-
     /**
      * processSpecialVariable
      *
