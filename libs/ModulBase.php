@@ -3870,7 +3870,12 @@ abstract class ModulBase extends \IPSModule
         }
 
         $this->SendDebug(__FUNCTION__ . ' Registriere Variable für Property: ', $featureProperty, 0);
-        $ident = $this->BuildIdent($data['property'] ?? '');
+        $property = $data['property'] ?? $data['name'] ?? '';
+        $group    = $data['group_type'] ?? '';
+
+        $ident = ($group !== '')
+            ? $group . '_' . $property
+            : $property;
         // Übergebe das komplette Feature-Array für Access-Check
         $stateConfig = $this->getStateConfiguration($featureProperty, \is_array($feature) ? $feature : null);
         if ($stateConfig !== null) {
