@@ -2642,7 +2642,44 @@ protected function mapExposesToVariables(array $exposes): void
      */
     private function processSpecialCases(string $key, mixed &$value, string $lowerKey, array $variableProps): bool
     {
-        /* Brightness 0–255 → 0–100 */
+        /* -----------------------------------------------------------
+         * COLOR (🔥 WICHTIG!)
+         * ----------------------------------------------------------- */
+        if ($lowerKey === 'color' && is_array($value)) {
+    
+            $this->SendDebug(__FUNCTION__, 'Processing color', 0);
+    
+            // Beispiel: XY oder RGB aus Z2M
+            if (isset($value['x'], $value['y'])) {
+    
+                // XY → RGB (über deinen Helper)
+                $rgb = $this->xyToRgb($value['x'], $value['y']);
+    
+                $value = $this->rgbToInt($rgb['r'], $rgb['g'], $rgb['b']);
+    
+                return false;
+            }
+    
+            if (isset($value['r'], $value['g'], $value['b'])) {
+    
+                $value = $this->rgbToInt($value['r'], $value['g'], $value['b']);
+    
+                return false;
+            }
+    
+            if (isset($value['h'], $value['s'], $value['b'])) {
+    
+                $rgb = $this->hsbToRgb($value['h'], $value['s'], $value['b']);
+    
+                $value = $this->rgbToInt($rgb['r'], $rgb['g'], $rgb['b']);
+    
+                return false;
+            }
+        }
+    
+        /* -----------------------------------------------------------
+         * BRIGHTNESS
+         * ----------------------------------------------------------- */
         if ($lowerKey === 'brightness') {
             if ($value > 100) {
                 $value = (int) round($value / 255 * 100);
@@ -2650,7 +2687,9 @@ protected function mapExposesToVariables(array $exposes): void
             return false;
         }
     
-        /* Voltage mV → V */
+        /* -----------------------------------------------------------
+         * VOLTAGE
+         * ----------------------------------------------------------- */
         if ($lowerKey === 'voltage') {
             if ($value > 1000) {
                 $value = $value / 1000;
@@ -2658,7 +2697,9 @@ protected function mapExposesToVariables(array $exposes): void
             return false;
         }
     
-        /* last_seen ms → s */
+        /* -----------------------------------------------------------
+         * LAST_SEEN
+         * ----------------------------------------------------------- */
         if ($lowerKey === 'last_seen') {
             if ($value > 1000000000000) {
                 $value = (int) ($value / 1000);
