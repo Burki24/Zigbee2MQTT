@@ -3680,94 +3680,107 @@ public function RequestAction($ident, $value)
      */
     private function registerNumericProfile(array $expose): array
     {
-        $type    = $expose['type'] ?? '';
-        $feature = $expose['property'] ?? '';
-        $unit    = isset($expose['unit']) && \is_string($expose['unit']) ? $expose['unit'] : '';
-        $value_step = isset($expose['value_step']) ? (float) $expose['value_step'] : 1.0;
+        $property = $expose['property'] ?? $expose['name'] ?? '';
+        $unit     = isset($expose['unit']) && \is_string($expose['unit']) ? $expose['unit'] : '';
     
-        // 🔥 Typ bestimmen (DEINE bestehende Logik!)
-        $variableType = $this->getVariableTypeFromProfile($type, $feature, $unit, $value_step);
-    
-        $this->SendDebug(__FUNCTION__, 'Initial Variable Type: ' . $variableType, 0);
-    
-        /* -----------------------------------------------------------
-         * STANDARDPROFILE
-         * ----------------------------------------------------------- */
-        $standardProfile = $this->getStandardProfile($type, $feature);
-        
-        // 🔥 WICHTIG: Wenn min/max vorhanden → KEIN Standardprofil!
-        if (
-            $standardProfile !== '' &&
-            !isset($expose['value_min']) &&
-            !isset($expose['value_max'])
-        ) {
+        if ($property === '') {
             return [
-                'mainProfile'   => $standardProfile,
+                'mainProfile'   => '',
                 'presetProfile' => null,
-                'type'          => $variableType
+                'type'          => VARIABLETYPE_INTEGER
             ];
         }
     
         /* -----------------------------------------------------------
-         * CUSTOM PROFILE
+         * MIN / MAX / STEP
          * ----------------------------------------------------------- */
-        $fullRangeProfileName = self::getFullRangeProfileName($expose);
+        $min  = isset($expose['value_min']) ? (float)$expose['value_min'] : 0;
+        $max  = isset($expose['value_max']) ? (float)$expose['value_max'] : 100;
+        $step = isset($expose['value_step']) ? (float)$expose['value_step'] : 1.0;
     
-        $min  = $expose['value_min'] ?? 0;
-        $max  = $expose['value_max'] ?? 0;
-        $step = $expose['value_step'] ?? 1.0;
+        /* -----------------------------------------------------------
+         * VARIABLE TYPE (FLOAT vs INTEGER)
+         * ----------------------------------------------------------- */
+        $isFloat = false;
     
-        $unitWithSpace = ($unit !== '') ? ' ' . $unit : '';
+        if ($step !== 1.0) {
+            $isFloat = true;
+        }
     
-        if ($variableType === 'float') {
-            $this->RegisterProfileFloat(
-                $fullRangeProfileName,
-                '',
-                '',
-                $unitWithSpace,
-                (float) $min,
-                (float) $max,
-                (float) $step,
-                2
-            );
+        if (floor($min) != $min || floor($max) != $max) {
+            $isFloat = true;
+        }
     
-            $this->SendDebug(__FUNCTION__, 'Created Float Profile: ' . $fullRangeProfileName, 0);
+        $varType = $isFloat ? VARIABLETYPE_FLOAT : VARIABLETYPE_INTEGER;
     
-        } else {
+        /* -----------------------------------------------------------
+         * PROFILNAME (🔥 DEIN SCHEMA!)
+         * Z2M.property_min_max
+         * ----------------------------------------------------------- */
+        $profileName = 'Z2M.' . strtolower($property) . '_' . (int)$min . '_' . (int)$max;
     
-            $this->RegisterProfileInteger(
-                $fullRangeProfileName,
-                '',
-                '',
-                $unitWithSpace,
-                (int) $min,
-                (int) $max,
-                (float) $step
-            );
+        $profileName = str_replace([' ', '.', '&'], ['_', '_', '_and_'], $profileName);
     
-            $this->SendDebug(__FUNCTION__, 'Created Integer Profile: ' . $fullRangeProfileName, 0);
+        /* -----------------------------------------------------------
+         * UNIT
+         * ----------------------------------------------------------- */
+        $suffix = $unit !== '' ? ' ' . $unit : '';
+    
+        /* -----------------------------------------------------------
+         * PROFIL ERSTELLEN
+         * ----------------------------------------------------------- */
+        if (!\IPS_VariableProfileExists($profileName)) {
+    
+            if ($varType === VARIABLETYPE_FLOAT) {
+    
+                $this->RegisterProfileFloat(
+                    $profileName,
+                    '',
+                    '',
+                    $suffix,
+                    $min,
+                    $max,
+                    $step,
+                    2
+                );
+    
+                $this->SendDebug(__FUNCTION__, 'Created FLOAT profile: ' . $profileName, 0);
+    
+            } else {
+    
+                $this->RegisterProfileInteger(
+                    $profileName,
+                    '',
+                    '',
+                    $suffix,
+                    (int)$min,
+                    (int)$max,
+                    $step
+                );
+    
+                $this->SendDebug(__FUNCTION__, 'Created INT profile: ' . $profileName, 0);
+            }
         }
     
         /* -----------------------------------------------------------
          * PRESETS
          * ----------------------------------------------------------- */
-        $presetProfileName = null;
+        $presetProfile = null;
     
-        if (isset($expose['presets']) && !empty($expose['presets'])) {
-            $formattedLabel = $this->convertLabelToName($feature);
+        if (isset($expose['presets']) && \is_array($expose['presets']) && !empty($expose['presets'])) {
     
-            $presetProfileName = $this->registerPresetProfile(
+            $presetProfile = $this->registerPresetProfile(
                 $expose['presets'],
-                $formattedLabel,
-                $variableType,
+                $property,
+                $varType,
                 $expose
             );
         }
     
         return [
-            'mainProfile'   => $fullRangeProfileName,
-            'presetProfile' => $presetProfileName,
-            'type'          => $variableType
+            'mainProfile'   => $profileName,
+            'presetProfile' => $presetProfile,
+            'type'          => $varType
         ];
     }
     /**
