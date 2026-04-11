@@ -4027,6 +4027,29 @@ protected function mapExposesToVariables(array $exposes): void
         $name  = ucfirst(str_replace('_', ' ', $property));
     
         /* -----------------------------------------------------------
+         * 🔥 COLOR HANDLING (WICHTIG!)
+         * ----------------------------------------------------------- */
+        if (\in_array($property, ['color', 'color_rgb'], true)) {
+    
+            $this->SendDebug(__FUNCTION__, 'Register color as INTEGER', 0);
+    
+            $this->RegisterVariableInteger($ident, $name, '~HexColor');
+            $this->checkAndEnableAction($ident, $data, true);
+    
+            return \IPS_GetObjectIDByIdent($ident, $this->InstanceID);
+        }
+    
+        if (\in_array($property, ['color_temp', 'color_temp_kelvin'], true)) {
+    
+            $this->SendDebug(__FUNCTION__, 'Register color_temp as INTEGER', 0);
+    
+            $this->RegisterVariableInteger($ident, $name, '~ColorTemperature');
+            $this->checkAndEnableAction($ident, $data);
+    
+            return \IPS_GetObjectIDByIdent($ident, $this->InstanceID);
+        }
+    
+        /* -----------------------------------------------------------
          * SPECIAL VARIABLES (höchste Priorität)
          * ----------------------------------------------------------- */
         $special = self::$specialVariables[$property] ?? null;
@@ -4042,24 +4065,22 @@ protected function mapExposesToVariables(array $exposes): void
     
                 case VARIABLETYPE_BOOLEAN:
                     $this->RegisterVariableBoolean($ident, $name, $profile);
-                    $this->checkAndEnableAction($ident, $data);
                     break;
     
                 case VARIABLETYPE_INTEGER:
                     $this->RegisterVariableInteger($ident, $name, $profile);
-                    $this->checkAndEnableAction($ident, $data);
                     break;
     
                 case VARIABLETYPE_FLOAT:
                     $this->RegisterVariableFloat($ident, $name, $profile);
-                    $this->checkAndEnableAction($ident, $data);
                     break;
     
                 default:
                     $this->RegisterVariableString($ident, $name, $profile);
-                    $this->checkAndEnableAction($ident, $data);
                     break;
             }
+    
+            $this->checkAndEnableAction($ident, $data, true);
     
             return \IPS_GetObjectIDByIdent($ident, $this->InstanceID);
         }
@@ -4080,11 +4101,11 @@ protected function mapExposesToVariables(array $exposes): void
     
             if ($varType === 'float') {
                 $this->RegisterVariableFloat($ident, $name, $profile);
-                $this->checkAndEnableAction($ident, $data);
             } else {
                 $this->RegisterVariableInteger($ident, $name, $profile);
-                $this->checkAndEnableAction($ident, $data);
             }
+    
+            $this->checkAndEnableAction($ident, $data);
     
             return \IPS_GetObjectIDByIdent($ident, $this->InstanceID);
         }
@@ -4101,19 +4122,18 @@ protected function mapExposesToVariables(array $exposes): void
     
             case 'binary':
                 $this->RegisterVariableBoolean($ident, $name, $profile);
-                $this->checkAndEnableAction($ident, $data);
                 break;
     
             case 'enum':
                 $this->RegisterVariableString($ident, $name, $profile);
-                $this->checkAndEnableAction($ident, $data);
                 break;
     
             default:
                 $this->RegisterVariableString($ident, $name, $profile);
-                $this->checkAndEnableAction($ident, $data);
                 break;
         }
+    
+        $this->checkAndEnableAction($ident, $data);
     
         return \IPS_GetObjectIDByIdent($ident, $this->InstanceID);
     }
