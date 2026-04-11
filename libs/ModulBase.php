@@ -1307,114 +1307,83 @@ abstract class ModulBase extends \IPSModule
      * @see is_array()
      * @see json_encode()
      */
-    protected function mapExposesToVariables(array $exposes): void
-    {
-        $this->SendDebug(__FUNCTION__ . ' :: All Exposes', json_encode($exposes), 0);
-    
-        // Gefilterte Attribute laden (Z2M config)
-        $aFiltered = $this->ReadAttributeArray(self::ATTRIBUTE_FILTERED);
-    
-        /* -----------------------------------------------------------
-         * 🔥 STEP 1: SINGLE PROPERTIES SAMMELN
-         * ----------------------------------------------------------- */
-        $singleProperties = [];
-    
-        foreach ($expose['features'] as $feature) {
-        
-            $property = $feature['property'] ?? '';
-        
-            // 🔥 HIER EINBAUEN
-            if (isset($singleProperties[$property])) {
-                $this->SendDebug(__FUNCTION__, 'Skip duplicate group feature: ' . $property, 0);
-                continue;
-            }
-        
-            if ($property !== '' && \in_array($property, $aFiltered, true)) {
-                continue;
-            }
-        
-            $feature['group_type'] = $exposeType;
-        
-            $this->registerVariable($feature, $singleProperties);
-        }
-    
-        /* -----------------------------------------------------------
-         * HAUPT-LOOP
-         * ----------------------------------------------------------- */
-        foreach ($exposes as $expose) {
-    
-            $exposeType = $expose['type'] ?? '';
-    
-            /* -----------------------------------------------------------
-             * GROUP EXPOSES (light, cover, climate, etc.)
-             * ----------------------------------------------------------- */
-            if (isset($expose['features']) && \is_array($expose['features'])) {
-    
-                $this->SendDebug(__FUNCTION__, 'Found group: ' . $exposeType, 0);
-    
-                foreach ($expose['features'] as $feature) {
-    
-                    $property = $feature['property'] ?? '';
-    
-                    // Gefilterte Attribute überspringen
-                    if ($property !== '' && \in_array($property, $aFiltered, true)) {
-                        $this->SendDebug(__FUNCTION__, 'Skipping filtered attribute: ' . $property, 0);
-                        continue;
-                    }
-    
-                    // 🔥 AUTO-DETECTION: doppelte globale Properties vermeiden
-                    if (isset($singleProperties[$property])) {
-                        $this->SendDebug(__FUNCTION__, 'Skip group feature (global handled): ' . $property, 0);
-                        continue;
-                    }
-    
-                    $this->SendDebug(__FUNCTION__, 'Processing feature: ' . json_encode($feature), 0);
-    
-                    // Kontext setzen
-                    $feature['group_type'] = $exposeType;
-    
-                    // Variable registrieren
-                    $this->registerVariable($feature, $singleProperties);
-                }
-    
-                continue;
-            }
-    
-            /* -----------------------------------------------------------
-             * SINGLE EXPOSES (Sensoren etc.)
-             * ----------------------------------------------------------- */
-            $property = $expose['property'] ?? '';
-    
-            if ($property !== '' && \in_array($property, $aFiltered, true)) {
-                $this->SendDebug(__FUNCTION__, 'Skipping filtered attribute: ' . $property, 0);
-                continue;
-            }
-    
-            $this->SendDebug(__FUNCTION__, 'Processing single expose: ' . json_encode($expose), 0);
-    
-            // Variable registrieren
-            $this->registerVariable($expose, $singleProperties);
-    
-            // Presets (bestehende Logik bleibt)
-            if (isset($expose['presets'])) {
-    
-                $variableType = $this->getVariableTypeFromProfile(
-                    $expose['type'],
-                    $expose['property'],
-                    $expose['unit'] ?? '',
-                    $expose['value_step'] ?? 1.0,
-                    null
-                );
-    
-                $this->registerPresetVariables(
-                    $expose['presets'],
-                    $expose['property'],
-                    $variableType,
-                    $expose
-                );
+protected function mapExposesToVariables(array $exposes): void
+{
+    $this->SendDebug(__FUNCTION__ . ' :: All Exposes', json_encode($exposes), 0);
+
+    $aFiltered = $this->ReadAttributeArray(self::ATTRIBUTE_FILTERED);
+
+    /* -----------------------------------------------------------
+     * SINGLE PROPERTIES SAMMELN (für Deduplizierung)
+     * ----------------------------------------------------------- */
+    $singleProperties = [];
+
+    foreach ($exposes as $expose) {
+        if (!isset($expose['features'])) {
+            $prop = $expose['property'] ?? $expose['name'] ?? '';
+            if ($prop !== '') {
+                $singleProperties[$prop] = true;
             }
         }
     }
+
+    foreach ($exposes as $expose) {
+
+        /* -----------------------------------------------------------
+         * GROUP EXPOSES → NUR Features verarbeiten, wenn NICHT global
+         * ----------------------------------------------------------- */
+        if (isset($expose['features']) && \is_array($expose['features'])) {
+
+            foreach ($expose['features'] as $feature) {
+
+                $property = $feature['property'] ?? '';
+
+                if ($property === '' || \in_array($property, $aFiltered, true)) {
+                    continue;
+                }
+
+                // 🔥 WICHTIG: globale Properties NICHT doppelt anlegen
+                if (isset($singleProperties[$property])) {
+                    continue;
+                }
+
+                $this->registerVariable($feature);
+            }
+
+            continue;
+        }
+
+        /* -----------------------------------------------------------
+         * SINGLE EXPOSES
+         * ----------------------------------------------------------- */
+        $property = $expose['property'] ?? '';
+
+        if ($property === '' || \in_array($property, $aFiltered, true)) {
+            continue;
+        }
+
+        $this->registerVariable($expose);
+
+        // Presets
+        if (isset($expose['presets'])) {
+
+            $variableType = $this->getVariableTypeFromProfile(
+                $expose['type'],
+                $expose['property'],
+                $expose['unit'] ?? '',
+                $expose['value_step'] ?? 1.0,
+                null
+            );
+
+            $this->registerPresetVariables(
+                $expose['presets'],
+                $expose['property'],
+                $variableType,
+                $expose
+            );
+        }
+    }
+}
 
     /**
      * LoadDeviceInfo
@@ -2730,35 +2699,33 @@ abstract class ModulBase extends \IPSModule
      * @see sprintf()
      * @see gettype()
      */
-    private function processSpecialVariable(string $key, mixed $value): bool
+    private function processSpecialCases(string $key, mixed &$value, string $lowerKey, array $variableProps): bool
     {
-        if (!isset(self::$specialVariables[$key])) {
+        /* Brightness 0–255 → 0–100 */
+        if ($lowerKey === 'brightness') {
+            if ($value > 100) {
+                $value = (int) round($value / 255 * 100);
+            }
             return false;
         }
-
-        $variableProps = ['property' => $key];
-        $ident = $key;
-        $formattedLabel = $this->convertLabelToName($key);
-        $variableID = $this->getOrRegisterVariable($ident, $variableProps, $formattedLabel);
-
-        if (!$variableID) {
-            return true;
+    
+        /* Voltage mV → V */
+        if ($lowerKey === 'voltage') {
+            if ($value > 1000) {
+                $value = $value / 1000;
+            }
+            return false;
         }
-
-        // Spezielle Verarbeitung für die Variable
-        $adjustedValue = $this->adjustSpecialValue($ident, $value);
-
-        // Debug-Ausgabe des verarbeiteten Wertes
-        $debugValue = \is_array($adjustedValue) ? json_encode($adjustedValue) : $adjustedValue;
-        $this->SendDebug(__FUNCTION__ . ' :: ' . __LINE__ . ' :: ', $key . ' verarbeitet: ' . $key . ' => ' . $debugValue, 0);
-
-        // Wert setzen
-        $this->SetValueDirect($ident, $adjustedValue);
-
-        $this->SendDebug(__FUNCTION__, \sprintf('SetValueDirect aufgerufen für %s mit Wert: %s (Typ: %s)', $ident, \is_array($adjustedValue) ? json_encode($adjustedValue) : $adjustedValue, gettype($adjustedValue)), 0);
-        // Allgemeine Aktualisierung von Preset-Variablen
-        $this->updatePresetVariable($ident, $adjustedValue);
-        return true;
+    
+        /* last_seen ms → s */
+        if ($lowerKey === 'last_seen') {
+            if ($value > 1000000000000) {
+                $value = (int) ($value / 1000);
+            }
+            return false;
+        }
+    
+        return false;
     }
 
     /**
@@ -2989,153 +2956,153 @@ abstract class ModulBase extends \IPSModule
      * @see str_replace()
      *
      */
-private function registerVariableProfile(array $expose): string
-{
-    $type     = $expose['type'] ?? '';
-    $property = $expose['property'] ?? $expose['name'] ?? '';
-
-    if ($property === '') {
-        $this->SendDebug(__FUNCTION__, 'Property fehlt!', 0);
-        return '';
-    }
-
-    /* -----------------------------------------------------------
-     * PROFILENAME BASIS
-     * ----------------------------------------------------------- */
-    $ProfileName = 'Z2M.' . strtolower($property);
-
-    // Cleanup
-    $ProfileName = str_replace('Z2M.Z2M_', 'Z2M.', $ProfileName);
-    $ProfileName = str_replace('&', '_and_', $ProfileName);
-
-    /* -----------------------------------------------------------
-     * STATE MAPPING (BEHALTEN!)
-     * ----------------------------------------------------------- */
-    if (isset(self::$stateDefinitions[$property])) {
-        return $this->registerStateMappingProfile($property);
-    }
-
-    /* -----------------------------------------------------------
-     * ENUM (Dropdown in Tile)
-     * ----------------------------------------------------------- */
-    if ($type === 'enum' && isset($expose['values'])) {
-        $profileName = 'Z2M.Enum.' . strtolower($property);
-        return $this->registerEnumProfile($expose, $profileName);
-    }
-
-    /* -----------------------------------------------------------
-     * BINARY
-     * ----------------------------------------------------------- */
-    if ($type === 'binary') {
-
-        if (isset($expose['value_on'], $expose['value_off'])) {
-
-            $valueOn  = $expose['value_on'];
-            $valueOff = $expose['value_off'];
-
-            // Standardfälle → ~Switch nutzen
-            if (
-                ($valueOn === true && $valueOff === false) ||
-                ($valueOn === false && $valueOff === true) ||
-                (
-                    \is_string($valueOn) && \is_string($valueOff) &&
+    private function registerVariableProfile(array $expose): string
+    {
+        $type     = $expose['type'] ?? '';
+        $property = $expose['property'] ?? $expose['name'] ?? '';
+    
+        if ($property === '') {
+            $this->SendDebug(__FUNCTION__, 'Property fehlt!', 0);
+            return '';
+        }
+    
+        /* -----------------------------------------------------------
+         * PROFILENAME BASIS
+         * ----------------------------------------------------------- */
+        $ProfileName = 'Z2M.' . strtolower($property);
+    
+        // Cleanup
+        $ProfileName = str_replace('Z2M.Z2M_', 'Z2M.', $ProfileName);
+        $ProfileName = str_replace('&', '_and_', $ProfileName);
+    
+        /* -----------------------------------------------------------
+         * STATE MAPPING (BEHALTEN!)
+         * ----------------------------------------------------------- */
+        if (isset(self::$stateDefinitions[$property])) {
+            return $this->registerStateMappingProfile($property);
+        }
+    
+        /* -----------------------------------------------------------
+         * ENUM (Dropdown in Tile)
+         * ----------------------------------------------------------- */
+        if ($type === 'enum' && isset($expose['values'])) {
+            $profileName = 'Z2M.Enum.' . strtolower($property);
+            return $this->registerEnumProfile($expose, $profileName);
+        }
+    
+        /* -----------------------------------------------------------
+         * BINARY
+         * ----------------------------------------------------------- */
+        if ($type === 'binary') {
+    
+            if (isset($expose['value_on'], $expose['value_off'])) {
+    
+                $valueOn  = $expose['value_on'];
+                $valueOff = $expose['value_off'];
+    
+                // Standardfälle → ~Switch nutzen
+                if (
+                    ($valueOn === true && $valueOff === false) ||
+                    ($valueOn === false && $valueOff === true) ||
                     (
-                        (strtoupper($valueOn) === 'ON' && strtoupper($valueOff) === 'OFF') ||
-                        (strtoupper($valueOn) === 'TRUE' && strtoupper($valueOff) === 'FALSE')
+                        \is_string($valueOn) && \is_string($valueOff) &&
+                        (
+                            (strtoupper($valueOn) === 'ON' && strtoupper($valueOff) === 'OFF') ||
+                            (strtoupper($valueOn) === 'TRUE' && strtoupper($valueOff) === 'FALSE')
+                        )
                     )
-                )
-            ) {
-                return '~Switch';
-            }
-
-            // Custom Boolean-Profil nur wenn nötig
-            $profileName = 'Z2M.Bool.' . strtolower($property);
-
-            if (!\IPS_VariableProfileExists($profileName)) {
-
-                $profileValues = [
-                    [false, $this->convertLabelToName($valueOff), '', 0xFF0000],
-                    [true,  $this->convertLabelToName($valueOn),  '', 0x00FF00]
-                ];
-
-                $this->RegisterProfileBooleanEx(
-                    $profileName,
-                    'Power',
-                    '',
-                    '',
-                    $profileValues
-                );
-
-                $this->SendDebug(__FUNCTION__, 'Custom Boolean-Profil erstellt: ' . $profileName, 0);
-            }
-
-            return $profileName;
-        }
-
-        return '~Switch';
-    }
-
-    /* -----------------------------------------------------------
-     * NUMERIC (dein System: property_min_max)
-     * ----------------------------------------------------------- */
-    if ($type === 'numeric') {
-
-        // Standardprofile zuerst (verhindert Profil-Flut)
-        if (str_contains($property, 'temperature')) {
-            return '~Temperature';
-        }
-
-        if ($property === 'humidity') {
-            return '~Humidity';
-        }
-
-        if ($property === 'battery') {
-            return '~Battery.100';
-        }
-
-        if ($property === 'brightness') {
-            return '~Intensity.255';
-        }
-
-        if ($property === 'position') {
-            return '~Shutter';
-        }
-
-        // 🔥 Dein gewünschtes Schema
-        if (isset($expose['value_min'], $expose['value_max'])) {
-
-            $min = (int)$expose['value_min'];
-            $max = (int)$expose['value_max'];
-
-            $profileName = 'Z2M.' . strtolower($property) . '_' . $min . '_' . $max;
-
-            if (!\IPS_VariableProfileExists($profileName)) {
-
-                $isFloat = isset($expose['value_step']) && is_float($expose['value_step']);
-                $varType = $isFloat ? VARIABLETYPE_FLOAT : VARIABLETYPE_INTEGER;
-
-                \IPS_CreateVariableProfile($profileName, $varType);
-
-                $step = $expose['value_step'] ?? 1;
-
-                \IPS_SetVariableProfileValues($profileName, $min, $max, $step);
-
-                if (isset($expose['unit'])) {
-                    \IPS_SetVariableProfileText($profileName, '', ' ' . $expose['unit']);
+                ) {
+                    return '~Switch';
                 }
-
-                $this->SendDebug(__FUNCTION__, 'Numeric-Profil erstellt: ' . $profileName, 0);
+    
+                // Custom Boolean-Profil nur wenn nötig
+                $profileName = 'Z2M.Bool.' . strtolower($property);
+    
+                if (!\IPS_VariableProfileExists($profileName)) {
+    
+                    $profileValues = [
+                        [false, $this->convertLabelToName($valueOff), '', 0xFF0000],
+                        [true,  $this->convertLabelToName($valueOn),  '', 0x00FF00]
+                    ];
+    
+                    $this->RegisterProfileBooleanEx(
+                        $profileName,
+                        'Power',
+                        '',
+                        '',
+                        $profileValues
+                    );
+    
+                    $this->SendDebug(__FUNCTION__, 'Custom Boolean-Profil erstellt: ' . $profileName, 0);
+                }
+    
+                return $profileName;
             }
-
-            return $profileName;
+    
+            return '~Switch';
         }
+    
+        /* -----------------------------------------------------------
+         * NUMERIC (dein System: property_min_max)
+         * ----------------------------------------------------------- */
+        if ($type === 'numeric') {
+    
+            // Standardprofile zuerst (verhindert Profil-Flut)
+            if (str_contains($property, 'temperature')) {
+                return '~Temperature';
+            }
+    
+            if ($property === 'humidity') {
+                return '~Humidity';
+            }
+    
+            if ($property === 'battery') {
+                return '~Battery.100';
+            }
+    
+            if ($property === 'brightness') {
+                return '~Intensity.255';
+            }
+    
+            if ($property === 'position') {
+                return '~Shutter';
+            }
+    
+            // 🔥 Dein gewünschtes Schema
+            if (isset($expose['value_min'], $expose['value_max'])) {
+    
+                $min = (int)$expose['value_min'];
+                $max = (int)$expose['value_max'];
+    
+                $profileName = 'Z2M.' . strtolower($property) . '_' . $min . '_' . $max;
+    
+                if (!\IPS_VariableProfileExists($profileName)) {
+    
+                    $isFloat = isset($expose['value_step']) && is_float($expose['value_step']);
+                    $varType = $isFloat ? VARIABLETYPE_FLOAT : VARIABLETYPE_INTEGER;
+    
+                    \IPS_CreateVariableProfile($profileName, $varType);
+    
+                    $step = $expose['value_step'] ?? 1;
+    
+                    \IPS_SetVariableProfileValues($profileName, $min, $max, $step);
+    
+                    if (isset($expose['unit'])) {
+                        \IPS_SetVariableProfileText($profileName, '', ' ' . $expose['unit']);
+                    }
+    
+                    $this->SendDebug(__FUNCTION__, 'Numeric-Profil erstellt: ' . $profileName, 0);
+                }
+    
+                return $profileName;
+            }
+        }
+    
+        /* -----------------------------------------------------------
+         * FALLBACK
+         * ----------------------------------------------------------- */
+        return $this->handleProfileType($type, $expose, $ProfileName);
     }
-
-    /* -----------------------------------------------------------
-     * FALLBACK
-     * ----------------------------------------------------------- */
-    return $this->handleProfileType($type, $expose, $ProfileName);
-}
 
     /**
      * getStandardProfile
@@ -3990,43 +3957,32 @@ private function registerVariableProfile(array $expose): string
      * @see ucfirst()
      * @see str_replace()
      */
-    protected function registerVariable(array $data, $singleProperties = []): int
+    protected function registerVariable(array $data, $legacy = null): int
     {
-        // 🔥 FIX: falsche Übergaben abfangen (Legacy-Kompatibilität)
-        if (!is_array($singleProperties)) {
-            $this->SendDebug(__FUNCTION__, 'Invalid singleProperties, fallback used', 0);
-            $singleProperties = [];
-        }
-    
         /* -----------------------------------------------------------
-         * PROPERTY / IDENT
+         * PROPERTY
          * ----------------------------------------------------------- */
         $property = $data['property'] ?? $data['name'] ?? '';
-        $group    = $data['group_type'] ?? '';
     
         if ($property === '') {
-            $this->SendDebug(__FUNCTION__, 'Property fehlt!', 0);
             return 0;
         }
     
+        // 🔥 FINAL: KEINE GROUP MEHR
+        $ident = strtolower($property);
+        $name  = ucfirst(str_replace('_', ' ', $property));
+    
         /* -----------------------------------------------------------
-         * SPECIAL VARIABLES (🔥 HÖCHSTE PRIORITÄT)
+         * SPECIAL VARIABLES (höchste Priorität)
          * ----------------------------------------------------------- */
         $special = self::$specialVariables[$property] ?? null;
     
         if ($special !== null) {
     
-            $ident = $special['ident'] ?? (
-                ($group !== '')
-                    ? strtolower($group . '_' . $property)
-                    : strtolower($property)
-            );
-    
-            $name    = $special['name'] ?? ucfirst(str_replace('_', ' ', $property));
+            $ident   = $special['ident'] ?? $ident;
+            $name    = $special['name'] ?? $name;
             $profile = $special['profile'] ?? '';
             $type    = $special['type'] ?? VARIABLETYPE_STRING;
-    
-            $this->SendDebug(__FUNCTION__, 'Special Variable used: ' . $property, 0);
     
             switch ($type) {
     
@@ -4051,26 +4007,16 @@ private function registerVariableProfile(array $expose): string
         }
     
         /* -----------------------------------------------------------
-         * STANDARD IDENT / NAME
-         * ----------------------------------------------------------- */
-        $ident = ($group !== '')
-            ? strtolower($group . '_' . $property)
-            : strtolower($property);
-    
-        $name = ucfirst(str_replace('_', ' ', $property));
-    
-        /* -----------------------------------------------------------
-         * TYPE ERKENNUNG
+         * TYPE
          * ----------------------------------------------------------- */
         $type = $data['type'] ?? '';
     
         /* -----------------------------------------------------------
-         * NUMERIC (🔥 zentrale Logik!)
+         * NUMERIC (zentral)
          * ----------------------------------------------------------- */
         if ($type === 'numeric') {
     
-            $result = $this->registerNumericProfile($data);
-    
+            $result  = $this->registerNumericProfile($data);
             $profile = $result['mainProfile'];
             $varType = $result['type'];
     
@@ -4084,12 +4030,12 @@ private function registerVariableProfile(array $expose): string
         }
     
         /* -----------------------------------------------------------
-         * PROFIL HOLEN (für binary, enum, fallback)
+         * PROFILE
          * ----------------------------------------------------------- */
         $profile = $this->registerVariableProfile($data);
     
         /* -----------------------------------------------------------
-         * RESTLICHE TYPEN
+         * REST
          * ----------------------------------------------------------- */
         switch ($type) {
     
@@ -4106,17 +4052,7 @@ private function registerVariableProfile(array $expose): string
                 break;
         }
     
-        /* -----------------------------------------------------------
-         * VAR ID ZURÜCKGEBEN
-         * ----------------------------------------------------------- */
-        $varID = @\IPS_GetObjectIDByIdent($ident, $this->InstanceID);
-    
-        if ($varID === false) {
-            $this->SendDebug(__FUNCTION__, 'Variable nicht gefunden: ' . $ident, 0);
-            return 0;
-        }
-    
-        return $varID;
+        return \IPS_GetObjectIDByIdent($ident, $this->InstanceID);
     }
 
     /**
