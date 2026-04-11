@@ -1440,7 +1440,7 @@ public function RequestAction($ident, $value)
                             $this->RegisterVariableInteger(
                                 $kelvinIdent,
                                 $this->Translate('Color temperature (Kelvin)'),
-                                ''
+                                '~TWColor'
                             );
     
                             $this->checkAndEnableAction($kelvinIdent, null, true);
