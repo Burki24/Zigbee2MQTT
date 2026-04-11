@@ -3999,18 +3999,22 @@ protected function mapExposesToVariables(array $exposes): void
     
                 case VARIABLETYPE_BOOLEAN:
                     $this->RegisterVariableBoolean($ident, $name, $profile);
+                    $this->checkAndEnableAction($ident, $data);
                     break;
     
                 case VARIABLETYPE_INTEGER:
                     $this->RegisterVariableInteger($ident, $name, $profile);
+                    $this->checkAndEnableAction($ident, $data);
                     break;
     
                 case VARIABLETYPE_FLOAT:
                     $this->RegisterVariableFloat($ident, $name, $profile);
+                    $this->checkAndEnableAction($ident, $data);
                     break;
     
                 default:
                     $this->RegisterVariableString($ident, $name, $profile);
+                    $this->checkAndEnableAction($ident, $data);
                     break;
             }
     
@@ -4033,8 +4037,10 @@ protected function mapExposesToVariables(array $exposes): void
     
             if ($varType === 'float') {
                 $this->RegisterVariableFloat($ident, $name, $profile);
+                $this->checkAndEnableAction($ident, $data);
             } else {
                 $this->RegisterVariableInteger($ident, $name, $profile);
+                $this->checkAndEnableAction($ident, $data);
             }
     
             return \IPS_GetObjectIDByIdent($ident, $this->InstanceID);
@@ -4052,14 +4058,17 @@ protected function mapExposesToVariables(array $exposes): void
     
             case 'binary':
                 $this->RegisterVariableBoolean($ident, $name, $profile);
+                $this->checkAndEnableAction($ident, $data);
                 break;
     
             case 'enum':
                 $this->RegisterVariableString($ident, $name, $profile);
+                $this->checkAndEnableAction($ident, $data);
                 break;
     
             default:
                 $this->RegisterVariableString($ident, $name, $profile);
+                $this->checkAndEnableAction($ident, $data);
                 break;
         }
     
