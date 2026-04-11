@@ -1236,9 +1236,28 @@ public function RequestAction($ident, $value)
         $this->SendDebug(__FUNCTION__, 'Setze Variable: ' . $ident . ' auf Wert: ' . json_encode($adjustedValue), 0);
         parent::SetValue($ident, $adjustedValue);
 
-        // Spezialbehandlung für ColorTemp
+        // 🔥 Spezialbehandlung für ColorTemp
         if ($ident === 'color_temp') {
+        
             $kelvinIdent = 'color_temp_kelvin';
+        
+            // 🔥 Variable ggf. anlegen
+            $kelvinVarID = @\IPS_GetObjectIDByIdent($kelvinIdent, $this->InstanceID);
+        
+            if ($kelvinVarID === false) {
+        
+                $this->SendDebug(__FUNCTION__, 'Creating missing variable: ' . $kelvinIdent, 0);
+        
+                $this->RegisterVariableInteger(
+                    $kelvinIdent,
+                    $this->Translate('Color temperature (Kelvin)'),
+                    ''
+                );
+        
+                $this->checkAndEnableAction($kelvinIdent, null, true);
+            }
+        
+            // 🔥 Wert setzen
             $kelvinValue = $this->convertMiredToKelvin($value);
             $this->SetValueDirect($kelvinIdent, $kelvinValue);
         }
