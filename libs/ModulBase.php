@@ -1310,60 +1310,62 @@ abstract class ModulBase extends \IPSModule
     protected function mapExposesToVariables(array $exposes): void
     {
         $this->SendDebug(__FUNCTION__ . ' :: All Exposes', json_encode($exposes), 0);
-
+    
         // Gefilterte Attribute laden (Z2M config)
         $aFiltered = $this->ReadAttributeArray(self::ATTRIBUTE_FILTERED);
-
+    
         foreach ($exposes as $expose) {
-
+    
             $exposeType = $expose['type'] ?? '';
-
+    
             /* -----------------------------------------------------------
-            * GROUP EXPOSES (light, cover, climate, etc.)
-            * ----------------------------------------------------------- */
+             * GROUP EXPOSES (light, cover, climate, etc.)
+             * ----------------------------------------------------------- */
             if (isset($expose['features']) && \is_array($expose['features'])) {
-
+    
                 $this->SendDebug(__FUNCTION__, 'Found group: ' . $exposeType, 0);
-
+    
                 foreach ($expose['features'] as $feature) {
-
+    
                     $property = $feature['property'] ?? '';
-
+    
                     // Gefilterte Attribute überspringen
                     if ($property !== '' && \in_array($property, $aFiltered, true)) {
                         $this->SendDebug(__FUNCTION__, 'Skipping filtered attribute: ' . $property, 0);
                         continue;
                     }
-
+    
                     $this->SendDebug(__FUNCTION__, 'Processing feature: ' . json_encode($feature), 0);
-
-                    // 🔥 WICHTIG: Kontext für spätere Logik
+    
+                    // Kontext setzen
                     $feature['group_type'] = $exposeType;
-
-                    // 🔹 Variable registrieren
+    
+                    // Variable registrieren
                     $this->registerVariable($feature);
-
+                }
+    
+                // 🔥 WICHTIG: hier gehört das continue hin!
                 continue;
             }
-
+    
             /* -----------------------------------------------------------
-            * SINGLE EXPOSES (Sensoren etc.)
-            * ----------------------------------------------------------- */
+             * SINGLE EXPOSES (Sensoren etc.)
+             * ----------------------------------------------------------- */
             $property = $expose['property'] ?? '';
-
+    
             if ($property !== '' && \in_array($property, $aFiltered, true)) {
                 $this->SendDebug(__FUNCTION__, 'Skipping filtered attribute: ' . $property, 0);
                 continue;
             }
-
+    
             $this->SendDebug(__FUNCTION__, 'Processing single expose: ' . json_encode($expose), 0);
-
-            // 🔹 Variable registrieren
+    
+            // Variable registrieren
             $this->registerVariable($expose);
-
-            // 🔹 Presets (bestehende Logik bleibt!)
+    
+            // Presets (bestehende Logik bleibt)
             if (isset($expose['presets'])) {
-
+    
                 $variableType = $this->getVariableTypeFromProfile(
                     $expose['type'],
                     $expose['property'],
@@ -1371,7 +1373,7 @@ abstract class ModulBase extends \IPSModule
                     $expose['value_step'] ?? 1.0,
                     null
                 );
-
+    
                 $this->registerPresetVariables(
                     $expose['presets'],
                     $expose['property'],
