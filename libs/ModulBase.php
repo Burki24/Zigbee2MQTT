@@ -3624,8 +3624,13 @@ public function RequestAction($ident, $value)
          * STANDARDPROFILE
          * ----------------------------------------------------------- */
         $standardProfile = $this->getStandardProfile($type, $feature);
-    
-        if ($standardProfile !== '') {
+        
+        // 🔥 WICHTIG: Wenn min/max vorhanden → KEIN Standardprofil!
+        if (
+            $standardProfile !== '' &&
+            !isset($expose['value_min']) &&
+            !isset($expose['value_max'])
+        ) {
             return [
                 'mainProfile'   => $standardProfile,
                 'presetProfile' => null,
