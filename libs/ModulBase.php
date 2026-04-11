@@ -1407,7 +1407,7 @@ public function RequestAction($ident, $value)
                 foreach ($expose['features'] as $feature) {
     
                     $property = $feature['property'] ?? '';
-                    $name     = $feature['name'] ?? '';
+                    $type     = $feature['type'] ?? '';
     
                     // 🔹 Skip ungültig / gefiltert
                     if ($property === '' || \in_array($property, $aFiltered, true)) {
@@ -1415,13 +1415,13 @@ public function RequestAction($ident, $value)
                     }
     
                     /* -----------------------------------------------------------
-                     * 🔥 COLOR HANDLING (SPEZIAL!)
+                     * 🔥 COMPOSITE (COLOR XY / HS / RGB)
                      * ----------------------------------------------------------- */
-                    if ($name !== '' && \in_array($name, ['color_xy', 'color_hs', 'color_rgb'], true))    
-                        $this->SendDebug(__FUNCTION__, 'Color feature detected: ' . $name, 0);
+                    if ($type === 'composite') {
+    
+                        $this->SendDebug(__FUNCTION__, 'Composite detected: ' . ($feature['name'] ?? ''), 0);
     
                         $this->registerColorVariable($feature);
-    
                         continue;
                     }
     
@@ -1434,11 +1434,11 @@ public function RequestAction($ident, $value)
     
                         if (@\IPS_GetObjectIDByIdent($kelvinIdent, $this->InstanceID) === false) {
     
-                            $this->SendDebug(__FUNCTION__, 'Pre-create Kelvin variable (group)', 0);
+                            $this->SendDebug(__FUNCTION__, 'Create Kelvin variable (group)', 0);
     
                             $this->RegisterVariableInteger(
                                 $kelvinIdent,
-                                $this->Translate('Color temperature (Kelvin)'),
+                                $this->Translate('Color temperature'),
                                 '~TWColor'
                             );
     
@@ -1483,12 +1483,12 @@ public function RequestAction($ident, $value)
     
                 if (@\IPS_GetObjectIDByIdent($kelvinIdent, $this->InstanceID) === false) {
     
-                    $this->SendDebug(__FUNCTION__, 'Pre-create Kelvin variable (single)', 0);
+                    $this->SendDebug(__FUNCTION__, 'Create Kelvin variable (single)', 0);
     
                     $this->RegisterVariableInteger(
                         $kelvinIdent,
-                        $this->Translate('Color temperature (Kelvin)'),
-                        ''
+                        $this->Translate('Color temperature'),
+                        '~TWColor'
                     );
     
                     $this->checkAndEnableAction($kelvinIdent, null, true);
@@ -1519,7 +1519,7 @@ public function RequestAction($ident, $value)
             }
         }
     }
-
+    
     /**
      * LoadDeviceInfo
      *
