@@ -3941,7 +3941,50 @@ private function registerVariableProfile(array $expose): string
             return 0;
         }
     
-        // MQTT-konformer Ident
+        /* -----------------------------------------------------------
+         * SPECIAL VARIABLES (🔥 HÖCHSTE PRIORITÄT)
+         * ----------------------------------------------------------- */
+        $special = self::$specialVariables[$property] ?? null;
+    
+        if ($special !== null) {
+    
+            $ident = $special['ident'] ?? (
+                ($group !== '')
+                    ? strtolower($group . '_' . $property)
+                    : strtolower($property)
+            );
+    
+            $name    = $special['name'] ?? ucfirst(str_replace('_', ' ', $property));
+            $profile = $special['profile'] ?? '';
+            $type    = $special['type'] ?? VARIABLETYPE_STRING;
+    
+            $this->SendDebug(__FUNCTION__, 'Special Variable used: ' . $property, 0);
+    
+            switch ($type) {
+    
+                case VARIABLETYPE_BOOLEAN:
+                    $this->RegisterVariableBoolean($ident, $name, $profile);
+                    break;
+    
+                case VARIABLETYPE_INTEGER:
+                    $this->RegisterVariableInteger($ident, $name, $profile);
+                    break;
+    
+                case VARIABLETYPE_FLOAT:
+                    $this->RegisterVariableFloat($ident, $name, $profile);
+                    break;
+    
+                default:
+                    $this->RegisterVariableString($ident, $name, $profile);
+                    break;
+            }
+    
+            return \IPS_GetObjectIDByIdent($ident, $this->InstanceID);
+        }
+    
+        /* -----------------------------------------------------------
+         * STANDARD IDENT / NAME
+         * ----------------------------------------------------------- */
         $ident = ($group !== '')
             ? strtolower($group . '_' . $property)
             : strtolower($property);
@@ -3949,35 +3992,41 @@ private function registerVariableProfile(array $expose): string
         $name = ucfirst(str_replace('_', ' ', $property));
     
         /* -----------------------------------------------------------
-         * PROFIL HOLEN (🔥 DEIN SYSTEM!)
-         * ----------------------------------------------------------- */
-        $profile = $this->registerVariableProfile($data);
-    
-        /* -----------------------------------------------------------
          * TYPE ERKENNUNG
          * ----------------------------------------------------------- */
         $type = $data['type'] ?? '';
     
+        /* -----------------------------------------------------------
+         * NUMERIC (🔥 zentrale Logik!)
+         * ----------------------------------------------------------- */
+        if ($type === 'numeric') {
+    
+            $result = $this->registerNumericProfile($data);
+    
+            $profile = $result['mainProfile'];
+            $varType = $result['type'];
+    
+            if ($varType === 'float') {
+                $this->RegisterVariableFloat($ident, $name, $profile);
+            } else {
+                $this->RegisterVariableInteger($ident, $name, $profile);
+            }
+    
+            return \IPS_GetObjectIDByIdent($ident, $this->InstanceID);
+        }
+    
+        /* -----------------------------------------------------------
+         * PROFIL HOLEN (für binary, enum, fallback)
+         * ----------------------------------------------------------- */
+        $profile = $this->registerVariableProfile($data);
+    
+        /* -----------------------------------------------------------
+         * RESTLICHE TYPEN
+         * ----------------------------------------------------------- */
         switch ($type) {
     
             case 'binary':
                 $this->RegisterVariableBoolean($ident, $name, $profile);
-                break;
-    
-            case 'numeric':
-            
-                // zentrale Logik nutzen
-                $result = $this->registerNumericProfile($data);
-            
-                $profile = $result['mainProfile'];
-                $varType = $result['type'];
-            
-                if ($varType === 'float') {
-                    $this->RegisterVariableFloat($ident, $name, $profile);
-                } else {
-                    $this->RegisterVariableInteger($ident, $name, $profile);
-                }
-            
                 break;
     
             case 'enum':
@@ -3992,7 +4041,7 @@ private function registerVariableProfile(array $expose): string
         /* -----------------------------------------------------------
          * VAR ID ZURÜCKGEBEN
          * ----------------------------------------------------------- */
-        $varID = @IPS_GetObjectIDByIdent($ident, $this->InstanceID);
+        $varID = @\IPS_GetObjectIDByIdent($ident, $this->InstanceID);
     
         if ($varID === false) {
             $this->SendDebug(__FUNCTION__, 'Variable nicht gefunden: ' . $ident, 0);
