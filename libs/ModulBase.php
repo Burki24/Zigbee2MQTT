@@ -274,7 +274,8 @@ abstract class ModulBase extends \IPSModule
         ['group_type' => '', 'feature' => 'tamper', 'profile' => '~Alert', 'variableType' => VARIABLETYPE_BOOLEAN],
         ['group_type' => '', 'feature' => 'smoke', 'profile' => '~Alert', 'variableType' => VARIABLETYPE_BOOLEAN],
         ['group_type' => 'light', 'feature' => 'color', 'profile' => '~HexColor', 'variableType' => VARIABLETYPE_INTEGER],
-        ['group_type' => 'climate', 'feature' => 'occupied_heating_setpoint', 'profile' => '~Temperature.Room', 'variableType' => VARIABLETYPE_FLOAT]
+        ['group_type' => 'climate', 'feature' => 'occupied_heating_setpoint', 'profile' => '~Temperature.Room', 'variableType' => VARIABLETYPE_FLOAT],
+        ['group_type' => '', 'feature' => 'color_temp_kelvin', 'profile' => '~TWColor', 'variableType' => VARIABLETYPE_INTEGER],
     ];
 
     /**
@@ -3283,25 +3284,34 @@ public function RequestAction($ident, $value)
      */
     private function getStandardProfile(string $type, string $property, ?string $groupType = null): string
     {
-        $backtrace = debug_backtrace(DEBUG_BACKTRACE_IGNORE_ARGS, 2);
-        $caller = isset($backtrace[1]['function']) ? $backtrace[1]['function'] : 'unknown';
-        $this->SendDebug(__FUNCTION__ . ' (' . $caller . ')', "Checking for standard profile with type: $type, property: $property, groupType: $groupType", 0);
-
-        // Überprüfen, ob ein Standardprofil für den Typ und die Eigenschaft definiert ist
+        $this->SendDebug(__FUNCTION__, "Checking: property=$property, groupType=$groupType", 0);
+    
+        $fallbackProfile = '';
+    
         foreach (self::$VariableUseStandardProfile as $entry) {
-            $this->SendDebug(__FUNCTION__, 'Checking entry: ' . json_encode($entry), 0);
-            if (isset($entry['type']) && ($entry['type'] === $type || $entry['type'] === '') && $entry['feature'] === $property) {
-                $this->SendDebug(__FUNCTION__, "Found standard profile for type: $type, property: $property", 0);
+    
+            if ($entry['feature'] !== $property) {
+                continue;
+            }
+    
+            // 🔥 1. EXAKTER group_type Treffer (höchste Priorität)
+            if ($groupType !== null && $entry['group_type'] === $groupType) {
+                $this->SendDebug(__FUNCTION__, "Exact match (group): " . json_encode($entry), 0);
                 return $entry['profile'];
             }
-            if (isset($entry['group_type']) && ($entry['group_type'] === $groupType || $entry['group_type'] === '') && $entry['feature'] === $property) {
-                $this->SendDebug(__FUNCTION__, "Found standard profile for groupType: $groupType, property: $property", 0);
-                return $entry['profile'];
+    
+            // 🔥 2. GLOBALER Treffer (Fallback)
+            if ($entry['group_type'] === '') {
+                $fallbackProfile = $entry['profile'];
             }
         }
-
-        // Kein Standardprofil gefunden
-        $this->SendDebug(__FUNCTION__, "No standard profile found for type: $type, property: $property, groupType: $groupType", 0);
+    
+        if ($fallbackProfile !== '') {
+            $this->SendDebug(__FUNCTION__, "Fallback match: $fallbackProfile", 0);
+            return $fallbackProfile;
+        }
+    
+        $this->SendDebug(__FUNCTION__, "No match found", 0);
         return '';
     }
 
