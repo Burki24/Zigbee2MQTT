@@ -1375,11 +1375,10 @@ public function RequestAction($ident, $value)
     {
         $this->SendDebug(__FUNCTION__ . ' :: All Exposes', json_encode($exposes), 0);
     
-        // Gefilterte Attribute (Z2M Config)
         $aFiltered = $this->ReadAttributeArray(self::ATTRIBUTE_FILTERED);
     
         /* -----------------------------------------------------------
-         * SINGLE PROPERTIES SAMMELN (für Deduplizierung)
+         * SINGLE PROPERTIES SAMMELN
          * ----------------------------------------------------------- */
         $singleProperties = [];
     
@@ -1398,7 +1397,7 @@ public function RequestAction($ident, $value)
         foreach ($exposes as $expose) {
     
             /* -----------------------------------------------------------
-             * GROUP EXPOSES (light, cover, etc.)
+             * GROUP EXPOSES
              * ----------------------------------------------------------- */
             if (isset($expose['features']) && \is_array($expose['features'])) {
     
@@ -1409,13 +1408,12 @@ public function RequestAction($ident, $value)
                     $property = $feature['property'] ?? '';
                     $type     = $feature['type'] ?? '';
     
-                    // 🔹 Skip ungültig / gefiltert
                     if ($property === '' || \in_array($property, $aFiltered, true)) {
                         continue;
                     }
     
                     /* -----------------------------------------------------------
-                     * 🔥 COMPOSITE (COLOR XY / HS / RGB)
+                     * COMPOSITE (COLOR)
                      * ----------------------------------------------------------- */
                     if ($type === 'composite') {
     
@@ -1426,13 +1424,15 @@ public function RequestAction($ident, $value)
                     }
     
                     /* -----------------------------------------------------------
-                     * 🔥 COLOR TEMP → KELVIN VARIABLE VORAB ANLEGEN
+                     * COLOR TEMP → KELVIN
                      * ----------------------------------------------------------- */
                     if ($property === 'color_temp') {
     
                         $kelvinIdent = 'color_temp_kelvin';
     
-                        if (@\IPS_GetObjectIDByIdent($kelvinIdent, $this->InstanceID) === false) {
+                        $varID = @\IPS_GetObjectIDByIdent($kelvinIdent, $this->InstanceID);
+    
+                        if ($varID === false) {
     
                             $this->SendDebug(__FUNCTION__, 'Create Kelvin variable (group)', 0);
     
@@ -1447,7 +1447,7 @@ public function RequestAction($ident, $value)
                     }
     
                     /* -----------------------------------------------------------
-                     * 🔥 DUPLIKATE VERMEIDEN (z. B. state)
+                     * DUPLIKATE VERMEIDEN
                      * ----------------------------------------------------------- */
                     if (isset($singleProperties[$property])) {
                         $this->SendDebug(__FUNCTION__, 'Skip duplicate group feature: ' . $property, 0);
@@ -1455,7 +1455,7 @@ public function RequestAction($ident, $value)
                     }
     
                     /* -----------------------------------------------------------
-                     * STANDARD FEATURE
+                     * STANDARD
                      * ----------------------------------------------------------- */
                     $this->registerVariable($feature);
                 }
@@ -1475,13 +1475,15 @@ public function RequestAction($ident, $value)
             $this->SendDebug(__FUNCTION__, 'Processing single expose: ' . json_encode($expose), 0);
     
             /* -----------------------------------------------------------
-             * 🔥 COLOR TEMP → KELVIN VARIABLE VORAB ANLEGEN
+             * COLOR TEMP → KELVIN
              * ----------------------------------------------------------- */
             if ($property === 'color_temp') {
     
                 $kelvinIdent = 'color_temp_kelvin';
     
-                if (@\IPS_GetObjectIDByIdent($kelvinIdent, $this->InstanceID) === false) {
+                $varID = @\IPS_GetObjectIDByIdent($kelvinIdent, $this->InstanceID);
+    
+                if ($varID === false) {
     
                     $this->SendDebug(__FUNCTION__, 'Create Kelvin variable (single)', 0);
     
@@ -1496,27 +1498,6 @@ public function RequestAction($ident, $value)
             }
     
             $this->registerVariable($expose);
-    
-            /* -----------------------------------------------------------
-             * PRESETS
-             * ----------------------------------------------------------- */
-            if (isset($expose['presets'])) {
-    
-                $variableType = $this->getVariableTypeFromProfile(
-                    $expose['type'],
-                    $expose['property'],
-                    $expose['unit'] ?? '',
-                    $expose['value_step'] ?? 1.0,
-                    null
-                );
-    
-                $this->registerPresetVariables(
-                    $expose['presets'],
-                    $expose['property'],
-                    $variableType,
-                    $expose
-                );
-            }
         }
     }
     
