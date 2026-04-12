@@ -4143,19 +4143,22 @@ public function RequestAction($ident, $value)
         $ident = strtolower($property);
         $name  = ucfirst(str_replace('_', ' ', $property));
     
+        $type      = $data['type'] ?? '';
+        $groupType = $data['group_type'] ?? null;
+    
         /* -----------------------------------------------------------
-         * SPECIAL VARIABLES (höchste Priorität)
+         * 1. SPECIAL VARIABLES
          * ----------------------------------------------------------- */
-        $special = self::$specialVariables[$property] ?? null;
+        if (isset(self::$specialVariables[$property])) {
     
-        if ($special !== null) {
+            $cfg = self::$specialVariables[$property];
     
-            $ident   = $special['ident'] ?? $ident;
-            $name    = $special['name'] ?? $name;
-            $profile = $special['profile'] ?? '';
-            $type    = $special['type'] ?? VARIABLETYPE_STRING;
+            $ident   = $cfg['ident'] ?? $ident;
+            $name    = $cfg['name'] ?? $name;
+            $profile = $cfg['profile'] ?? '';
+            $varType = $cfg['type'] ?? VARIABLETYPE_STRING;
     
-            switch ($type) {
+            switch ($varType) {
     
                 case VARIABLETYPE_BOOLEAN:
                     $this->RegisterVariableBoolean($ident, $name, $profile);
@@ -4176,69 +4179,100 @@ public function RequestAction($ident, $value)
     
             $this->checkAndEnableAction($ident, $data, true);
     
-            $varID = @\IPS_GetObjectIDByIdent($ident, $this->InstanceID);
-            return $varID === false ? 0 : $varID;
+            return \IPS_GetObjectIDByIdent($ident, $this->InstanceID) ?: 0;
         }
     
         /* -----------------------------------------------------------
-         * PROFILE (🔥 ZENTRALE LOGIK WIEDERHERGESTELLT)
+         * 2. STANDARD MAPPING
          * ----------------------------------------------------------- */
-        $profile = $this->registerVariableProfile($data);
+        foreach (self::$VariableUseStandardProfile as $entry) {
     
-        /* -----------------------------------------------------------
-         * TYPE ERKENNUNG
-         * ----------------------------------------------------------- */
-        $type = $data['type'] ?? '';
+            if ($entry['feature'] !== $property) {
+                continue;
+            }
     
-        switch ($type) {
+            if ($entry['group_type'] !== '' && $entry['group_type'] !== $groupType) {
+                continue;
+            }
     
-            case 'binary':
-                $this->RegisterVariableBoolean($ident, $name, $profile);
-                break;
+            $profile = $entry['profile'];
+            $varType = $entry['variableType'];
     
-            case 'numeric':
+            switch ($varType) {
     
-                // 🔥 WICHTIG: Typ bestimmen (int vs float)
-                $variableType = $this->getVariableTypeFromProfile(
-                    $type,
-                    $property,
-                    $data['unit'] ?? '',
-                    $data['value_step'] ?? 1.0,
-                    null
-                );
+                case VARIABLETYPE_BOOLEAN:
+                    $this->RegisterVariableBoolean($ident, $name, $profile);
+                    break;
     
-                if ($variableType === 'float') {
-                    $this->RegisterVariableFloat($ident, $name, $profile);
-                } else {
+                case VARIABLETYPE_INTEGER:
                     $this->RegisterVariableInteger($ident, $name, $profile);
-                }
-                break;
+                    break;
     
-            case 'enum':
-                $this->RegisterVariableString($ident, $name, $profile);
-                break;
+                case VARIABLETYPE_FLOAT:
+                    $this->RegisterVariableFloat($ident, $name, $profile);
+                    break;
     
-            default:
-                $this->RegisterVariableString($ident, $name, $profile);
-                break;
+                default:
+                    $this->RegisterVariableString($ident, $name, $profile);
+                    break;
+            }
+    
+            $this->checkAndEnableAction($ident, $data);
+    
+            return \IPS_GetObjectIDByIdent($ident, $this->InstanceID) ?: 0;
         }
     
         /* -----------------------------------------------------------
-         * ACTION HANDLING
+         * 3. NUMERIC (FALLBACK)
          * ----------------------------------------------------------- */
+        if ($type === 'numeric') {
+    
+            $result  = $this->registerNumericProfile($data);
+            $profile = $result['mainProfile'] ?? '';
+            $varType = $result['type'] ?? VARIABLETYPE_INTEGER;
+    
+            if ($varType === VARIABLETYPE_FLOAT) {
+                $this->RegisterVariableFloat($ident, $name, $profile);
+            } else {
+                $this->RegisterVariableInteger($ident, $name, $profile);
+            }
+    
+            $this->checkAndEnableAction($ident, $data);
+    
+            return \IPS_GetObjectIDByIdent($ident, $this->InstanceID) ?: 0;
+        }
+    
+        /* -----------------------------------------------------------
+         * 4. ENUM
+         * ----------------------------------------------------------- */
+        if ($type === 'enum' && isset($data['values'])) {
+    
+            $profile = $this->registerEnumProfile($data, 'Z2M.' . strtolower($property));
+    
+            $this->RegisterVariableString($ident, $name, $profile);
+            $this->checkAndEnableAction($ident, $data);
+    
+            return \IPS_GetObjectIDByIdent($ident, $this->InstanceID) ?: 0;
+        }
+    
+        /* -----------------------------------------------------------
+         * 5. BINARY
+         * ----------------------------------------------------------- */
+        if ($type === 'binary') {
+    
+            $this->RegisterVariableBoolean($ident, $name, '~Switch');
+            $this->checkAndEnableAction($ident, $data);
+    
+            return \IPS_GetObjectIDByIdent($ident, $this->InstanceID) ?: 0;
+        }
+    
+        /* -----------------------------------------------------------
+         * 6. FALLBACK
+         * ----------------------------------------------------------- */
+        $this->RegisterVariableString($ident, $name);
         $this->checkAndEnableAction($ident, $data);
     
-        /* -----------------------------------------------------------
-         * RETURN
-         * ----------------------------------------------------------- */
-        $varID = @\IPS_GetObjectIDByIdent($ident, $this->InstanceID);
-    
-        if ($varID === false) {
-            $this->SendDebug(__FUNCTION__, 'Variable not found: ' . $ident, 0);
-            return 0;
-        }
-    
-        return $varID;
+        return \IPS_GetObjectIDByIdent($ident, $this->InstanceID) ?: 0;
     }
 
     /**
