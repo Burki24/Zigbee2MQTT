@@ -1954,42 +1954,28 @@ abstract class ModulBase extends \IPSModule
      */
     private function processVariable(string $key, mixed $value): void
     {
-        // Neue Prüfung für composite keys
-        if ($this->isCompositeKey($key)) {
-            // Bestimme den Variablentyp basierend auf dem Wert
-            $varType = match (true) {
-                \is_bool($value) => [
-                    'type'         => VARIABLETYPE_BOOLEAN,
-                    'profile'      => '~Switch',
-                    'registerFunc' => 'RegisterVariableBoolean'
-                ],
-                \is_int($value) => [
-                    'type'         => VARIABLETYPE_INTEGER,
-                    'profile'      => '', // Hier ggf. ein passendes Profil wählen
-                    'registerFunc' => 'RegisterVariableInteger'
-                ],
-                \is_float($value) => [
-                    'type'         => VARIABLETYPE_FLOAT,
-                    'profile'      => '', // Hier ggf. ein passendes Profil wählen
-                    'registerFunc' => 'RegisterVariableFloat'
-                ],
-                default => [
-                    'type'         => VARIABLETYPE_STRING,
-                    'profile'      => '',
-                    'registerFunc' => 'RegisterVariableString'
-                ]
-            };
+        $this->SendDebug(__FUNCTION__, 'Processing: ' . $key . ' = ' . json_encode($value), 0);
 
-            // Wenn Variable noch nicht existiert, registrieren
+        /* -----------------------------------------------------------
+        * 🔥 COMPOSITE KEYS
+        * ----------------------------------------------------------- */
+        if ($this->isCompositeKey($key)) {
+
             if (!@$this->GetIDForIdent($key)) {
-                $registerFunc = $varType['registerFunc'];
-                $this->$registerFunc(
+
+                $varType = match (true) {
+                    \is_bool($value) => ['func' => 'RegisterVariableBoolean', 'profile' => '~Switch'],
+                    \is_int($value)  => ['func' => 'RegisterVariableInteger', 'profile' => ''],
+                    \is_float($value)=> ['func' => 'RegisterVariableFloat', 'profile' => ''],
+                    default          => ['func' => 'RegisterVariableString', 'profile' => '']
+                };
+
+                $this->{$varType['func']}(
                     $key,
                     $this->Translate($this->convertLabelToName($key)),
                     $varType['profile']
                 );
 
-                // Zentrale EnableAction-Prüfung für neue Variable
                 $this->checkAndEnableAction($key);
             }
 
@@ -1997,92 +1983,125 @@ abstract class ModulBase extends \IPSModule
             return;
         }
 
-        // Wenn Value ein Array ist und color im Key vorkommt, spezielle Behandlung
-        if (\is_array($value) && strpos($key, 'color') === 0) {
+        /* -----------------------------------------------------------
+        * 🔥 COLOR HANDLING (FIX!)
+        * ----------------------------------------------------------- */
+        if (\in_array($key, ['color', 'color_hs', 'color_rgb'], true)) {
+
+            $this->SendDebug(__FUNCTION__, 'Color handling: ' . $key, 0);
+
             $this->handleColorVariable($key, $value);
             return;
         }
 
-        // Wenn Value ein Array ist und einen 'composite' Key enthält
+        /* -----------------------------------------------------------
+        * 🔥 COMPOSITE ARRAY (z. B. {"composite": {...}})
+        * ----------------------------------------------------------- */
         if (\is_array($value) && isset($value['composite'])) {
+
             foreach ($value['composite'] as $compositeKey => $compositeValue) {
                 $this->processVariable($compositeKey, $compositeValue);
             }
+
             return;
         }
 
-        // Wenn Value ein Array ist und list im Type vorkommt
+        /* -----------------------------------------------------------
+        * 🔥 LIST HANDLING
+        * ----------------------------------------------------------- */
         if (\is_array($value) && isset($value['type']) && $value['type'] === 'list') {
-            // Speichere komplette Liste als JSON
+
             $this->SetValueDirect($key, json_encode($value));
 
-            // Verarbeite einzelne Einträge wenn vorhanden
             if (isset($value['items'])) {
                 foreach ($value['items'] as $index => $item) {
-                    $itemKey = $key . '_item_' . $index;
-                    $this->processVariable($itemKey, $item);
+                    $this->processVariable($key . '_item_' . $index, $item);
                 }
             }
+
             return;
         }
 
-        $lowerKey = strtolower($key);
-        $ident = $key;
-
-        // Prüfe existierende Variable
-        $variableID = @$this->GetIDForIdent($ident);
-        if ($variableID !== false) {
-            $this->SendDebug(__FUNCTION__, 'Existierende Variable gefunden: ' . $ident, 0);
-            $this->SetValue($ident, $value);
-            // Allgemeine Aktualisierung von Preset-Variablen
-            $this->updatePresetVariable($ident, $value);
-            return;
-        }
-
-        // Bekannte Variablen laden und prüfen
-        $knownVariables = $this->getKnownVariables();
-        if (!isset($knownVariables[$lowerKey])) {
-            $this->SendDebug(__FUNCTION__, 'Variable nicht bekannt: ' . $key, 0);
-            return;
-        }
-
-        $variableProps = $knownVariables[$lowerKey];
-
-        // Array-Werte verarbeiten
+        /* -----------------------------------------------------------
+        * 🔥 ARRAY GENERIC
+        * ----------------------------------------------------------- */
         if (\is_array($value)) {
-            $this->processArrayValue($ident, $value);
+            $this->processArrayValue($key, $value);
             return;
         }
 
-        // Spezialbehandlungen durchführen
-        if ($this->processSpecialCases($key, $value, $lowerKey, $variableProps)) {
-            return;
-        }
+        /* -----------------------------------------------------------
+        * 🔥 EXISTIERENDE VARIABLE
+        * ----------------------------------------------------------- */
+        $variableID = @$this->GetIDForIdent($key);
 
-        // Variable registrieren und Wert setzen
-        $variableID = $this->getOrRegisterVariable($ident, $variableProps);
-        if ($variableID) {
-            // Zentrale EnableAction-Prüfung auch bei neu angelegten Variablen
-            $this->checkAndEnableAction($ident, $variableProps);
-            $this->SetValue($ident, $value);
-        }
+        if ($variableID !== false) {
 
-        // Zusätzlich: Preset-Variable aktualisieren wenn vorhanden
-        $presetIdent = $ident . '_presets';
-        if (@$this->GetIDForIdent($presetIdent) !== false) {
-            $this->SetValue($presetIdent, $value);
-        }
-        // Liste verarbeiten
-        if (\is_array($value) && isset($value['type']) && $value['type'] === 'list') {
-            // Speichere komplette Liste als JSON
-            $this->SetValueDirect($key, json_encode($value));
+            $this->SetValue($key, $value);
 
-            // Verarbeite einzelne Einträge
-            foreach ($value as $index => $item) {
-                $itemKey = $key . '_item_' . $index;
-                $this->processVariable($itemKey, $item);
+            /* -----------------------------------------------------------
+            * 🔥 PRESET SYNC (FIX!)
+            * ----------------------------------------------------------- */
+            $presetIdent = $key . '_preset';
+
+            if (@$this->GetIDForIdent($presetIdent) !== false) {
+                $this->SetValueDirect($presetIdent, $value);
             }
+
+            /* -----------------------------------------------------------
+            * 🔥 COLOR TEMP → KELVIN
+            * ----------------------------------------------------------- */
+            if ($key === 'color_temp') {
+
+                $kelvinIdent = 'color_temp_kelvin';
+
+                if (@$this->GetIDForIdent($kelvinIdent) !== false) {
+
+                    $kelvin = $this->convertMiredToKelvin((int)$value);
+                    $this->SetValueDirect($kelvinIdent, $kelvin);
+                }
+            }
+
             return;
+        }
+
+        /* -----------------------------------------------------------
+        * 🔥 VARIABLE NICHT BEKANNT
+        * ----------------------------------------------------------- */
+        $knownVariables = $this->getKnownVariables();
+
+        if (!isset($knownVariables[strtolower($key)])) {
+            $this->SendDebug(__FUNCTION__, 'Unknown variable: ' . $key, 0);
+            return;
+        }
+
+        $variableProps = $knownVariables[strtolower($key)];
+
+        /* -----------------------------------------------------------
+        * 🔥 SPECIAL CASES
+        * ----------------------------------------------------------- */
+        if ($this->processSpecialCases($key, $value, strtolower($key), $variableProps)) {
+            return;
+        }
+
+        /* -----------------------------------------------------------
+        * 🔥 REGISTRIEREN + SETZEN
+        * ----------------------------------------------------------- */
+        $variableID = $this->getOrRegisterVariable($key, $variableProps);
+
+        if ($variableID) {
+
+            $this->checkAndEnableAction($key, $variableProps);
+            $this->SetValue($key, $value);
+
+            /* -----------------------------------------------------------
+            * 🔥 PRESET SYNC (NEUE VARIABLE!)
+            * ----------------------------------------------------------- */
+            $presetIdent = $key . '_preset';
+
+            if (@$this->GetIDForIdent($presetIdent) !== false) {
+                $this->SetValueDirect($presetIdent, $value);
+            }
         }
     }
 
