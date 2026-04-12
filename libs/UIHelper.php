@@ -12,7 +12,7 @@ namespace Zigbee2MQTT;
 trait UIHelper
 {
     /* -----------------------------------------------------------
-     * 🔥 PRESET FINDER
+     * PRESET FINDER
      * ----------------------------------------------------------- */
     protected function findClosestPreset(int $value, string $property): ?int
     {
@@ -43,7 +43,7 @@ trait UIHelper
     }
 
     /* -----------------------------------------------------------
-     * 🔥 PRESET SYNC HELPER
+     * PRESET SYNC HELPER
      * ----------------------------------------------------------- */
     protected function syncPresetVariable(string $property, int $value): void
     {
