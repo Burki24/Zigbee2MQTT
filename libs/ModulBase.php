@@ -3830,20 +3830,30 @@ public function RequestAction($ident, $value)
     
             $this->checkAndEnableAction($ident, $data);
         /* -----------------------------------------------------------
-         * 🔥 PRESETS IMMER PRÜFEN (NEU!)
+         * 🔥 PRESETS → EIGENE VARIABLE
          * ----------------------------------------------------------- */
         if (isset($data['presets']) && \is_array($data['presets'])) {
         
-            $this->SendDebug(__FUNCTION__, 'Force preset creation for ' . $ident, 0);
+            $this->SendDebug(__FUNCTION__, 'Create preset variable for ' . $ident, 0);
         
             $result = $this->registerNumericProfile($data);
         
             if (!empty($result['presetProfile'])) {
         
-                @IPS_SetVariableCustomProfile(
-                    \IPS_GetObjectIDByIdent($ident, $this->InstanceID),
-                    $result['presetProfile']
-                );
+                $presetIdent = $ident . '_preset';
+                $presetName  = $name . ' Preset';
+        
+                $varType = $result['type'];
+        
+                // Variable anlegen
+                if ($varType === VARIABLETYPE_FLOAT) {
+                    $this->RegisterVariableFloat($presetIdent, $presetName, $result['presetProfile']);
+                } else {
+                    $this->RegisterVariableInteger($presetIdent, $presetName, $result['presetProfile']);
+                }
+        
+                // Action aktivieren (immer!)
+                $this->checkAndEnableAction($presetIdent, null, true);
             }
         }
             return \IPS_GetObjectIDByIdent($ident, $this->InstanceID) ?: 0;
@@ -3864,35 +3874,31 @@ public function RequestAction($ident, $value)
                 $this->RegisterVariableInteger($ident, $name, $profile);
             }
         
-            /* -----------------------------------------------------------
-             * 🔥 PRESETS DIREKT HIER BEHANDELN
-             * ----------------------------------------------------------- */
-            if (!empty($result['presetProfile'])) {
-        
-                $this->SendDebug(__FUNCTION__, 'Assign preset profile to ' . $ident, 0);
-        
-                @IPS_SetVariableCustomProfile(
-                    \IPS_GetObjectIDByIdent($ident, $this->InstanceID),
-                    $result['presetProfile']
-                );
-            }
-        
-            $this->checkAndEnableAction($ident, $data);
         /* -----------------------------------------------------------
-         * 🔥 PRESETS IMMER PRÜFEN (NEU!)
+         * 🔥 PRESETS → EIGENE VARIABLE
          * ----------------------------------------------------------- */
         if (isset($data['presets']) && \is_array($data['presets'])) {
         
-            $this->SendDebug(__FUNCTION__, 'Force preset creation for ' . $ident, 0);
+            $this->SendDebug(__FUNCTION__, 'Create preset variable for ' . $ident, 0);
         
             $result = $this->registerNumericProfile($data);
         
             if (!empty($result['presetProfile'])) {
         
-                @IPS_SetVariableCustomProfile(
-                    \IPS_GetObjectIDByIdent($ident, $this->InstanceID),
-                    $result['presetProfile']
-                );
+                $presetIdent = $ident . '_preset';
+                $presetName  = $name . ' Preset';
+        
+                $varType = $result['type'];
+        
+                // Variable anlegen
+                if ($varType === VARIABLETYPE_FLOAT) {
+                    $this->RegisterVariableFloat($presetIdent, $presetName, $result['presetProfile']);
+                } else {
+                    $this->RegisterVariableInteger($presetIdent, $presetName, $result['presetProfile']);
+                }
+        
+                // Action aktivieren (immer!)
+                $this->checkAndEnableAction($presetIdent, null, true);
             }
         }
             return \IPS_GetObjectIDByIdent($ident, $this->InstanceID) ?: 0;
