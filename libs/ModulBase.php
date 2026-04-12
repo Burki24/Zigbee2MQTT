@@ -3389,7 +3389,13 @@ public function RequestAction($ident, $value)
          * ----------------------------------------------------------- */
         $property = $feature['property'] ?? $label;
     
-        $profileName = 'Z2M.' . strtolower(str_replace([' ', '.', '&'], ['_', '_', '_and_'], $property));
+        if ($property === '') {
+            $property = 'unknown';
+        }
+    
+        $profileName = 'Z2M.' . strtolower(
+            str_replace([' ', '.', '&'], ['_', '_', '_and_'], $property)
+        );
     
         /* -----------------------------------------------------------
          * MIN / MAX (optional)
@@ -3408,7 +3414,6 @@ public function RequestAction($ident, $value)
          * ----------------------------------------------------------- */
         $associations = [];
     
-        // 🔥 Vordefinierte Presets haben Priorität
         if (isset(self::$presetDefinitions[$property])) {
     
             $this->SendDebug(__FUNCTION__, 'Using predefined presets for: ' . $property, 0);
@@ -3425,7 +3430,6 @@ public function RequestAction($ident, $value)
     
         } else {
     
-            // 🔥 Dynamische Presets aus Z2M
             foreach ($presets as $preset) {
     
                 if (!isset($preset['value'], $preset['name'])) {
@@ -3450,34 +3454,47 @@ public function RequestAction($ident, $value)
         }
     
         /* -----------------------------------------------------------
-         * PROFIL ERSTELLEN (nur wenn nötig)
+         * SORTIEREN (🔥 wichtig für UI)
          * ----------------------------------------------------------- */
-        if (!\IPS_VariableProfileExists($profileName)) {
+        usort($associations, fn($a, $b) => $a[0] <=> $b[0]);
     
-            if ($variableType === VARIABLETYPE_FLOAT) {
+        /* -----------------------------------------------------------
+         * DUPLICATES ENTFERNEN
+         * ----------------------------------------------------------- */
+        $associations = array_map("unserialize", array_unique(array_map("serialize", $associations)));
     
-                $this->RegisterProfileFloatEx(
-                    $profileName,
-                    '',
-                    '',
-                    '',
-                    $associations
-                );
+        /* -----------------------------------------------------------
+         * PROFIL ERSTELLEN / AKTUALISIEREN
+         * ----------------------------------------------------------- */
+        if (\IPS_VariableProfileExists($profileName)) {
     
-                $this->SendDebug(__FUNCTION__, 'Created FLOAT preset profile: ' . $profileName, 0);
+            // 🔥 Profil leeren und neu setzen (wichtig!)
+            IPS_DeleteVariableProfile($profileName);
+        }
     
-            } else {
+        if ($variableType === VARIABLETYPE_FLOAT) {
     
-                $this->RegisterProfileIntegerEx(
-                    $profileName,
-                    '',
-                    '',
-                    '',
-                    $associations
-                );
+            $this->RegisterProfileFloatEx(
+                $profileName,
+                '',
+                '',
+                '',
+                $associations
+            );
     
-                $this->SendDebug(__FUNCTION__, 'Created INT preset profile: ' . $profileName, 0);
-            }
+            $this->SendDebug(__FUNCTION__, 'Created FLOAT preset profile: ' . $profileName, 0);
+    
+        } else {
+    
+            $this->RegisterProfileIntegerEx(
+                $profileName,
+                '',
+                '',
+                '',
+                $associations
+            );
+    
+            $this->SendDebug(__FUNCTION__, 'Created INT preset profile: ' . $profileName, 0);
         }
     
         return $profileName;
