@@ -3856,22 +3856,34 @@ public function RequestAction($ident, $value)
          * 3. NUMERIC (FALLBACK)
          * ----------------------------------------------------------- */
         if ($type === 'numeric') {
-    
+        
             $result  = $this->registerNumericProfile($data);
             $profile = $result['mainProfile'] ?? '';
             $varType = $result['type'] ?? VARIABLETYPE_INTEGER;
-    
+        
             if ($varType === VARIABLETYPE_FLOAT) {
                 $this->RegisterVariableFloat($ident, $name, $profile);
             } else {
                 $this->RegisterVariableInteger($ident, $name, $profile);
             }
-    
+        
+            /* -----------------------------------------------------------
+             * 🔥 PRESETS DIREKT HIER BEHANDELN
+             * ----------------------------------------------------------- */
+            if (!empty($result['presetProfile'])) {
+        
+                $this->SendDebug(__FUNCTION__, 'Assign preset profile to ' . $ident, 0);
+        
+                @IPS_SetVariableCustomProfile(
+                    \IPS_GetObjectIDByIdent($ident, $this->InstanceID),
+                    $result['presetProfile']
+                );
+            }
+        
             $this->checkAndEnableAction($ident, $data);
-    
+        
             return \IPS_GetObjectIDByIdent($ident, $this->InstanceID) ?: 0;
-        }
-    
+        }   
         /* -----------------------------------------------------------
          * 4. ENUM
          * ----------------------------------------------------------- */
