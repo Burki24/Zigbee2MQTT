@@ -596,13 +596,6 @@ abstract class ModulBase extends \IPSModule
             },
     
             /* -----------------------------------------------------------
-             * LEGACY PRESETS (falls noch vorhanden)
-             * ----------------------------------------------------------- */
-            str_contains($ident, 'presets') => function () use ($ident, $value) {
-                return $this->handlePresetVariable($ident, $value);
-            },
-    
-            /* -----------------------------------------------------------
              * _and_ → & (Legacy Support)
              * ----------------------------------------------------------- */
             str_contains($ident, '_and_') => function () use ($ident, $value) {
@@ -2383,74 +2376,6 @@ abstract class ModulBase extends \IPSModule
         };
 
         return $handled();
-    }
-
-    /**
-     * handlePresetVariable
-     *
-     * Verarbeitet Preset-Variablenaktionen.
-     *
-     * Diese Methode wird aufgerufen, wenn eine Aktion für eine Preset-Variable angefordert wird.
-     * Sie leitet die Aktion an die Hauptvariable weiter und sendet den entsprechenden Set-Befehl.
-     *
-     * @param string $ident Der Identifikator der Preset-Variable.
-     * @param mixed $value Der Wert, der mit der Preset-Aktionsanforderung verbunden ist.
-     *
-     * @return bool Gibt true zurück, wenn die Aktion erfolgreich verarbeitet wurde, andernfalls false.
-     *
-     * @see \Zigbee2MQTT\ModulBase::SetValue()
-     * @see \Zigbee2MQTT\ModulBase::SetValueDirect()
-     * @see \Zigbee2MQTT\ModulBase::SendSetCommand()
-     * @see \Zigbee2MQTT\ModulBase::convertMiredToKelvin()
-     * @see \IPSModule::SendDebug()
-     * @see str_replace()
-     */
-    private function handlePresetVariable(string $ident, mixed $value): bool
-    {
-        // Hauptvariable ohne _presets suffix
-        $mainIdent = str_replace('_presets', '', $ident);
-
-        // Prüfen ob die Variable in presetDefinitions definiert ist mit redirect=true
-        if (isset(self::$presetDefinitions[$mainIdent]['redirect'])) {
-            $this->SendDebug(__FUNCTION__, 'Preset-Variable wird direkt umgeleitet: ' . $mainIdent, 0);
-
-            // Wichtig: Payload mit mainIdent erstellen (ohne _presets)
-            if ($this->isCompositeKey($mainIdent)) {
-                $payload = $this->buildNestedPayload($mainIdent, $value); // Verwendet mainIdent
-            } else {
-                $payload = [$mainIdent => $value]; // Verwendet mainIdent
-            }
-
-            // Sende den Wert und aktualisiere beide Variablen bei Erfolg
-            if (!$this->SendSetCommand($payload)) {
-                return false;
-            }
-
-            $this->SetValueDirect($ident, $value);
-            $this->SetValueDirect($mainIdent, $value);
-
-            return true;
-        }
-
-        // Standard-Verarbeitung für nicht umgeleitete Presets...
-        $this->SendDebug(__FUNCTION__, 'Aktion über presets erfolgt, Weiterleitung zur eigentlichen Variable: ' . $mainIdent, 0);
-
-        // Payload mit mainIdent erstellen (ohne _presets)
-        if ($this->isCompositeKey($mainIdent)) {
-            $payload = $this->buildNestedPayload($mainIdent, $value); // Verwendet mainIdent
-        } else {
-            $payload = [$mainIdent => $value]; // Verwendet mainIdent
-        }
-
-        // Sende Befehl und aktualisiere beide Variablen bei Erfolg
-        if (!$this->SendSetCommand($payload)) {
-            return false;
-        }
-
-        $this->SetValueDirect($ident, $value);
-        $this->SetValueDirect($mainIdent, $value);
-
-        return true;
     }
 
     /**
