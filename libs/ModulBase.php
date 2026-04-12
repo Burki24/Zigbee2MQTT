@@ -1121,6 +1121,28 @@ abstract class ModulBase extends \IPSModule
         return $Text;
     }
 
+    /**
+     * GetVisualizationTile
+     *
+     * Liefert die Konfigurationsstruktur für die Kachel-Visualisierung dieser Instanz.
+     *
+     * Diese Methode wird automatisch von der IP-Symcon Visualisierung aufgerufen,
+     * um eine benutzerdefinierte Kachel für die Instanz darzustellen.
+     *
+     * Die eigentliche Erstellung der Kachel erfolgt ausgelagert im TileHelper,
+     * wodurch eine saubere Trennung zwischen Logik (ModulBase) und UI (TileHelper)
+     * gewährleistet wird.
+     *
+     * Abhängig von den verfügbaren Exposes bzw. Variablen wird automatisch der
+     * passende Kachel-Typ (z. B. Light, Sensor, Switch) ermittelt und zurückgegeben.
+     *
+     * @return array Strukturdefinition der Kachel für die Visualisierung
+     */
+    public function GetVisualizationTile(): array
+    {
+        return $this->getTile();
+    }
+
     // Variablenmanagement
 
     /**
