@@ -1656,37 +1656,43 @@ abstract class ModulBase extends \IPSModule
      */
     private static function convertToSnakeCase(string $oldIdent): string
     {
-        // 1) Z2M_ Prefix entfernen
-        $withoutPrefix = preg_replace('/^Z2M_/', '', $oldIdent);
-
-        // 2) State Pattern Check
+        /* -----------------------------------------------------------
+         * 1. PREFIX ENTFERNEN
+         * ----------------------------------------------------------- */
+        $result = preg_replace('/^Z2M_/', '', $oldIdent);
+    
+        /* -----------------------------------------------------------
+         * 2. STATE SPECIAL CASE
+         * ----------------------------------------------------------- */
         foreach ([self::STATE_PATTERN['MQTT'], self::STATE_PATTERN['SYMCON']] as $pattern) {
-            if (preg_match($pattern, $withoutPrefix)) {
-                $result = preg_replace('/^(state)([LlRr][0-9]+)$/i', '$1_$2', $withoutPrefix);
+            if (preg_match($pattern, $result)) {
+                $result = preg_replace('/^(state)([LlRr][0-9]+)$/i', '$1_$2', $result);
                 return strtolower($result);
             }
         }
-
-        // 3) Bekannte Abkürzungen prüfen
+    
+        /* -----------------------------------------------------------
+         * 3. CAMELCASE → SNAKE_CASE
+         * ----------------------------------------------------------- */
+        $result = preg_replace('/(?<!^)[A-Z]/', '_$0', $result);
+    
+        /* -----------------------------------------------------------
+         * 4. ABBREVIATIONS NORMALISIEREN
+         * ----------------------------------------------------------- */
         foreach (self::KNOWN_ABBREVIATIONS as $abbr) {
-            $pattern = '/\b' . preg_quote($abbr, '/') . '\b/';
-            if (preg_match($pattern, $withoutPrefix)) {
-                $withoutPrefix = preg_replace($pattern, strtolower($abbr), $withoutPrefix);
-            }
+            $result = preg_replace(
+                '/' . preg_quote($abbr, '/') . '/i',
+                strtolower($abbr),
+                $result
+            );
         }
-
-        // 4) Großbuchstaben verarbeiten
-        $result = $withoutPrefix;
-        // a) Einzelner Großbuchstabe am Wortanfang bleibt erhalten
-        // b) Großbuchstabe nach Kleinbuchstaben bekommt Unterstrich
-        $result = preg_replace('/([a-z])([A-Z])/', '$1_$2', $result);
-        // c) Großbuchstabenblöcke im Wort
-        $result = preg_replace('/([A-Z])([A-Z][a-z])/', '$1_$2', $result);
-
-        // 5) Formatierung finalisieren
+    
+        /* -----------------------------------------------------------
+         * 5. FINAL CLEANUP
+         * ----------------------------------------------------------- */
         $result = preg_replace('/_+/', '_', $result);
         $result = strtolower($result);
-
+    
         return $result;
     }
 
