@@ -1,9 +1,8 @@
 <?php
 
-namespace Zigbee2MQTT;
-
-
 declare(strict_types=1);
+
+namespace Zigbee2MQTT;
 
 require_once __DIR__ . '/AttributeArrayHelper.php';
 require_once __DIR__ . '/BufferHelper.php';
