@@ -78,7 +78,7 @@ trait ColorHelper
      * @param  int $bri oder value
      * @return int Integer-Wert der Farbe
      */
-    protected function HSVToInt($hue, $saturation, int $bri = 254): int
+    protected function HSVToInt(float $hue, float $saturation, int $bri = 254): int
     {
         $hue /= 360;
         $saturation /= 100;
