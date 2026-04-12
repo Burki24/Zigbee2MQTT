@@ -10,6 +10,7 @@ require_once __DIR__ . '/SemaphoreHelper.php';
 require_once __DIR__ . '/VariableProfileHelper.php';
 require_once __DIR__ . '/MQTTHelper.php';
 require_once __DIR__ . '/ColorHelper.php';
+require_once __DIR__ . '/UIHelper.php';
 
 /**
  * ModulBase
@@ -31,6 +32,7 @@ abstract class ModulBase extends \IPSModule
     use ColorHelper;
     use VariableProfileHelper;
     use SendData;
+    use UIHelper;
     private const MINIMAL_MODUL_VERSION = 5.1;
 
     /**
