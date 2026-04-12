@@ -3382,56 +3382,104 @@ public function RequestAction($ident, $value)
      * @see sprintf()
      * @see ucwords()
      */
-    private function registerPresetProfile(array $presets, string $label, string $variableType, array $feature): string
+    private function registerPresetProfile(array $presets, string $label, int $variableType, array $feature): string
     {
-        // Profilname ohne Leerzeichen erstellen und Min- und Max-Werte hinzufügen
-        $profileName = 'Z2M.' . str_replace(' ', '_', $label);
+        /* -----------------------------------------------------------
+         * PROPERTY / NAME
+         * ----------------------------------------------------------- */
+        $property = $feature['property'] ?? $label;
+    
+        $profileName = 'Z2M.' . strtolower(str_replace([' ', '.', '&'], ['_', '_', '_and_'], $property));
+    
+        /* -----------------------------------------------------------
+         * MIN / MAX (optional)
+         * ----------------------------------------------------------- */
         $valueMin = $feature['value_min'] ?? null;
         $valueMax = $feature['value_max'] ?? null;
-
+    
         if ($valueMin !== null && $valueMax !== null) {
-            $profileName .= '_' . $valueMin . '_' . $valueMax;
+            $profileName .= '_' . (int)$valueMin . '_' . (int)$valueMax;
         }
-
+    
         $profileName .= '_Presets';
-
-        // Prüfen ob vordefinierte Presets existieren
-        $property = $feature['property'] ?? '';
+    
+        /* -----------------------------------------------------------
+         * ASSOCIATIONS
+         * ----------------------------------------------------------- */
+        $associations = [];
+    
+        // 🔥 Vordefinierte Presets haben Priorität
         if (isset(self::$presetDefinitions[$property])) {
+    
             $this->SendDebug(__FUNCTION__, 'Using predefined presets for: ' . $property, 0);
-            $associations = [];
+    
             foreach (self::$presetDefinitions[$property]['values'] as $value => $name) {
+    
                 $associations[] = [
-                    $value,
+                    $variableType === VARIABLETYPE_FLOAT ? (float)$value : (int)$value,
                     $this->Translate($name),
                     '',
                     -1
                 ];
             }
+    
         } else {
-            // Dynamische Presets verwenden
-            $associations = [];
+    
+            // 🔥 Dynamische Presets aus Z2M
             foreach ($presets as $preset) {
-                // Preset-Wert an den Variablentyp anpassen
-
-                $presetValue = ($variableType === 'float') ? (float) $preset['value'] : (int) $preset['value'];
-                $presetName = $this->Translate(ucwords(str_replace('_', ' ', $preset['name'])));
+    
+                if (!isset($preset['value'], $preset['name'])) {
+                    continue;
+                }
+    
+                $value = $variableType === VARIABLETYPE_FLOAT
+                    ? (float)$preset['value']
+                    : (int)$preset['value'];
+    
+                $name = $this->Translate(
+                    ucwords(str_replace('_', ' ', $preset['name']))
+                );
+    
                 $associations[] = [
-                    $presetValue,
-                    $presetName,
+                    $value,
+                    $name,
                     '',
                     -1
                 ];
             }
         }
-
-        // Neues Profil anlegen
-        if ($variableType === 'float') {
-            $this->RegisterProfileFloatEx($profileName, '', '', '', $associations);
-        } else {
-            $this->RegisterProfileIntegerEx($profileName, '', '', '', $associations);
+    
+        /* -----------------------------------------------------------
+         * PROFIL ERSTELLEN (nur wenn nötig)
+         * ----------------------------------------------------------- */
+        if (!\IPS_VariableProfileExists($profileName)) {
+    
+            if ($variableType === VARIABLETYPE_FLOAT) {
+    
+                $this->RegisterProfileFloatEx(
+                    $profileName,
+                    '',
+                    '',
+                    '',
+                    $associations
+                );
+    
+                $this->SendDebug(__FUNCTION__, 'Created FLOAT preset profile: ' . $profileName, 0);
+    
+            } else {
+    
+                $this->RegisterProfileIntegerEx(
+                    $profileName,
+                    '',
+                    '',
+                    '',
+                    $associations
+                );
+    
+                $this->SendDebug(__FUNCTION__, 'Created INT preset profile: ' . $profileName, 0);
+            }
         }
-
+    
         return $profileName;
     }
 
