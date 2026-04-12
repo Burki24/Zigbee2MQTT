@@ -554,7 +554,6 @@ abstract class ModulBase extends \IPSModule
      * @see \IPSModule::RequestAction()
      * @see \IPSModule::SendDebug()
      * @see \Zigbee2MQTT\ModulBase::UpdateDeviceInfo()
-     * @see \Zigbee2MQTT\ModulBase::handlePresetVariable()
      * @see \Zigbee2MQTT\ModulBase::handleStringVariableNoResponse()
      * @see \Zigbee2MQTT\ModulBase::handleColorVariable()
      * @see \Zigbee2MQTT\ModulBase::handleStateVariable()
@@ -594,15 +593,7 @@ abstract class ModulBase extends \IPSModule
             $ident === 'ShowMissingTranslations' => function () {
                 return $this->ShowMissingTranslations();
             },
-    
-            /* -----------------------------------------------------------
-             * _and_ → & (Legacy Support)
-             * ----------------------------------------------------------- */
-            str_contains($ident, '_and_') => function () use ($ident, $value) {
-                $newIdent = str_replace('_and_', '&', $ident);
-                return $this->RequestAction($newIdent, $value);
-            },
-    
+
             /* -----------------------------------------------------------
              * BRIGHTNESS (🔥 WICHTIG!)
              * ----------------------------------------------------------- */
@@ -1370,7 +1361,6 @@ abstract class ModulBase extends \IPSModule
      * @see \Zigbee2MQTT\ModulBase::registerVariable()
      * @see \Zigbee2MQTT\ModulBase::convertLabelToName()
      * @see \Zigbee2MQTT\ModulBase::getVariableTypeFromProfile()
-     * @see \Zigbee2MQTT\ModulBase::registerPresetVariables()
      * @see \IPSModule::SetBuffer()
      * @see \IPSModule::SendDebug()
      * @see is_array()
@@ -1625,10 +1615,9 @@ abstract class ModulBase extends \IPSModule
      * // Ergebnis: ['weekly_schedule' => ['friday' => '00:00/7']]
      * ```
      *
-     * @internal Diese Methode wird von handleStandardVariable, handlePresetVariable und RequestAction verwendet
+     * @internal Diese Methode wird von handleStandardVariable und RequestAction verwendet
      *
      * @see \Zigbee2MQTT\ModulBase::handleStandardVariable()
-     * @see \Zigbee2MQTT\ModulBase::handlePresetVariable()
      * @see \Zigbee2MQTT\ModulBase::RequestAction()
      */
     protected function buildNestedPayload(string $ident, mixed $value): array
@@ -3662,7 +3651,6 @@ abstract class ModulBase extends \IPSModule
      * @see \Zigbee2MQTT\ModulBase::getStandardProfile()
      * @see \Zigbee2MQTT\ModulBase::registerVariableProfile()
      * @see \Zigbee2MQTT\ModulBase::registerColorVariable()
-     * @see \Zigbee2MQTT\ModulBase::registerPresetVariables()
      * @see \IPSModule::RegisterVariableBoolean()
      * @see \IPSModule::RegisterVariableInteger()
      * @see \IPSModule::RegisterVariableFloat()
@@ -3890,71 +3878,6 @@ abstract class ModulBase extends \IPSModule
                 $this->SendDebug(__FUNCTION__ . ' :: Line ' . __LINE__ . ' :: Unhandled composite type', $feature['name'], 0);
                 break;
         }
-    }
-
-    /**
-     * registerPresetVariables
-     *
-     * Registriert Variablen und Profile für Presets eines Features.
-     *
-     * Diese Funktion erstellt für ein Feature eine zusätzliche Preset-Variable mit entsprechendem Profil.
-     * Sie wird verwendet, um vordefinierte Werte (Presets) für bestimmte Eigenschaften eines Geräts
-     * zugänglich zu machen.
-     *
-     * @param array $presets Array mit Preset-Definitionen. Jedes Preset enthält:
-     *                       - 'name': Name des Presets (string)
-     *                       - 'value': Wert des Presets (mixed)
-     * @param string $label Bezeichnung für die Variable
-     * @param string $variableType Typ der Variable ('float' oder 'int')
-     * @param array $feature Feature-Definition mit zusätzlichen Eigenschaften wie:
-     *                       - 'property': Name der Eigenschaft
-     *                       - 'name': Anzeigename
-     *                       - 'value_min': Minimaler Wert (optional)
-     *                       - 'value_max': Maximaler Wert (optional)
-     * @return void
-     *
-     * Beispiel:
-     * ```php
-     * $presets = [
-     *     ['name' => 'low', 'value' => 20],
-     *     ['name' => 'medium', 'value' => 50],
-     *     ['name' => 'high', 'value' => 100]
-     * ];
-     * $this->registerPresetVariables($presets, 'Brightness', 'int', ['property' => 'brightness', 'name' => 'Brightness']);
-     * ```
-     *
-     * @see \Zigbee2MQTT\ModulBase::registerPresetProfile()
-     * @see \Zigbee2MQTT\ModulBase::convertLabelToName()
-     * @see \IPSModule::GetBuffer()
-     * @see \IPSModule::SendDebug()
-     * @see \IPSModule::Translate()
-     * @see \IPSModule::GetIDForIdent()
-     * @see \IPSModule::RegisterVariableFloat()
-     * @see \IPSModule::RegisterVariableInteger()
-     * @see \IPSModule::EnableAction()
-     */
-    private function registerPresetVariables(array $presets, string $property, string $variableType, array $feature): void
-    {
-        $this->SendDebug(__FUNCTION__, 'Registriere Preset-Variablen für: ' . $property, 0);
-
-        // Hole ident für Preset-Variable
-        $presetIdent = $property . '_presets';
-
-        // Name formatieren
-        $formattedLabel = $this->convertLabelToName($property);
-
-        // Profil registrieren
-        $profileName = $this->registerPresetProfile($presets, $formattedLabel, $variableType, $feature);
-
-        // Variable anhand Typ registrieren
-        if ($variableType === 'float') {
-            $this->RegisterVariableFloat($presetIdent, $this->Translate($formattedLabel . ' Presets'), $profileName);
-        } else {
-            $this->RegisterVariableInteger($presetIdent, $this->Translate($formattedLabel . ' Presets'), $profileName);
-        }
-
-        // Zentrale EnableAction-Prüfung für Preset-Variable
-        $this->checkAndEnableAction($presetIdent, $feature);
     }
 
     /**
