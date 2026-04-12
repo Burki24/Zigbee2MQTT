@@ -1972,7 +1972,7 @@ abstract class ModulBase extends \IPSModule
         $this->SendDebug(__FUNCTION__, 'Processing: ' . $key . ' = ' . json_encode($value), 0);
 
         /* -----------------------------------------------------------
-        * 🔥 COMPOSITE KEYS
+        * COMPOSITE KEYS
         * ----------------------------------------------------------- */
         if ($this->isCompositeKey($key)) {
 
@@ -1999,7 +1999,7 @@ abstract class ModulBase extends \IPSModule
         }
 
         /* -----------------------------------------------------------
-        * 🔥 COLOR HANDLING (FIX FINAL)
+        * COLOR HANDLING (FIX FINAL)
         * ----------------------------------------------------------- */
         if ($key === 'color' && \is_array($value)) {
 
@@ -2009,7 +2009,7 @@ abstract class ModulBase extends \IPSModule
             $this->handleColorVariable('color', $value);
 
             /* -----------------------------------------------------------
-            * 🔥 HS SYNC (FIX!)
+            * HS SYNC (FIX!)
             * ----------------------------------------------------------- */
             if (isset($value['hue'], $value['saturation'])) {
 
@@ -2033,7 +2033,7 @@ abstract class ModulBase extends \IPSModule
         }
 
         /* -----------------------------------------------------------
-        * 🔥 COMPOSITE ARRAY (z. B. {"composite": {...}})
+        * COMPOSITE ARRAY (z. B. {"composite": {...}})
         * ----------------------------------------------------------- */
         if (\is_array($value) && isset($value['composite'])) {
 
@@ -2045,7 +2045,7 @@ abstract class ModulBase extends \IPSModule
         }
 
         /* -----------------------------------------------------------
-        * 🔥 LIST HANDLING
+        * LIST HANDLING
         * ----------------------------------------------------------- */
         if (\is_array($value) && isset($value['type']) && $value['type'] === 'list') {
 
@@ -2061,7 +2061,7 @@ abstract class ModulBase extends \IPSModule
         }
 
         /* -----------------------------------------------------------
-        * 🔥 ARRAY GENERIC
+        * ARRAY GENERIC
         * ----------------------------------------------------------- */
         if (\is_array($value)) {
             $this->processArrayValue($key, $value);
@@ -2069,7 +2069,7 @@ abstract class ModulBase extends \IPSModule
         }
 
         /* -----------------------------------------------------------
-        * 🔥 EXISTIERENDE VARIABLE
+        * EXISTIERENDE VARIABLE
         * ----------------------------------------------------------- */
         $variableID = @$this->GetIDForIdent($key);
 
@@ -2078,7 +2078,7 @@ abstract class ModulBase extends \IPSModule
             $this->SetValue($key, $value);
 
             /* -----------------------------------------------------------
-            * 🔥 PRESET SYNC
+            * PRESET SYNC
             * ----------------------------------------------------------- */
             $presetIdent = $key . '_preset';
 
@@ -2087,7 +2087,7 @@ abstract class ModulBase extends \IPSModule
             }
 
             /* -----------------------------------------------------------
-            * 🔥 COLOR TEMP → KELVIN
+            * COLOR TEMP → KELVIN
             * ----------------------------------------------------------- */
             if ($key === 'color_temp') {
 
@@ -2106,7 +2106,7 @@ abstract class ModulBase extends \IPSModule
         }
 
         /* -----------------------------------------------------------
-        * 🔥 VARIABLE NICHT BEKANNT
+        * VARIABLE NICHT BEKANNT
         * ----------------------------------------------------------- */
         $knownVariables = $this->getKnownVariables();
 
@@ -2118,14 +2118,14 @@ abstract class ModulBase extends \IPSModule
         $variableProps = $knownVariables[strtolower($key)];
 
         /* -----------------------------------------------------------
-        * 🔥 SPECIAL CASES
+        * SPECIAL CASES
         * ----------------------------------------------------------- */
         if ($this->processSpecialCases($key, $value, strtolower($key), $variableProps)) {
             return;
         }
 
         /* -----------------------------------------------------------
-        * 🔥 REGISTRIEREN + SETZEN
+        * REGISTRIEREN + SETZEN
         * ----------------------------------------------------------- */
         $variableID = $this->getOrRegisterVariable($key, $variableProps);
 
@@ -2135,7 +2135,7 @@ abstract class ModulBase extends \IPSModule
             $this->SetValue($key, $value);
 
             /* -----------------------------------------------------------
-            * 🔥 PRESET SYNC
+            * PRESET SYNC
             * ----------------------------------------------------------- */
             $presetIdent = $key . '_preset';
 
@@ -3235,7 +3235,7 @@ abstract class ModulBase extends \IPSModule
         $isFloat = false;
 
         /* -----------------------------------------------------------
-        * 🔥 FLOAT UNITS (NEU!)
+        * FLOAT UNITS (NEU!)
         * ----------------------------------------------------------- */
         if ($unit !== '' && \in_array($unit, self::FLOAT_UNITS, true)) {
             $this->SendDebug(__FUNCTION__, 'FLOAT by unit: ' . $unit, 0);
@@ -3243,7 +3243,7 @@ abstract class ModulBase extends \IPSModule
         }
 
         /* -----------------------------------------------------------
-        * 🔥 STEP
+        * STEP
         * ----------------------------------------------------------- */
         if ($step !== 1.0) {
             $this->SendDebug(__FUNCTION__, 'FLOAT by step: ' . $step, 0);
@@ -3251,7 +3251,7 @@ abstract class ModulBase extends \IPSModule
         }
 
         /* -----------------------------------------------------------
-        * 🔥 MIN/MAX CHECK
+        * MIN/MAX CHECK
         * ----------------------------------------------------------- */
         if (floor($min) != $min || floor($max) != $max) {
             $this->SendDebug(__FUNCTION__, 'FLOAT by min/max', 0);
@@ -3261,7 +3261,7 @@ abstract class ModulBase extends \IPSModule
 $varType = $isFloat ? VARIABLETYPE_FLOAT : VARIABLETYPE_INTEGER;
     
         /* -----------------------------------------------------------
-         * PROFILNAME (🔥 DEIN SCHEMA!)
+         * PROFILNAME
          * Z2M.property_min_max
          * ----------------------------------------------------------- */
         $profileName = 'Z2M.' . strtolower($property) . '_' . (int)$min . '_' . (int)$max;
@@ -3436,7 +3436,7 @@ $varType = $isFloat ? VARIABLETYPE_FLOAT : VARIABLETYPE_INTEGER;
         }
     
         /* -----------------------------------------------------------
-         * SORTIEREN (🔥 wichtig für UI)
+         * SORTIEREN (wichtig für UI)
          * ----------------------------------------------------------- */
         usort($associations, fn($a, $b) => $a[0] <=> $b[0]);
     
@@ -3450,7 +3450,7 @@ $varType = $isFloat ? VARIABLETYPE_FLOAT : VARIABLETYPE_INTEGER;
          * ----------------------------------------------------------- */
         if (\IPS_VariableProfileExists($profileName)) {
     
-            // 🔥 Profil leeren und neu setzen (wichtig!)
+            // Profil leeren und neu setzen (wichtig!)
             IPS_DeleteVariableProfile($profileName);
         }
     
@@ -3758,7 +3758,7 @@ $varType = $isFloat ? VARIABLETYPE_FLOAT : VARIABLETYPE_INTEGER;
         $groupType = $data['group_type'] ?? null;
     
         /* -----------------------------------------------------------
-         * 1. SPECIAL VARIABLES
+         * SPECIAL VARIABLES
          * ----------------------------------------------------------- */
         if (isset(self::$specialVariables[$property])) {
     
@@ -3793,7 +3793,7 @@ $varType = $isFloat ? VARIABLETYPE_FLOAT : VARIABLETYPE_INTEGER;
         }
 
         /* -----------------------------------------------------------
-         * 2. STANDARD MAPPING
+         * STANDARD MAPPING
          * ----------------------------------------------------------- */
         foreach (self::$VariableUseStandardProfile as $entry) {
     
@@ -3833,7 +3833,7 @@ $varType = $isFloat ? VARIABLETYPE_FLOAT : VARIABLETYPE_INTEGER;
         }
 
         /* -----------------------------------------------------------
-         * 3. NUMERIC (FALLBACK)
+         * NUMERIC (FALLBACK)
          * ----------------------------------------------------------- */
         if ($type === 'numeric') {
 
@@ -3854,7 +3854,7 @@ $varType = $isFloat ? VARIABLETYPE_FLOAT : VARIABLETYPE_INTEGER;
         }
 
         /* -----------------------------------------------------------
-         * 4. ENUM
+         * ENUM
          * ----------------------------------------------------------- */
         if ($type === 'enum' && isset($data['values'])) {
     
@@ -3867,7 +3867,7 @@ $varType = $isFloat ? VARIABLETYPE_FLOAT : VARIABLETYPE_INTEGER;
         }
 
         /* -----------------------------------------------------------
-         * 5. BINARY
+         * BINARY
          * ----------------------------------------------------------- */
         if ($type === 'binary') {
 
@@ -3878,7 +3878,7 @@ $varType = $isFloat ? VARIABLETYPE_FLOAT : VARIABLETYPE_INTEGER;
         }
 
         /* -----------------------------------------------------------
-         * 6. FALLBACK
+         * FALLBACK
          * ----------------------------------------------------------- */
         $this->RegisterVariableString($ident, $name);
         $this->checkAndEnableAction($ident, $data);
