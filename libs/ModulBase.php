@@ -2011,7 +2011,7 @@ abstract class ModulBase extends \IPSModule
             $this->handleColorVariable('color', $value);
 
             /* -----------------------------------------------------------
-            * HS SYNC (FIX!)
+            * HS SYNC
             * ----------------------------------------------------------- */
             if (isset($value['hue'], $value['saturation'])) {
 
@@ -2080,19 +2080,20 @@ abstract class ModulBase extends \IPSModule
             $this->SetValue($key, $value);
 
             /* -----------------------------------------------------------
-            * PRESET SYNC
+            * GENERIC PRESET SYNC (Standard)
             * ----------------------------------------------------------- */
             $presetIdent = $key . '_preset';
 
-            if (@$this->GetIDForIdent($presetIdent) !== false) {
+            if ($key !== 'color_temp' && @$this->GetIDForIdent($presetIdent) !== false) {
                 $this->SetValueDirect($presetIdent, $value);
             }
 
             /* -----------------------------------------------------------
-            * COLOR TEMP → KELVIN
+            * COLOR TEMP → KELVIN + SMART PRESET
             * ----------------------------------------------------------- */
             if ($key === 'color_temp') {
 
+                /* -------- Kelvin -------- */
                 $kelvinIdent = 'color_temp_kelvin';
 
                 if (@$this->GetIDForIdent($kelvinIdent) !== false) {
@@ -2102,6 +2103,9 @@ abstract class ModulBase extends \IPSModule
 
                     $this->SendDebug(__FUNCTION__, 'Synced Kelvin: ' . $kelvin, 0);
                 }
+
+                /* -------- 🔥 SMART PRESET (UIHelper) -------- */
+                $this->syncPresetVariable('color_temp', (int)$value);
             }
 
             return;
@@ -2137,12 +2141,19 @@ abstract class ModulBase extends \IPSModule
             $this->SetValue($key, $value);
 
             /* -----------------------------------------------------------
-            * PRESET SYNC
+            * GENERIC PRESET SYNC
             * ----------------------------------------------------------- */
             $presetIdent = $key . '_preset';
 
-            if (@$this->GetIDForIdent($presetIdent) !== false) {
+            if ($key !== 'color_temp' && @$this->GetIDForIdent($presetIdent) !== false) {
                 $this->SetValueDirect($presetIdent, $value);
+            }
+
+            /* -----------------------------------------------------------
+            * COLOR TEMP → SMART PRESET (NEUE VARIABLE)
+            * ----------------------------------------------------------- */
+            if ($key === 'color_temp') {
+                $this->syncPresetVariable('color_temp', (int)$value);
             }
         }
     }
