@@ -3782,7 +3782,6 @@ abstract class ModulBase extends \IPSModule
             $varType = $cfg['type'] ?? VARIABLETYPE_STRING;
     
             switch ($varType) {
-    
                 case VARIABLETYPE_BOOLEAN:
                     $this->RegisterVariableBoolean($ident, $name, $profile);
                     break;
@@ -3801,6 +3800,7 @@ abstract class ModulBase extends \IPSModule
             }
     
             $this->checkAndEnableAction($ident, $data, true);
+            $this->handlePresetCreation($ident, $name, $data);
     
             return \IPS_GetObjectIDByIdent($ident, $this->InstanceID) ?: 0;
         }
@@ -3822,7 +3822,6 @@ abstract class ModulBase extends \IPSModule
             $varType = $entry['variableType'];
     
             switch ($varType) {
-    
                 case VARIABLETYPE_BOOLEAN:
                     $this->RegisterVariableBoolean($ident, $name, $profile);
                     break;
@@ -3841,33 +3840,8 @@ abstract class ModulBase extends \IPSModule
             }
     
             $this->checkAndEnableAction($ident, $data);
-        /* -----------------------------------------------------------
-         * 🔥 PRESETS → EIGENE VARIABLE
-         * ----------------------------------------------------------- */
-        if (isset($data['presets']) && \is_array($data['presets'])) {
-        
-            $this->SendDebug(__FUNCTION__, 'Create preset variable for ' . $ident, 0);
-        
-            $result = $this->registerNumericProfile($data);
-        
-            if (!empty($result['presetProfile'])) {
-        
-                $presetIdent = $ident . '_preset';
-                $presetName  = $name . ' Preset';
-        
-                $varType = $result['type'];
-        
-                // Variable anlegen
-                if ($varType === VARIABLETYPE_FLOAT) {
-                    $this->RegisterVariableFloat($presetIdent, $presetName, $result['presetProfile']);
-                } else {
-                    $this->RegisterVariableInteger($presetIdent, $presetName, $result['presetProfile']);
-                }
-        
-                // Action aktivieren (immer!)
-                $this->checkAndEnableAction($presetIdent, null, true);
-            }
-        }
+            $this->handlePresetCreation($ident, $name, $data);
+    
             return \IPS_GetObjectIDByIdent($ident, $this->InstanceID) ?: 0;
         }
     
@@ -3875,46 +3849,23 @@ abstract class ModulBase extends \IPSModule
          * 3. NUMERIC (FALLBACK)
          * ----------------------------------------------------------- */
         if ($type === 'numeric') {
-        
+    
             $result  = $this->registerNumericProfile($data);
             $profile = $result['mainProfile'] ?? '';
             $varType = $result['type'] ?? VARIABLETYPE_INTEGER;
-        
+    
             if ($varType === VARIABLETYPE_FLOAT) {
                 $this->RegisterVariableFloat($ident, $name, $profile);
             } else {
                 $this->RegisterVariableInteger($ident, $name, $profile);
             }
-        
-        /* -----------------------------------------------------------
-         * 🔥 PRESETS → EIGENE VARIABLE
-         * ----------------------------------------------------------- */
-        if (isset($data['presets']) && \is_array($data['presets'])) {
-        
-            $this->SendDebug(__FUNCTION__, 'Create preset variable for ' . $ident, 0);
-        
-            $result = $this->registerNumericProfile($data);
-        
-            if (!empty($result['presetProfile'])) {
-        
-                $presetIdent = $ident . '_preset';
-                $presetName  = $name . ' Preset';
-        
-                $varType = $result['type'];
-        
-                // Variable anlegen
-                if ($varType === VARIABLETYPE_FLOAT) {
-                    $this->RegisterVariableFloat($presetIdent, $presetName, $result['presetProfile']);
-                } else {
-                    $this->RegisterVariableInteger($presetIdent, $presetName, $result['presetProfile']);
-                }
-        
-                // Action aktivieren (immer!)
-                $this->checkAndEnableAction($presetIdent, null, true);
-            }
-        }
+    
+            $this->checkAndEnableAction($ident, $data);
+            $this->handlePresetCreation($ident, $name, $data);
+    
             return \IPS_GetObjectIDByIdent($ident, $this->InstanceID) ?: 0;
-        }   
+        }
+    
         /* -----------------------------------------------------------
          * 4. ENUM
          * ----------------------------------------------------------- */
@@ -4329,6 +4280,34 @@ abstract class ModulBase extends \IPSModule
 
         $this->SendDebug(__FUNCTION__, 'State mapping profile created for: ' . $stateInfo['profile'], 0);
         return $stateInfo['profile'];
+    }
+
+    private function handlePresetCreation(string $ident, string $name, array $data): void
+    {
+        if (!isset($data['presets']) || !\is_array($data['presets'])) {
+            return;
+        }
+    
+        $this->SendDebug(__FUNCTION__, 'Create preset variable for ' . $ident, 0);
+    
+        $result = $this->registerNumericProfile($data);
+    
+        if (empty($result['presetProfile'])) {
+            return;
+        }
+    
+        $presetIdent = $ident . '_preset';
+        $presetName  = $name . ' Preset';
+    
+        $varType = $result['type'];
+    
+        if ($varType === VARIABLETYPE_FLOAT) {
+            $this->RegisterVariableFloat($presetIdent, $presetName, $result['presetProfile']);
+        } else {
+            $this->RegisterVariableInteger($presetIdent, $presetName, $result['presetProfile']);
+        }
+    
+        $this->checkAndEnableAction($presetIdent, null, true);
     }
 
     /**
