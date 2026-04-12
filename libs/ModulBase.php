@@ -3829,7 +3829,23 @@ public function RequestAction($ident, $value)
             }
     
             $this->checkAndEnableAction($ident, $data);
-    
+        /* -----------------------------------------------------------
+         * 🔥 PRESETS IMMER PRÜFEN (NEU!)
+         * ----------------------------------------------------------- */
+        if (isset($data['presets']) && \is_array($data['presets'])) {
+        
+            $this->SendDebug(__FUNCTION__, 'Force preset creation for ' . $ident, 0);
+        
+            $result = $this->registerNumericProfile($data);
+        
+            if (!empty($result['presetProfile'])) {
+        
+                @IPS_SetVariableCustomProfile(
+                    \IPS_GetObjectIDByIdent($ident, $this->InstanceID),
+                    $result['presetProfile']
+                );
+            }
+        }
             return \IPS_GetObjectIDByIdent($ident, $this->InstanceID) ?: 0;
         }
     
@@ -3862,7 +3878,23 @@ public function RequestAction($ident, $value)
             }
         
             $this->checkAndEnableAction($ident, $data);
+        /* -----------------------------------------------------------
+         * 🔥 PRESETS IMMER PRÜFEN (NEU!)
+         * ----------------------------------------------------------- */
+        if (isset($data['presets']) && \is_array($data['presets'])) {
         
+            $this->SendDebug(__FUNCTION__, 'Force preset creation for ' . $ident, 0);
+        
+            $result = $this->registerNumericProfile($data);
+        
+            if (!empty($result['presetProfile'])) {
+        
+                @IPS_SetVariableCustomProfile(
+                    \IPS_GetObjectIDByIdent($ident, $this->InstanceID),
+                    $result['presetProfile']
+                );
+            }
+        }
             return \IPS_GetObjectIDByIdent($ident, $this->InstanceID) ?: 0;
         }   
         /* -----------------------------------------------------------
