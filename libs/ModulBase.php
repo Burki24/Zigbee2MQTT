@@ -11,6 +11,7 @@ require_once __DIR__ . '/VariableProfileHelper.php';
 require_once __DIR__ . '/MQTTHelper.php';
 require_once __DIR__ . '/ColorHelper.php';
 require_once __DIR__ . '/UIHelper.php';
+require_once __DIR__ . '/TileHelper.php';
 
 /**
  * ModulBase
@@ -33,6 +34,8 @@ abstract class ModulBase extends \IPSModule
     use VariableProfileHelper;
     use SendData;
     use UIHelper;
+    use TileHelper;
+    
     private const MINIMAL_MODUL_VERSION = 5.1;
 
     /**
