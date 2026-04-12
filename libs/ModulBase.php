@@ -1,8 +1,9 @@
 <?php
 
-declare(strict_types=1);
-
 namespace Zigbee2MQTT;
+
+
+declare(strict_types=1);
 
 require_once __DIR__ . '/AttributeArrayHelper.php';
 require_once __DIR__ . '/BufferHelper.php';
@@ -1984,13 +1985,36 @@ abstract class ModulBase extends \IPSModule
         }
 
         /* -----------------------------------------------------------
-        * 🔥 COLOR HANDLING (FIX!)
+        * 🔥 COLOR HANDLING (FIX FINAL)
         * ----------------------------------------------------------- */
-        if (\in_array($key, ['color', 'color_hs', 'color_rgb'], true)) {
+        if ($key === 'color' && \is_array($value)) {
 
-            $this->SendDebug(__FUNCTION__, 'Color handling: ' . $key, 0);
+            $this->SendDebug(__FUNCTION__, 'Processing color payload: ' . json_encode($value), 0);
 
-            $this->handleColorVariable($key, $value);
+            // Hauptverarbeitung (HEX etc.)
+            $this->handleColorVariable('color', $value);
+
+            /* -----------------------------------------------------------
+            * 🔥 HS SYNC (FIX!)
+            * ----------------------------------------------------------- */
+            if (isset($value['hue'], $value['saturation'])) {
+
+                $hsIdent = 'color_hs';
+
+                if (@$this->GetIDForIdent($hsIdent) !== false) {
+
+                    $hex = $this->HSVToInt(
+                        (float)$value['hue'],
+                        (float)$value['saturation'],
+                        (int)($value['brightness'] ?? 254)
+                    );
+
+                    $this->SetValueDirect($hsIdent, $hex);
+
+                    $this->SendDebug(__FUNCTION__, 'Synced color_hs (HEX): ' . $hex, 0);
+                }
+            }
+
             return;
         }
 
@@ -2040,7 +2064,7 @@ abstract class ModulBase extends \IPSModule
             $this->SetValue($key, $value);
 
             /* -----------------------------------------------------------
-            * 🔥 PRESET SYNC (FIX!)
+            * 🔥 PRESET SYNC
             * ----------------------------------------------------------- */
             $presetIdent = $key . '_preset';
 
@@ -2059,6 +2083,8 @@ abstract class ModulBase extends \IPSModule
 
                     $kelvin = $this->convertMiredToKelvin((int)$value);
                     $this->SetValueDirect($kelvinIdent, $kelvin);
+
+                    $this->SendDebug(__FUNCTION__, 'Synced Kelvin: ' . $kelvin, 0);
                 }
             }
 
@@ -2095,7 +2121,7 @@ abstract class ModulBase extends \IPSModule
             $this->SetValue($key, $value);
 
             /* -----------------------------------------------------------
-            * 🔥 PRESET SYNC (NEUE VARIABLE!)
+            * 🔥 PRESET SYNC
             * ----------------------------------------------------------- */
             $presetIdent = $key . '_preset';
 
