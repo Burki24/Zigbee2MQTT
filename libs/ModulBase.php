@@ -3713,11 +3713,10 @@ abstract class ModulBase extends \IPSModule
             }
     
             $this->checkAndEnableAction($ident, $data, true);
-            $this->handlePresetCreation($ident, $name, $data);
-    
+            $this->handlePresetCreation($ident, $name, $data, $result ?? null);
             return \IPS_GetObjectIDByIdent($ident, $this->InstanceID) ?: 0;
         }
-    
+
         /* -----------------------------------------------------------
          * 2. STANDARD MAPPING
          * ----------------------------------------------------------- */
@@ -3726,59 +3725,59 @@ abstract class ModulBase extends \IPSModule
             if ($entry['feature'] !== $property) {
                 continue;
             }
-    
+
             if ($entry['group_type'] !== '' && $entry['group_type'] !== $groupType) {
                 continue;
             }
-    
+
             $profile = $entry['profile'];
             $varType = $entry['variableType'];
-    
+
             switch ($varType) {
                 case VARIABLETYPE_BOOLEAN:
                     $this->RegisterVariableBoolean($ident, $name, $profile);
                     break;
-    
+
                 case VARIABLETYPE_INTEGER:
                     $this->RegisterVariableInteger($ident, $name, $profile);
                     break;
-    
+
                 case VARIABLETYPE_FLOAT:
                     $this->RegisterVariableFloat($ident, $name, $profile);
                     break;
-    
+
                 default:
                     $this->RegisterVariableString($ident, $name, $profile);
                     break;
             }
-    
+
             $this->checkAndEnableAction($ident, $data);
-            $this->handlePresetCreation($ident, $name, $data);
-    
+            $this->handlePresetCreation($ident, $name, $data, $result ?? null);
+
             return \IPS_GetObjectIDByIdent($ident, $this->InstanceID) ?: 0;
         }
-    
+
         /* -----------------------------------------------------------
          * 3. NUMERIC (FALLBACK)
          * ----------------------------------------------------------- */
         if ($type === 'numeric') {
-    
+
             $result  = $this->registerNumericProfile($data);
             $profile = $result['mainProfile'] ?? '';
             $varType = $result['type'] ?? VARIABLETYPE_INTEGER;
-    
+
             if ($varType === VARIABLETYPE_FLOAT) {
                 $this->RegisterVariableFloat($ident, $name, $profile);
             } else {
                 $this->RegisterVariableInteger($ident, $name, $profile);
             }
-    
+
             $this->checkAndEnableAction($ident, $data);
-            $this->handlePresetCreation($ident, $name, $data);
-    
+            $this->handlePresetCreation($ident, $name, $data, $result ?? null);
+
             return \IPS_GetObjectIDByIdent($ident, $this->InstanceID) ?: 0;
         }
-    
+
         /* -----------------------------------------------------------
          * 4. ENUM
          * ----------------------------------------------------------- */
@@ -3788,21 +3787,21 @@ abstract class ModulBase extends \IPSModule
     
             $this->RegisterVariableString($ident, $name, $profile);
             $this->checkAndEnableAction($ident, $data);
-    
+
             return \IPS_GetObjectIDByIdent($ident, $this->InstanceID) ?: 0;
         }
-    
+
         /* -----------------------------------------------------------
          * 5. BINARY
          * ----------------------------------------------------------- */
         if ($type === 'binary') {
-    
+
             $this->RegisterVariableBoolean($ident, $name, '~Switch');
             $this->checkAndEnableAction($ident, $data);
-    
+
             return \IPS_GetObjectIDByIdent($ident, $this->InstanceID) ?: 0;
         }
-    
+
         /* -----------------------------------------------------------
          * 6. FALLBACK
          * ----------------------------------------------------------- */
@@ -4130,11 +4129,13 @@ abstract class ModulBase extends \IPSModule
         return $stateInfo['profile'];
     }
 
-    private function handlePresetCreation(string $ident, string $name, array $data): void
+    private function handlePresetCreation(string $ident, string $name, array $data, ?array $numericResult = null): void
     {
-        if (!isset($data['presets']) || !\is_array($data['presets'])) {
+        if (!isset($data['presets'])) {
             return;
         }
+
+        $result = $numericResult ?? $this->registerNumericProfile($data);
     
         $this->SendDebug(__FUNCTION__, 'Create preset variable for ' . $ident, 0);
     
@@ -4152,9 +4153,13 @@ abstract class ModulBase extends \IPSModule
         if ($varType === VARIABLETYPE_FLOAT) {
             $this->RegisterVariableFloat($presetIdent, $presetName, $result['presetProfile']);
         } else {
+            $varID = @\IPS_GetObjectIDByIdent($presetIdent, $this->InstanceID);
+
+            if ($varID === false) {
+            // erst dann erstellen
             $this->RegisterVariableInteger($presetIdent, $presetName, $result['presetProfile']);
+            }
         }
-    
         $this->checkAndEnableAction($presetIdent, null, true);
     }
 
