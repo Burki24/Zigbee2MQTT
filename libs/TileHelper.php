@@ -30,27 +30,19 @@ trait TileHelper
 
         foreach ($exposes as $expose) {
 
-            // GROUP TYPES
             if (isset($expose['type'])) {
-
                 switch ($expose['type']) {
-
                     case 'light':
                         return 'light';
-
                     case 'switch':
                         return 'switch';
-
                     case 'sensor':
                         return 'sensor';
                 }
             }
 
-            // PROPERTY BASED FALLBACK
             if (isset($expose['property'])) {
-
                 switch ($expose['property']) {
-
                     case 'temperature':
                     case 'humidity':
                     case 'co2':
@@ -66,7 +58,7 @@ trait TileHelper
     }
 
     /* -----------------------------------------------------------
-     * LIGHT TILE (DEIN HAUPTCASE)
+     * 💡 LIGHT TILE (UPGRADED)
      * ----------------------------------------------------------- */
     protected function getLightTile(): array
     {
@@ -95,8 +87,31 @@ trait TileHelper
             ];
         }
 
-        // Presets
-        if ($this->varExists('color_temp_preset')) {
+        /* -----------------------------------------------------------
+         * 🔥 PRESETS (SMART: DYNAMIC → FALLBACK)
+         * ----------------------------------------------------------- */
+
+        // 1. Dynamisch aus Exposes
+        $presetOptions = $this->getPresetsFromExposes('color_temp');
+
+        if (!empty($presetOptions)) {
+
+            $items[] = [
+                'type'    => 'buttonGroup',
+                'caption' => 'Presets',
+                'options' => $presetOptions,
+                'onClick' => [
+                    'type'   => 'action',
+                    'action' => 'RequestAction',
+                    'target' => $this->InstanceID,
+                    'ident'  => 'color_temp'
+                ]
+            ];
+
+        }
+        // 2. Fallback: klassische Preset-Variable
+        elseif ($this->varExists('color_temp_preset')) {
+
             $items[] = [
                 'type'     => 'buttonGroup',
                 'caption'  => 'Presets',
@@ -112,7 +127,7 @@ trait TileHelper
     }
 
     /* -----------------------------------------------------------
-     * SENSOR TILE
+     * 🌡 SENSOR TILE
      * ----------------------------------------------------------- */
     protected function getSensorTile(): array
     {
@@ -141,7 +156,7 @@ trait TileHelper
     }
 
     /* -----------------------------------------------------------
-     * SWITCH TILE
+     * 🔌 SWITCH TILE
      * ----------------------------------------------------------- */
     protected function getSwitchTile(): array
     {
@@ -156,7 +171,7 @@ trait TileHelper
     }
 
     /* -----------------------------------------------------------
-     * DEFAULT TILE
+     * 🔧 DEFAULT TILE
      * ----------------------------------------------------------- */
     protected function getDefaultTile(): array
     {
@@ -167,7 +182,39 @@ trait TileHelper
     }
 
     /* -----------------------------------------------------------
-     * HELPER: VARIABLE EXISTIERT?
+     * 🔥 PRESETS AUS EXPOSES LESEN
+     * ----------------------------------------------------------- */
+    protected function getPresetsFromExposes(string $property): array
+    {
+        $exposes = $this->ReadAttributeArray('exposes');
+
+        foreach ($exposes as $expose) {
+
+            if (($expose['property'] ?? '') === $property && isset($expose['presets'])) {
+
+                $result = [];
+
+                foreach ($expose['presets'] as $preset) {
+
+                    if (!isset($preset['value'], $preset['name'])) {
+                        continue;
+                    }
+
+                    $result[] = [
+                        'caption' => ucfirst($preset['name']),
+                        'value'   => (int)$preset['value']
+                    ];
+                }
+
+                return $result;
+            }
+        }
+
+        return [];
+    }
+
+    /* -----------------------------------------------------------
+     * 🧠 HELPER: VARIABLE EXISTIERT?
      * ----------------------------------------------------------- */
     protected function varExists(string $ident): bool
     {
