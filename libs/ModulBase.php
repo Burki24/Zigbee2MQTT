@@ -3215,19 +3215,35 @@ abstract class ModulBase extends \IPSModule
         $step = isset($expose['value_step']) ? (float)$expose['value_step'] : 1.0;
     
         /* -----------------------------------------------------------
-         * VARIABLE TYPE (FLOAT vs INTEGER)
-         * ----------------------------------------------------------- */
+        * VARIABLE TYPE (FLOAT vs INTEGER)
+        * ----------------------------------------------------------- */
         $isFloat = false;
-    
+
+        /* -----------------------------------------------------------
+        * 🔥 FLOAT UNITS (NEU!)
+        * ----------------------------------------------------------- */
+        if ($unit !== '' && \in_array($unit, self::FLOAT_UNITS, true)) {
+            $this->SendDebug(__FUNCTION__, 'FLOAT by unit: ' . $unit, 0);
+            $isFloat = true;
+        }
+
+        /* -----------------------------------------------------------
+        * 🔥 STEP
+        * ----------------------------------------------------------- */
         if ($step !== 1.0) {
+            $this->SendDebug(__FUNCTION__, 'FLOAT by step: ' . $step, 0);
             $isFloat = true;
         }
-    
+
+        /* -----------------------------------------------------------
+        * 🔥 MIN/MAX CHECK
+        * ----------------------------------------------------------- */
         if (floor($min) != $min || floor($max) != $max) {
+            $this->SendDebug(__FUNCTION__, 'FLOAT by min/max', 0);
             $isFloat = true;
         }
-    
-        $varType = $isFloat ? VARIABLETYPE_FLOAT : VARIABLETYPE_INTEGER;
+
+$varType = $isFloat ? VARIABLETYPE_FLOAT : VARIABLETYPE_INTEGER;
     
         /* -----------------------------------------------------------
          * PROFILNAME (🔥 DEIN SCHEMA!)
