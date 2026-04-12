@@ -1657,42 +1657,51 @@ abstract class ModulBase extends \IPSModule
     private static function convertToSnakeCase(string $oldIdent): string
     {
         /* -----------------------------------------------------------
-         * 1. PREFIX ENTFERNEN
-         * ----------------------------------------------------------- */
+        * 1. PREFIX ENTFERNEN
+        * ----------------------------------------------------------- */
         $result = preg_replace('/^Z2M_/', '', $oldIdent);
-    
+
         /* -----------------------------------------------------------
-         * 2. STATE SPECIAL CASE
-         * ----------------------------------------------------------- */
+        * 2. STATE SPECIAL CASE
+        * ----------------------------------------------------------- */
         foreach ([self::STATE_PATTERN['MQTT'], self::STATE_PATTERN['SYMCON']] as $pattern) {
             if (preg_match($pattern, $result)) {
                 $result = preg_replace('/^(state)([LlRr][0-9]+)$/i', '$1_$2', $result);
                 return strtolower($result);
             }
         }
-    
+
         /* -----------------------------------------------------------
-         * 3. CAMELCASE → SNAKE_CASE
-         * ----------------------------------------------------------- */
-        $result = preg_replace('/(?<!^)[A-Z]/', '_$0', $result);
-    
+        * 3. CAMELCASE → SNAKE_CASE
+        * ----------------------------------------------------------- */
+        // Trennt auch sauber bei Zahlen
+        $result = preg_replace('/(?<!^)([A-Z0-9])/', '_$1', $result);
+
         /* -----------------------------------------------------------
-         * 4. ABBREVIATIONS NORMALISIEREN
-         * ----------------------------------------------------------- */
+        * 4. ABBREVIATIONS NORMALISIEREN
+        * ----------------------------------------------------------- */
         foreach (self::KNOWN_ABBREVIATIONS as $abbr) {
+
+            // Beispiel: PM25 bleibt zusammen (nicht p_m_2_5)
             $result = preg_replace(
                 '/' . preg_quote($abbr, '/') . '/i',
                 strtolower($abbr),
                 $result
             );
         }
-    
+
         /* -----------------------------------------------------------
-         * 5. FINAL CLEANUP
-         * ----------------------------------------------------------- */
+        * 5. ZAHLEN-KORREKTUR (WICHTIG!)
+        * ----------------------------------------------------------- */
+        // verhindert pm2_5 → pm25
+        $result = preg_replace('/([a-z])_([0-9])_([0-9])/', '$1_$2$3', $result);
+
+        /* -----------------------------------------------------------
+        * 6. CLEANUP
+        * ----------------------------------------------------------- */
         $result = preg_replace('/_+/', '_', $result);
-        $result = strtolower($result);
-    
+        $result = strtolower(trim($result, '_'));
+
         return $result;
     }
 
