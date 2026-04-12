@@ -1863,8 +1863,8 @@ abstract class ModulBase extends \IPSModule
             unset($payload['exposes']);
         }
 
-        $this->lastPayload = $this->lastPayload + $payload;
-
+        $this->lastPayload = array_replace_recursive($this->lastPayload, $payload);
+        
         // Verschachtelte Strukturen flach machen
         $flattenedPayload = $this->flattenPayload($payload);
 
