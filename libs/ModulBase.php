@@ -3055,7 +3055,7 @@ abstract class ModulBase extends \IPSModule
 
         // Prüfe, ob der Name in der locale.json vorhanden ist
         // Füge den Namen zum missingTranslations Buffer hinzu
-        $this->isValueInLocaleJson($label, 'lable');
+        $this->isValueInLocaleJson($label, 'label');
         return $label;
     }
 
@@ -3190,7 +3190,7 @@ abstract class ModulBase extends \IPSModule
         // Erstelle Profilwerte
         $profileValues = [];
         foreach ($expose['values'] as $value) {
-            $readableValue = ucwords(str_replace('_', ' ', (string) $value));
+            $readableValue = $this->convertLabelToName((string) $value);
             // Prüfe, ob der Wert in der locale.json vorhanden ist
             $this->isValueInLocaleJson($readableValue, 'value');
             $profileValues[] = [(string) $value, $readableValue, '', 0x00FF00];
@@ -3790,7 +3790,7 @@ $varType = $isFloat ? VARIABLETYPE_FLOAT : VARIABLETYPE_INTEGER;
         }
     
         $ident = strtolower($property);
-        $name  = ucfirst(str_replace('_', ' ', $property));
+        $name = $this->convertLabelToName($property);
     
         $type      = $data['type'] ?? '';
         $groupType = $data['group_type'] ?? null;
