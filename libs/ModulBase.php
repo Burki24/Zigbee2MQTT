@@ -3056,7 +3056,7 @@ abstract class ModulBase extends \IPSModule
         // Prüfe, ob der Name in der locale.json vorhanden ist
         // Füge den Namen zum missingTranslations Buffer hinzu
         $this->isValueInLocaleJson($label, 'label');
-        return $label;
+        return $this->Translate($label);;
     }
 
     /**
