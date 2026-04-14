@@ -1103,7 +1103,7 @@ abstract class ModulBase extends \IPSModule
     {
         $translation = array_merge_recursive(
             json_decode(file_get_contents(__DIR__ . '/locale.json'), true),
-            json_decode(file_get_contents(__DIR__ . '/locale_z2m.json'), true);
+            json_decode(file_get_contents(__DIR__ . '/locale_z2m.json'), true)
             $this->SendDebug(__FUNCTION__, '__DIR__: ' . __DIR__, 0);
             $this->SendDebug(__FUNCTION__, 'locale.json exists: ' . (file_exists(__DIR__ . '/locale.json') ? 'YES' : 'NO'), 0);
             $this->SendDebug(__FUNCTION__, 'locale_z2m.json exists: ' . (file_exists(__DIR__ . '/locale_z2m.json') ? 'YES' : 'NO'), 0);
