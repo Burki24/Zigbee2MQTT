@@ -34,7 +34,8 @@ trait VariablePresentationHelper
             'MIN'                 => $minKelvin,
             'MAX'                 => $maxKelvin,
             'STEP_SIZE'           => 1,
-            'GRADIENT_TYPE'       => 2,
+            'GRADIENT_TYPE'       => 3,
+            'CUSTOM_GRADIENT'     => $this->CreateColorTemperatureGradient($minKelvin, $maxKelvin),
             'USAGE_TYPE'          => 1,
             'SUFFIX'              => ' K',
             'DIGITS'              => 0,
@@ -84,5 +85,98 @@ trait VariablePresentationHelper
     private function SupportsCustomPresentation(): bool
     {
         return \function_exists('IPS_SetVariableCustomPresentation') && \defined('VARIABLE_PRESENTATION_SLIDER');
+    }
+
+    /**
+     * Erstellt einen benutzerdefinierten Farbtemperaturverlauf fuer den konkreten Kelvin-Bereich.
+     */
+    private function CreateColorTemperatureGradient(int $minKelvin, int $maxKelvin): string
+    {
+        $anchors = [
+            ['Value' => 2200, 'Color' => '0xFFB36B'],
+            ['Value' => 2700, 'Color' => '0xFFD19A'],
+            ['Value' => 3000, 'Color' => '0xFFE1B8'],
+            ['Value' => 3500, 'Color' => '0xFFF0D6'],
+            ['Value' => 4000, 'Color' => '0xFFF8EB'],
+            ['Value' => 4500, 'Color' => '0xF4FAFF'],
+            ['Value' => 5000, 'Color' => '0xE6F3FF'],
+            ['Value' => 6500, 'Color' => '0xD6ECFF']
+        ];
+
+        $gradient = [];
+        foreach ($anchors as $anchor) {
+            if ($anchor['Value'] >= $minKelvin && $anchor['Value'] <= $maxKelvin) {
+                $gradient[] = $anchor;
+            }
+        }
+
+        if (empty($gradient) || $gradient[0]['Value'] !== $minKelvin) {
+            array_unshift($gradient, [
+                'Value' => $minKelvin,
+                'Color' => $this->InterpolateColorTemperatureColor($minKelvin, $anchors)
+            ]);
+        }
+
+        $lastIndex = count($gradient) - 1;
+        if ($gradient[$lastIndex]['Value'] !== $maxKelvin) {
+            $gradient[] = [
+                'Value' => $maxKelvin,
+                'Color' => $this->InterpolateColorTemperatureColor($maxKelvin, $anchors)
+            ];
+        }
+
+        return json_encode($gradient);
+    }
+
+    /**
+     * Interpoliert die Farbe zwischen den bekannten Farbtemperatur-Ankerpunkten.
+     */
+    private function InterpolateColorTemperatureColor(int $kelvin, array $anchors): string
+    {
+        if ($kelvin <= $anchors[0]['Value']) {
+            return $anchors[0]['Color'];
+        }
+
+        $lastIndex = count($anchors) - 1;
+        if ($kelvin >= $anchors[$lastIndex]['Value']) {
+            return $anchors[$lastIndex]['Color'];
+        }
+
+        for ($i = 1; $i <= $lastIndex; $i++) {
+            if ($kelvin > $anchors[$i]['Value']) {
+                continue;
+            }
+
+            $lower = $anchors[$i - 1];
+            $upper = $anchors[$i];
+            $factor = ($kelvin - $lower['Value']) / ($upper['Value'] - $lower['Value']);
+
+            return $this->InterpolateHexColor($lower['Color'], $upper['Color'], $factor);
+        }
+
+        return $anchors[$lastIndex]['Color'];
+    }
+
+    /**
+     * Interpoliert zwei SelectColor-Hexwerte.
+     */
+    private function InterpolateHexColor(string $fromColor, string $toColor, float $factor): string
+    {
+        $from = hexdec(substr($fromColor, 2));
+        $to = hexdec(substr($toColor, 2));
+
+        $fromR = ($from >> 16) & 0xFF;
+        $fromG = ($from >> 8) & 0xFF;
+        $fromB = $from & 0xFF;
+
+        $toR = ($to >> 16) & 0xFF;
+        $toG = ($to >> 8) & 0xFF;
+        $toB = $to & 0xFF;
+
+        $red = (int) round($fromR + (($toR - $fromR) * $factor));
+        $green = (int) round($fromG + (($toG - $fromG) * $factor));
+        $blue = (int) round($fromB + (($toB - $fromB) * $factor));
+
+        return sprintf('0x%02X%02X%02X', $red, $green, $blue);
     }
 }
