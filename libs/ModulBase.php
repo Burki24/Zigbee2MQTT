@@ -8,6 +8,7 @@ require_once __DIR__ . '/AttributeArrayHelper.php';
 require_once __DIR__ . '/BufferHelper.php';
 require_once __DIR__ . '/SemaphoreHelper.php';
 require_once __DIR__ . '/VariableProfileHelper.php';
+require_once __DIR__ . '/VariablePresentationHelper.php';
 require_once __DIR__ . '/MQTTHelper.php';
 require_once __DIR__ . '/ColorHelper.php';
 
@@ -30,6 +31,7 @@ abstract class ModulBase extends \IPSModuleStrict
     use Semaphore;
     use ColorHelper;
     use VariableProfileHelper;
+    use VariablePresentationHelper;
     use SendData;
     private const MINIMAL_MODUL_VERSION = 5.1;
 
@@ -3990,6 +3992,7 @@ abstract class ModulBase extends \IPSModuleStrict
             $aFiltered = $this->ReadAttributeArray(self::ATTRIBUTE_FILTERED);
             if (!\in_array($kelvinIdent, $aFiltered, true)) {
                 $this->RegisterVariableInteger($kelvinIdent, $this->Translate('Color Temperature Kelvin'), '~TWColor');
+                $this->ApplyColorTemperaturePresentation($kelvinIdent, $feature);
                 // color_temp_kelvin ist eine spezielle UI-Variable, die immer EnableAction haben soll
                 $this->checkAndEnableAction($kelvinIdent, null, true);
             }
