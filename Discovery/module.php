@@ -12,7 +12,7 @@ require_once dirname(__DIR__) . '/libs/phpMQTT.php';
  * @property array $ManuelTopics
  * @property array $ManuelBrokerConfig
  */
-class Zigbee2MQTTDiscovery extends IPSModule
+class Zigbee2MQTTDiscovery extends IPSModuleStrict
 {
     use Zigbee2MQTT\Constants;
     use Zigbee2MQTT\BufferHelper;
@@ -24,7 +24,7 @@ class Zigbee2MQTTDiscovery extends IPSModule
      *
      * @uses IPSModule::Create()
      */
-    public function Create()
+    public function Create(): void
     {
         //Never delete this line!
         parent::Create();
@@ -40,7 +40,7 @@ class Zigbee2MQTTDiscovery extends IPSModule
      *
      * @uses IPSModule::ApplyChanges()
      */
-    public function ApplyChanges()
+    public function ApplyChanges(): void
     {
         //Never delete this line!
         parent::ApplyChanges();
@@ -69,12 +69,12 @@ class Zigbee2MQTTDiscovery extends IPSModule
      * @uses empty()
      * @uses isset()
      */
-    public function RequestAction($ident, $value)
+    public function RequestAction(string $ident, mixed $value): void
     {
         switch ($ident) {
             case 'CheckMQTTBroker':
                 $Config = json_decode($value, true);
-                $this->SendDebug('Manuel CheckMQTTBroker', $value, 0);
+                $this->SendDebug('Manuel CheckMQTTBroker', (string) $value, 0);
                 $Url = parse_url($Config['Url']);
                 if (empty($Url['host'])) {
                     $this->ManuelTopics = [];
@@ -142,7 +142,7 @@ class Zigbee2MQTTDiscovery extends IPSModule
      * @uses array_merge()
      * @uses unset()
      */
-    public function GetConfigurationForm()
+    public function GetConfigurationForm(): string
     {
         $Form = json_decode(file_get_contents(__DIR__ . '/form.json'), true);
 

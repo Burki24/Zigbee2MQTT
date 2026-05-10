@@ -32,7 +32,7 @@ trait SendData
      * @param  string $value
      * @return bool
      */
-    public function Command(string $topic, string $value)
+    public function Command(string $topic, string $value): bool
     {
         return $this->SendData('/' . $this->ReadPropertyString(self::MQTT_TOPIC) . '/' . $topic, json_decode($value, true), 0);
     }
@@ -44,7 +44,7 @@ trait SendData
      * @param  string $value
      * @return bool
      */
-    public function CommandExt(string $topic, string $value) //ohne MQTTTopic
+    public function CommandExt(string $topic, string $value): bool //ohne MQTTTopic
     {
         return $this->SendData('/' . $topic, json_decode($value, true), 0);
     }
@@ -62,7 +62,7 @@ trait SendData
      * @param  int $Timeout default 5000ms, 0 = senden ohne auf die Antwort zuw arten
      * @return array|bool Enthält die Antwort als Array, oder True bei inaktivem Timeout, oder false im Fehlerfall.
      */
-    protected function SendData(string $Topic, array $Payload = [], int $Timeout = 5000)
+    protected function SendData(string $Topic, array $Payload = [], int $Timeout = 5000): array|bool
     {
         if ($Timeout) {
             $TransactionId = $this->AddTransaction($Payload);
@@ -94,7 +94,7 @@ trait SendData
      * @param  int $Timeout
      * @return array|false Enthält die Antwort, oder false beim erreichen des Timeout oder im Fehlerfall.
      */
-    private function WaitForTransactionEnd(int $TransactionId, int $Timeout)
+    private function WaitForTransactionEnd(int $TransactionId, int $Timeout): array|false
     {
         $Sleep = intdiv($Timeout, 1000);
         for ($i = 0; $i < 1000; $i++) {
@@ -121,7 +121,7 @@ trait SendData
      * @param  array $Payload MQTT Payload als Referenz
      * @return int Erzeugte TransactionId
      */
-    private function AddTransaction(array &$Payload)
+    private function AddTransaction(array &$Payload): int
     {
         if (!$this->lock('TransactionData')) {
             throw new \Exception($this->Translate('Transaction Data is locked'), E_USER_NOTICE);
@@ -143,7 +143,7 @@ trait SendData
      * @param  array $Data Payload welches im Buffer abgelegt werden soll.
      * @return void
      */
-    private function UpdateTransaction(array $Data)
+    private function UpdateTransaction(array $Data): void
     {
         if (!$this->lock('TransactionData')) {
             throw new \Exception($this->Translate('Transaction Data is locked'), E_USER_NOTICE);
@@ -166,7 +166,7 @@ trait SendData
      * @param  int $TransactionId
      * @return void
      */
-    private function RemoveTransaction(int $TransactionId)
+    private function RemoveTransaction(int $TransactionId): void
     {
         if (!$this->lock('TransactionData')) {
             throw new \Exception($this->Translate('Transaction Data is locked'), E_USER_NOTICE);
@@ -186,17 +186,32 @@ trait SendData
      * @param  array $Payload MQTT Payload welches als JSON kodierter Payload gesetzt wird.
      * @return string JSON-String des Datenaustausch
      */
-    private static function BuildRequest(string $Topic, array $Payload)
+    private static function BuildRequest(string $Topic, array $Payload): string
     {
         return json_encode(
             array_merge(
                 self::$MQTTDataArray,
                 [
                     'Topic'  => $Topic,
-                    'Payload'=> utf8_encode(json_encode($Payload))
+                    'Payload'=> bin2hex(json_encode($Payload))
                 ]
             ),
             JSON_UNESCAPED_SLASHES
         );
+    }
+
+    /**
+     * Dekodiert Payloads nach IPSModuleStrict-Regel (HEX) und bleibt tolerant
+     * gegen alte UTF-8 Test- oder Installationsdaten.
+     */
+    protected static function DecodePayload(string $Payload): string
+    {
+        if ((\strlen($Payload) % 2) === 0 && ctype_xdigit($Payload)) {
+            $decoded = hex2bin($Payload);
+            if ($decoded !== false) {
+                return $decoded;
+            }
+        }
+        return utf8_decode($Payload);
     }
 }

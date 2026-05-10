@@ -14,7 +14,7 @@ class Zigbee2MQTTGroup extends \Zigbee2MQTT\ModulBase
      *
      * @return void
      */
-    public function Create()
+    public function Create(): void
     {
         // Never delete this line!
         parent::Create();
@@ -28,7 +28,7 @@ class Zigbee2MQTTGroup extends \Zigbee2MQTT\ModulBase
      *
      * @return void
      */
-    public function ApplyChanges()
+    public function ApplyChanges(): void
     {
         $GroupId = $this->ReadPropertyInteger('GroupId');
         $this->SetSummary($GroupId ? 'Group Id: ' . $GroupId : '');
@@ -54,7 +54,7 @@ class Zigbee2MQTTGroup extends \Zigbee2MQTT\ModulBase
      * @param  mixed $Data
      * @return void
      */
-    public function MessageSink($Time, $SenderID, $Message, $Data)
+    public function MessageSink(int $Time, int $SenderID, int $Message, array $Data): void
     {
         parent::MessageSink($Time, $SenderID, $Message, $Data);
         if ($SenderID != $this->InstanceID) {
@@ -74,7 +74,7 @@ class Zigbee2MQTTGroup extends \Zigbee2MQTT\ModulBase
      *
      * @return string
      */
-    public function GetConfigurationForm()
+    public function GetConfigurationForm(): string
     {
         $Form = json_decode(file_get_contents(__DIR__ . '/form.json'), true);
         if (count($this->missingTranslations)) {
@@ -90,7 +90,7 @@ class Zigbee2MQTTGroup extends \Zigbee2MQTT\ModulBase
      * @param  mixed $value
      * @return void
      */
-    public function RequestAction($ident, $value)
+    public function RequestAction(string $ident, mixed $value): void
     {
         if ($ident == 'ShowGroupIdEditWarning') {
             $this->UpdateFormField('GroupIdWarning', 'visible', true);

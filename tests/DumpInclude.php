@@ -105,7 +105,7 @@ class DumpInclude extends TestCase
                 self::$MQTTDataArray,
                 [
                     'Topic'  => $Topic,
-                    'Payload'=> utf8_encode(json_encode($Payload))
+                    'Payload'=> bin2hex(json_encode($Payload))
                 ]
             ),
             JSON_UNESCAPED_SLASHES

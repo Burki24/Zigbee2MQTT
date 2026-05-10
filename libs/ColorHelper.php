@@ -127,7 +127,7 @@ trait ColorHelper
 
         // Integer-Wert berechnen
         $color = ($r << 16) | ($g << 8) | $b;
-        $this->SendDebug(__FUNCTION__ . ' :: colorINT', $color, 0);
+        $this->SendDebug(__FUNCTION__ . ' :: colorINT', (string) $color, 0);
 
         return $color;
     }
@@ -250,7 +250,7 @@ trait ColorHelper
 
         // Integer-Wert berechnen
         $color = ($r << 16) | ($g << 8) | $b;
-        $this->SendDebug(__FUNCTION__ . ' :: colorINT', $color, 0);
+        $this->SendDebug(__FUNCTION__ . ' :: colorINT', (string) $color, 0);
 
         return $color;
     }

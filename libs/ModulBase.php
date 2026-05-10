@@ -23,7 +23,7 @@ require_once __DIR__ . '/ColorHelper.php';
  * @property string $lastPayload Zugriff auf den Buffer welcher das Letzte Payload enthält (für Download-Button)
  * @property array $missingTranslations Zugriff auf den Buffer welcher ein array von fehlenden Übersetzungen enthält (für Download-Button)
  */
-abstract class ModulBase extends \IPSModule
+abstract class ModulBase extends \IPSModuleStrict
 {
     use AttributeArrayHelper;
     use BufferHelper;
@@ -402,7 +402,7 @@ abstract class ModulBase extends \IPSModule
      * @see \IPSModule::RegisterAttributeArray()
      * @see \Zigbee2MQTT\ModulBase::RegisterProfileBoolean()
      */
-    public function Create()
+    public function Create(): void
     {
         //Never delete this line!
         parent::Create();
@@ -466,7 +466,7 @@ abstract class ModulBase extends \IPSModule
      * @see \IPSModule::SetStatus()
      * @see IPS_GetKernelRunlevel()
      */
-    public function ApplyChanges()
+    public function ApplyChanges(): void
     {
         //Never delete this line!
         parent::ApplyChanges();
@@ -498,7 +498,7 @@ abstract class ModulBase extends \IPSModule
      * @param  mixed $Data
      * @return void
      */
-    public function MessageSink($Time, $SenderID, $Message, $Data)
+    public function MessageSink(int $Time, int $SenderID, int $Message, array $Data): void
     {
         parent::MessageSink($Time, $SenderID, $Message, $Data);
         if ($SenderID != $this->InstanceID) {
@@ -560,7 +560,7 @@ abstract class ModulBase extends \IPSModule
      * @see \Zigbee2MQTT\ModulBase::handleStandardVariable()
      * @see json_encode()
      */
-    public function RequestAction($ident, $value)
+    public function RequestAction(string $ident, mixed $value): void
     {
         $this->SendDebug(__FUNCTION__, 'Aufgerufen für Ident: ' . $ident . ' mit Wert: ' . json_encode($value), 0);
 
@@ -660,7 +660,7 @@ abstract class ModulBase extends \IPSModule
      * @see \Zigbee2MQTT\ModulBase::handleSymconExtensionResponses()
      * @see \Zigbee2MQTT\ModulBase::processPayload()
      */
-    public function ReceiveData($JSONString)
+    public function ReceiveData(string $JSONString): string
     {
         // Während Migration keine MQTT Nachrichten verarbeiten
         if ($this->BUFFER_MQTT_SUSPENDED) {
@@ -717,7 +717,7 @@ abstract class ModulBase extends \IPSModule
      * @see json_decode()
      * @see json_encode()
      */
-    public function Migrate($JSONData)
+    public function Migrate(string $JSONData): string
     {
         // Prüfe Version diese Modul-Instanz
         $j = json_decode($JSONData);
@@ -784,7 +784,7 @@ abstract class ModulBase extends \IPSModule
         }
 
         // Brightness Profil Migration
-        $varID = @$this->GetIDForIdent('brightness');
+        $varID = $this->GetObjectIDByIdent('brightness');
         if ($varID !== false) {
             $this->RegisterVariableInteger(
                 'brightness',
@@ -811,7 +811,7 @@ abstract class ModulBase extends \IPSModule
      * @param  bool $value
      * @return bool
      */
-    public function WriteValueBoolean(string $ident, bool $value)
+    public function WriteValueBoolean(string $ident, bool $value): bool
     {
         $this->RequestAction($ident, $value);
         return true;
@@ -826,7 +826,7 @@ abstract class ModulBase extends \IPSModule
      * @param  int $value
      * @return bool
      */
-    public function WriteValueInteger(string $ident, int $value)
+    public function WriteValueInteger(string $ident, int $value): bool
     {
         $this->RequestAction($ident, $value);
         return true;
@@ -841,7 +841,7 @@ abstract class ModulBase extends \IPSModule
      * @param  float $value
      * @return bool
      */
-    public function WriteValueFloat(string $ident, float $value)
+    public function WriteValueFloat(string $ident, float $value): bool
     {
         $this->RequestAction($ident, $value);
         return true;
@@ -856,7 +856,7 @@ abstract class ModulBase extends \IPSModule
      * @param  string $value
      * @return bool
      */
-    public function WriteValueString(string $ident, string $value)
+    public function WriteValueString(string $ident, string $value): bool
     {
         $this->RequestAction($ident, $value);
         return true;
@@ -877,7 +877,7 @@ abstract class ModulBase extends \IPSModule
      * @see \Zigbee2MQTT\SendData::SendData()
      * @see json_encode()
      */
-    public function ReadValue(string $Property)
+    public function ReadValue(string $Property): mixed
     {
         $Payload = [$Property => ''];
 
@@ -889,6 +889,15 @@ abstract class ModulBase extends \IPSModule
 
         // Sende die Daten an das Gerät
         return $this->SendData($Topic, $Payload, 0);
+    }
+
+    /**
+     * IPSModuleStrict deklariert GetIDForIdent() als int. Für Existenzprüfungen
+     * nutzen wir die globale Funktion, weil sie bei fehlendem Ident false liefern darf.
+     */
+    private function GetObjectIDByIdent(string $ident): int|false
+    {
+        return @IPS_GetObjectIDByIdent($ident, $this->InstanceID);
     }
 
     /**
@@ -1053,7 +1062,7 @@ abstract class ModulBase extends \IPSModule
      * @param  string $Text
      * @return string
      */
-    public function Translate($Text)
+    public function Translate(string $Text): string
     {
         $translation = array_merge_recursive(
             json_decode(file_get_contents(__DIR__ . '/locale.json'), true),
@@ -1149,12 +1158,12 @@ abstract class ModulBase extends \IPSModule
      * @see IPS_VariableProfileExists()
      * @see IPS_GetVariableProfile()
      */
-    protected function SetValue($ident, $value)
+    protected function SetValue(string $ident, mixed $value): bool
     {
-        $variableID = @$this->GetIDForIdent($ident);
+        $variableID = $this->GetObjectIDByIdent($ident);
         if (!$variableID) {
             $this->SendDebug(__FUNCTION__, 'Variable nicht gefunden: ' . $ident, 0);
-            return;
+            return false;
         }
 
         $this->SendDebug(__FUNCTION__, 'Verarbeite Variable: ' . $ident . ' mit Wert: ' . json_encode($value), 0);
@@ -1164,10 +1173,10 @@ abstract class ModulBase extends \IPSModule
             // Color-Arrays
             if (strtolower($ident) === 'color') {
                 $this->handleColorVariable($ident, $value);
-                return;
+                return true;
             }
             $this->SendDebug(__FUNCTION__, 'Wert ist ein Array, übersprungen: ' . $ident, 0);
-            return;
+            return false;
         }
         $var = IPS_GetVariable($variableID);
         $varType = $var['VariableType'];
@@ -1182,15 +1191,14 @@ abstract class ModulBase extends \IPSModule
                     if ($association['Name'] == $value) {
                         $adjustedValue = $association['Value'];
                         $this->SendDebug(__FUNCTION__, 'Profilwert gefunden: ' . $value . ' -> ' . $adjustedValue, 0);
-                        parent::SetValue($ident, $adjustedValue);
-                        return;
+                        return parent::SetValue($ident, $adjustedValue);
                     }
                 }
             }
         }
 
         $this->SendDebug(__FUNCTION__, 'Setze Variable: ' . $ident . ' auf Wert: ' . json_encode($adjustedValue), 0);
-        parent::SetValue($ident, $adjustedValue);
+        $result = parent::SetValue($ident, $adjustedValue);
 
         // Spezialbehandlung für ColorTemp
         if ($ident === 'color_temp') {
@@ -1198,6 +1206,7 @@ abstract class ModulBase extends \IPSModule
             $kelvinValue = $this->convertMiredToKelvin($value);
             $this->SetValueDirect($kelvinIdent, $kelvinValue);
         }
+        return $result;
     }
 
     /**
@@ -1247,7 +1256,7 @@ abstract class ModulBase extends \IPSModule
      */
     protected function SetValueDirect(string $ident, mixed $value): void
     {
-        $variableID = @$this->GetIDForIdent($ident);
+        $variableID = $this->GetObjectIDByIdent($ident);
 
         if (!$variableID) {
             $this->SendDebug(__FUNCTION__, 'Variable nicht gefunden: ' . $ident, 0);
@@ -1585,7 +1594,7 @@ abstract class ModulBase extends \IPSModule
      * @see json_last_error_msg()
      * @see substr()
      * @see strlen()
-     * @see utf8_decode()
+     * @see \Zigbee2MQTT\SendData::DecodePayload()
      */
     private function validateAndParseMessage(string $JSONString): array
     {
@@ -1610,11 +1619,7 @@ abstract class ModulBase extends \IPSModule
 
         $topic = substr($messageData['Topic'], \strlen($baseTopic) + 1);
 
-        /**
-         * @deprecated utf8_decode (deprecated sind in Symcon deaktivert)
-         * @depends Symcon Module-SPK  Nutzung von utf8_decode bei IPSModule, und hex2bin ab IPSModuleStrict.
-         */
-        $payloadData = json_decode(utf8_decode($messageData['Payload']), true);
+        $payloadData = json_decode(self::DecodePayload($messageData['Payload']), true);
         return [
             explode('/', $topic),
             $payloadData
@@ -1784,11 +1789,11 @@ abstract class ModulBase extends \IPSModule
         $caller = isset($backtrace[1]['function']) ? $backtrace[1]['function'] : 'unknown';
         $this->SendDebug(__FUNCTION__, 'Aufruf von getOrRegisterVariable für Ident: ' . $ident . ' von Funktion: ' . $caller, 0);
 
-        $variableID = @$this->GetIDForIdent($ident);
+        $variableID = $this->GetObjectIDByIdent($ident);
         if (!$variableID && $variableProps !== null) {
             $this->SendDebug(__FUNCTION__, 'Variable nicht gefunden, Registrierung: ' . $ident, 0);
             $this->registerVariable($variableProps, $formattedLabel);
-            $variableID = @$this->GetIDForIdent($ident);
+            $variableID = $this->GetObjectIDByIdent($ident);
             if (!$variableID) {
                 $this->SendDebug(__FUNCTION__, 'Fehler beim Registrieren der Variable: ' . $ident, 0);
                 return null;
@@ -1852,7 +1857,7 @@ abstract class ModulBase extends \IPSModule
             };
 
             // Wenn Variable noch nicht existiert, registrieren
-            if (!@$this->GetIDForIdent($key)) {
+            if (!$this->GetObjectIDByIdent($key)) {
                 $registerFunc = $varType['registerFunc'];
                 $this->$registerFunc(
                     $key,
@@ -1901,7 +1906,7 @@ abstract class ModulBase extends \IPSModule
         $ident = $key;
 
         // Prüfe existierende Variable
-        $variableID = @$this->GetIDForIdent($ident);
+        $variableID = $this->GetObjectIDByIdent($ident);
         if ($variableID !== false) {
             $this->SendDebug(__FUNCTION__, 'Existierende Variable gefunden: ' . $ident, 0);
             $this->SetValue($ident, $value);
@@ -1940,7 +1945,7 @@ abstract class ModulBase extends \IPSModule
 
         // Zusätzlich: Preset-Variable aktualisieren wenn vorhanden
         $presetIdent = $ident . '_presets';
-        if (@$this->GetIDForIdent($presetIdent) !== false) {
+        if ($this->GetObjectIDByIdent($presetIdent) !== false) {
             $this->SetValue($presetIdent, $value);
         }
         // Liste verarbeiten
@@ -3985,7 +3990,6 @@ abstract class ModulBase extends \IPSModule
             $aFiltered = $this->ReadAttributeArray(self::ATTRIBUTE_FILTERED);
             if (!\in_array($kelvinIdent, $aFiltered, true)) {
                 $this->RegisterVariableInteger($kelvinIdent, $this->Translate('Color Temperature Kelvin'), '~TWColor');
-                $variableId = $this->GetIDForIdent($kelvinIdent);
                 // color_temp_kelvin ist eine spezielle UI-Variable, die immer EnableAction haben soll
                 $this->checkAndEnableAction($kelvinIdent, null, true);
             }
@@ -4417,7 +4421,7 @@ abstract class ModulBase extends \IPSModule
         $presetIdent = $ident . '_presets';
 
         // Prüfe ob die Preset-Variable existiert
-        if (@$this->GetIDForIdent($presetIdent) !== false) {
+        if ($this->GetObjectIDByIdent($presetIdent) !== false) {
             // Variable existiert, also aktualisieren wir direkt ihren Wert
             $this->SetValueDirect($presetIdent, $value);
             $this->SendDebug(__FUNCTION__, "Updated $presetIdent with value: " . (\is_array($value) ? json_encode($value) : $value), 0);
