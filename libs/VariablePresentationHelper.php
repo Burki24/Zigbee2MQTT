@@ -64,7 +64,7 @@ trait VariablePresentationHelper
             'MAX'                   => 100,
             'STEP_SIZE'             => 1,
             'GRADIENT_TYPE'         => 0,
-            'CUSTOM_GRADIENT'       => [],
+            'CUSTOM_GRADIENT'       => '[]',
             'USAGE_TYPE'            => 0,
             'PREFIX'                => '',
             'SUFFIX'                => '',
@@ -74,7 +74,7 @@ trait VariablePresentationHelper
             'DECIMAL_SEPARATOR'     => 'Client',
             'ICON'                  => '',
             'INTERVALS_ACTIVE'      => false,
-            'INTERVALS'             => []
+            'INTERVALS'             => '[]'
         ], $presentation));
     }
 
