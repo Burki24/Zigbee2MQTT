@@ -110,7 +110,14 @@ class Zigbee2MQTTDevice extends \Zigbee2MQTT\ModulBase
      */
     public function GetVisualizationTile(): string
     {
-        return file_get_contents(__DIR__ . '/metered_switch_tile.html');
+        $html = file_get_contents(__DIR__ . '/metered_switch_tile.html');
+        $data = $this->HasMeteredSwitchTileCapabilities() ? $this->BuildMeteredSwitchTileData() : ['type' => 'meteredSwitch', 'values' => []];
+
+        return str_replace(
+            '__INITIAL_DATA__',
+            json_encode($data, JSON_HEX_TAG | JSON_HEX_APOS | JSON_HEX_AMP | JSON_HEX_QUOT),
+            $html
+        );
     }
     /**
      * RequestAction

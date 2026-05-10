@@ -38,45 +38,23 @@
         .tile {
             position: relative;
             display: grid;
-            grid-template-rows: auto 1fr auto;
+            grid-template-rows: 1fr auto;
             gap: 10px;
             width: 100%;
             height: 100%;
             min-height: 220px;
-            padding: 16px;
+            padding: 18px 16px 14px;
             overflow: hidden;
             background:
                 radial-gradient(circle at 50% 48%, rgba(255, 242, 168, 0.9), rgba(255, 242, 168, 0.26) 34%, rgba(255, 255, 255, 0) 58%),
                 var(--bg);
         }
 
-        .header {
-            display: flex;
-            align-items: center;
-            justify-content: space-between;
-            gap: 8px;
-            min-width: 0;
-        }
-
-        .title {
-            min-width: 0;
-            overflow: hidden;
-            text-overflow: ellipsis;
-            white-space: nowrap;
-            font-size: 15px;
-            font-weight: 600;
-        }
-
-        .status {
-            flex: 0 0 auto;
-            color: var(--muted);
-            font-size: 12px;
-        }
-
         .main {
             display: grid;
             place-items: center;
             min-height: 0;
+            padding-bottom: 18px;
         }
 
         .power-button {
@@ -113,7 +91,7 @@
             position: absolute;
             left: 16px;
             right: 16px;
-            bottom: 64px;
+            bottom: 58px;
             text-align: center;
             pointer-events: none;
         }
@@ -145,6 +123,10 @@
             border-radius: 8px;
             background: var(--panel);
             backdrop-filter: blur(10px);
+        }
+
+        .tabs:empty {
+            display: none;
         }
 
         .tab {
@@ -192,11 +174,6 @@
 </head>
 <body>
     <main class="tile">
-        <header class="header">
-            <div class="title" id="title">Zigbee2MQTT</div>
-            <div class="status" id="status">...</div>
-        </header>
-
         <section class="main">
             <button class="power-button off" id="powerButton" type="button" aria-label="Toggle">
                 <svg class="power-icon" viewBox="0 0 64 64" aria-hidden="true">
@@ -222,11 +199,9 @@
             current: "Strom"
         };
         const order = ["state", "power", "energy", "voltage", "current"];
-        let data = { name: "Zigbee2MQTT", values: {} };
+        let data = __INITIAL_DATA__;
         let active = "state";
 
-        const title = document.getElementById("title");
-        const status = document.getElementById("status");
         const powerButton = document.getElementById("powerButton");
         const readingValue = document.getElementById("readingValue");
         const readingLabel = document.getElementById("readingLabel");
@@ -244,11 +219,8 @@
         }
 
         function render() {
-            title.textContent = data.name || "Zigbee2MQTT";
-
             const state = data.values.state;
             const isOn = !!(state && state.value);
-            status.textContent = state ? state.formatted : "";
             powerButton.classList.toggle("off", !isOn);
 
             const current = data.values[active];
@@ -274,6 +246,7 @@
         }
 
         powerButton.addEventListener("click", () => requestAction("MeteredSwitchTile.Toggle", true));
+        render();
         requestAction("MeteredSwitchTile.Refresh", true);
     </script>
 </body>
