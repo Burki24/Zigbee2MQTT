@@ -1,0 +1,859 @@
+<!doctype html>
+<html lang="de">
+<head>
+    <meta charset="utf-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1">
+    <style>
+        :root {
+            --accent: #10c8b2;
+            --heat: #ff9f43;
+            --cool: #5aa7d8;
+            --bg: #ffffff;
+            --text: #111111;
+            --muted: #667085;
+            --line: rgba(17, 24, 39, 0.12);
+            --chip: rgba(0, 0, 0, 0.055);
+            --inactive: #607d8b;
+            color-scheme: light;
+        }
+
+        * {
+            box-sizing: border-box;
+        }
+
+        html,
+        body {
+            width: 100%;
+            height: 100%;
+            margin: 0;
+            overflow: hidden;
+            background: transparent;
+            color: var(--text);
+            font-family: system-ui, -apple-system, BlinkMacSystemFont, "Segoe UI", sans-serif;
+        }
+
+        button,
+        input {
+            font: inherit;
+        }
+
+        .tile {
+            position: relative;
+            width: 100%;
+            height: 100%;
+            min-height: 240px;
+            overflow: hidden;
+            background: var(--bg);
+        }
+
+        .view {
+            position: absolute;
+            inset: 0;
+            display: none;
+            width: 100%;
+            height: 100%;
+            padding: 18px;
+        }
+
+        .view.active {
+            display: block;
+        }
+
+        .main-view {
+            background:
+                radial-gradient(circle at 50% 47%, rgba(255, 193, 92, 0.36), rgba(255, 193, 92, 0.14) 34%, rgba(255, 255, 255, 0) 62%),
+                #ffffff;
+        }
+
+        .main-view.heating {
+            background:
+                radial-gradient(circle at 50% 47%, rgba(255, 159, 67, 0.48), rgba(255, 159, 67, 0.17) 34%, rgba(255, 255, 255, 0) 62%),
+                #ffffff;
+        }
+
+        .nav-button {
+            position: absolute;
+            top: 74px;
+            display: grid;
+            place-items: center;
+            width: 50px;
+            height: 50px;
+            border: 0;
+            border-radius: 50%;
+            color: #111111;
+            background: transparent;
+            cursor: pointer;
+            z-index: 3;
+        }
+
+        .nav-button:hover,
+        .nav-button.active {
+            background: var(--chip);
+        }
+
+        .nav-button.left {
+            left: 42px;
+        }
+
+        .nav-button.right {
+            right: 42px;
+        }
+
+        .nav-icon {
+            width: 26px;
+            height: 26px;
+        }
+
+        .thermostat {
+            position: absolute;
+            left: 50%;
+            top: 50%;
+            display: grid;
+            justify-items: center;
+            width: min(78vw, 420px);
+            max-width: calc(100% - 92px);
+            transform: translate(-50%, -45%);
+        }
+
+        .current {
+            min-height: 22px;
+            color: var(--muted);
+            font-size: 15px;
+            white-space: nowrap;
+        }
+
+        .setpoint-row {
+            display: grid;
+            grid-template-columns: 58px minmax(120px, 1fr) 58px;
+            align-items: center;
+            width: min(100%, 330px);
+            gap: 14px;
+            margin-top: 14px;
+        }
+
+        .step-button {
+            display: grid;
+            place-items: center;
+            width: 58px;
+            height: 58px;
+            border: 0;
+            border-radius: 50%;
+            color: #111111;
+            background: var(--chip);
+            cursor: pointer;
+        }
+
+        .step-button:active {
+            transform: scale(0.96);
+        }
+
+        .step-icon {
+            width: 24px;
+            height: 24px;
+        }
+
+        .target {
+            display: grid;
+            justify-items: center;
+            min-width: 0;
+        }
+
+        .target-value {
+            max-width: 100%;
+            overflow: hidden;
+            color: #111111;
+            font-size: 48px;
+            font-weight: 500;
+            line-height: 1;
+            text-overflow: ellipsis;
+            white-space: nowrap;
+        }
+
+        .target-unit {
+            margin-top: 2px;
+            color: var(--muted);
+            font-size: 14px;
+            letter-spacing: 0;
+        }
+
+        .setpoint-slider {
+            width: min(100%, 330px);
+            margin: 22px 0 0;
+            accent-color: var(--accent);
+        }
+
+        .heat-line {
+            display: grid;
+            grid-template-columns: auto minmax(80px, 140px) auto;
+            align-items: center;
+            gap: 10px;
+            width: min(100%, 330px);
+            min-height: 28px;
+            margin-top: 16px;
+            color: var(--muted);
+            font-size: 13px;
+        }
+
+        .heat-bar {
+            height: 7px;
+            overflow: hidden;
+            border-radius: 999px;
+            background: rgba(96, 125, 139, 0.22);
+        }
+
+        .heat-bar-fill {
+            width: 0;
+            height: 100%;
+            border-radius: inherit;
+            background: var(--heat);
+            transition: width 160ms ease;
+        }
+
+        .settings-view {
+            background: #ffffff;
+        }
+
+        .settings-list {
+            position: absolute;
+            left: 18px;
+            right: 18px;
+            top: 126px;
+            bottom: 16px;
+            display: grid;
+            align-content: start;
+            gap: 7px;
+            overflow: hidden;
+        }
+
+        .setting-row {
+            display: grid;
+            grid-template-columns: minmax(0, 1fr) auto;
+            align-items: center;
+            min-height: 36px;
+            gap: 10px;
+        }
+
+        .setting-label {
+            overflow: hidden;
+            color: #111111;
+            font-size: 14px;
+            text-overflow: ellipsis;
+            white-space: nowrap;
+        }
+
+        .setting-value {
+            color: #111111;
+            font-size: 14px;
+            white-space: nowrap;
+        }
+
+        .numeric-control {
+            display: grid;
+            grid-template-columns: 32px minmax(54px, auto) 32px;
+            align-items: center;
+            gap: 6px;
+        }
+
+        .mini-button {
+            display: grid;
+            place-items: center;
+            width: 32px;
+            height: 32px;
+            border: 0;
+            border-radius: 50%;
+            color: #111111;
+            background: var(--chip);
+            cursor: pointer;
+        }
+
+        .switch-button {
+            position: relative;
+            width: 48px;
+            height: 28px;
+            border: 0;
+            border-radius: 999px;
+            background: rgba(96, 125, 139, 0.28);
+            cursor: pointer;
+        }
+
+        .switch-button::after {
+            content: "";
+            position: absolute;
+            top: 4px;
+            left: 4px;
+            width: 20px;
+            height: 20px;
+            border-radius: 50%;
+            background: #ffffff;
+            box-shadow: 0 2px 5px rgba(0, 0, 0, 0.22);
+            transition: left 140ms ease;
+        }
+
+        .switch-button.on {
+            background: var(--accent);
+        }
+
+        .switch-button.on::after {
+            left: 24px;
+        }
+
+        .segmented {
+            display: grid;
+            grid-auto-flow: column;
+            grid-auto-columns: minmax(44px, auto);
+            overflow: hidden;
+            border-radius: 7px;
+            background: rgba(16, 200, 178, 0.12);
+        }
+
+        .segment-button {
+            min-width: 44px;
+            height: 30px;
+            padding: 0 9px;
+            border: 0;
+            color: var(--accent);
+            background: transparent;
+            cursor: pointer;
+            font-size: 13px;
+            white-space: nowrap;
+        }
+
+        .segment-button.active {
+            color: #ffffff;
+            background: var(--accent);
+        }
+
+        .command-button {
+            min-width: 72px;
+            height: 30px;
+            padding: 0 12px;
+            border: 0;
+            border-radius: 7px;
+            color: #ffffff;
+            background: var(--accent);
+            cursor: pointer;
+            font-size: 13px;
+        }
+
+        @media (max-width: 360px), (max-height: 310px) {
+            .view {
+                padding: 16px 14px;
+            }
+
+            .nav-button {
+                top: 58px;
+                width: 44px;
+                height: 44px;
+            }
+
+            .nav-button.left {
+                left: 24px;
+            }
+
+            .nav-button.right {
+                right: 24px;
+            }
+
+            .thermostat {
+                width: min(82vw, 330px);
+                max-width: calc(100% - 68px);
+            }
+
+            .setpoint-row {
+                grid-template-columns: 48px minmax(106px, 1fr) 48px;
+                gap: 10px;
+            }
+
+            .step-button {
+                width: 48px;
+                height: 48px;
+            }
+
+            .target-value {
+                font-size: 40px;
+            }
+
+            .settings-list {
+                top: 112px;
+                gap: 4px;
+            }
+
+            .setting-row {
+                min-height: 32px;
+            }
+
+            .setting-label,
+            .setting-value {
+                font-size: 13px;
+            }
+
+            .segment-button {
+                min-width: 38px;
+                padding: 0 7px;
+                font-size: 12px;
+            }
+        }
+    </style>
+</head>
+<body>
+    <main class="tile">
+        <section class="view main-view active" id="mainView">
+            <button class="nav-button right" id="showComfort" type="button" title="Einstellungen">
+                <svg class="nav-icon" viewBox="0 0 24 24" aria-hidden="true">
+                    <path d="M4 21v-7" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round"></path>
+                    <path d="M4 10V3" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round"></path>
+                    <path d="M12 21v-9" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round"></path>
+                    <path d="M12 8V3" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round"></path>
+                    <path d="M20 21v-5" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round"></path>
+                    <path d="M20 12V3" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round"></path>
+                    <path d="M2 14h4" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round"></path>
+                    <path d="M10 8h4" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round"></path>
+                    <path d="M18 16h4" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round"></path>
+                </svg>
+            </button>
+
+            <div class="thermostat">
+                <div class="current" id="currentTemperature"></div>
+                <div class="setpoint-row">
+                    <button class="step-button" id="decreaseSetpoint" type="button" title="Kuehler">
+                        <svg class="step-icon" viewBox="0 0 24 24" aria-hidden="true">
+                            <path d="M5 12h14" fill="none" stroke="currentColor" stroke-width="2.4" stroke-linecap="round"></path>
+                        </svg>
+                    </button>
+                    <div class="target">
+                        <div class="target-value" id="setpointValue">--</div>
+                        <div class="target-unit">Solltemperatur</div>
+                    </div>
+                    <button class="step-button" id="increaseSetpoint" type="button" title="Waermer">
+                        <svg class="step-icon" viewBox="0 0 24 24" aria-hidden="true">
+                            <path d="M12 5v14" fill="none" stroke="currentColor" stroke-width="2.4" stroke-linecap="round"></path>
+                            <path d="M5 12h14" fill="none" stroke="currentColor" stroke-width="2.4" stroke-linecap="round"></path>
+                        </svg>
+                    </button>
+                </div>
+                <input class="setpoint-slider" id="setpointRange" type="range" min="5" max="30" step="0.5" value="20">
+                <div class="heat-line">
+                    <span id="runningState">Inaktiv</span>
+                    <div class="heat-bar"><div class="heat-bar-fill" id="demandBar"></div></div>
+                    <span id="demandValue">0 %</span>
+                </div>
+            </div>
+        </section>
+
+        <section class="view settings-view" id="comfortView">
+            <button class="nav-button left active" id="comfortBack" type="button" title="Temperatur">
+                <svg class="nav-icon" viewBox="0 0 24 24" aria-hidden="true">
+                    <path d="M14 4v8.2a5 5 0 1 1-4 0V4a2 2 0 0 1 4 0z" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linejoin="round"></path>
+                    <path d="M12 15v3" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round"></path>
+                </svg>
+            </button>
+            <button class="nav-button right" id="showDevice" type="button" title="Display">
+                <svg class="nav-icon" viewBox="0 0 24 24" aria-hidden="true">
+                    <path d="M4 6h16v11H4z" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linejoin="round"></path>
+                    <path d="M9 21h6" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round"></path>
+                    <path d="M12 17v4" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round"></path>
+                </svg>
+            </button>
+            <div class="settings-list" id="comfortList"></div>
+        </section>
+
+        <section class="view settings-view" id="deviceView">
+            <button class="nav-button left active" id="deviceBack" type="button" title="Fein">
+                <svg class="nav-icon" viewBox="0 0 24 24" aria-hidden="true">
+                    <path d="M4 21v-7" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round"></path>
+                    <path d="M4 10V3" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round"></path>
+                    <path d="M12 21v-9" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round"></path>
+                    <path d="M12 8V3" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round"></path>
+                    <path d="M20 21v-5" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round"></path>
+                    <path d="M20 12V3" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round"></path>
+                    <path d="M2 14h4" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round"></path>
+                    <path d="M10 8h4" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round"></path>
+                    <path d="M18 16h4" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round"></path>
+                </svg>
+            </button>
+            <button class="nav-button right" id="deviceHome" type="button" title="Temperatur">
+                <svg class="nav-icon" viewBox="0 0 24 24" aria-hidden="true">
+                    <path d="M14 4v8.2a5 5 0 1 1-4 0V4a2 2 0 0 1 4 0z" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linejoin="round"></path>
+                    <path d="M12 15v3" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round"></path>
+                </svg>
+            </button>
+            <div class="settings-list" id="deviceList"></div>
+        </section>
+    </main>
+
+    <script>
+        let data = __INITIAL_DATA__;
+        let activeView = "main";
+
+        const labels = {
+            operating_mode: "Modus",
+            window_detection: "Fenstererkennung",
+            boost_heating: "Boost",
+            child_lock: "Kindersperre",
+            local_temperature_calibration: "Temperatur-Offset",
+            remote_temperature: "Remote-Temperatur",
+            display_brightness: "Displayhelligkeit",
+            display_switch_on_duration: "Anzeigedauer",
+            display_orientation: "Ausrichtung",
+            displayed_temperature: "Displaywert",
+            valve_adapt_status: "Ventilkalibrierung",
+            valve_adapt_process: "Ventil anpassen",
+            battery: "Batterie",
+            battery_low: "Batterie niedrig",
+            linkquality: "Verbindung",
+            error_state: "Fehler",
+            setpoint_change_source: "Sollwertquelle",
+            automatic_valve_adapt: "Auto-Anpassung"
+        };
+
+        const valueLabels = {
+            heat: "Heizen",
+            idle: "Inaktiv",
+            schedule: "Zeitplan",
+            manual: "Manuell",
+            pause: "Pause",
+            externally: "Extern",
+            standard_arrangement: "Standard",
+            rotated_by_180_degrees: "180",
+            set_temperature: "Soll",
+            measured_temperature: "Ist",
+            none: "Keine",
+            ready_to_calibrate: "Bereit",
+            calibration_in_progress: "Aktiv",
+            error: "Fehler",
+            success: "OK",
+            adapt: "Start"
+        };
+
+        const comfortItems = [
+            "operating_mode",
+            "window_detection",
+            "boost_heating",
+            "child_lock",
+            "local_temperature_calibration",
+            "remote_temperature"
+        ];
+
+        const deviceItems = [
+            "display_brightness",
+            "display_switch_on_duration",
+            "display_orientation",
+            "displayed_temperature",
+            "valve_adapt_status",
+            "valve_adapt_process",
+            "battery",
+            "battery_low",
+            "linkquality",
+            "error_state"
+        ];
+
+        const mainView = document.getElementById("mainView");
+        const comfortView = document.getElementById("comfortView");
+        const deviceView = document.getElementById("deviceView");
+        const setpointValue = document.getElementById("setpointValue");
+        const setpointRange = document.getElementById("setpointRange");
+        const currentTemperature = document.getElementById("currentTemperature");
+        const runningState = document.getElementById("runningState");
+        const demandValue = document.getElementById("demandValue");
+        const demandBar = document.getElementById("demandBar");
+        const comfortList = document.getElementById("comfortList");
+        const deviceList = document.getElementById("deviceList");
+
+        function handleMessage(message) {
+            const nextData = normalizeMessage(message);
+            if (!nextData) {
+                return;
+            }
+
+            data = nextData;
+            render();
+        }
+
+        function normalizeMessage(message) {
+            if (Array.isArray(message) && message.length === 1) {
+                message = message[0];
+            }
+
+            if (!message || typeof message !== "object") {
+                return null;
+            }
+
+            if (message.type !== "heating" || !message.values || typeof message.values !== "object") {
+                return null;
+            }
+
+            if (!message.features || typeof message.features !== "object") {
+                message.features = {};
+            }
+
+            return message;
+        }
+
+        function featureOf(ident) {
+            return (data.features && data.features[ident]) ? data.features[ident] : {};
+        }
+
+        function valueOf(ident) {
+            return (data.values && data.values[ident]) ? data.values[ident] : null;
+        }
+
+        function setView(view) {
+            activeView = view;
+            render();
+        }
+
+        function numericConfig(ident) {
+            const feature = featureOf(ident);
+            const step = Number(feature.step ?? 1);
+            return {
+                min: Number(feature.min ?? 0),
+                max: Number(feature.max ?? 100),
+                step: step > 0 ? step : 1,
+                digits: Number(feature.digits ?? digitsFromStep(step)),
+                unit: String(feature.unit ?? "")
+            };
+        }
+
+        function digitsFromStep(step) {
+            const text = String(step);
+            const pos = text.indexOf(".");
+            return pos === -1 ? 0 : text.length - pos - 1;
+        }
+
+        function numberFormat(value, digits) {
+            return new Intl.NumberFormat("de-DE", {
+                minimumFractionDigits: digits,
+                maximumFractionDigits: digits
+            }).format(Number(value));
+        }
+
+        function formattedValue(ident, value) {
+            const feature = featureOf(ident);
+            if (typeof value === "boolean") {
+                return value ? "An" : "Aus";
+            }
+            if (feature.type === "numeric") {
+                const config = numericConfig(ident);
+                return `${numberFormat(value, config.digits)}${config.unit ? ` ${config.unit}` : ""}`;
+            }
+            if (typeof value === "string") {
+                return valueLabels[value] || value;
+            }
+            return String(value ?? "");
+        }
+
+        function ensureValue(ident, value) {
+            if (!data.values) {
+                data.values = {};
+            }
+            if (!data.values[ident]) {
+                data.values[ident] = { available: true };
+            }
+            data.values[ident].value = value;
+            data.values[ident].formatted = formattedValue(ident, value);
+        }
+
+        function clampToStep(ident, value) {
+            const config = numericConfig(ident);
+            let next = Math.min(config.max, Math.max(config.min, Number(value)));
+            next = config.min + (Math.round((next - config.min) / config.step) * config.step);
+            return Number(next.toFixed(config.digits));
+        }
+
+        function sendAction(ident, value) {
+            if (typeof requestAction === "function") {
+                requestAction(ident, value);
+            }
+        }
+
+        function commitSetpoint(value) {
+            const next = clampToStep("occupied_heating_setpoint", value);
+            ensureValue("occupied_heating_setpoint", next);
+            render();
+            sendAction("HeatingTile.SetSetpoint", next);
+        }
+
+        function commitValue(ident, value) {
+            const feature = featureOf(ident);
+            let next = value;
+            if (feature.type === "numeric") {
+                next = clampToStep(ident, value);
+            }
+            ensureValue(ident, next);
+            render();
+            sendAction("HeatingTile.Action", JSON.stringify({ ident, value: next }));
+        }
+
+        function render() {
+            if (!normalizeMessage(data)) {
+                data = { type: "heating", values: {}, features: {} };
+            }
+
+            mainView.classList.toggle("active", activeView === "main");
+            comfortView.classList.toggle("active", activeView === "comfort");
+            deviceView.classList.toggle("active", activeView === "device");
+
+            renderMain();
+            renderSettingsList(comfortList, comfortItems);
+            renderSettingsList(deviceList, deviceItems);
+        }
+
+        function renderMain() {
+            const config = numericConfig("occupied_heating_setpoint");
+            const setpoint = valueOf("occupied_heating_setpoint");
+            const current = valueOf("local_temperature");
+            const demand = valueOf("pi_heating_demand");
+            const run = valueOf("running_state");
+            const setpointNumber = clampToStep("occupied_heating_setpoint", setpoint ? setpoint.value : config.min);
+
+            setpointRange.min = config.min;
+            setpointRange.max = config.max;
+            setpointRange.step = config.step;
+            setpointRange.value = setpointNumber;
+            setpointValue.textContent = `${numberFormat(setpointNumber, config.digits)} \u00b0C`;
+            currentTemperature.textContent = current ? `Ist ${current.formatted}` : "";
+
+            const demandNumber = demand ? Math.max(0, Math.min(100, Number(demand.value))) : 0;
+            demandValue.textContent = `${numberFormat(demandNumber, 0)} %`;
+            demandBar.style.width = `${demandNumber}%`;
+            runningState.textContent = run ? (run.formatted || formattedValue("running_state", run.value)) : "Inaktiv";
+            mainView.classList.toggle("heating", (run && run.value === "heat") || demandNumber > 0);
+        }
+
+        function renderSettingsList(container, idents) {
+            container.replaceChildren();
+            let rendered = 0;
+            for (const ident of idents) {
+                const feature = featureOf(ident);
+                const item = valueOf(ident);
+                const isActionOnly = ident === "valve_adapt_process" && feature.values;
+                if (!item && !isActionOnly) {
+                    continue;
+                }
+
+                const row = document.createElement("div");
+                row.className = "setting-row";
+
+                const label = document.createElement("div");
+                label.className = "setting-label";
+                label.textContent = labels[ident] || ident;
+
+                const control = document.createElement("div");
+                control.appendChild(buildControl(ident, item, feature));
+
+                row.appendChild(label);
+                row.appendChild(control);
+                container.appendChild(row);
+                rendered++;
+            }
+
+            if (rendered === 0) {
+                const row = document.createElement("div");
+                row.className = "setting-row";
+                const label = document.createElement("div");
+                label.className = "setting-label";
+                label.textContent = "Keine Werte";
+                row.appendChild(label);
+                row.appendChild(document.createElement("div"));
+                container.appendChild(row);
+            }
+        }
+
+        function buildControl(ident, item, feature) {
+            if (ident === "valve_adapt_process") {
+                const button = document.createElement("button");
+                button.className = "command-button";
+                button.type = "button";
+                button.textContent = "Start";
+                button.addEventListener("click", () => commitValue(ident, "adapt"));
+                return button;
+            }
+
+            if (feature.writable && feature.type === "numeric") {
+                return buildNumericControl(ident, item ? item.value : 0);
+            }
+
+            if (feature.writable && feature.type === "binary") {
+                return buildSwitchControl(ident, !!(item && item.value));
+            }
+
+            if (feature.writable && feature.type === "enum" && Array.isArray(feature.values) && feature.values.length > 1) {
+                return buildEnumControl(ident, item ? item.value : feature.values[0], feature.values);
+            }
+
+            const value = document.createElement("span");
+            value.className = "setting-value";
+            value.textContent = item ? (item.formatted || formattedValue(ident, item.value)) : "";
+            return value;
+        }
+
+        function buildNumericControl(ident, value) {
+            const wrap = document.createElement("div");
+            wrap.className = "numeric-control";
+
+            const minus = document.createElement("button");
+            minus.className = "mini-button";
+            minus.type = "button";
+            minus.textContent = "-";
+
+            const display = document.createElement("span");
+            display.className = "setting-value";
+            display.textContent = formattedValue(ident, value);
+
+            const plus = document.createElement("button");
+            plus.className = "mini-button";
+            plus.type = "button";
+            plus.textContent = "+";
+
+            const config = numericConfig(ident);
+            minus.addEventListener("click", () => commitValue(ident, Number(value) - config.step));
+            plus.addEventListener("click", () => commitValue(ident, Number(value) + config.step));
+
+            wrap.appendChild(minus);
+            wrap.appendChild(display);
+            wrap.appendChild(plus);
+            return wrap;
+        }
+
+        function buildSwitchControl(ident, value) {
+            const button = document.createElement("button");
+            button.className = `switch-button${value ? " on" : ""}`;
+            button.type = "button";
+            button.title = value ? "An" : "Aus";
+            button.addEventListener("click", () => commitValue(ident, !value));
+            return button;
+        }
+
+        function buildEnumControl(ident, value, options) {
+            const wrap = document.createElement("div");
+            wrap.className = "segmented";
+
+            for (const option of options) {
+                const button = document.createElement("button");
+                button.className = `segment-button${option === value ? " active" : ""}`;
+                button.type = "button";
+                button.textContent = valueLabels[option] || option;
+                button.addEventListener("click", () => commitValue(ident, option));
+                wrap.appendChild(button);
+            }
+
+            return wrap;
+        }
+
+        document.getElementById("showComfort").addEventListener("click", () => setView("comfort"));
+        document.getElementById("comfortBack").addEventListener("click", () => setView("main"));
+        document.getElementById("showDevice").addEventListener("click", () => setView("device"));
+        document.getElementById("deviceBack").addEventListener("click", () => setView("comfort"));
+        document.getElementById("deviceHome").addEventListener("click", () => setView("main"));
+        document.getElementById("decreaseSetpoint").addEventListener("click", () => commitSetpoint(Number(setpointRange.value) - numericConfig("occupied_heating_setpoint").step));
+        document.getElementById("increaseSetpoint").addEventListener("click", () => commitSetpoint(Number(setpointRange.value) + numericConfig("occupied_heating_setpoint").step));
+        setpointRange.addEventListener("input", () => {
+            const next = clampToStep("occupied_heating_setpoint", setpointRange.value);
+            setpointValue.textContent = `${numberFormat(next, numericConfig("occupied_heating_setpoint").digits)} \u00b0C`;
+        });
+        setpointRange.addEventListener("change", () => commitSetpoint(setpointRange.value));
+
+        render();
+    </script>
+</body>
+</html>

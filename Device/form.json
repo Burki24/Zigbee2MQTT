@@ -26,6 +26,11 @@
                             "type": "CheckBox",
                             "name": "DisableMeteredSwitchTile",
                             "caption": "Disable metered switch tile"
+                        },
+                        {
+                            "type": "CheckBox",
+                            "name": "DisableHeatingTile",
+                            "caption": "Disable heating tile"
                         }
                     ]
                 },

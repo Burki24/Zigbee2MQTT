@@ -10,16 +10,19 @@ namespace Zigbee2MQTT;
 trait MeteredSwitchTileHelper
 {
     /**
+     * Prueft, ob die Mess-Schalter-Kachel aktiv verwendet werden soll.
+     */
+    protected function ShouldUseMeteredSwitchTile(): bool
+    {
+        return !$this->ReadPropertyBoolean(self::PROPERTY_DISABLE_METERED_SWITCH_TILE) && $this->HasMeteredSwitchTileCapabilities();
+    }
+
+    /**
      * Aktualisiert den Visualisierungstyp passend zur aktuellen Konfiguration und Variablenlage.
      */
     protected function UpdateMeteredSwitchTileVisualizationType(): void
     {
-        if ($this->ReadPropertyBoolean(self::PROPERTY_DISABLE_METERED_SWITCH_TILE)) {
-            $this->SetVisualizationType(0);
-            return;
-        }
-
-        $this->SetVisualizationType($this->HasMeteredSwitchTileCapabilities() ? 1 : 0);
+        $this->SetVisualizationType($this->ShouldUseMeteredSwitchTile() ? 1 : 0);
     }
 
     /**
@@ -68,7 +71,7 @@ trait MeteredSwitchTileHelper
      */
     protected function UpdateMeteredSwitchTileValue(): void
     {
-        if ($this->ReadPropertyBoolean(self::PROPERTY_DISABLE_METERED_SWITCH_TILE) || !$this->HasMeteredSwitchTileCapabilities()) {
+        if (!$this->ShouldUseMeteredSwitchTile()) {
             return;
         }
 

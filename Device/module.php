@@ -104,14 +104,21 @@ class Zigbee2MQTTDevice extends \Zigbee2MQTT\ModulBase
     /**
      * GetVisualizationTile
      *
-     * Liefert die HTML-SDK-Kachel fuer Schaltaktoren mit Messwerten.
+     * Liefert die passende HTML-SDK-Kachel fuer das aktuelle Geraet.
      *
      * @return string
      */
     public function GetVisualizationTile(): string
     {
-        $html = file_get_contents(__DIR__ . '/metered_switch_tile.html');
-        $data = $this->HasMeteredSwitchTileCapabilities() ? $this->BuildMeteredSwitchTileData() : ['type' => 'meteredSwitch', 'values' => []];
+        if ($this->ShouldUseHeatingTile()) {
+            $html = file_get_contents(__DIR__ . '/heating_tile.html');
+            $data = $this->BuildHeatingTileData();
+        } elseif ($this->ShouldUseMeteredSwitchTile()) {
+            $html = file_get_contents(__DIR__ . '/metered_switch_tile.html');
+            $data = $this->BuildMeteredSwitchTileData();
+        } else {
+            return '';
+        }
 
         return str_replace(
             '__INITIAL_DATA__',
