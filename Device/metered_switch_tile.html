@@ -12,17 +12,6 @@
             --muted: #667085;
             --line: rgba(17, 24, 39, 0.12);
             --chip: rgba(0, 0, 0, 0.055);
-            color-scheme: light dark;
-        }
-
-        @media (prefers-color-scheme: dark) {
-            :root {
-                --button-off: #6b7280;
-                --text: rgba(255, 255, 255, 0.92);
-                --muted: rgba(255, 255, 255, 0.68);
-                --line: rgba(255, 255, 255, 0.16);
-                --chip: rgba(255, 255, 255, 0.08);
-            }
         }
 
         * {
@@ -35,7 +24,8 @@
             height: 100%;
             margin: 0;
             overflow: hidden;
-            background: transparent;
+            background: transparent !important;
+            background-color: transparent !important;
             color: var(--text);
             font-family: system-ui, -apple-system, BlinkMacSystemFont, "Segoe UI", sans-serif;
         }
@@ -50,7 +40,8 @@
             height: 100%;
             min-height: 240px;
             overflow: hidden;
-            background: var(--bg);
+            background: transparent !important;
+            background-color: transparent !important;
         }
 
         .view {
@@ -67,7 +58,8 @@
         }
 
         .power-view {
-            background: transparent;
+            background: transparent !important;
+            background-color: transparent !important;
         }
 
         .nav-button {
@@ -141,7 +133,8 @@
         }
 
         .list-view {
-            background: transparent;
+            background: transparent !important;
+            background-color: transparent !important;
         }
 
         .list {
