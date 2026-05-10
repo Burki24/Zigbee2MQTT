@@ -275,6 +275,8 @@ abstract class ModulBase extends \IPSModuleStrict
         ['group_type' => '', 'feature' => 'contact', 'profile' => '~Window.Reversed', 'variableType' => VARIABLETYPE_BOOLEAN],
         ['group_type' => '', 'feature' => 'tamper', 'profile' => '~Alert', 'variableType' => VARIABLETYPE_BOOLEAN],
         ['group_type' => '', 'feature' => 'smoke', 'profile' => '~Alert', 'variableType' => VARIABLETYPE_BOOLEAN],
+        ['group_type' => '', 'feature' => 'battery_low', 'profile' => '~Alert', 'variableType' => VARIABLETYPE_BOOLEAN],
+        ['group_type' => '', 'feature' => 'automatic_valve_adapt', 'profile' => '~Alert', 'variableType' => VARIABLETYPE_BOOLEAN],
         ['group_type' => 'light', 'feature' => 'color', 'profile' => '~HexColor', 'variableType' => VARIABLETYPE_INTEGER],
         ['group_type' => 'climate', 'feature' => 'occupied_heating_setpoint', 'profile' => '~Temperature.Room', 'variableType' => VARIABLETYPE_FLOAT]
     ];

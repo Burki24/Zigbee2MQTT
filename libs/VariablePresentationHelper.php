@@ -19,6 +19,9 @@ trait VariablePresentationHelper
         }
 
         switch ($feature['type']) {
+            case 'binary':
+                $this->ApplyBinaryFeaturePresentation($ident, $feature);
+                return;
             case 'numeric':
                 $this->ApplyNumericFeaturePresentation($ident, $feature);
                 return;
@@ -170,6 +173,40 @@ trait VariablePresentationHelper
     }
 
     /**
+     * Setzt eine moderne Schalter-Darstellung nur fuer echte Standard-Schalter.
+     */
+    protected function ApplyBinaryFeaturePresentation(string $ident, array $feature): void
+    {
+        if (!$this->SupportsSwitchPresentation()) {
+            return;
+        }
+        if (!isset($feature['access']) || (((int) $feature['access'] & 2) !== 2)) {
+            return;
+        }
+
+        $variableID = $this->GetObjectIDByIdent($ident);
+        if ($variableID === false) {
+            return;
+        }
+
+        $variable = IPS_GetVariable($variableID);
+        $profileName = $variable['VariableCustomProfile'] !== '' ? $variable['VariableCustomProfile'] : $variable['VariableProfile'];
+        if ($profileName !== '~Switch') {
+            return;
+        }
+
+        IPS_SetVariableCustomPresentation($variableID, [
+            'PRESENTATION'     => \constant('VARIABLE_PRESENTATION_SWITCH'),
+            'USE_ICON_FALSE'   => true,
+            'ICON_TRUE'        => $this->GetBinaryPresentationIcon($feature, true),
+            'ICON_FALSE'       => $this->GetBinaryPresentationIcon($feature, false),
+            'GLOW_COLOR'       => $this->GetBinaryGlowColor($feature),
+            'GLOW_INTENSITY'   => 60,
+            'USAGE_TYPE'       => 0
+        ]);
+    }
+
+    /**
      * Prueft, ob die laufende Symcon-Version moderne Custom Presentations unterstuetzt.
      */
     private function SupportsCustomPresentation(): bool
@@ -183,6 +220,14 @@ trait VariablePresentationHelper
     private function SupportsEnumerationPresentation(): bool
     {
         return \function_exists('IPS_SetVariableCustomPresentation') && \defined('VARIABLE_PRESENTATION_ENUMERATION');
+    }
+
+    /**
+     * Prueft, ob Schalter-Darstellungen verfuegbar sind.
+     */
+    private function SupportsSwitchPresentation(): bool
+    {
+        return \function_exists('IPS_SetVariableCustomPresentation') && \defined('VARIABLE_PRESENTATION_SWITCH');
     }
 
     /**
@@ -243,6 +288,34 @@ trait VariablePresentationHelper
         }
 
         return 'list';
+    }
+
+    /**
+     * Ermittelt Icons fuer Standard-Schalter.
+     */
+    private function GetBinaryPresentationIcon(array $feature, bool $active): string
+    {
+        $property = (string) ($feature['property'] ?? '');
+
+        if (strpos($property, 'boost') !== false || strpos($property, 'heating') !== false) {
+            return 'flame';
+        }
+
+        return $active ? 'power' : 'power-off';
+    }
+
+    /**
+     * Ermittelt die aktive Leuchtfarbe fuer Standard-Schalter.
+     */
+    private function GetBinaryGlowColor(array $feature): int
+    {
+        $property = (string) ($feature['property'] ?? '');
+
+        if (strpos($property, 'boost') !== false || strpos($property, 'heating') !== false) {
+            return 0xFF8A00;
+        }
+
+        return 0x00C853;
     }
 
     /**
