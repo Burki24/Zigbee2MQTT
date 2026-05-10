@@ -315,11 +315,29 @@
         const meterList = document.getElementById("meterList");
 
         function handleMessage(message) {
-            data = message || data;
-            if (!data.values) {
-                data.values = {};
+            const nextData = normalizeMessage(message);
+            if (!nextData) {
+                return;
             }
+
+            data = nextData;
             render();
+        }
+
+        function normalizeMessage(message) {
+            if (Array.isArray(message) && message.length === 1) {
+                message = message[0];
+            }
+
+            if (!message || typeof message !== "object") {
+                return null;
+            }
+
+            if (message.type !== "meteredSwitch" || !message.values || typeof message.values !== "object") {
+                return null;
+            }
+
+            return message;
         }
 
         function setView(view) {
@@ -364,7 +382,7 @@
                 row.className = "row";
                 row.innerHTML = [
                     '<div class="row-icon"></div>',
-                    `<div class="row-label">Keine Messwerte (${availableKeys.join(", ") || "-"})</div>`,
+                    '<div class="row-label">Keine Messwerte</div>',
                     '<div class="row-value"></div>'
                 ].join("");
                 meterList.appendChild(row);
@@ -378,7 +396,6 @@
         powerButton.addEventListener("click", () => requestAction("MeteredSwitchTile.Toggle", true));
 
         render();
-        requestAction("MeteredSwitchTile.Refresh", true);
     </script>
 </body>
 </html>
