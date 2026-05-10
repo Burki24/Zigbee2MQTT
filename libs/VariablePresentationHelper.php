@@ -10,6 +10,25 @@ namespace Zigbee2MQTT;
 trait VariablePresentationHelper
 {
     /**
+     * Setzt automatisch eine passende Tile-Darstellung fuer bekannte Expose-Typen.
+     */
+    protected function ApplyFeaturePresentation(string $ident, array $feature): void
+    {
+        if (!isset($feature['type'])) {
+            return;
+        }
+
+        switch ($feature['type']) {
+            case 'numeric':
+                $this->ApplyNumericFeaturePresentation($ident, $feature);
+                return;
+            case 'enum':
+                $this->ApplyEnumerationPresentation($ident, $feature);
+                return;
+        }
+    }
+
+    /**
      * Setzt fuer die Kelvin-Farbtemperaturvariable die moderne Tile-Darstellung.
      *
      * Zigbee2MQTT liefert color_temp in Mired. Fuer die Bedienung in der Tile-Visu
@@ -80,11 +99,153 @@ trait VariablePresentationHelper
     }
 
     /**
+     * Setzt fuer numerische Exposes mit Wertebereich eine Schieberegler-Darstellung.
+     */
+    protected function ApplyNumericFeaturePresentation(string $ident, array $feature): void
+    {
+        if (!isset($feature['value_min'], $feature['value_max'])) {
+            return;
+        }
+        if (!isset($feature['access']) || (((int) $feature['access'] & 2) !== 2)) {
+            return;
+        }
+
+        $unit = isset($feature['unit']) && \is_string($feature['unit']) ? $feature['unit'] : '';
+        $stepSize = isset($feature['value_step']) ? (float) $feature['value_step'] : 1.0;
+        $digits = $this->GetDigitsFromStepSize($stepSize);
+
+        $presentation = [
+            'MIN'       => (float) $feature['value_min'],
+            'MAX'       => (float) $feature['value_max'],
+            'STEP_SIZE' => $stepSize,
+            'SUFFIX'    => $unit === '' ? '' : ' ' . $unit,
+            'DIGITS'    => $digits,
+            'ICON'      => $this->GetNumericPresentationIcon($feature)
+        ];
+
+        if ($unit === '%') {
+            $presentation['PERCENTAGE'] = true;
+        }
+
+        $this->ApplySliderPresentation($ident, $presentation);
+    }
+
+    /**
+     * Setzt fuer Enum-Exposes eine Aufzaehlungs-Darstellung.
+     */
+    protected function ApplyEnumerationPresentation(string $ident, array $feature): void
+    {
+        if (!$this->SupportsEnumerationPresentation() || !isset($feature['values']) || !\is_array($feature['values'])) {
+            return;
+        }
+
+        $variableID = $this->GetObjectIDByIdent($ident);
+        if ($variableID === false) {
+            return;
+        }
+
+        $options = [];
+        foreach ($feature['values'] as $value) {
+            $options[] = [
+                'Value'      => (string) $value,
+                'Caption'    => $this->CreatePresentationCaption((string) $value),
+                'IconActive' => false,
+                'IconValue'  => '',
+                'Color'      => -1
+            ];
+        }
+
+        IPS_SetVariableCustomPresentation($variableID, [
+            'PRESENTATION' => \constant('VARIABLE_PRESENTATION_ENUMERATION'),
+            'OPTIONS'      => json_encode($options),
+            'LAYOUT'       => count($options) <= 3 ? 1 : 0,
+            'DISPLAY'      => 0,
+            'ICON'         => $this->GetEnumerationPresentationIcon($feature)
+        ]);
+    }
+
+    /**
      * Prueft, ob die laufende Symcon-Version moderne Custom Presentations unterstuetzt.
      */
     private function SupportsCustomPresentation(): bool
     {
         return \function_exists('IPS_SetVariableCustomPresentation') && \defined('VARIABLE_PRESENTATION_SLIDER');
+    }
+
+    /**
+     * Prueft, ob Aufzaehlungs-Darstellungen verfuegbar sind.
+     */
+    private function SupportsEnumerationPresentation(): bool
+    {
+        return \function_exists('IPS_SetVariableCustomPresentation') && \defined('VARIABLE_PRESENTATION_ENUMERATION');
+    }
+
+    /**
+     * Ermittelt Nachkommastellen aus der Schrittweite.
+     */
+    private function GetDigitsFromStepSize(float $stepSize): int
+    {
+        $stepText = rtrim(rtrim(sprintf('%.6F', $stepSize), '0'), '.');
+        $decimalPosition = strpos($stepText, '.');
+
+        if ($decimalPosition === false) {
+            return 0;
+        }
+
+        return strlen($stepText) - $decimalPosition - 1;
+    }
+
+    /**
+     * Ermittelt ein Standard-Icon fuer numerische Darstellungen.
+     */
+    private function GetNumericPresentationIcon(array $feature): string
+    {
+        $property = $feature['property'] ?? '';
+        $unit = $feature['unit'] ?? '';
+
+        if ($unit === '°C') {
+            return 'temperature-half';
+        }
+
+        if ($unit === '%') {
+            return 'gauge';
+        }
+
+        if ($unit === 's') {
+            return 'clock';
+        }
+
+        if (strpos((string) $property, 'brightness') !== false) {
+            return 'sun';
+        }
+
+        return '';
+    }
+
+    /**
+     * Ermittelt ein Standard-Icon fuer Enum-Darstellungen.
+     */
+    private function GetEnumerationPresentationIcon(array $feature): string
+    {
+        $property = (string) ($feature['property'] ?? '');
+
+        if (strpos($property, 'mode') !== false) {
+            return 'menu';
+        }
+
+        if (strpos($property, 'orientation') !== false) {
+            return 'rotate-cw';
+        }
+
+        return 'list';
+    }
+
+    /**
+     * Erstellt eine lesbare Beschriftung aus einem Expose-Wert.
+     */
+    private function CreatePresentationCaption(string $value): string
+    {
+        return ucwords(str_replace('_', ' ', $value));
     }
 
     /**
