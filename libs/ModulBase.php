@@ -37,7 +37,6 @@ abstract class ModulBase extends \IPSModuleStrict
     use SendData;
     private const MINIMAL_MODUL_VERSION = 5.1;
     private const PROPERTY_DISABLE_METERED_SWITCH_TILE = 'DisableMeteredSwitchTile';
-    private const METERED_SWITCH_TILE_IDENTS = ['state', 'power', 'energy', 'voltage', 'current'];
 
     /**
      * @var array STATE_PATTERN

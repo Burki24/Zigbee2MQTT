@@ -80,7 +80,7 @@ trait MeteredSwitchTileHelper
      */
     protected function UpdateMeteredSwitchTileValueIfRelevant(string $ident): void
     {
-        if (!\in_array($ident, self::METERED_SWITCH_TILE_IDENTS, true)) {
+        if (!\in_array($ident, $this->GetMeteredSwitchTileIdents(), true)) {
             return;
         }
 
@@ -93,7 +93,7 @@ trait MeteredSwitchTileHelper
     protected function BuildMeteredSwitchTileData(): array
     {
         $values = [];
-        foreach (self::METERED_SWITCH_TILE_IDENTS as $ident) {
+        foreach ($this->GetMeteredSwitchTileIdents() as $ident) {
             $variableID = $this->GetObjectIDByIdent($ident);
             if ($variableID === false) {
                 continue;
@@ -112,6 +112,14 @@ trait MeteredSwitchTileHelper
             'name'   => IPS_GetName($this->InstanceID),
             'values' => $values
         ];
+    }
+
+    /**
+     * Liefert die relevanten Idents fuer die Kachel.
+     */
+    protected function GetMeteredSwitchTileIdents(): array
+    {
+        return ['state', 'power', 'energy', 'voltage', 'current'];
     }
 
     /**

@@ -342,6 +342,7 @@
 
             meterList.replaceChildren();
             let renderedRows = 0;
+            const availableKeys = Object.keys(data.values || {});
             for (const ident of order) {
                 const item = data.values[ident];
                 if (!item) {
@@ -363,7 +364,7 @@
                 row.className = "row";
                 row.innerHTML = [
                     '<div class="row-icon"></div>',
-                    '<div class="row-label">Keine Messwerte</div>',
+                    `<div class="row-label">Keine Messwerte (${availableKeys.join(", ") || "-"})</div>`,
                     '<div class="row-value"></div>'
                 ].join("");
                 meterList.appendChild(row);
