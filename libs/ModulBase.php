@@ -9,6 +9,7 @@ require_once __DIR__ . '/BufferHelper.php';
 require_once __DIR__ . '/SemaphoreHelper.php';
 require_once __DIR__ . '/VariableProfileHelper.php';
 require_once __DIR__ . '/VariablePresentationHelper.php';
+require_once __DIR__ . '/MeteredSwitchTileHelper.php';
 require_once __DIR__ . '/MQTTHelper.php';
 require_once __DIR__ . '/ColorHelper.php';
 
@@ -32,8 +33,11 @@ abstract class ModulBase extends \IPSModuleStrict
     use ColorHelper;
     use VariableProfileHelper;
     use VariablePresentationHelper;
+    use MeteredSwitchTileHelper;
     use SendData;
     private const MINIMAL_MODUL_VERSION = 5.1;
+    private const PROPERTY_USE_METERED_SWITCH_TILE = 'UseMeteredSwitchTile';
+    private const METERED_SWITCH_TILE_IDENTS = ['state', 'power', 'energy', 'voltage', 'current'];
 
     /**
      * @var array STATE_PATTERN
@@ -413,6 +417,7 @@ abstract class ModulBase extends \IPSModuleStrict
 
         $this->RegisterPropertyString(self::MQTT_BASE_TOPIC, '');
         $this->RegisterPropertyString(self::MQTT_TOPIC, '');
+        $this->RegisterPropertyBoolean(self::PROPERTY_USE_METERED_SWITCH_TILE, false);
         $this->RegisterAttributeArray(self::ATTRIBUTE_EXPOSES, []);
         $this->RegisterAttributeArray(self::ATTRIBUTE_FILTERED, []);
         $this->RegisterAttributeFloat(self::ATTRIBUTE_MODUL_VERSION, 5.0);
@@ -481,6 +486,7 @@ abstract class ModulBase extends \IPSModuleStrict
         if (empty($BaseTopic) || empty($MQTTTopic)) {
             $this->SetStatus(IS_INACTIVE);
             $this->SetReceiveDataFilter('NOTHING_TO_RECEIVE'); //block all
+            $this->SetVisualizationType(0);
             return;
         }
 
@@ -491,6 +497,7 @@ abstract class ModulBase extends \IPSModuleStrict
         $this->SendDebug('Filter', '.*(' . $Filter1 . '|' . $Filter2 . '|' . $Filter3 . ').*', 0);
         $this->SetReceiveDataFilter('.*(' . $Filter1 . '|' . $Filter2 . '|' . $Filter3 . ').*');
         $this->SetStatus(IS_ACTIVE);
+        $this->UpdateMeteredSwitchTileVisualizationType();
     }
 
     /**
@@ -569,6 +576,11 @@ abstract class ModulBase extends \IPSModuleStrict
         $this->SendDebug(__FUNCTION__, 'Aufgerufen für Ident: ' . $ident . ' mit Wert: ' . json_encode($value), 0);
 
         $handled = match (true) {
+            // Behandelt HTML-SDK Kachelaktionen
+            strpos($ident, 'MeteredSwitchTile.') === 0 => function () use ($ident, $value)
+            {
+                return $this->HandleMeteredSwitchTileAction($ident, $value);
+            },
             // Behandelt UpdateInfo
             $ident == 'UpdateInfo' => function ()
             {
@@ -1210,6 +1222,7 @@ abstract class ModulBase extends \IPSModuleStrict
             $kelvinValue = $this->convertMiredToKelvin($value);
             $this->SetValueDirect($kelvinIdent, $kelvinValue);
         }
+        $this->UpdateMeteredSwitchTileValueIfRelevant($ident);
         return $result;
     }
 
@@ -1296,6 +1309,7 @@ abstract class ModulBase extends \IPSModuleStrict
         $this->SendDebug(__FUNCTION__, \sprintf('Setze Variable: %s, Typ: %s, Wert: %s', $ident, $debugVarType, json_encode($value)), 0);
         // Setze den Wert der Variable
         parent::SetValue($ident, $value);
+        $this->UpdateMeteredSwitchTileValueIfRelevant($ident);
     }
 
     // Feature & Expose Handling
@@ -1377,6 +1391,7 @@ abstract class ModulBase extends \IPSModuleStrict
                 }
             }
         }
+        $this->UpdateMeteredSwitchTileVisualizationType();
     }
 
     /**

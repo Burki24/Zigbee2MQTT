@@ -1,0 +1,280 @@
+<!doctype html>
+<html lang="de">
+<head>
+    <meta charset="utf-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1">
+    <style>
+        :root {
+            color-scheme: light dark;
+            --accent: #10c8b2;
+            --accent-dark: #079b8e;
+            --bg: #ffffff;
+            --text: #111827;
+            --muted: #6b7280;
+            --line: rgba(17, 24, 39, 0.12);
+            --panel: rgba(255, 255, 255, 0.86);
+            --warm: #fff2a8;
+        }
+
+        * {
+            box-sizing: border-box;
+        }
+
+        html,
+        body {
+            width: 100%;
+            height: 100%;
+            margin: 0;
+            overflow: hidden;
+            background: transparent;
+            color: var(--text);
+            font-family: system-ui, -apple-system, BlinkMacSystemFont, "Segoe UI", sans-serif;
+        }
+
+        button {
+            font: inherit;
+        }
+
+        .tile {
+            position: relative;
+            display: grid;
+            grid-template-rows: auto 1fr auto;
+            gap: 10px;
+            width: 100%;
+            height: 100%;
+            min-height: 220px;
+            padding: 16px;
+            overflow: hidden;
+            background:
+                radial-gradient(circle at 50% 48%, rgba(255, 242, 168, 0.9), rgba(255, 242, 168, 0.26) 34%, rgba(255, 255, 255, 0) 58%),
+                var(--bg);
+        }
+
+        .header {
+            display: flex;
+            align-items: center;
+            justify-content: space-between;
+            gap: 8px;
+            min-width: 0;
+        }
+
+        .title {
+            min-width: 0;
+            overflow: hidden;
+            text-overflow: ellipsis;
+            white-space: nowrap;
+            font-size: 15px;
+            font-weight: 600;
+        }
+
+        .status {
+            flex: 0 0 auto;
+            color: var(--muted);
+            font-size: 12px;
+        }
+
+        .main {
+            display: grid;
+            place-items: center;
+            min-height: 0;
+        }
+
+        .power-button {
+            display: grid;
+            place-items: center;
+            width: min(45vmin, 148px);
+            height: min(45vmin, 148px);
+            min-width: 94px;
+            min-height: 94px;
+            border: 0;
+            border-radius: 50%;
+            color: #ffffff;
+            background: var(--accent);
+            box-shadow: 0 12px 30px rgba(16, 200, 178, 0.22);
+            cursor: pointer;
+            transition: transform 160ms ease, background 160ms ease, box-shadow 160ms ease;
+        }
+
+        .power-button:active {
+            transform: scale(0.97);
+        }
+
+        .power-button.off {
+            background: #9ca3af;
+            box-shadow: 0 12px 30px rgba(107, 114, 128, 0.18);
+        }
+
+        .power-icon {
+            width: 54%;
+            height: 54%;
+        }
+
+        .reading {
+            position: absolute;
+            left: 16px;
+            right: 16px;
+            bottom: 64px;
+            text-align: center;
+            pointer-events: none;
+        }
+
+        .reading-value {
+            overflow: hidden;
+            text-overflow: ellipsis;
+            white-space: nowrap;
+            font-size: clamp(22px, 8vmin, 38px);
+            font-weight: 650;
+            line-height: 1.05;
+        }
+
+        .reading-label {
+            margin-top: 4px;
+            color: var(--muted);
+            font-size: 12px;
+            letter-spacing: 0.02em;
+            text-transform: uppercase;
+        }
+
+        .tabs {
+            display: grid;
+            grid-auto-flow: column;
+            grid-auto-columns: minmax(44px, 1fr);
+            gap: 6px;
+            padding: 4px;
+            border: 1px solid var(--line);
+            border-radius: 8px;
+            background: var(--panel);
+            backdrop-filter: blur(10px);
+        }
+
+        .tab {
+            min-width: 0;
+            height: 34px;
+            border: 0;
+            border-radius: 6px;
+            color: var(--muted);
+            background: transparent;
+            cursor: pointer;
+        }
+
+        .tab.active {
+            color: #ffffff;
+            background: var(--accent-dark);
+        }
+
+        .tab-label {
+            display: block;
+            overflow: hidden;
+            text-overflow: ellipsis;
+            white-space: nowrap;
+            padding: 0 4px;
+            font-size: 12px;
+            font-weight: 600;
+        }
+
+        @media (prefers-color-scheme: dark) {
+            :root {
+                --bg: #111827;
+                --text: #f9fafb;
+                --muted: #cbd5e1;
+                --line: rgba(255, 255, 255, 0.16);
+                --panel: rgba(17, 24, 39, 0.78);
+                --warm: #7c6400;
+            }
+
+            .tile {
+                background:
+                    radial-gradient(circle at 50% 48%, rgba(124, 100, 0, 0.76), rgba(124, 100, 0, 0.22) 34%, rgba(17, 24, 39, 0) 58%),
+                    var(--bg);
+            }
+        }
+    </style>
+</head>
+<body>
+    <main class="tile">
+        <header class="header">
+            <div class="title" id="title">Zigbee2MQTT</div>
+            <div class="status" id="status">...</div>
+        </header>
+
+        <section class="main">
+            <button class="power-button off" id="powerButton" type="button" aria-label="Toggle">
+                <svg class="power-icon" viewBox="0 0 64 64" aria-hidden="true">
+                    <path d="M32 8v24" fill="none" stroke="currentColor" stroke-width="5" stroke-linecap="round"></path>
+                    <path d="M21 18a21 21 0 1 0 22 0" fill="none" stroke="currentColor" stroke-width="5" stroke-linecap="round"></path>
+                </svg>
+            </button>
+            <div class="reading">
+                <div class="reading-value" id="readingValue">-</div>
+                <div class="reading-label" id="readingLabel">Status</div>
+            </div>
+        </section>
+
+        <nav class="tabs" id="tabs" aria-label="Messwerte"></nav>
+    </main>
+
+    <script>
+        const labels = {
+            state: "Status",
+            power: "Leistung",
+            energy: "Energie",
+            voltage: "Spannung",
+            current: "Strom"
+        };
+        const order = ["state", "power", "energy", "voltage", "current"];
+        let data = { name: "Zigbee2MQTT", values: {} };
+        let active = "state";
+
+        const title = document.getElementById("title");
+        const status = document.getElementById("status");
+        const powerButton = document.getElementById("powerButton");
+        const readingValue = document.getElementById("readingValue");
+        const readingLabel = document.getElementById("readingLabel");
+        const tabs = document.getElementById("tabs");
+
+        function handleMessage(message) {
+            data = message || data;
+            if (!data.values) {
+                data.values = {};
+            }
+            if (!data.values[active]) {
+                active = data.values.state ? "state" : Object.keys(data.values)[0] || "state";
+            }
+            render();
+        }
+
+        function render() {
+            title.textContent = data.name || "Zigbee2MQTT";
+
+            const state = data.values.state;
+            const isOn = !!(state && state.value);
+            status.textContent = state ? state.formatted : "";
+            powerButton.classList.toggle("off", !isOn);
+
+            const current = data.values[active];
+            readingValue.textContent = current ? current.formatted : "-";
+            readingLabel.textContent = labels[active] || active;
+
+            tabs.replaceChildren();
+            for (const ident of order) {
+                if (!data.values[ident]) {
+                    continue;
+                }
+                const button = document.createElement("button");
+                button.type = "button";
+                button.className = "tab" + (ident === active ? " active" : "");
+                button.title = labels[ident] || ident;
+                button.innerHTML = `<span class="tab-label">${labels[ident] || ident}</span>`;
+                button.addEventListener("click", () => {
+                    active = ident;
+                    render();
+                });
+                tabs.appendChild(button);
+            }
+        }
+
+        powerButton.addEventListener("click", () => requestAction("MeteredSwitchTile.Toggle", true));
+        requestAction("MeteredSwitchTile.Refresh", true);
+    </script>
+</body>
+</html>

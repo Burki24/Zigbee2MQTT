@@ -21,6 +21,11 @@
                             "name": "IEEE",
                             "caption": "IEEE Address",
                             "enabled": false
+                        },
+                        {
+                            "type": "CheckBox",
+                            "name": "UseMeteredSwitchTile",
+                            "caption": "Use metered switch tile"
                         }
                     ]
                 },
