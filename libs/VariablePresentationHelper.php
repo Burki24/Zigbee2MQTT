@@ -93,14 +93,14 @@ trait VariablePresentationHelper
     private function CreateColorTemperatureGradient(int $minKelvin, int $maxKelvin): string
     {
         $anchors = [
-            ['Value' => 2200, 'Color' => '0xFFB36B'],
-            ['Value' => 2700, 'Color' => '0xFFD19A'],
-            ['Value' => 3000, 'Color' => '0xFFE1B8'],
-            ['Value' => 3500, 'Color' => '0xFFF0D6'],
-            ['Value' => 4000, 'Color' => '0xFFF8EB'],
-            ['Value' => 4500, 'Color' => '0xF4FAFF'],
-            ['Value' => 5000, 'Color' => '0xE6F3FF'],
-            ['Value' => 6500, 'Color' => '0xD6ECFF']
+            ['Value' => 2200, 'Color' => 0xFFB36B],
+            ['Value' => 2700, 'Color' => 0xFFD19A],
+            ['Value' => 3000, 'Color' => 0xFFE1B8],
+            ['Value' => 3500, 'Color' => 0xFFF0D6],
+            ['Value' => 4000, 'Color' => 0xFFF8EB],
+            ['Value' => 4500, 'Color' => 0xF4FAFF],
+            ['Value' => 5000, 'Color' => 0xE6F3FF],
+            ['Value' => 6500, 'Color' => 0xD6ECFF]
         ];
 
         $gradient = [];
@@ -131,7 +131,7 @@ trait VariablePresentationHelper
     /**
      * Interpoliert die Farbe zwischen den bekannten Farbtemperatur-Ankerpunkten.
      */
-    private function InterpolateColorTemperatureColor(int $kelvin, array $anchors): string
+    private function InterpolateColorTemperatureColor(int $kelvin, array $anchors): int
     {
         if ($kelvin <= $anchors[0]['Value']) {
             return $anchors[0]['Color'];
@@ -160,23 +160,20 @@ trait VariablePresentationHelper
     /**
      * Interpoliert zwei SelectColor-Hexwerte.
      */
-    private function InterpolateHexColor(string $fromColor, string $toColor, float $factor): string
+    private function InterpolateHexColor(int $fromColor, int $toColor, float $factor): int
     {
-        $from = hexdec(substr($fromColor, 2));
-        $to = hexdec(substr($toColor, 2));
+        $fromR = ($fromColor >> 16) & 0xFF;
+        $fromG = ($fromColor >> 8) & 0xFF;
+        $fromB = $fromColor & 0xFF;
 
-        $fromR = ($from >> 16) & 0xFF;
-        $fromG = ($from >> 8) & 0xFF;
-        $fromB = $from & 0xFF;
-
-        $toR = ($to >> 16) & 0xFF;
-        $toG = ($to >> 8) & 0xFF;
-        $toB = $to & 0xFF;
+        $toR = ($toColor >> 16) & 0xFF;
+        $toG = ($toColor >> 8) & 0xFF;
+        $toB = $toColor & 0xFF;
 
         $red = (int) round($fromR + (($toR - $fromR) * $factor));
         $green = (int) round($fromG + (($toG - $fromG) * $factor));
         $blue = (int) round($fromB + (($toB - $fromB) * $factor));
 
-        return sprintf('0x%02X%02X%02X', $red, $green, $blue);
+        return ($red << 16) | ($green << 8) | $blue;
     }
 }
