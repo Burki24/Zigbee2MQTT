@@ -15,7 +15,7 @@ require_once dirname(__DIR__) . '/libs/MQTTHelper.php';
  * @property string $ConfigLastSeen Enthält die Z2M Konfiguration der LastSeen Option in einem InstanzBuffer
  * @property bool $ConfigPermitJoin Enthält die Z2M Konfiguration der PermitJoin Option in einem InstanzBuffer
  */
-class Zigbee2MQTTBridge extends IPSModule
+class Zigbee2MQTTBridge extends IPSModuleStrict
 {
     use \Zigbee2MQTT\BufferHelper;
     use \Zigbee2MQTT\Semaphore;
@@ -50,7 +50,7 @@ class Zigbee2MQTTBridge extends IPSModule
      *
      * @return void
      */
-    public function Create()
+    public function Create(): void
     {
         //Never delete this line!
         parent::Create();
@@ -91,7 +91,7 @@ class Zigbee2MQTTBridge extends IPSModule
      * @uses Zigbee2MQTTBridge::InstallSymconExtension()
      * @uses IPS_GetKernelRunlevel()
      */
-    public function ApplyChanges()
+    public function ApplyChanges(): void
     {
         // Empty TransactionQueue
         $this->TransactionData = [];
@@ -183,12 +183,12 @@ class Zigbee2MQTTBridge extends IPSModule
      * @uses strlen()
      * @uses explode()
      * @uses array_shift()
-     * @uses utf8_decode()
+     * @uses Zigbee2MQTTBridge::DecodePayload()
      * @uses file_get_contents()
      * @uses preg_match()
      * @uses isset()
      */
-    public function ReceiveData($JSONString)
+    public function ReceiveData(string $JSONString): string
     {
         if ($this->GetStatus() == IS_CREATING) {
             return '';
@@ -208,8 +208,9 @@ class Zigbee2MQTTBridge extends IPSModule
         $Topics = explode('/', $Topic);
         $Topic = array_shift($Topics);
         $this->SendDebug('MQTT Topic', $Topic, 0);
-        $this->SendDebug('MQTT Payload', utf8_decode($Buffer['Payload']), 0);
-        $Payload = json_decode(utf8_decode($Buffer['Payload']), true);
+        $payloadJson = self::DecodePayload($Buffer['Payload']);
+        $this->SendDebug('MQTT Payload', $payloadJson, 0);
+        $Payload = json_decode($payloadJson, true);
         switch ($Topic) {
             case 'request': //nothing
                 break;
@@ -332,7 +333,7 @@ class Zigbee2MQTTBridge extends IPSModule
      * @uses Zigbee2MQTTBridge::SetLogLevel()
      * @uses Zigbee2MQTTBridge::Restart()
      */
-    public function RequestAction($ident, $value)
+    public function RequestAction(string $ident, mixed $value): void
     {
         switch ($ident) {
             case 'permit_join':
@@ -358,7 +359,7 @@ class Zigbee2MQTTBridge extends IPSModule
      * @uses json_encode()
      * @uses file_get_contents()
      */
-    public function GetConfigurationForm()
+    public function GetConfigurationForm(): string
     {
         $Form = json_decode(file_get_contents(__DIR__ . '/form.json'), true);
         if ($this->GetValue('extension_loaded') && $this->GetValue('extension_is_current')) {
@@ -388,7 +389,7 @@ class Zigbee2MQTTBridge extends IPSModule
      * @uses trigger_error()
      * @uses isset()
      */
-    public function InstallSymconExtension()
+    public function InstallSymconExtension(): bool
     {
         if ($this->installedZhVersion == 0) {
             $this->LogMessage($this->Translate('Cannot determine ZH Version. No Extension installed.'), KL_WARNING);
@@ -420,7 +421,7 @@ class Zigbee2MQTTBridge extends IPSModule
      * @uses trigger_error()
      * @uses isset()
      */
-    public function RequestOptions()
+    public function RequestOptions(): bool
     {
         $Topic = '/bridge/request/options';
         $Payload = [
@@ -445,7 +446,7 @@ class Zigbee2MQTTBridge extends IPSModule
      * @uses trigger_error()
      * @uses isset()
      */
-    public function SetLastSeen()
+    public function SetLastSeen(): bool
     {
         $Topic = '/bridge/request/options';
         $Payload = [
@@ -476,7 +477,7 @@ class Zigbee2MQTTBridge extends IPSModule
      * @uses trigger_error()
      * @uses isset()
      */
-    public function SetPermitJoinOption(bool $PermitJoin)
+    public function SetPermitJoinOption(bool $PermitJoin): bool
     {
         $Topic = '/bridge/request/options';
         $Payload = ['options'=> ['permit_join' => $PermitJoin]];
@@ -501,7 +502,7 @@ class Zigbee2MQTTBridge extends IPSModule
      * @uses trigger_error()
      * @uses isset()
      */
-    public function SetPermitJoin(bool $PermitJoin)
+    public function SetPermitJoin(bool $PermitJoin): bool
     {
         $Topic = '/bridge/request/permit_join';
         $Payload = ['time'=> ($PermitJoin ? 254 : 0)];
@@ -526,7 +527,7 @@ class Zigbee2MQTTBridge extends IPSModule
      * @uses trigger_error()
      * @uses isset()
      */
-    public function SetLogLevel(string $LogLevel)
+    public function SetLogLevel(string $LogLevel): bool
     {
         $Topic = '/bridge/request/options';
         $Payload = ['options' =>['advanced' => ['log_level'=> $LogLevel]]];
@@ -550,7 +551,7 @@ class Zigbee2MQTTBridge extends IPSModule
      * @uses trigger_error()
      * @uses isset()
      */
-    public function Restart()
+    public function Restart(): bool
     {
         $Topic = '/bridge/request/restart';
         $Result = $this->SendData($Topic);
@@ -573,7 +574,7 @@ class Zigbee2MQTTBridge extends IPSModule
      *
      * @uses Zigbee2MQTTBridge::SendData()
      */
-    public function CreateGroup(string $GroupName)
+    public function CreateGroup(string $GroupName): bool
     {
         $Topic = '/bridge/request/group/add';
         $Payload = ['friendly_name' => $GroupName];
@@ -594,7 +595,7 @@ class Zigbee2MQTTBridge extends IPSModule
      *
      * @uses Zigbee2MQTTBridge::SendData()
      */
-    public function DeleteGroup(string $GroupName)
+    public function DeleteGroup(string $GroupName): bool
     {
         $Topic = '/bridge/request/group/remove';
         $Payload = ['id' => $GroupName];
@@ -616,7 +617,7 @@ class Zigbee2MQTTBridge extends IPSModule
      *
      * @uses Zigbee2MQTTBridge::SendData()
      */
-    public function RenameGroup(string $OldName, string $NewName)
+    public function RenameGroup(string $OldName, string $NewName): bool
     {
         $Topic = '/bridge/request/group/rename';
         $Payload = ['from' => $OldName, 'to' => $NewName];
@@ -638,7 +639,7 @@ class Zigbee2MQTTBridge extends IPSModule
      *
      * @uses Zigbee2MQTTBridge::SendData()
      */
-    public function AddDeviceToGroup(string $GroupName, string $DeviceName)
+    public function AddDeviceToGroup(string $GroupName, string $DeviceName): bool
     {
         $Topic = '/bridge/request/group/members/add';
         $Payload = ['group'=>$GroupName, 'device' => $DeviceName];
@@ -660,7 +661,7 @@ class Zigbee2MQTTBridge extends IPSModule
      *
      * @uses Zigbee2MQTTBridge::SendData()
      */
-    public function RemoveDeviceFromGroup(string $GroupName, string $DeviceName)
+    public function RemoveDeviceFromGroup(string $GroupName, string $DeviceName): bool
     {
         $Topic = '/bridge/request/group/members/remove';
         $Payload = ['group'=>$GroupName, 'device' => $DeviceName, 'skip_disable_reporting'=>true];
@@ -681,7 +682,7 @@ class Zigbee2MQTTBridge extends IPSModule
      *
      * @uses Zigbee2MQTTBridge::SendData()
      */
-    public function RemoveAllDevicesFromGroup(string $GroupName)
+    public function RemoveAllDevicesFromGroup(string $GroupName): bool
     {
         $Topic = '/bridge/request/group/members/remove_all';
         $Payload = ['group'=>$GroupName];
@@ -703,7 +704,7 @@ class Zigbee2MQTTBridge extends IPSModule
      *
      * @uses Zigbee2MQTTBridge::SendData()
      */
-    public function Bind(string $SourceDevice, string $TargetDevice)
+    public function Bind(string $SourceDevice, string $TargetDevice): bool
     {
         $Topic = '/bridge/request/device/bind';
         $Payload = ['from' => $SourceDevice, 'to' => $TargetDevice];
@@ -725,7 +726,7 @@ class Zigbee2MQTTBridge extends IPSModule
      *
      * @uses Zigbee2MQTTBridge::SendData()
      */
-    public function Unbind(string $SourceDevice, string $TargetDevice)
+    public function Unbind(string $SourceDevice, string $TargetDevice): bool
     {
         $Topic = '/bridge/request/device/unbind';
         $Payload = ['from' => $SourceDevice, 'to' => $TargetDevice];
@@ -744,7 +745,7 @@ class Zigbee2MQTTBridge extends IPSModule
      *
      * @uses Zigbee2MQTTBridge::SendData()
      */
-    public function RequestNetworkmap()
+    public function RequestNetworkmap(): bool
     {
         $Topic = '/bridge/request/networkmap';
         $Payload = ['type' => 'graphviz', 'routes' => true];
@@ -763,7 +764,7 @@ class Zigbee2MQTTBridge extends IPSModule
      * @uses trigger_error()
      * @uses isset()
      */
-    public function RenameDevice(string $OldDeviceName, string $NewDeviceName)
+    public function RenameDevice(string $OldDeviceName, string $NewDeviceName): bool
     {
         $Topic = '/bridge/request/device/rename';
         $Payload = ['from' => $OldDeviceName, 'to' => $NewDeviceName];
@@ -788,7 +789,7 @@ class Zigbee2MQTTBridge extends IPSModule
      * @uses trigger_error()
      * @uses isset()
      */
-    public function RemoveDevice(string $DeviceName)
+    public function RemoveDevice(string $DeviceName): bool
     {
         $Topic = '/bridge/request/device/remove';
         $Payload = ['id'=>$DeviceName];
@@ -813,7 +814,7 @@ class Zigbee2MQTTBridge extends IPSModule
      * @uses trigger_error()
      * @uses isset()
      */
-    public function CheckOTAUpdate(string $DeviceName)
+    public function CheckOTAUpdate(string $DeviceName): bool
     {
         $Topic = '/bridge/request/device/ota_update/check';
         $Payload = ['id'=>$DeviceName];
@@ -822,7 +823,7 @@ class Zigbee2MQTTBridge extends IPSModule
             trigger_error($Result['error'], E_USER_NOTICE);
             return false;
         }
-        if (!isset($Result['status']) && ($Result['status'] != 'ok')) {
+        if (!isset($Result['status']) || ($Result['status'] != 'ok')) {
             trigger_error('unknown error', E_USER_NOTICE);
             return false;
         }
@@ -841,7 +842,7 @@ class Zigbee2MQTTBridge extends IPSModule
      * @uses trigger_error()
      * @uses isset()
      */
-    public function PerformOTAUpdate(string $DeviceName)
+    public function PerformOTAUpdate(string $DeviceName): bool
     {
         $Topic = '/bridge/request/device/ota_update/update';
         $Payload = ['id'=>$DeviceName];

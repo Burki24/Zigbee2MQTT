@@ -9,7 +9,7 @@ require_once dirname(__DIR__) . '/libs/MQTTHelper.php';
 /**
  * Zigbee2MQTTConfigurator
  */
-class Zigbee2MQTTConfigurator extends IPSModule
+class Zigbee2MQTTConfigurator extends IPSModuleStrict
 {
     use \Zigbee2MQTT\BufferHelper;
     use \Zigbee2MQTT\Semaphore;
@@ -49,7 +49,7 @@ class Zigbee2MQTTConfigurator extends IPSModule
      * @uses IPSModule::Create()
      * @uses IPSModule::RegisterPropertyString()
      */
-    public function Create()
+    public function Create(): void
     {
         //Never delete this line!
         parent::Create();
@@ -71,7 +71,7 @@ class Zigbee2MQTTConfigurator extends IPSModule
      * @uses preg_quote()
      * @uses empty()
      */
-    public function ApplyChanges()
+    public function ApplyChanges(): void
     {
         //Never delete this line!
         parent::ApplyChanges();
@@ -100,7 +100,7 @@ class Zigbee2MQTTConfigurator extends IPSModule
      *
      * @uses Zigbee2MQTTConfigurator::ReloadForm();
      */
-    public function RequestAction($ident, $value)
+    public function RequestAction(string $ident, mixed $value): void
     {
         switch ($ident) {
             case 'ReloadForm':
@@ -145,7 +145,7 @@ class Zigbee2MQTTConfigurator extends IPSModule
      * @uses array_pop()
      * @uses array_search()
      */
-    public function GetConfigurationForm()
+    public function GetConfigurationForm(): string
     {
         $Form = json_decode(file_get_contents(__DIR__ . '/form.json'), true);
         if (($this->GetStatus() == IS_CREATING) || (IPS_GetKernelRunlevel() != KR_READY)) {
@@ -520,12 +520,12 @@ class Zigbee2MQTTConfigurator extends IPSModule
      * @uses IPSModule::ReadPropertyString()
      * @uses Zigbee2MQTTConfigurator::UpdateTransaction()
      * @uses json_decode()
-     * @uses utf8_decode()
+     * @uses Zigbee2MQTTConfigurator::DecodePayload()
      * @uses empty()
      * @uses isset()
      * @uses strpos()
      */
-    public function ReceiveData($JSONString)
+    public function ReceiveData(string $JSONString): string
     {
         if ($this->GetStatus() == IS_CREATING) {
             return '';
@@ -546,8 +546,9 @@ class Zigbee2MQTTConfigurator extends IPSModule
             return '';
         }
         $this->SendDebug('MQTT Topic', $ReceiveTopic, 0);
-        $this->SendDebug('MQTT Payload', utf8_decode($Buffer['Payload']), 0);
-        $Payload = json_decode(utf8_decode($Buffer['Payload']), true);
+        $payloadJson = self::DecodePayload($Buffer['Payload']);
+        $this->SendDebug('MQTT Payload', $payloadJson, 0);
+        $Payload = json_decode($payloadJson, true);
         if (isset($Payload['transaction'])) {
             $this->UpdateTransaction($Payload);
         }
@@ -561,7 +562,7 @@ class Zigbee2MQTTConfigurator extends IPSModule
      *
      * @uses Zigbee2MQTTConfigurator::SendData()
      */
-    public function getDevices()
+    public function getDevices(): array
     {
         $Result = @$this->SendData(self::SYMCON_EXTENSION_LIST_REQUEST . 'getDevices');
         if ($Result) {
@@ -577,7 +578,7 @@ class Zigbee2MQTTConfigurator extends IPSModule
      *
      * @uses Zigbee2MQTTConfigurator::SendData()
      */
-    public function getGroups()
+    public function getGroups(): array
     {
         $Result = @$this->SendData(self::SYMCON_EXTENSION_LIST_REQUEST . 'getGroups');
         if ($Result) {
@@ -595,7 +596,7 @@ class Zigbee2MQTTConfigurator extends IPSModule
      * @uses trigger_error()
      * @uses isset()
      */
-    public function RequestOptions()
+    public function RequestOptions(): bool
     {
         $Topic = '/bridge/request/options';
         $Payload = [
