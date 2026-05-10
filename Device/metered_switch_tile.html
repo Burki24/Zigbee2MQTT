@@ -64,7 +64,7 @@
 
         .nav-button {
             position: absolute;
-            top: 74px;
+            top: 76px;
             display: grid;
             place-items: center;
             width: 50px;
@@ -74,6 +74,7 @@
             color: #111111;
             background: transparent;
             cursor: pointer;
+            z-index: 3;
         }
 
         .nav-button:hover,
@@ -168,11 +169,11 @@
             position: absolute;
             left: 18px;
             right: 18px;
-            top: 56px;
+            top: 132px;
             bottom: 18px;
             display: grid;
             align-content: start;
-            gap: 3px;
+            gap: 0;
             overflow: hidden;
         }
 
@@ -180,9 +181,10 @@
             display: grid;
             grid-template-columns: 34px minmax(0, 1fr) auto;
             align-items: center;
-            min-height: 40px;
+            min-height: 36px;
             gap: 8px;
             border-bottom: 1px solid transparent;
+            color: #111111;
         }
 
         .row-icon {
@@ -214,7 +216,7 @@
 
         @media (max-width: 340px), (max-height: 300px) {
             .nav-button {
-                top: 48px;
+                top: 58px;
                 width: 44px;
                 height: 44px;
             }
@@ -232,7 +234,7 @@
             }
 
             .list {
-                top: 42px;
+                top: 112px;
             }
 
             .row {
@@ -272,13 +274,13 @@
         </section>
 
         <section class="view list-view" id="listView">
-            <button class="nav-button left active" id="showPowerLeft" type="button" title="Status">
+            <button class="nav-button left active" id="showPowerLeft" type="button" title="Zurueck">
                 <svg class="nav-icon" viewBox="0 0 24 24" aria-hidden="true">
                     <path d="M12 2v10" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round"></path>
                     <path d="M7.4 5.6a8 8 0 1 0 9.2 0" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round"></path>
                 </svg>
             </button>
-            <button class="nav-button right active" id="showPowerRight" type="button" title="Status">
+            <button class="nav-button right active" id="showPowerRight" type="button" title="Zurueck">
                 <svg class="nav-icon" viewBox="0 0 24 24" aria-hidden="true">
                     <path d="M12 2v10" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round"></path>
                     <path d="M7.4 5.6a8 8 0 1 0 9.2 0" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round"></path>
@@ -339,6 +341,7 @@
             stateValue.textContent = state ? state.formatted : "-";
 
             meterList.replaceChildren();
+            let renderedRows = 0;
             for (const ident of order) {
                 const item = data.values[ident];
                 if (!item) {
@@ -350,6 +353,18 @@
                     `<div class="row-icon"><svg viewBox="0 0 24 24" aria-hidden="true">${iconPaths[ident]}</svg></div>`,
                     `<div class="row-label">${labels[ident]}</div>`,
                     `<div class="row-value">${item.formatted}</div>`
+                ].join("");
+                meterList.appendChild(row);
+                renderedRows++;
+            }
+
+            if (renderedRows === 0) {
+                const row = document.createElement("div");
+                row.className = "row";
+                row.innerHTML = [
+                    '<div class="row-icon"></div>',
+                    '<div class="row-label">Keine Messwerte</div>',
+                    '<div class="row-value"></div>'
                 ].join("");
                 meterList.appendChild(row);
             }
