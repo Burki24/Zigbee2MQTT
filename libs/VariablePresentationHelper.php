@@ -127,6 +127,11 @@ trait VariablePresentationHelper
             $presentation['PERCENTAGE'] = true;
         }
 
+        if ($unit === '°C') {
+            $presentation['GRADIENT_TYPE'] = 1;
+            $presentation['USAGE_TYPE'] = 0;
+        }
+
         $this->ApplySliderPresentation($ident, $presentation);
     }
 
