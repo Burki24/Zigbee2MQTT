@@ -107,31 +107,69 @@
         .thermostat {
             position: absolute;
             left: 50%;
-            top: 50%;
+            top: 52%;
             display: grid;
             justify-items: center;
-            width: min(78vw, 420px);
-            max-width: calc(100% - 92px);
+            width: min(82vw, 390px);
+            max-width: calc(100% - 84px);
             transform: translate(-50%, -45%);
         }
 
         .current {
+            position: absolute;
+            left: 50%;
+            top: 29%;
+            z-index: 2;
             min-height: 22px;
             color: var(--muted);
             font-size: 15px;
+            transform: translateX(-50%);
             white-space: nowrap;
         }
 
-        .setpoint-row {
-            display: grid;
-            grid-template-columns: 58px minmax(120px, 1fr) 58px;
-            align-items: center;
+        .dial {
+            position: relative;
             width: min(100%, 330px);
-            gap: 14px;
-            margin-top: 14px;
+            aspect-ratio: 1.45;
+            touch-action: none;
+            user-select: none;
+        }
+
+        .dial-svg {
+            position: absolute;
+            inset: 0;
+            width: 100%;
+            height: 100%;
+            overflow: visible;
+        }
+
+        .dial-track,
+        .dial-fill {
+            fill: none;
+            stroke-linecap: round;
+            stroke-width: 7.5;
+        }
+
+        .dial-track {
+            stroke: rgba(96, 125, 139, 0.24);
+        }
+
+        .dial-fill {
+            stroke: var(--accent);
+            stroke-dasharray: 100;
+            stroke-dashoffset: 100;
+            transition: stroke-dashoffset 120ms ease;
+        }
+
+        .dial-handle {
+            fill: var(--accent);
+            stroke: #ffffff;
+            stroke-width: 2;
+            filter: drop-shadow(0 2px 3px rgba(0, 0, 0, 0.18));
         }
 
         .step-button {
+            position: relative;
             display: grid;
             place-items: center;
             width: 58px;
@@ -152,10 +190,31 @@
             height: 24px;
         }
 
+        .dial-step {
+            position: absolute;
+            top: 54%;
+            z-index: 2;
+            transform: translateY(-50%);
+        }
+
+        .dial-step.left {
+            left: -8px;
+        }
+
+        .dial-step.right {
+            right: -8px;
+        }
+
         .target {
+            position: absolute;
+            left: 50%;
+            top: 55%;
+            z-index: 2;
             display: grid;
             justify-items: center;
+            width: min(62%, 210px);
             min-width: 0;
+            transform: translate(-50%, -50%);
         }
 
         .target-value {
@@ -176,12 +235,6 @@
             letter-spacing: 0;
         }
 
-        .setpoint-slider {
-            width: min(100%, 330px);
-            margin: 22px 0 0;
-            accent-color: var(--accent);
-        }
-
         .heat-line {
             display: grid;
             grid-template-columns: auto minmax(80px, 140px) auto;
@@ -189,7 +242,7 @@
             gap: 10px;
             width: min(100%, 330px);
             min-height: 28px;
-            margin-top: 16px;
+            margin-top: 4px;
             color: var(--muted);
             font-size: 13px;
         }
@@ -359,9 +412,8 @@
                 max-width: calc(100% - 68px);
             }
 
-            .setpoint-row {
-                grid-template-columns: 48px minmax(106px, 1fr) 48px;
-                gap: 10px;
+            .dial {
+                width: min(100%, 290px);
             }
 
             .step-button {
@@ -369,8 +421,21 @@
                 height: 48px;
             }
 
+            .dial-step.left {
+                left: -4px;
+            }
+
+            .dial-step.right {
+                right: -4px;
+            }
+
             .target-value {
                 font-size: 40px;
+            }
+
+            .current {
+                top: 27%;
+                font-size: 13px;
             }
 
             .settings-list {
@@ -398,7 +463,7 @@
 <body>
     <main class="tile">
         <section class="view main-view active" id="mainView">
-            <button class="nav-button right" id="showComfort" type="button" title="Einstellungen">
+            <button class="nav-button left" id="showComfort" type="button" title="Fein">
                 <svg class="nav-icon" viewBox="0 0 24 24" aria-hidden="true">
                     <path d="M4 21v-7" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round"></path>
                     <path d="M4 10V3" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round"></path>
@@ -411,11 +476,23 @@
                     <path d="M18 16h4" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round"></path>
                 </svg>
             </button>
+            <button class="nav-button right" id="showDeviceMain" type="button" title="Display">
+                <svg class="nav-icon" viewBox="0 0 24 24" aria-hidden="true">
+                    <path d="M4 6h16v11H4z" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linejoin="round"></path>
+                    <path d="M9 21h6" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round"></path>
+                    <path d="M12 17v4" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round"></path>
+                </svg>
+            </button>
 
             <div class="thermostat">
-                <div class="current" id="currentTemperature"></div>
-                <div class="setpoint-row">
-                    <button class="step-button" id="decreaseSetpoint" type="button" title="Kuehler">
+                <div class="dial" id="setpointDial">
+                    <svg class="dial-svg" id="setpointDialSvg" viewBox="0 0 240 178" aria-hidden="true">
+                        <path class="dial-track" d="M30 132 A90 90 0 0 1 210 132" pathLength="100"></path>
+                        <path class="dial-fill" id="setpointArc" d="M30 132 A90 90 0 0 1 210 132" pathLength="100"></path>
+                        <circle class="dial-handle" id="setpointHandle" cx="30" cy="132" r="8"></circle>
+                    </svg>
+                    <div class="current" id="currentTemperature"></div>
+                    <button class="step-button dial-step left" id="decreaseSetpoint" type="button" title="Kuehler">
                         <svg class="step-icon" viewBox="0 0 24 24" aria-hidden="true">
                             <path d="M5 12h14" fill="none" stroke="currentColor" stroke-width="2.4" stroke-linecap="round"></path>
                         </svg>
@@ -424,14 +501,13 @@
                         <div class="target-value" id="setpointValue">--</div>
                         <div class="target-unit">Solltemperatur</div>
                     </div>
-                    <button class="step-button" id="increaseSetpoint" type="button" title="Waermer">
+                    <button class="step-button dial-step right" id="increaseSetpoint" type="button" title="Waermer">
                         <svg class="step-icon" viewBox="0 0 24 24" aria-hidden="true">
                             <path d="M12 5v14" fill="none" stroke="currentColor" stroke-width="2.4" stroke-linecap="round"></path>
                             <path d="M5 12h14" fill="none" stroke="currentColor" stroke-width="2.4" stroke-linecap="round"></path>
                         </svg>
                     </button>
                 </div>
-                <input class="setpoint-slider" id="setpointRange" type="range" min="5" max="30" step="0.5" value="20">
                 <div class="heat-line">
                     <span id="runningState">Inaktiv</span>
                     <div class="heat-bar"><div class="heat-bar-fill" id="demandBar"></div></div>
@@ -551,13 +627,17 @@
         const comfortView = document.getElementById("comfortView");
         const deviceView = document.getElementById("deviceView");
         const setpointValue = document.getElementById("setpointValue");
-        const setpointRange = document.getElementById("setpointRange");
+        const setpointDial = document.getElementById("setpointDial");
+        const setpointDialSvg = document.getElementById("setpointDialSvg");
+        const setpointArc = document.getElementById("setpointArc");
+        const setpointHandle = document.getElementById("setpointHandle");
         const currentTemperature = document.getElementById("currentTemperature");
         const runningState = document.getElementById("runningState");
         const demandValue = document.getElementById("demandValue");
         const demandBar = document.getElementById("demandBar");
         const comfortList = document.getElementById("comfortList");
         const deviceList = document.getElementById("deviceList");
+        let dialPointerId = null;
 
         function handleMessage(message) {
             const nextData = normalizeMessage(message);
@@ -660,6 +740,57 @@
             return Number(next.toFixed(config.digits));
         }
 
+        function currentSetpointNumber() {
+            const config = numericConfig("occupied_heating_setpoint");
+            const setpoint = valueOf("occupied_heating_setpoint");
+            return clampToStep("occupied_heating_setpoint", setpoint ? setpoint.value : config.min);
+        }
+
+        function setpointProgress(value) {
+            const config = numericConfig("occupied_heating_setpoint");
+            const range = config.max - config.min;
+            if (range <= 0) {
+                return 0;
+            }
+            return Math.max(0, Math.min(1, (Number(value) - config.min) / range));
+        }
+
+        function valueFromDialEvent(event) {
+            const config = numericConfig("occupied_heating_setpoint");
+            const rect = setpointDialSvg.getBoundingClientRect();
+            const x = ((event.clientX - rect.left) / rect.width) * 240;
+            const y = ((event.clientY - rect.top) / rect.height) * 178;
+            const cx = 120;
+            const cy = 132;
+            let angle = Math.atan2(cy - y, x - cx);
+            if (angle < 0) {
+                angle = x < cx ? Math.PI : 0;
+            }
+            angle = Math.max(0, Math.min(Math.PI, angle));
+            const progress = 1 - (angle / Math.PI);
+            return clampToStep("occupied_heating_setpoint", config.min + (progress * (config.max - config.min)));
+        }
+
+        function updateDial(value) {
+            const progress = setpointProgress(value);
+            const angle = Math.PI * (1 - progress);
+            const cx = 120;
+            const cy = 132;
+            const r = 90;
+            const x = cx + (Math.cos(angle) * r);
+            const y = cy - (Math.sin(angle) * r);
+
+            setpointArc.style.strokeDashoffset = String(100 - (progress * 100));
+            setpointHandle.setAttribute("cx", String(x));
+            setpointHandle.setAttribute("cy", String(y));
+        }
+
+        function previewSetpoint(value) {
+            const next = clampToStep("occupied_heating_setpoint", value);
+            ensureValue("occupied_heating_setpoint", next);
+            render();
+        }
+
         function sendAction(ident, value) {
             if (typeof requestAction === "function") {
                 requestAction(ident, value);
@@ -706,12 +837,9 @@
             const run = valueOf("running_state");
             const setpointNumber = clampToStep("occupied_heating_setpoint", setpoint ? setpoint.value : config.min);
 
-            setpointRange.min = config.min;
-            setpointRange.max = config.max;
-            setpointRange.step = config.step;
-            setpointRange.value = setpointNumber;
             setpointValue.textContent = `${numberFormat(setpointNumber, config.digits)} \u00b0C`;
             currentTemperature.textContent = current ? `Ist ${current.formatted}` : "";
+            updateDial(setpointNumber);
 
             const demandNumber = demand ? Math.max(0, Math.min(100, Number(demand.value))) : 0;
             demandValue.textContent = `${numberFormat(demandNumber, 0)} %`;
@@ -841,17 +969,41 @@
         }
 
         document.getElementById("showComfort").addEventListener("click", () => setView("comfort"));
+        document.getElementById("showDeviceMain").addEventListener("click", () => setView("device"));
         document.getElementById("comfortBack").addEventListener("click", () => setView("main"));
         document.getElementById("showDevice").addEventListener("click", () => setView("device"));
         document.getElementById("deviceBack").addEventListener("click", () => setView("comfort"));
         document.getElementById("deviceHome").addEventListener("click", () => setView("main"));
-        document.getElementById("decreaseSetpoint").addEventListener("click", () => commitSetpoint(Number(setpointRange.value) - numericConfig("occupied_heating_setpoint").step));
-        document.getElementById("increaseSetpoint").addEventListener("click", () => commitSetpoint(Number(setpointRange.value) + numericConfig("occupied_heating_setpoint").step));
-        setpointRange.addEventListener("input", () => {
-            const next = clampToStep("occupied_heating_setpoint", setpointRange.value);
-            setpointValue.textContent = `${numberFormat(next, numericConfig("occupied_heating_setpoint").digits)} \u00b0C`;
+        document.getElementById("decreaseSetpoint").addEventListener("click", () => commitSetpoint(currentSetpointNumber() - numericConfig("occupied_heating_setpoint").step));
+        document.getElementById("increaseSetpoint").addEventListener("click", () => commitSetpoint(currentSetpointNumber() + numericConfig("occupied_heating_setpoint").step));
+
+        setpointDial.addEventListener("pointerdown", (event) => {
+            if (event.target.closest("button")) {
+                return;
+            }
+            dialPointerId = event.pointerId;
+            setpointDial.setPointerCapture(event.pointerId);
+            previewSetpoint(valueFromDialEvent(event));
         });
-        setpointRange.addEventListener("change", () => commitSetpoint(setpointRange.value));
+        setpointDial.addEventListener("pointermove", (event) => {
+            if (dialPointerId !== event.pointerId) {
+                return;
+            }
+            previewSetpoint(valueFromDialEvent(event));
+        });
+        setpointDial.addEventListener("pointerup", (event) => {
+            if (dialPointerId !== event.pointerId) {
+                return;
+            }
+            dialPointerId = null;
+            commitSetpoint(valueFromDialEvent(event));
+        });
+        setpointDial.addEventListener("pointercancel", (event) => {
+            if (dialPointerId !== event.pointerId) {
+                return;
+            }
+            dialPointerId = null;
+        });
 
         render();
     </script>
