@@ -5,15 +5,14 @@
     <meta name="viewport" content="width=device-width, initial-scale=1">
     <style>
         :root {
-            color-scheme: light dark;
             --accent: #10c8b2;
-            --accent-dark: #079b8e;
+            --button-off: #607d8b;
             --bg: #ffffff;
-            --text: #111827;
-            --muted: #6b7280;
+            --text: #111111;
+            --muted: #667085;
             --line: rgba(17, 24, 39, 0.12);
-            --panel: rgba(255, 255, 255, 0.86);
-            --warm: #fff2a8;
+            --chip: rgba(0, 0, 0, 0.055);
+            color-scheme: light;
         }
 
         * {
@@ -37,49 +36,94 @@
 
         .tile {
             position: relative;
-            display: grid;
-            grid-template-rows: 1fr auto;
-            gap: 10px;
             width: 100%;
             height: 100%;
-            min-height: 220px;
-            padding: 18px 16px 14px;
+            min-height: 240px;
             overflow: hidden;
-            background:
-                radial-gradient(circle at 50% 48%, rgba(255, 242, 168, 0.9), rgba(255, 242, 168, 0.26) 34%, rgba(255, 255, 255, 0) 58%),
-                var(--bg);
+            background: var(--bg);
         }
 
-        .main {
+        .view {
+            position: absolute;
+            inset: 0;
+            display: none;
+            width: 100%;
+            height: 100%;
+            padding: 22px 18px 18px;
+        }
+
+        .view.active {
+            display: block;
+        }
+
+        .power-view {
+            background:
+                radial-gradient(circle at 50% 46%, rgba(255, 236, 89, 0.82), rgba(255, 236, 89, 0.28) 32%, rgba(255, 255, 255, 0) 58%),
+                #ffffff;
+        }
+
+        .nav-button {
+            position: absolute;
+            top: 74px;
             display: grid;
             place-items: center;
-            min-height: 0;
-            padding-bottom: 18px;
+            width: 50px;
+            height: 50px;
+            border: 0;
+            border-radius: 50%;
+            color: #111111;
+            background: transparent;
+            cursor: pointer;
+        }
+
+        .nav-button:hover,
+        .nav-button.active {
+            background: var(--chip);
+        }
+
+        .nav-button.left {
+            left: 42px;
+        }
+
+        .nav-button.right {
+            right: 42px;
+        }
+
+        .nav-icon {
+            width: 27px;
+            height: 27px;
+        }
+
+        .power-wrap {
+            position: absolute;
+            left: 50%;
+            top: 47%;
+            display: grid;
+            justify-items: center;
+            transform: translate(-50%, -50%);
         }
 
         .power-button {
             display: grid;
             place-items: center;
-            width: min(45vmin, 148px);
-            height: min(45vmin, 148px);
-            min-width: 94px;
-            min-height: 94px;
+            width: min(34vw, 34vh, 148px);
+            height: min(34vw, 34vh, 148px);
+            min-width: 104px;
+            min-height: 104px;
             border: 0;
             border-radius: 50%;
             color: #ffffff;
             background: var(--accent);
-            box-shadow: 0 12px 30px rgba(16, 200, 178, 0.22);
             cursor: pointer;
-            transition: transform 160ms ease, background 160ms ease, box-shadow 160ms ease;
+            transition: background 160ms ease, transform 160ms ease;
+        }
+
+        .power-button.off {
+            background: var(--button-off);
         }
 
         .power-button:active {
             transform: scale(0.97);
-        }
-
-        .power-button.off {
-            background: #9ca3af;
-            box-shadow: 0 12px 30px rgba(107, 114, 128, 0.18);
         }
 
         .power-icon {
@@ -87,165 +131,236 @@
             height: 54%;
         }
 
-        .reading {
+        .state-value {
             position: absolute;
-            left: 16px;
-            right: 16px;
-            bottom: 58px;
-            text-align: center;
-            pointer-events: none;
-        }
-
-        .reading-value {
+            left: 18px;
+            right: 18px;
+            top: 72%;
             overflow: hidden;
+            text-align: center;
             text-overflow: ellipsis;
             white-space: nowrap;
-            font-size: clamp(22px, 8vmin, 38px);
-            font-weight: 650;
+            font-size: clamp(34px, 9vmin, 44px);
+            font-weight: 400;
             line-height: 1.05;
         }
 
-        .reading-label {
-            margin-top: 4px;
+        .state-label {
+            position: absolute;
+            left: 18px;
+            right: 18px;
+            top: calc(72% + 46px);
+            overflow: hidden;
             color: var(--muted);
-            font-size: 12px;
-            letter-spacing: 0.02em;
+            text-align: center;
+            text-overflow: ellipsis;
             text-transform: uppercase;
+            white-space: nowrap;
+            font-size: 12px;
+            line-height: 1;
         }
 
-        .tabs {
+        .list-view {
+            background: #ffffff;
+        }
+
+        .list {
+            position: absolute;
+            left: 18px;
+            right: 18px;
+            top: 56px;
+            bottom: 18px;
             display: grid;
-            grid-auto-flow: column;
-            grid-auto-columns: minmax(44px, 1fr);
-            gap: 6px;
-            padding: 4px;
-            border: 1px solid var(--line);
-            border-radius: 8px;
-            background: var(--panel);
-            backdrop-filter: blur(10px);
+            align-content: start;
+            gap: 3px;
+            overflow: hidden;
         }
 
-        .tabs:empty {
-            display: none;
+        .row {
+            display: grid;
+            grid-template-columns: 34px minmax(0, 1fr) auto;
+            align-items: center;
+            min-height: 40px;
+            gap: 8px;
+            border-bottom: 1px solid transparent;
         }
 
-        .tab {
-            min-width: 0;
-            height: 34px;
-            border: 0;
-            border-radius: 6px;
-            color: var(--muted);
-            background: transparent;
-            cursor: pointer;
+        .row-icon {
+            display: grid;
+            place-items: center;
+            color: #111111;
         }
 
-        .tab.active {
-            color: #ffffff;
-            background: var(--accent-dark);
+        .row-icon svg {
+            width: 23px;
+            height: 23px;
         }
 
-        .tab-label {
-            display: block;
+        .row-label {
             overflow: hidden;
             text-overflow: ellipsis;
             white-space: nowrap;
-            padding: 0 4px;
-            font-size: 12px;
-            font-weight: 600;
+            font-size: 14px;
         }
 
-        @media (prefers-color-scheme: dark) {
-            :root {
-                --bg: #111827;
-                --text: #f9fafb;
-                --muted: #cbd5e1;
-                --line: rgba(255, 255, 255, 0.16);
-                --panel: rgba(17, 24, 39, 0.78);
-                --warm: #7c6400;
+        .row-value {
+            overflow: hidden;
+            max-width: 45vw;
+            text-align: right;
+            text-overflow: ellipsis;
+            white-space: nowrap;
+            font-size: 14px;
+        }
+
+        @media (max-width: 340px), (max-height: 300px) {
+            .nav-button {
+                top: 48px;
+                width: 44px;
+                height: 44px;
             }
 
-            .tile {
-                background:
-                    radial-gradient(circle at 50% 48%, rgba(124, 100, 0, 0.76), rgba(124, 100, 0, 0.22) 34%, rgba(17, 24, 39, 0) 58%),
-                    var(--bg);
+            .nav-button.left {
+                left: 24px;
+            }
+
+            .nav-button.right {
+                right: 24px;
+            }
+
+            .state-value {
+                font-size: 30px;
+            }
+
+            .list {
+                top: 42px;
+            }
+
+            .row {
+                min-height: 34px;
             }
         }
     </style>
 </head>
 <body>
     <main class="tile">
-        <section class="main">
-            <button class="power-button off" id="powerButton" type="button" aria-label="Toggle">
-                <svg class="power-icon" viewBox="0 0 64 64" aria-hidden="true">
-                    <path d="M32 8v24" fill="none" stroke="currentColor" stroke-width="5" stroke-linecap="round"></path>
-                    <path d="M21 18a21 21 0 1 0 22 0" fill="none" stroke="currentColor" stroke-width="5" stroke-linecap="round"></path>
+        <section class="view power-view active" id="powerView">
+            <button class="nav-button left" id="showListLeft" type="button" title="Messwerte">
+                <svg class="nav-icon" viewBox="0 0 24 24" aria-hidden="true">
+                    <path d="m13 2-7 12h6l-1 8 7-12h-6l1-8z" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linejoin="round"></path>
                 </svg>
             </button>
-            <div class="reading">
-                <div class="reading-value" id="readingValue">-</div>
-                <div class="reading-label" id="readingLabel">Status</div>
+            <button class="nav-button right" id="showListRight" type="button" title="Messwerte">
+                <svg class="nav-icon" viewBox="0 0 24 24" aria-hidden="true">
+                    <path d="M4 19h16" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round"></path>
+                    <path d="M7 17V9" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round"></path>
+                    <path d="M12 17V5" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round"></path>
+                    <path d="M17 17v-6" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round"></path>
+                </svg>
+            </button>
+
+            <div class="power-wrap">
+                <button class="power-button off" id="powerButton" type="button" aria-label="Toggle">
+                    <svg class="power-icon" viewBox="0 0 64 64" aria-hidden="true">
+                        <path d="M32 8v24" fill="none" stroke="currentColor" stroke-width="5" stroke-linecap="round"></path>
+                        <path d="M21 18a21 21 0 1 0 22 0" fill="none" stroke="currentColor" stroke-width="5" stroke-linecap="round"></path>
+                    </svg>
+                </button>
             </div>
+
+            <div class="state-value" id="stateValue">-</div>
+            <div class="state-label">Status</div>
         </section>
 
-        <nav class="tabs" id="tabs" aria-label="Messwerte"></nav>
+        <section class="view list-view" id="listView">
+            <button class="nav-button left active" id="showPowerLeft" type="button" title="Status">
+                <svg class="nav-icon" viewBox="0 0 24 24" aria-hidden="true">
+                    <path d="M12 2v10" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round"></path>
+                    <path d="M7.4 5.6a8 8 0 1 0 9.2 0" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round"></path>
+                </svg>
+            </button>
+            <button class="nav-button right active" id="showPowerRight" type="button" title="Status">
+                <svg class="nav-icon" viewBox="0 0 24 24" aria-hidden="true">
+                    <path d="M12 2v10" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round"></path>
+                    <path d="M7.4 5.6a8 8 0 1 0 9.2 0" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round"></path>
+                </svg>
+            </button>
+            <div class="list" id="meterList"></div>
+        </section>
     </main>
 
     <script>
         const labels = {
-            state: "Status",
             power: "Leistung",
             energy: "Energie",
             voltage: "Spannung",
             current: "Strom"
         };
-        const order = ["state", "power", "energy", "voltage", "current"];
-        let data = __INITIAL_DATA__;
-        let active = "state";
+        const order = ["energy", "power", "voltage", "current"];
+        const iconPaths = {
+            power: '<path d="m13 2-7 12h6l-1 8 7-12h-6l1-8z" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linejoin="round"></path>',
+            energy: '<path d="m13 2-7 12h6l-1 8 7-12h-6l1-8z" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linejoin="round"></path><path d="M5 22h14" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round"></path>',
+            voltage: '<path d="M5 12h4l2-7 2 14 2-7h4" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round"></path>',
+            current: '<path d="M4 14a8 8 0 1 1 16 0" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round"></path><path d="M12 14v-4" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round"></path><path d="M8 20h8" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round"></path>'
+        };
 
+        let data = __INITIAL_DATA__;
+        let activeView = "power";
+
+        const powerView = document.getElementById("powerView");
+        const listView = document.getElementById("listView");
         const powerButton = document.getElementById("powerButton");
-        const readingValue = document.getElementById("readingValue");
-        const readingLabel = document.getElementById("readingLabel");
-        const tabs = document.getElementById("tabs");
+        const stateValue = document.getElementById("stateValue");
+        const meterList = document.getElementById("meterList");
 
         function handleMessage(message) {
             data = message || data;
             if (!data.values) {
                 data.values = {};
             }
-            if (!data.values[active]) {
-                active = data.values.state ? "state" : Object.keys(data.values)[0] || "state";
-            }
+            render();
+        }
+
+        function setView(view) {
+            activeView = view;
             render();
         }
 
         function render() {
+            if (!data.values) {
+                data.values = {};
+            }
+
+            powerView.classList.toggle("active", activeView === "power");
+            listView.classList.toggle("active", activeView === "list");
+
             const state = data.values.state;
             const isOn = !!(state && state.value);
             powerButton.classList.toggle("off", !isOn);
+            stateValue.textContent = state ? state.formatted : "-";
 
-            const current = data.values[active];
-            readingValue.textContent = current ? current.formatted : "-";
-            readingLabel.textContent = labels[active] || active;
-
-            tabs.replaceChildren();
+            meterList.replaceChildren();
             for (const ident of order) {
-                if (!data.values[ident]) {
+                const item = data.values[ident];
+                if (!item) {
                     continue;
                 }
-                const button = document.createElement("button");
-                button.type = "button";
-                button.className = "tab" + (ident === active ? " active" : "");
-                button.title = labels[ident] || ident;
-                button.innerHTML = `<span class="tab-label">${labels[ident] || ident}</span>`;
-                button.addEventListener("click", () => {
-                    active = ident;
-                    render();
-                });
-                tabs.appendChild(button);
+                const row = document.createElement("div");
+                row.className = "row";
+                row.innerHTML = [
+                    `<div class="row-icon"><svg viewBox="0 0 24 24" aria-hidden="true">${iconPaths[ident]}</svg></div>`,
+                    `<div class="row-label">${labels[ident]}</div>`,
+                    `<div class="row-value">${item.formatted}</div>`
+                ].join("");
+                meterList.appendChild(row);
             }
         }
 
+        document.getElementById("showListLeft").addEventListener("click", () => setView("list"));
+        document.getElementById("showListRight").addEventListener("click", () => setView("list"));
+        document.getElementById("showPowerLeft").addEventListener("click", () => setView("power"));
+        document.getElementById("showPowerRight").addEventListener("click", () => setView("power"));
         powerButton.addEventListener("click", () => requestAction("MeteredSwitchTile.Toggle", true));
+
         render();
         requestAction("MeteredSwitchTile.Refresh", true);
     </script>
