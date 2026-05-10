@@ -281,6 +281,14 @@
                 message = message[0];
             }
 
+            if (typeof message === "string") {
+                try {
+                    message = JSON.parse(message);
+                } catch {
+                    return null;
+                }
+            }
+
             if (!message || typeof message !== "object") {
                 return null;
             }

@@ -88,7 +88,10 @@ trait HeatingTileHelper
             return;
         }
 
-        $this->UpdateVisualizationValue($this->BuildHeatingTileData());
+        $this->UpdateVisualizationValue(json_encode(
+            $this->BuildHeatingTileData(),
+            JSON_HEX_TAG | JSON_HEX_APOS | JSON_HEX_AMP | JSON_HEX_QUOT
+        ));
     }
 
     /**
