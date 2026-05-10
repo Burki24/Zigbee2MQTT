@@ -7,12 +7,22 @@
         :root {
             --accent: #10c8b2;
             --button-off: #607d8b;
-            --bg: #ffffff;
+            --bg: transparent;
             --text: #111111;
             --muted: #667085;
             --line: rgba(17, 24, 39, 0.12);
             --chip: rgba(0, 0, 0, 0.055);
-            color-scheme: light;
+            color-scheme: light dark;
+        }
+
+        @media (prefers-color-scheme: dark) {
+            :root {
+                --button-off: #6b7280;
+                --text: rgba(255, 255, 255, 0.92);
+                --muted: rgba(255, 255, 255, 0.68);
+                --line: rgba(255, 255, 255, 0.16);
+                --chip: rgba(255, 255, 255, 0.08);
+            }
         }
 
         * {
@@ -57,9 +67,7 @@
         }
 
         .power-view {
-            background:
-                radial-gradient(circle at 50% 46%, rgba(255, 236, 89, 0.82), rgba(255, 236, 89, 0.28) 32%, rgba(255, 255, 255, 0) 58%),
-                #ffffff;
+            background: transparent;
         }
 
         .nav-button {
@@ -71,7 +79,7 @@
             height: 50px;
             border: 0;
             border-radius: 50%;
-            color: #111111;
+            color: var(--text);
             background: transparent;
             cursor: pointer;
             z-index: 3;
@@ -133,7 +141,7 @@
         }
 
         .list-view {
-            background: #ffffff;
+            background: transparent;
         }
 
         .list {
@@ -155,13 +163,13 @@
             min-height: 36px;
             gap: 8px;
             border-bottom: 1px solid transparent;
-            color: #111111;
+            color: var(--text);
         }
 
         .row-icon {
             display: grid;
             place-items: center;
-            color: #111111;
+            color: var(--text);
         }
 
         .row-icon svg {
