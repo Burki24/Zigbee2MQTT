@@ -98,7 +98,7 @@
         .power-wrap {
             position: absolute;
             left: 50%;
-            top: 47%;
+            top: 50%;
             display: grid;
             justify-items: center;
             transform: translate(-50%, -50%);
@@ -130,35 +130,6 @@
         .power-icon {
             width: 54%;
             height: 54%;
-        }
-
-        .state-value {
-            position: absolute;
-            left: 18px;
-            right: 18px;
-            top: 72%;
-            overflow: hidden;
-            text-align: center;
-            text-overflow: ellipsis;
-            white-space: nowrap;
-            font-size: clamp(34px, 9vmin, 44px);
-            font-weight: 400;
-            line-height: 1.05;
-        }
-
-        .state-label {
-            position: absolute;
-            left: 18px;
-            right: 18px;
-            top: calc(72% + 46px);
-            overflow: hidden;
-            color: var(--muted);
-            text-align: center;
-            text-overflow: ellipsis;
-            text-transform: uppercase;
-            white-space: nowrap;
-            font-size: 12px;
-            line-height: 1;
         }
 
         .list-view {
@@ -229,10 +200,6 @@
                 right: 24px;
             }
 
-            .state-value {
-                font-size: 30px;
-            }
-
             .list {
                 top: 112px;
             }
@@ -246,11 +213,6 @@
 <body>
     <main class="tile">
         <section class="view power-view active" id="powerView">
-            <button class="nav-button left" id="showListLeft" type="button" title="Messwerte">
-                <svg class="nav-icon" viewBox="0 0 24 24" aria-hidden="true">
-                    <path d="m13 2-7 12h6l-1 8 7-12h-6l1-8z" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linejoin="round"></path>
-                </svg>
-            </button>
             <button class="nav-button right" id="showListRight" type="button" title="Messwerte">
                 <svg class="nav-icon" viewBox="0 0 24 24" aria-hidden="true">
                     <path d="M4 19h16" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round"></path>
@@ -268,18 +230,9 @@
                     </svg>
                 </button>
             </div>
-
-            <div class="state-value" id="stateValue">-</div>
-            <div class="state-label">Status</div>
         </section>
 
         <section class="view list-view" id="listView">
-            <button class="nav-button left active" id="showPowerLeft" type="button" title="Zurueck">
-                <svg class="nav-icon" viewBox="0 0 24 24" aria-hidden="true">
-                    <path d="M12 2v10" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round"></path>
-                    <path d="M7.4 5.6a8 8 0 1 0 9.2 0" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round"></path>
-                </svg>
-            </button>
             <button class="nav-button right active" id="showPowerRight" type="button" title="Zurueck">
                 <svg class="nav-icon" viewBox="0 0 24 24" aria-hidden="true">
                     <path d="M12 2v10" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round"></path>
@@ -311,7 +264,6 @@
         const powerView = document.getElementById("powerView");
         const listView = document.getElementById("listView");
         const powerButton = document.getElementById("powerButton");
-        const stateValue = document.getElementById("stateValue");
         const meterList = document.getElementById("meterList");
 
         function handleMessage(message) {
@@ -356,7 +308,6 @@
             const state = data.values.state;
             const isOn = !!(state && state.value);
             powerButton.classList.toggle("off", !isOn);
-            stateValue.textContent = state ? state.formatted : "-";
 
             meterList.replaceChildren();
             let renderedRows = 0;
@@ -389,9 +340,7 @@
             }
         }
 
-        document.getElementById("showListLeft").addEventListener("click", () => setView("list"));
         document.getElementById("showListRight").addEventListener("click", () => setView("list"));
-        document.getElementById("showPowerLeft").addEventListener("click", () => setView("power"));
         document.getElementById("showPowerRight").addEventListener("click", () => setView("power"));
         powerButton.addEventListener("click", () => requestAction("MeteredSwitchTile.Toggle", true));
 
