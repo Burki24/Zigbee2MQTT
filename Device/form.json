@@ -24,8 +24,8 @@
                         },
                         {
                             "type": "CheckBox",
-                            "name": "UseMeteredSwitchTile",
-                            "caption": "Use metered switch tile"
+                            "name": "DisableMeteredSwitchTile",
+                            "caption": "Disable metered switch tile"
                         }
                     ]
                 },

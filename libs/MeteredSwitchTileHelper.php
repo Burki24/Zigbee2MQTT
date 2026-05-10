@@ -14,7 +14,7 @@ trait MeteredSwitchTileHelper
      */
     protected function UpdateMeteredSwitchTileVisualizationType(): void
     {
-        if (!$this->ReadPropertyBoolean(self::PROPERTY_USE_METERED_SWITCH_TILE)) {
+        if ($this->ReadPropertyBoolean(self::PROPERTY_DISABLE_METERED_SWITCH_TILE)) {
             $this->SetVisualizationType(0);
             return;
         }
@@ -68,7 +68,7 @@ trait MeteredSwitchTileHelper
      */
     protected function UpdateMeteredSwitchTileValue(): void
     {
-        if (!$this->ReadPropertyBoolean(self::PROPERTY_USE_METERED_SWITCH_TILE) || !$this->HasMeteredSwitchTileCapabilities()) {
+        if ($this->ReadPropertyBoolean(self::PROPERTY_DISABLE_METERED_SWITCH_TILE) || !$this->HasMeteredSwitchTileCapabilities()) {
             return;
         }
 

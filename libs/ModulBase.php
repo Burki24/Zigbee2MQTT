@@ -36,7 +36,7 @@ abstract class ModulBase extends \IPSModuleStrict
     use MeteredSwitchTileHelper;
     use SendData;
     private const MINIMAL_MODUL_VERSION = 5.1;
-    private const PROPERTY_USE_METERED_SWITCH_TILE = 'UseMeteredSwitchTile';
+    private const PROPERTY_DISABLE_METERED_SWITCH_TILE = 'DisableMeteredSwitchTile';
     private const METERED_SWITCH_TILE_IDENTS = ['state', 'power', 'energy', 'voltage', 'current'];
 
     /**
@@ -417,7 +417,7 @@ abstract class ModulBase extends \IPSModuleStrict
 
         $this->RegisterPropertyString(self::MQTT_BASE_TOPIC, '');
         $this->RegisterPropertyString(self::MQTT_TOPIC, '');
-        $this->RegisterPropertyBoolean(self::PROPERTY_USE_METERED_SWITCH_TILE, false);
+        $this->RegisterPropertyBoolean(self::PROPERTY_DISABLE_METERED_SWITCH_TILE, false);
         $this->RegisterAttributeArray(self::ATTRIBUTE_EXPOSES, []);
         $this->RegisterAttributeArray(self::ATTRIBUTE_FILTERED, []);
         $this->RegisterAttributeFloat(self::ATTRIBUTE_MODUL_VERSION, 5.0);
