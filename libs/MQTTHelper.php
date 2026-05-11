@@ -86,6 +86,21 @@ trait SendData
     }
 
     /**
+     * Dekodiert Payloads nach IPSModuleStrict-Regel (HEX) und bleibt tolerant
+     * gegen alte UTF-8 Test- oder Installationsdaten.
+     */
+    protected static function DecodePayload(string $Payload): string
+    {
+        if ((\strlen($Payload) % 2) === 0 && ctype_xdigit($Payload)) {
+            $decoded = hex2bin($Payload);
+            if ($decoded !== false) {
+                return $decoded;
+            }
+        }
+        return utf8_decode($Payload);
+    }
+
+    /**
      * WaitForTransactionEnd
      *
      * Liefert die Antwort aus dem Buffer TransactionData.
@@ -198,20 +213,5 @@ trait SendData
             ),
             JSON_UNESCAPED_SLASHES
         );
-    }
-
-    /**
-     * Dekodiert Payloads nach IPSModuleStrict-Regel (HEX) und bleibt tolerant
-     * gegen alte UTF-8 Test- oder Installationsdaten.
-     */
-    protected static function DecodePayload(string $Payload): string
-    {
-        if ((\strlen($Payload) % 2) === 0 && ctype_xdigit($Payload)) {
-            $decoded = hex2bin($Payload);
-            if ($decoded !== false) {
-                return $decoded;
-            }
-        }
-        return utf8_decode($Payload);
     }
 }

@@ -892,15 +892,6 @@ abstract class ModulBase extends \IPSModuleStrict
     }
 
     /**
-     * IPSModuleStrict deklariert GetIDForIdent() als int. Für Existenzprüfungen
-     * nutzen wir die globale Funktion, weil sie bei fehlendem Ident false liefern darf.
-     */
-    private function GetObjectIDByIdent(string $ident): int|false
-    {
-        return @IPS_GetObjectIDByIdent($ident, $this->InstanceID);
-    }
-
-    /**
      * SendSetCommand
      *
      * Sendet einen Set-Befehl an das Gerät über MQTT
@@ -1516,6 +1507,15 @@ abstract class ModulBase extends \IPSModuleStrict
         $current[$parts[\count($parts) - 1]] = $value;
 
         return $result;
+    }
+
+    /**
+     * IPSModuleStrict deklariert GetIDForIdent() als int. Für Existenzprüfungen
+     * nutzen wir die globale Funktion, weil sie bei fehlendem Ident false liefern darf.
+     */
+    private function GetObjectIDByIdent(string $ident): int|false
+    {
+        return @IPS_GetObjectIDByIdent($ident, $this->InstanceID);
     }
 
     /**
