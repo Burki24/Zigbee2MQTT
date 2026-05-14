@@ -584,7 +584,7 @@
             const padLeft = 42;
             const padRight = 12;
             const padTop = 12;
-            const padBottom = 24;
+            const padBottom = 32;
             const values = points.map((point) => Number(point.value)).filter((value) => Number.isFinite(value));
             const times = points.map((point) => Number(point.time)).filter((value) => Number.isFinite(value));
             let minValue = Math.min(...values);
@@ -648,12 +648,12 @@
             const endDate = new Date(maxTime * 1000);
             archiveChart.appendChild(svgElement("text", {
                 x: padLeft,
-                y: height - 7,
+                y: height - 13,
                 class: "chart-axis-label"
             }, formatAxisTime(startDate, archive.range)));
             archiveChart.appendChild(svgElement("text", {
                 x: width - padRight,
-                y: height - 7,
+                y: height - 13,
                 class: "chart-axis-label right"
             }, formatAxisTime(endDate, archive.range)));
         }
