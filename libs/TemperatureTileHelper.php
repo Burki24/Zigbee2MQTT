@@ -14,8 +14,7 @@ trait TemperatureTileHelper
      */
     protected function ShouldUseTemperatureTile(): bool
     {
-        // Reine Thermometer nutzen die native Symcon-Temperatur-Wertanzeige.
-        return false;
+        return $this->HasTemperatureTileCapabilities();
     }
 
     /**
@@ -27,13 +26,7 @@ trait TemperatureTileHelper
             return false;
         }
 
-        foreach ($this->GetTemperatureTileControlIdents() as $ident) {
-            if ($this->GetObjectIDByIdent($ident) !== false) {
-                return true;
-            }
-        }
-
-        return false;
+        return true;
     }
 
     /**
@@ -138,11 +131,12 @@ trait TemperatureTileHelper
         }
 
         if (!isset($features['temperature'])) {
+            [$min, $max] = $this->GetTemperatureTileTemperatureRange(null);
             $features['temperature'] = [
                 'type'     => 'numeric',
                 'unit'     => "\u{00B0}C",
-                'min'      => -30,
-                'max'      => 50,
+                'min'      => $min,
+                'max'      => $max,
                 'step'     => 0.1,
                 'digits'   => 1,
                 'writable' => false
@@ -209,6 +203,9 @@ trait TemperatureTileHelper
         if (isset($feature['value_max'])) {
             $data['max'] = (float) $feature['value_max'];
         }
+        if (($feature['property'] ?? '') === 'temperature') {
+            [$data['min'], $data['max']] = $this->GetTemperatureTileTemperatureRange($feature);
+        }
         if ($step > 0) {
             $data['step'] = $step;
             $data['digits'] = $this->GetTemperatureTileDigitsFromStep($step);
@@ -227,6 +224,37 @@ trait TemperatureTileHelper
         }
 
         return $data;
+    }
+
+    /**
+     * Liefert den Temperaturbereich aus dem Expose oder aus dem konfigurierbaren Fallback.
+     */
+    private function GetTemperatureTileTemperatureRange(?array $feature): array
+    {
+        $min = isset($feature['value_min'])
+            ? (float) $feature['value_min']
+            : $this->ReadTemperatureTileFallbackRange(self::PROPERTY_TEMPERATURE_PRESENTATION_FALLBACK_MIN, -40.0);
+        $max = isset($feature['value_max'])
+            ? (float) $feature['value_max']
+            : $this->ReadTemperatureTileFallbackRange(self::PROPERTY_TEMPERATURE_PRESENTATION_FALLBACK_MAX, 80.0);
+
+        if ($max <= $min) {
+            $max = $min + 1.0;
+        }
+
+        return [$min, $max];
+    }
+
+    /**
+     * Liest einen Fallback-Wert, ohne aeltere Instanzen mit fehlender Property zu stoeren.
+     */
+    private function ReadTemperatureTileFallbackRange(string $property, float $default): float
+    {
+        try {
+            return (float) $this->ReadPropertyFloat($property);
+        } catch (\Throwable) {
+            return $default;
+        }
     }
 
     /**
