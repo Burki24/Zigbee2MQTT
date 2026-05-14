@@ -27,7 +27,7 @@ trait VariablePresentationHelper
                 $this->ApplyBinaryFeaturePresentation($ident, $feature);
                 return;
             case 'numeric':
-                $this->ApplyNumericFeaturePresentation($ident, $feature);
+                $this->ApplyNumericFeaturePresentation($ident, $feature, $groupType);
                 return;
             case 'enum':
                 $this->ApplyEnumerationPresentation($ident, $feature);
@@ -108,7 +108,7 @@ trait VariablePresentationHelper
     /**
      * Setzt fuer numerische Exposes mit Wertebereich eine Schieberegler-Darstellung.
      */
-    protected function ApplyNumericFeaturePresentation(string $ident, array $feature): void
+    protected function ApplyNumericFeaturePresentation(string $ident, array $feature, ?string $groupType = null): void
     {
         if ($this->ShouldSuppressNumericSliderPresentation($ident, $feature)) {
             $this->ApplyNumericValueInputPresentation($ident, $feature);
@@ -144,7 +144,30 @@ trait VariablePresentationHelper
             $presentation['USAGE_TYPE'] = 0;
         }
 
+        if ($this->IsRoomTemperatureSetpoint($ident, $feature, $groupType) && \defined('VARIABLE_TEMPLATE_SLIDER_ROOM_TEMPERATURE')) {
+            $presentation['TEMPLATE'] = \constant('VARIABLE_TEMPLATE_SLIDER_ROOM_TEMPERATURE');
+        }
+
         $this->ApplySliderPresentation($ident, $presentation);
+    }
+
+    /**
+     * Erkennt Solltemperaturen, die in Symcon als Raumtemperatur-Slider dargestellt werden sollen.
+     */
+    private function IsRoomTemperatureSetpoint(string $ident, array $feature, ?string $groupType = null): bool
+    {
+        $effectiveGroupType = $groupType ?? ($feature['group_type'] ?? null);
+        $property = (string) ($feature['property'] ?? $ident);
+
+        if ($effectiveGroupType !== 'climate') {
+            return false;
+        }
+
+        return \in_array($property, [
+            'occupied_heating_setpoint',
+            'current_heating_setpoint',
+            'occupied_cooling_setpoint'
+        ], true);
     }
 
     /**

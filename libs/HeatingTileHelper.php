@@ -22,7 +22,48 @@ trait HeatingTileHelper
      */
     protected function HasHeatingTileCapabilities(): bool
     {
-        return $this->GetObjectIDByIdent('occupied_heating_setpoint') !== false;
+        if ($this->GetObjectIDByIdent('occupied_heating_setpoint') === false) {
+            return false;
+        }
+
+        return $this->HasHeatingTileValveCapability();
+    }
+
+    /**
+     * Reine Raumthermostate sollen die Symcon-Standardkachel nutzen.
+     * Die eigene HTML-Kachel bleibt fuer Heizventile/TRVs mit Ventilstatus.
+     */
+    private function HasHeatingTileValveCapability(): bool
+    {
+        foreach ($this->GetHeatingTileValveIdents() as $ident) {
+            if ($this->GetObjectIDByIdent($ident) !== false || $this->FindHeatingTileFeature($ident) !== null) {
+                return true;
+            }
+        }
+
+        return false;
+    }
+
+    /**
+     * Liefert typische Zigbee2MQTT-Idents fuer Heizventile.
+     */
+    private function GetHeatingTileValveIdents(): array
+    {
+        return [
+            'pi_heating_demand',
+            'valve',
+            'valve_position',
+            'valve_state',
+            'valve_adapt_status',
+            'valve_adapt_process',
+            'automatic_valve_adapt',
+            'valve_detection',
+            'valve_opening_degree',
+            'valve_closing_degree',
+            'valve_opening_limit_voltage',
+            'valve_closing_limit_voltage',
+            'valve_motor_running_voltage'
+        ];
     }
 
     /**
