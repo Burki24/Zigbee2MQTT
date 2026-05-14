@@ -85,66 +85,28 @@
             height: 27px;
         }
 
-        .dial-wrap {
+        .sensor-wrap {
             position: absolute;
             left: 50%;
             top: 50%;
             display: grid;
             justify-items: center;
-            width: min(82vw, 330px);
-            max-width: calc(100% - 54px);
-            transform: translate(-50%, -47%);
+            width: min(82vw, 360px);
+            max-width: calc(100% - 72px);
+            transform: translate(-50%, -42%);
         }
 
-        .dial {
-            position: relative;
-            width: min(100%, 300px);
-            aspect-ratio: 1;
-            user-select: none;
-        }
-
-        .dial-svg {
-            position: absolute;
-            inset: 0;
+        .sensor-values {
+            display: grid;
+            justify-items: center;
+            gap: 7px;
             width: 100%;
-            height: 100%;
-            overflow: visible;
-        }
-
-        .dial-track,
-        .dial-fill {
-            fill: none;
-            stroke-linecap: round;
-            stroke-width: 4;
-        }
-
-        .dial-track {
-            stroke: var(--line);
-        }
-
-        .dial-fill {
-            stroke: url(#temperatureGradient);
-        }
-
-        .dial-marker {
-            fill: var(--cold);
-            stroke: none;
-            filter: drop-shadow(0 2px 3px rgba(0, 0, 0, 0.18));
-        }
-
-        .dial-tick {
-            stroke: none;
         }
 
         .temperature-readout {
-            position: absolute;
-            left: 50%;
-            top: 50%;
-            z-index: 2;
             display: grid;
             justify-items: center;
             min-width: 150px;
-            transform: translate(-50%, -18%);
         }
 
         .temperature-value {
@@ -152,15 +114,15 @@
             align-items: baseline;
             gap: 4px;
             color: var(--text);
-            font-size: 33px;
+            font-size: 52px;
             font-weight: 400;
             line-height: 1.05;
             white-space: nowrap;
         }
 
         .temperature-icon {
-            width: 18px;
-            height: 18px;
+            width: 24px;
+            height: 24px;
             flex: 0 0 auto;
         }
 
@@ -168,6 +130,34 @@
             margin-top: 5px;
             color: var(--muted);
             font-size: 12px;
+            letter-spacing: 0;
+            text-transform: uppercase;
+        }
+
+        .humidity-readout {
+            display: none;
+            align-items: center;
+            gap: 7px;
+            margin-top: 8px;
+            color: var(--muted);
+            font-size: 18px;
+            line-height: 1.15;
+            white-space: nowrap;
+        }
+
+        .humidity-readout.visible {
+            display: flex;
+        }
+
+        .humidity-icon {
+            width: 17px;
+            height: 17px;
+            flex: 0 0 auto;
+        }
+
+        .humidity-caption {
+            color: var(--muted);
+            font-size: 11px;
             letter-spacing: 0;
             text-transform: uppercase;
         }
@@ -293,13 +283,18 @@
                 height: 44px;
             }
 
-            .dial-wrap {
+            .sensor-wrap {
                 width: min(84vw, 270px);
-                transform: translate(-50%, -45%);
+                transform: translate(-50%, -38%);
             }
 
             .temperature-value {
-                font-size: 27px;
+                font-size: 38px;
+            }
+
+            .temperature-icon {
+                width: 20px;
+                height: 20px;
             }
 
             .settings-list {
@@ -342,20 +337,8 @@
                 </svg>
             </button>
 
-            <div class="dial-wrap">
-                <div class="dial">
-                    <svg class="dial-svg" id="temperatureDialSvg" viewBox="0 0 240 240" aria-hidden="true">
-                        <defs>
-                            <linearGradient id="temperatureGradient" x1="51" y1="178" x2="189" y2="178" gradientUnits="userSpaceOnUse">
-                                <stop offset="0" stop-color="#002b7f"></stop>
-                                <stop offset="1" stop-color="#ff0000"></stop>
-                            </linearGradient>
-                        </defs>
-                        <path class="dial-track" d="M51.1 177.9 A90 90 0 1 1 188.9 177.9"></path>
-                        <path class="dial-fill" d="M51.1 177.9 A90 90 0 1 1 188.9 177.9"></path>
-                        <g id="temperatureTicks"></g>
-                        <circle class="dial-marker" id="temperatureMarker" cx="51.1" cy="177.9" r="10"></circle>
-                    </svg>
+            <div class="sensor-wrap">
+                <div class="sensor-values">
                     <div class="temperature-readout">
                         <div class="temperature-value">
                             <svg class="temperature-icon" viewBox="0 0 24 24" aria-hidden="true">
@@ -365,6 +348,13 @@
                             <span id="temperatureValue">--</span>
                         </div>
                         <div class="temperature-caption">Temperatur</div>
+                    </div>
+                    <div class="humidity-readout" id="humidityReadout">
+                        <svg class="humidity-icon" viewBox="0 0 24 24" aria-hidden="true">
+                            <path d="M12 3.5s6 6.2 6 10.6a6 6 0 0 1-12 0c0-4.4 6-10.6 6-10.6z" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linejoin="round"></path>
+                        </svg>
+                        <span id="humidityValue">--</span>
+                        <span class="humidity-caption">Luftfeuchtigkeit</span>
                     </div>
                 </div>
             </div>
@@ -390,6 +380,7 @@
             temperature_unit: "Einheit",
             temperature_units: "Einheit",
             temperature_unit_convert: "Einheit",
+            humidity: "Luftfeuchtigkeit",
             battery: "Batterie",
             battery_low: "Batterie niedrig",
             linkquality: "Verbindung",
@@ -416,15 +407,8 @@
         const settingsView = document.getElementById("settingsView");
         const settingsList = document.getElementById("settingsList");
         const temperatureValue = document.getElementById("temperatureValue");
-        const temperatureMarker = document.getElementById("temperatureMarker");
-        const temperatureTicks = document.getElementById("temperatureTicks");
-        const dialGeometry = {
-            cx: 120,
-            cy: 120,
-            radius: 90,
-            start: 140,
-            end: 400
-        };
+        const humidityReadout = document.getElementById("humidityReadout");
+        const humidityValue = document.getElementById("humidityValue");
 
         function handleMessage(message) {
             const nextData = normalizeMessage(message);
@@ -535,71 +519,6 @@
             return Number(next.toFixed(config.digits));
         }
 
-        function displayRange(current) {
-            const feature = featureOf("temperature");
-            let min = Number(feature.min ?? -30);
-            let max = Number(feature.max ?? 50);
-            const value = Number(current);
-
-            if (Number.isFinite(value)) {
-                min = Math.min(min, Math.floor(value - 5));
-                max = Math.max(max, Math.ceil(value + 5));
-            }
-
-            if (max <= min) {
-                max = min + 1;
-            }
-
-            return { min, max };
-        }
-
-        function temperatureProgress(value) {
-            const range = displayRange(value);
-            return Math.max(0, Math.min(1, (Number(value) - range.min) / (range.max - range.min)));
-        }
-
-        function pointOnDial(progress) {
-            const angle = (dialGeometry.start + ((dialGeometry.end - dialGeometry.start) * progress)) * Math.PI / 180;
-            return {
-                x: dialGeometry.cx + (Math.cos(angle) * dialGeometry.radius),
-                y: dialGeometry.cy + (Math.sin(angle) * dialGeometry.radius)
-            };
-        }
-
-        function temperatureColor(progress) {
-            const cold = [0, 43, 127];
-            const hot = [255, 0, 0];
-            const rgb = cold.map((part, index) => Math.round(part + ((hot[index] - part) * progress)));
-            return `rgb(${rgb[0]}, ${rgb[1]}, ${rgb[2]})`;
-        }
-
-        function renderTicks() {
-            if (temperatureTicks.childElementCount > 0) {
-                return;
-            }
-
-            for (let i = 1; i < 18; i++) {
-                const progress = i / 18;
-                const point = pointOnDial(progress);
-                const tick = document.createElementNS("http://www.w3.org/2000/svg", "circle");
-                tick.setAttribute("class", "dial-tick");
-                tick.setAttribute("cx", String(point.x));
-                tick.setAttribute("cy", String(point.y));
-                tick.setAttribute("r", "2.7");
-                tick.setAttribute("fill", temperatureColor(progress));
-                temperatureTicks.appendChild(tick);
-            }
-        }
-
-        function updateMarker(value) {
-            const progress = temperatureProgress(value);
-            const point = pointOnDial(progress);
-
-            temperatureMarker.setAttribute("cx", String(point.x));
-            temperatureMarker.setAttribute("cy", String(point.y));
-            temperatureMarker.setAttribute("fill", temperatureColor(progress));
-        }
-
         function sendAction(ident, value) {
             if (typeof requestAction === "function") {
                 requestAction(ident, value);
@@ -622,7 +541,6 @@
                 data = { type: "temperature", values: {}, features: {} };
             }
 
-            renderTicks();
             mainView.classList.toggle("active", activeView === "main");
             settingsView.classList.toggle("active", activeView === "settings");
 
@@ -639,10 +557,17 @@
 
             if (Number.isFinite(value)) {
                 temperatureValue.textContent = `${numberFormat(value, digits)} ${unit || "\u00b0C"}`;
-                updateMarker(value);
             } else {
                 temperatureValue.textContent = "--";
-                updateMarker(displayRange(0).min);
+            }
+
+            const humidityItem = valueOf("humidity");
+            if (humidityItem) {
+                humidityValue.textContent = humidityItem.formatted || formattedValue("humidity", humidityItem.value);
+                humidityReadout.classList.add("visible");
+            } else {
+                humidityValue.textContent = "--";
+                humidityReadout.classList.remove("visible");
             }
         }
 

@@ -156,7 +156,7 @@ trait TemperatureTileHelper
      */
     protected function GetTemperatureTileIdents(): array
     {
-        return array_values(array_unique(array_merge(['temperature'], $this->GetTemperatureTileSettingIdents())));
+        return array_values(array_unique(array_merge(['temperature', 'humidity'], $this->GetTemperatureTileSettingIdents())));
     }
 
     /**
