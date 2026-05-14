@@ -98,7 +98,7 @@ class Zigbee2MQTTDevice extends \Zigbee2MQTT\ModulBase
         if (count($this->missingTranslations)) {
             $Form['elements'][2]['visible'] = true;
         }
-        $Form['elements'][3]['visible'] = $this->GetObjectIDByIdent('temperature') !== false;
+        $Form['elements'][3]['visible'] = @IPS_GetObjectIDByIdent('temperature', $this->InstanceID) !== false;
         return json_encode($Form);
     }
 
