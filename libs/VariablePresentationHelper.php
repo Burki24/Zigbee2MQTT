@@ -12,9 +12,13 @@ trait VariablePresentationHelper
     /**
      * Setzt automatisch eine passende Tile-Darstellung fuer bekannte Expose-Typen.
      */
-    protected function ApplyFeaturePresentation(string $ident, array $feature): void
+    protected function ApplyFeaturePresentation(string $ident, array $feature, ?string $groupType = null): void
     {
         if (!isset($feature['type'])) {
+            return;
+        }
+
+        if ($this->ApplyShutterFeaturePresentation($ident, $feature, $groupType)) {
             return;
         }
 
@@ -141,6 +145,43 @@ trait VariablePresentationHelper
         }
 
         $this->ApplySliderPresentation($ident, $presentation);
+    }
+
+    /**
+     * Setzt fuer Cover-Positionswerte die native Symcon-Rollladen-Darstellung.
+     */
+    protected function ApplyShutterFeaturePresentation(string $ident, array $feature, ?string $groupType = null): bool
+    {
+        $effectiveGroupType = $groupType ?? ($feature['group_type'] ?? null);
+        $property = (string) ($feature['property'] ?? $ident);
+
+        if ($effectiveGroupType !== 'cover' || !\in_array($property, ['position', 'position_left', 'position_right'], true)) {
+            return false;
+        }
+        if (($feature['type'] ?? '') !== 'numeric') {
+            return false;
+        }
+        if (!$this->SupportsShutterPresentation()) {
+            return false;
+        }
+
+        $variableID = $this->GetObjectIDByIdent($ident);
+        if ($variableID === false) {
+            return true;
+        }
+
+        $min = isset($feature['value_min']) ? (float) $feature['value_min'] : 0.0;
+        $max = isset($feature['value_max']) ? (float) $feature['value_max'] : 100.0;
+
+        IPS_SetVariableCustomPresentation($variableID, [
+            'PRESENTATION'        => \constant('VARIABLE_PRESENTATION_SHUTTER'),
+            'USAGE_TYPE'          => 0,
+            'OPEN_OUTSIDE_VALUE'  => $max,
+            'CLOSE_INSIDE_VALUE'  => $min,
+            'SUN_POSITION'        => 2
+        ]);
+
+        return true;
     }
 
     /**
@@ -287,6 +328,14 @@ trait VariablePresentationHelper
     private function SupportsSwitchPresentation(): bool
     {
         return \function_exists('IPS_SetVariableCustomPresentation') && \defined('VARIABLE_PRESENTATION_SWITCH');
+    }
+
+    /**
+     * Prueft, ob Rollladen-Darstellungen verfuegbar sind.
+     */
+    private function SupportsShutterPresentation(): bool
+    {
+        return \function_exists('IPS_SetVariableCustomPresentation') && \defined('VARIABLE_PRESENTATION_SHUTTER');
     }
 
     /**

@@ -4046,7 +4046,7 @@ abstract class ModulBase extends \IPSModuleStrict
         // Zentrale EnableAction-Prüfung für die Hauptvariable, außer bei composite
         if ($variableType != 'composite') {
             $this->checkAndEnableAction($ident, $feature);
-            $this->ApplyFeaturePresentation($ident, $feature);
+            $this->ApplyFeaturePresentation($ident, $feature, $groupType);
         }
         // Zusätzliche Registrierung der color_temp_kelvin Variable, wenn color_temp registriert wird
         if ($property === 'color_temp') {
