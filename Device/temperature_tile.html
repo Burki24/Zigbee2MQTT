@@ -1,0 +1,765 @@
+<!doctype html>
+<html lang="de">
+<head>
+    <meta charset="utf-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1">
+    <style>
+        :root {
+            --accent: #10c8b2;
+            --cold: #002b7f;
+            --hot: #ff0000;
+            --text: #111111;
+            --muted: #667085;
+            --line: rgba(17, 24, 39, 0.12);
+            --chip: rgba(0, 0, 0, 0.055);
+        }
+
+        * {
+            box-sizing: border-box;
+        }
+
+        html,
+        body {
+            width: 100%;
+            height: 100%;
+            margin: 0;
+            overflow: hidden;
+            background: transparent !important;
+            background-color: transparent !important;
+            color: var(--text);
+            font-family: system-ui, -apple-system, BlinkMacSystemFont, "Segoe UI", sans-serif;
+        }
+
+        button {
+            font: inherit;
+        }
+
+        .tile {
+            position: relative;
+            width: 100%;
+            height: 100%;
+            min-height: 240px;
+            overflow: hidden;
+            background: transparent !important;
+            background-color: transparent !important;
+        }
+
+        .view {
+            position: absolute;
+            inset: 0;
+            display: none;
+            width: 100%;
+            height: 100%;
+            padding: 18px;
+            background: transparent !important;
+            background-color: transparent !important;
+        }
+
+        .view.active {
+            display: block;
+        }
+
+        .nav-button {
+            position: absolute;
+            top: 74px;
+            right: 42px;
+            display: grid;
+            place-items: center;
+            width: 50px;
+            height: 50px;
+            border: 0;
+            border-radius: 50%;
+            color: var(--text);
+            background: transparent;
+            cursor: pointer;
+            z-index: 3;
+        }
+
+        .nav-button:hover,
+        .nav-button.active {
+            background: var(--chip);
+        }
+
+        .nav-icon {
+            width: 27px;
+            height: 27px;
+        }
+
+        .dial-wrap {
+            position: absolute;
+            left: 50%;
+            top: 50%;
+            display: grid;
+            justify-items: center;
+            width: min(82vw, 330px);
+            max-width: calc(100% - 54px);
+            transform: translate(-50%, -47%);
+        }
+
+        .dial {
+            position: relative;
+            width: min(100%, 300px);
+            aspect-ratio: 1;
+            user-select: none;
+        }
+
+        .dial-svg {
+            position: absolute;
+            inset: 0;
+            width: 100%;
+            height: 100%;
+            overflow: visible;
+        }
+
+        .dial-track,
+        .dial-fill {
+            fill: none;
+            stroke-linecap: round;
+            stroke-width: 4;
+        }
+
+        .dial-track {
+            stroke: var(--line);
+        }
+
+        .dial-fill {
+            stroke: url(#temperatureGradient);
+        }
+
+        .dial-marker {
+            fill: var(--cold);
+            stroke: none;
+            filter: drop-shadow(0 2px 3px rgba(0, 0, 0, 0.18));
+        }
+
+        .dial-tick {
+            stroke: none;
+        }
+
+        .temperature-readout {
+            position: absolute;
+            left: 50%;
+            top: 50%;
+            z-index: 2;
+            display: grid;
+            justify-items: center;
+            min-width: 150px;
+            transform: translate(-50%, -18%);
+        }
+
+        .temperature-value {
+            display: flex;
+            align-items: baseline;
+            gap: 4px;
+            color: var(--text);
+            font-size: 33px;
+            font-weight: 400;
+            line-height: 1.05;
+            white-space: nowrap;
+        }
+
+        .temperature-icon {
+            width: 18px;
+            height: 18px;
+            flex: 0 0 auto;
+        }
+
+        .temperature-caption {
+            margin-top: 5px;
+            color: var(--muted);
+            font-size: 12px;
+            letter-spacing: 0;
+            text-transform: uppercase;
+        }
+
+        .settings-list {
+            position: absolute;
+            left: 22px;
+            right: 22px;
+            top: 128px;
+            bottom: 18px;
+            display: grid;
+            align-content: start;
+            gap: 4px;
+            overflow: hidden;
+        }
+
+        .setting-row {
+            display: grid;
+            grid-template-columns: minmax(0, 1fr) auto;
+            align-items: center;
+            min-height: 38px;
+            gap: 12px;
+            color: var(--text);
+        }
+
+        .setting-label {
+            overflow: hidden;
+            font-size: 14px;
+            text-overflow: ellipsis;
+            white-space: nowrap;
+        }
+
+        .setting-value {
+            font-size: 14px;
+            white-space: nowrap;
+        }
+
+        .numeric-control {
+            display: grid;
+            grid-template-columns: 30px minmax(74px, auto) 30px;
+            align-items: center;
+            gap: 7px;
+        }
+
+        .mini-button {
+            display: grid;
+            place-items: center;
+            width: 30px;
+            height: 30px;
+            border: 0;
+            border-radius: 50%;
+            color: var(--accent);
+            background: transparent;
+            cursor: pointer;
+            font-size: 22px;
+            line-height: 1;
+        }
+
+        .mini-button:hover {
+            background: var(--chip);
+        }
+
+        .segmented {
+            display: flex;
+            overflow: hidden;
+            border-radius: 7px;
+            background: rgba(16, 200, 178, 0.14);
+        }
+
+        .segment-button {
+            min-width: 66px;
+            height: 30px;
+            padding: 0 10px;
+            border: 0;
+            color: var(--accent);
+            background: transparent;
+            cursor: pointer;
+            font-size: 13px;
+        }
+
+        .segment-button.active {
+            color: #ffffff;
+            background: var(--accent);
+        }
+
+        .switch-button {
+            width: 42px;
+            height: 24px;
+            border: 0;
+            border-radius: 999px;
+            background: rgba(96, 125, 139, 0.28);
+            cursor: pointer;
+            position: relative;
+        }
+
+        .switch-button::after {
+            content: "";
+            position: absolute;
+            top: 3px;
+            left: 3px;
+            width: 18px;
+            height: 18px;
+            border-radius: 50%;
+            background: #ffffff;
+            box-shadow: 0 1px 3px rgba(0, 0, 0, 0.2);
+            transition: transform 140ms ease;
+        }
+
+        .switch-button.on {
+            background: rgba(16, 200, 178, 0.35);
+        }
+
+        .switch-button.on::after {
+            transform: translateX(18px);
+            background: var(--accent);
+        }
+
+        @media (max-width: 340px), (max-height: 300px) {
+            .nav-button {
+                top: 58px;
+                right: 24px;
+                width: 44px;
+                height: 44px;
+            }
+
+            .dial-wrap {
+                width: min(84vw, 270px);
+                transform: translate(-50%, -45%);
+            }
+
+            .temperature-value {
+                font-size: 27px;
+            }
+
+            .settings-list {
+                top: 108px;
+                left: 18px;
+                right: 18px;
+            }
+
+            .setting-row {
+                min-height: 34px;
+            }
+
+            .setting-label,
+            .setting-value {
+                font-size: 13px;
+            }
+
+            .segment-button {
+                min-width: 54px;
+                padding: 0 8px;
+                font-size: 12px;
+            }
+        }
+    </style>
+</head>
+<body>
+    <main class="tile">
+        <section class="view main-view active" id="mainView">
+            <button class="nav-button" id="showSettings" type="button" title="Einstellungen">
+                <svg class="nav-icon" viewBox="0 0 24 24" aria-hidden="true">
+                    <path d="M4 21v-7" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round"></path>
+                    <path d="M4 10V3" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round"></path>
+                    <path d="M12 21v-9" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round"></path>
+                    <path d="M12 8V3" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round"></path>
+                    <path d="M20 21v-5" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round"></path>
+                    <path d="M20 12V3" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round"></path>
+                    <path d="M2 14h4" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round"></path>
+                    <path d="M10 8h4" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round"></path>
+                    <path d="M18 16h4" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round"></path>
+                </svg>
+            </button>
+
+            <div class="dial-wrap">
+                <div class="dial">
+                    <svg class="dial-svg" id="temperatureDialSvg" viewBox="0 0 240 240" aria-hidden="true">
+                        <defs>
+                            <linearGradient id="temperatureGradient" x1="51" y1="178" x2="189" y2="178" gradientUnits="userSpaceOnUse">
+                                <stop offset="0" stop-color="#002b7f"></stop>
+                                <stop offset="1" stop-color="#ff0000"></stop>
+                            </linearGradient>
+                        </defs>
+                        <path class="dial-track" d="M51.1 177.9 A90 90 0 1 1 188.9 177.9"></path>
+                        <path class="dial-fill" d="M51.1 177.9 A90 90 0 1 1 188.9 177.9"></path>
+                        <g id="temperatureTicks"></g>
+                        <circle class="dial-marker" id="temperatureMarker" cx="51.1" cy="177.9" r="10"></circle>
+                    </svg>
+                    <div class="temperature-readout">
+                        <div class="temperature-value">
+                            <svg class="temperature-icon" viewBox="0 0 24 24" aria-hidden="true">
+                                <path d="M14 4v8.2a5 5 0 1 1-4 0V4a2 2 0 0 1 4 0z" fill="none" stroke="currentColor" stroke-width="2" stroke-linejoin="round"></path>
+                                <path d="M12 15v3" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round"></path>
+                            </svg>
+                            <span id="temperatureValue">--</span>
+                        </div>
+                        <div class="temperature-caption">Temperatur</div>
+                    </div>
+                </div>
+            </div>
+        </section>
+
+        <section class="view settings-view" id="settingsView">
+            <button class="nav-button active" id="showMain" type="button" title="Temperatur">
+                <svg class="nav-icon" viewBox="0 0 24 24" aria-hidden="true">
+                    <path d="M14 4v8.2a5 5 0 1 1-4 0V4a2 2 0 0 1 4 0z" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linejoin="round"></path>
+                    <path d="M12 15v3" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round"></path>
+                </svg>
+            </button>
+            <div class="settings-list" id="settingsList"></div>
+        </section>
+    </main>
+
+    <script>
+        let data = __INITIAL_DATA__;
+        let activeView = "main";
+
+        const labels = {
+            temperature_calibration: "Kalibrierung",
+            temperature_unit: "Einheit",
+            temperature_units: "Einheit",
+            temperature_unit_convert: "Einheit",
+            battery: "Batterie",
+            battery_low: "Batterie niedrig",
+            linkquality: "Verbindung",
+            last_seen: "Zuletzt gesehen"
+        };
+        const valueLabels = {
+            celsius: "Celsius",
+            fahrenheit: "Fahrenheit",
+            C: "Celsius",
+            F: "Fahrenheit"
+        };
+        const settingsOrder = [
+            "temperature_calibration",
+            "temperature_unit",
+            "temperature_units",
+            "temperature_unit_convert",
+            "battery",
+            "battery_low",
+            "linkquality",
+            "last_seen"
+        ];
+
+        const mainView = document.getElementById("mainView");
+        const settingsView = document.getElementById("settingsView");
+        const settingsList = document.getElementById("settingsList");
+        const temperatureValue = document.getElementById("temperatureValue");
+        const temperatureMarker = document.getElementById("temperatureMarker");
+        const temperatureTicks = document.getElementById("temperatureTicks");
+        const dialGeometry = {
+            cx: 120,
+            cy: 120,
+            radius: 90,
+            start: 140,
+            end: 400
+        };
+
+        function handleMessage(message) {
+            const nextData = normalizeMessage(message);
+            if (!nextData) {
+                return;
+            }
+
+            data = nextData;
+            render();
+        }
+
+        function normalizeMessage(message) {
+            if (Array.isArray(message) && message.length === 1) {
+                message = message[0];
+            }
+
+            if (typeof message === "string") {
+                try {
+                    message = JSON.parse(message);
+                } catch {
+                    return null;
+                }
+            }
+
+            if (!message || typeof message !== "object") {
+                return null;
+            }
+
+            if (message.type !== "temperature" || !message.values || typeof message.values !== "object") {
+                return null;
+            }
+
+            if (!message.features || typeof message.features !== "object") {
+                message.features = {};
+            }
+
+            return message;
+        }
+
+        function featureOf(ident) {
+            return (data.features && data.features[ident]) ? data.features[ident] : {};
+        }
+
+        function valueOf(ident) {
+            return (data.values && data.values[ident]) ? data.values[ident] : null;
+        }
+
+        function setView(view) {
+            activeView = view;
+            render();
+        }
+
+        function numericConfig(ident) {
+            const feature = featureOf(ident);
+            const step = Number(feature.step ?? 1);
+            return {
+                min: Number(feature.min ?? 0),
+                max: Number(feature.max ?? 100),
+                step: step > 0 ? step : 1,
+                digits: Number(feature.digits ?? digitsFromStep(step)),
+                unit: String(feature.unit ?? "")
+            };
+        }
+
+        function digitsFromStep(step) {
+            const text = String(step);
+            const pos = text.indexOf(".");
+            return pos === -1 ? 0 : text.length - pos - 1;
+        }
+
+        function numberFormat(value, digits) {
+            return new Intl.NumberFormat("de-DE", {
+                minimumFractionDigits: digits,
+                maximumFractionDigits: digits
+            }).format(Number(value));
+        }
+
+        function formattedValue(ident, value) {
+            const feature = featureOf(ident);
+            if (typeof value === "boolean") {
+                return value ? "An" : "Aus";
+            }
+            if (feature.type === "numeric") {
+                const config = numericConfig(ident);
+                return `${numberFormat(value, config.digits)}${config.unit ? ` ${config.unit}` : ""}`;
+            }
+            if (typeof value === "string") {
+                return valueLabels[value] || value;
+            }
+            return String(value ?? "");
+        }
+
+        function ensureValue(ident, value) {
+            if (!data.values) {
+                data.values = {};
+            }
+            if (!data.values[ident]) {
+                data.values[ident] = { available: true };
+            }
+            data.values[ident].value = value;
+            data.values[ident].formatted = formattedValue(ident, value);
+        }
+
+        function clampToStep(ident, value) {
+            const config = numericConfig(ident);
+            let next = Math.min(config.max, Math.max(config.min, Number(value)));
+            next = config.min + (Math.round((next - config.min) / config.step) * config.step);
+            return Number(next.toFixed(config.digits));
+        }
+
+        function displayRange(current) {
+            const feature = featureOf("temperature");
+            let min = Number(feature.min ?? -30);
+            let max = Number(feature.max ?? 50);
+            const value = Number(current);
+
+            if (Number.isFinite(value)) {
+                min = Math.min(min, Math.floor(value - 5));
+                max = Math.max(max, Math.ceil(value + 5));
+            }
+
+            if (max <= min) {
+                max = min + 1;
+            }
+
+            return { min, max };
+        }
+
+        function temperatureProgress(value) {
+            const range = displayRange(value);
+            return Math.max(0, Math.min(1, (Number(value) - range.min) / (range.max - range.min)));
+        }
+
+        function pointOnDial(progress) {
+            const angle = (dialGeometry.start + ((dialGeometry.end - dialGeometry.start) * progress)) * Math.PI / 180;
+            return {
+                x: dialGeometry.cx + (Math.cos(angle) * dialGeometry.radius),
+                y: dialGeometry.cy + (Math.sin(angle) * dialGeometry.radius)
+            };
+        }
+
+        function temperatureColor(progress) {
+            const cold = [0, 43, 127];
+            const hot = [255, 0, 0];
+            const rgb = cold.map((part, index) => Math.round(part + ((hot[index] - part) * progress)));
+            return `rgb(${rgb[0]}, ${rgb[1]}, ${rgb[2]})`;
+        }
+
+        function renderTicks() {
+            if (temperatureTicks.childElementCount > 0) {
+                return;
+            }
+
+            for (let i = 1; i < 18; i++) {
+                const progress = i / 18;
+                const point = pointOnDial(progress);
+                const tick = document.createElementNS("http://www.w3.org/2000/svg", "circle");
+                tick.setAttribute("class", "dial-tick");
+                tick.setAttribute("cx", String(point.x));
+                tick.setAttribute("cy", String(point.y));
+                tick.setAttribute("r", "2.7");
+                tick.setAttribute("fill", temperatureColor(progress));
+                temperatureTicks.appendChild(tick);
+            }
+        }
+
+        function updateMarker(value) {
+            const progress = temperatureProgress(value);
+            const point = pointOnDial(progress);
+
+            temperatureMarker.setAttribute("cx", String(point.x));
+            temperatureMarker.setAttribute("cy", String(point.y));
+            temperatureMarker.setAttribute("fill", temperatureColor(progress));
+        }
+
+        function sendAction(ident, value) {
+            if (typeof requestAction === "function") {
+                requestAction(ident, value);
+            }
+        }
+
+        function commitValue(ident, value) {
+            const feature = featureOf(ident);
+            let next = value;
+            if (feature.type === "numeric") {
+                next = clampToStep(ident, value);
+            }
+            ensureValue(ident, next);
+            render();
+            sendAction("TemperatureTile.Action", JSON.stringify({ ident, value: next }));
+        }
+
+        function render() {
+            if (!normalizeMessage(data)) {
+                data = { type: "temperature", values: {}, features: {} };
+            }
+
+            renderTicks();
+            mainView.classList.toggle("active", activeView === "main");
+            settingsView.classList.toggle("active", activeView === "settings");
+
+            renderMain();
+            renderSettings();
+        }
+
+        function renderMain() {
+            const item = valueOf("temperature");
+            const feature = featureOf("temperature");
+            const digits = Number(feature.digits ?? 1);
+            const unit = String(feature.unit || "\u00b0C");
+            const value = item ? Number(item.value) : NaN;
+
+            if (Number.isFinite(value)) {
+                temperatureValue.textContent = `${numberFormat(value, digits)} ${unit || "\u00b0C"}`;
+                updateMarker(value);
+            } else {
+                temperatureValue.textContent = "--";
+                updateMarker(displayRange(0).min);
+            }
+        }
+
+        function renderSettings() {
+            settingsList.replaceChildren();
+            let rendered = 0;
+
+            for (const ident of settingsOrder) {
+                const item = valueOf(ident);
+                if (!item) {
+                    continue;
+                }
+
+                const row = document.createElement("div");
+                row.className = "setting-row";
+
+                const label = document.createElement("div");
+                label.className = "setting-label";
+                label.textContent = labels[ident] || ident;
+
+                const control = document.createElement("div");
+                control.appendChild(buildControl(ident, item, featureOf(ident)));
+
+                row.appendChild(label);
+                row.appendChild(control);
+                settingsList.appendChild(row);
+                rendered++;
+            }
+
+            if (rendered === 0) {
+                const row = document.createElement("div");
+                row.className = "setting-row";
+                const label = document.createElement("div");
+                label.className = "setting-label";
+                label.textContent = "Keine Einstellungen";
+                row.appendChild(label);
+                row.appendChild(document.createElement("div"));
+                settingsList.appendChild(row);
+            }
+        }
+
+        function buildControl(ident, item, feature) {
+            if (feature.writable && feature.type === "numeric") {
+                return buildNumericControl(ident, item ? item.value : 0);
+            }
+
+            if (feature.writable && feature.type === "binary") {
+                return buildSwitchControl(ident, !!(item && item.value));
+            }
+
+            if (feature.writable && feature.type === "enum" && Array.isArray(feature.values) && feature.values.length > 1) {
+                return buildEnumControl(ident, item ? item.value : feature.values[0], feature.values);
+            }
+
+            const value = document.createElement("span");
+            value.className = "setting-value";
+            value.textContent = item ? (item.formatted || formattedValue(ident, item.value)) : "";
+            return value;
+        }
+
+        function buildNumericControl(ident, value) {
+            const wrap = document.createElement("div");
+            wrap.className = "numeric-control";
+
+            const minus = document.createElement("button");
+            minus.className = "mini-button";
+            minus.type = "button";
+            minus.textContent = "-";
+
+            const display = document.createElement("span");
+            display.className = "setting-value";
+            display.textContent = formattedValue(ident, value);
+
+            const plus = document.createElement("button");
+            plus.className = "mini-button";
+            plus.type = "button";
+            plus.textContent = "+";
+
+            const config = numericConfig(ident);
+            minus.addEventListener("click", () => commitValue(ident, Number(value) - config.step));
+            plus.addEventListener("click", () => commitValue(ident, Number(value) + config.step));
+
+            wrap.appendChild(minus);
+            wrap.appendChild(display);
+            wrap.appendChild(plus);
+            return wrap;
+        }
+
+        function buildSwitchControl(ident, value) {
+            const button = document.createElement("button");
+            button.className = `switch-button${value ? " on" : ""}`;
+            button.type = "button";
+            button.title = value ? "An" : "Aus";
+            button.addEventListener("click", () => commitValue(ident, !value));
+            return button;
+        }
+
+        function buildEnumControl(ident, value, options) {
+            const wrap = document.createElement("div");
+            wrap.className = "segmented";
+
+            for (const option of options) {
+                const button = document.createElement("button");
+                button.className = `segment-button${option === value ? " active" : ""}`;
+                button.type = "button";
+                button.textContent = valueLabels[option] || option;
+                button.addEventListener("click", () => commitValue(ident, option));
+                wrap.appendChild(button);
+            }
+
+            return wrap;
+        }
+
+        document.getElementById("showSettings").addEventListener("click", () => setView("settings"));
+        document.getElementById("showMain").addEventListener("click", () => setView("main"));
+
+        render();
+    </script>
+</body>
+</html>

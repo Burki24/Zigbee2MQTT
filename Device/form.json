@@ -31,6 +31,11 @@
                             "type": "CheckBox",
                             "name": "DisableHeatingTile",
                             "caption": "Disable heating tile"
+                        },
+                        {
+                            "type": "CheckBox",
+                            "name": "DisableTemperatureTile",
+                            "caption": "Disable temperature tile"
                         }
                     ]
                 },

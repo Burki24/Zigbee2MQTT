@@ -106,6 +106,11 @@ trait VariablePresentationHelper
      */
     protected function ApplyNumericFeaturePresentation(string $ident, array $feature): void
     {
+        if ($this->ShouldSuppressNumericSliderPresentation($ident, $feature)) {
+            $this->ApplyNumericValueInputPresentation($ident, $feature);
+            return;
+        }
+
         if (!isset($feature['value_min'], $feature['value_max'])) {
             return;
         }
@@ -136,6 +141,60 @@ trait VariablePresentationHelper
         }
 
         $this->ApplySliderPresentation($ident, $presentation);
+    }
+
+    /**
+     * Unterdrueckt Slider fuer Werte, die in Spezialkacheln gezielter bedient werden.
+     */
+    private function ShouldSuppressNumericSliderPresentation(string $ident, array $feature): bool
+    {
+        $property = (string) ($feature['property'] ?? $ident);
+        return \in_array($property, ['temperature_calibration', 'local_temperature_calibration'], true);
+    }
+
+    /**
+     * Entfernt eine zuvor gesetzte Custom Presentation.
+     */
+    private function ResetCustomPresentation(string $ident): void
+    {
+        if (!$this->SupportsCustomPresentation()) {
+            return;
+        }
+
+        $variableID = $this->GetObjectIDByIdent($ident);
+        if ($variableID === false) {
+            return;
+        }
+
+        $variable = IPS_GetVariable($variableID);
+        if (!isset($variable['VariableCustomPresentation']) || !\is_array($variable['VariableCustomPresentation']) || count($variable['VariableCustomPresentation']) === 0) {
+            return;
+        }
+
+        IPS_SetVariableCustomPresentation($variableID, []);
+    }
+
+    /**
+     * Setzt eine einfache Werteingabe fuer numerische Werte, die keinen Slider bekommen sollen.
+     */
+    private function ApplyNumericValueInputPresentation(string $ident, array $feature): void
+    {
+        if (!$this->SupportsValueInputPresentation()) {
+            $this->ResetCustomPresentation($ident);
+            return;
+        }
+
+        $variableID = $this->GetObjectIDByIdent($ident);
+        if ($variableID === false) {
+            return;
+        }
+
+        $unit = isset($feature['unit']) && \is_string($feature['unit']) ? $feature['unit'] : '';
+        IPS_SetVariableCustomPresentation($variableID, [
+            'PRESENTATION' => \constant('VARIABLE_PRESENTATION_VALUE_INPUT'),
+            'SUFFIX'       => $unit === '' ? '' : ' ' . $unit,
+            'MULTILINE'    => false
+        ]);
     }
 
     /**
@@ -228,6 +287,14 @@ trait VariablePresentationHelper
     private function SupportsSwitchPresentation(): bool
     {
         return \function_exists('IPS_SetVariableCustomPresentation') && \defined('VARIABLE_PRESENTATION_SWITCH');
+    }
+
+    /**
+     * Prueft, ob Werteingabe-Darstellungen verfuegbar sind.
+     */
+    private function SupportsValueInputPresentation(): bool
+    {
+        return \function_exists('IPS_SetVariableCustomPresentation') && \defined('VARIABLE_PRESENTATION_VALUE_INPUT');
     }
 
     /**
