@@ -281,6 +281,20 @@
             overflow: visible;
         }
 
+        .chart-axis-label {
+            fill: var(--muted);
+            font-size: 9px;
+            dominant-baseline: middle;
+        }
+
+        .chart-axis-label.right {
+            text-anchor: end;
+        }
+
+        .chart-axis-label.center {
+            text-anchor: middle;
+        }
+
         .chart-empty {
             position: absolute;
             left: 0;
@@ -567,10 +581,10 @@
 
             const width = 320;
             const height = 150;
-            const padLeft = 8;
-            const padRight = 8;
-            const padTop = 14;
-            const padBottom = 22;
+            const padLeft = 42;
+            const padRight = 12;
+            const padTop = 12;
+            const padBottom = 24;
             const values = points.map((point) => Number(point.value)).filter((value) => Number.isFinite(value));
             const times = points.map((point) => Number(point.time)).filter((value) => Number.isFinite(value));
             let minValue = Math.min(...values);
@@ -592,7 +606,10 @@
                 .map((point) => `${x(point.time).toFixed(1)},${y(point.value).toFixed(1)}`)
                 .join(" ");
 
-            for (const gridY of [padTop, padTop + ((height - padTop - padBottom) / 2), height - padBottom]) {
+            const gridValues = [maxValue, minValue + (valueRange / 2), minValue];
+            const gridYPositions = [padTop, padTop + ((height - padTop - padBottom) / 2), height - padBottom];
+            for (let i = 0; i < gridYPositions.length; i++) {
+                const gridY = gridYPositions[i];
                 const line = svgElement("line", {
                     x1: padLeft,
                     y1: gridY,
@@ -602,13 +619,18 @@
                     "stroke-width": "1"
                 });
                 archiveChart.appendChild(line);
+                archiveChart.appendChild(svgElement("text", {
+                    x: padLeft - 5,
+                    y: gridY,
+                    class: "chart-axis-label right"
+                }, formatAxisValue(gridValues[i], archive.unit)));
             }
 
             const polyline = svgElement("polyline", {
                 points: pathPoints,
                 fill: "none",
                 stroke: "var(--accent)",
-                "stroke-width": "2.6",
+                "stroke-width": "1.8",
                 "stroke-linecap": "round",
                 "stroke-linejoin": "round"
             });
@@ -618,15 +640,47 @@
             archiveChart.appendChild(svgElement("circle", {
                 cx: x(lastPoint.time).toFixed(1),
                 cy: y(lastPoint.value).toFixed(1),
-                r: "4",
+                r: "3",
                 fill: "var(--accent)"
             }));
+
+            const startDate = new Date(minTime * 1000);
+            const endDate = new Date(maxTime * 1000);
+            archiveChart.appendChild(svgElement("text", {
+                x: padLeft,
+                y: height - 7,
+                class: "chart-axis-label"
+            }, formatAxisTime(startDate, archive.range)));
+            archiveChart.appendChild(svgElement("text", {
+                x: width - padRight,
+                y: height - 7,
+                class: "chart-axis-label right"
+            }, formatAxisTime(endDate, archive.range)));
         }
 
-        function svgElement(name, attributes) {
+        function formatAxisValue(value, unit) {
+            const absValue = Math.abs(value);
+            const digits = absValue >= 100 ? 0 : absValue >= 10 ? 1 : 2;
+            return `${new Intl.NumberFormat("de-DE", {
+                maximumFractionDigits: digits
+            }).format(value)}${unit ? ` ${unit}` : ""}`;
+        }
+
+        function formatAxisTime(date, range) {
+            if (range === "day") {
+                return date.toLocaleTimeString("de-DE", { hour: "2-digit", minute: "2-digit" });
+            }
+
+            return date.toLocaleDateString("de-DE", { day: "2-digit", month: "2-digit" });
+        }
+
+        function svgElement(name, attributes, text = null) {
             const element = document.createElementNS("http://www.w3.org/2000/svg", name);
             for (const [key, value] of Object.entries(attributes)) {
                 element.setAttribute(key, value);
+            }
+            if (text !== null) {
+                element.textContent = text;
             }
             return element;
         }
