@@ -2048,6 +2048,14 @@ abstract class ModulBase extends \IPSModuleStrict
             foreach ($exposes as $expose) {
                 $features = isset($expose['features']) ? $expose['features'] : [$expose];
                 foreach ($features as $feature) {
+                    if (isset($feature['property']) && $feature['property'] === $ident && $this->isWriteOnlySingleEnumCommand($feature)) {
+                        if (!$value) {
+                            return true;
+                        }
+                        $payload = [$ident => $feature['values'][0]];
+                        return $this->SendSetCommand($payload);
+                    }
+
                     if (isset($feature['property']) && $feature['property'] === $ident &&
                         isset($feature['value_on']) && isset($feature['value_off']) &&
                         $feature['type'] === 'binary') {
@@ -3815,6 +3823,13 @@ abstract class ModulBase extends \IPSModuleStrict
 
         $this->SendDebug(__FUNCTION__ . ' Registriere Variable für Property: ', $featureProperty, 0);
 
+        if (\is_array($feature) && $this->isWriteOnlySingleEnumCommand($feature)) {
+            $ident = str_replace('&', '_and_', $featureProperty);
+            $this->RegisterVariableBoolean($ident, $this->Translate($this->convertLabelToName($featureProperty)), '~Switch');
+            $this->checkAndEnableAction($ident, $feature, true);
+            return;
+        }
+
         // Übergebe das komplette Feature-Array für Access-Check
         $stateConfig = $this->getStateConfiguration($featureProperty, \is_array($feature) ? $feature : null);
         if ($stateConfig !== null) {
@@ -4407,6 +4422,16 @@ abstract class ModulBase extends \IPSModuleStrict
     private function isCompositeKey(string $key): bool
     {
         return strpos($key, '__') !== false;
+    }
+
+    private function isWriteOnlySingleEnumCommand(array $feature): bool
+    {
+        return ($feature['type'] ?? '') === 'enum'
+            && isset($feature['values'])
+            && \is_array($feature['values'])
+            && \count($feature['values']) === 1
+            && (($feature['access'] ?? 0) & 0b001) === 0
+            && (($feature['access'] ?? 0) & 0b010) !== 0;
     }
 
     /**
