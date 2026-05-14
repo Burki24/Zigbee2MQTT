@@ -5,37 +5,43 @@ declare(strict_types=1);
 namespace Zigbee2MQTT;
 
 /**
- * Trait fuer eine HTML-SDK-Kachel fuer Temperaturfuehler mit Einstellungen.
+ * Trait fuer eine HTML-SDK-Kachel fuer Sensoren mit Messwerten und Status.
  */
-trait TemperatureTileHelper
+trait SensorTileHelper
 {
     /**
-     * Prueft, ob die Temperatur-Kachel aktiv verwendet werden soll.
+     * Prueft, ob die Sensor-Kachel aktiv verwendet werden soll.
      */
-    protected function ShouldUseTemperatureTile(): bool
+    protected function ShouldUseSensorTile(): bool
     {
-        return $this->HasTemperatureTileCapabilities();
+        return $this->HasSensorTileCapabilities();
     }
 
     /**
-     * Prueft, ob diese Instanz als reine Temperatur-Kachel dargestellt werden kann.
+     * Prueft, ob diese Instanz als reine Sensor-Kachel dargestellt werden kann.
      */
-    protected function HasTemperatureTileCapabilities(): bool
+    protected function HasSensorTileCapabilities(): bool
     {
-        if ($this->GetObjectIDByIdent('temperature') === false || $this->GetObjectIDByIdent('occupied_heating_setpoint') !== false) {
+        if ($this->GetObjectIDByIdent('occupied_heating_setpoint') !== false) {
             return false;
         }
 
-        return true;
+        foreach ($this->GetSensorTilePrimaryIdents() as $ident) {
+            if ($this->GetObjectIDByIdent($ident) !== false) {
+                return true;
+            }
+        }
+
+        return false;
     }
 
     /**
-     * Verarbeitet Aktionen der Temperatur-Kachel.
+     * Verarbeitet Aktionen der Sensor-Kachel.
      */
-    protected function HandleTemperatureTileAction(string $ident, mixed $value): bool
+    protected function HandleSensorTileAction(string $ident, mixed $value): bool
     {
         switch ($ident) {
-            case 'TemperatureTile.Action':
+            case 'SensorTile.Action':
                 if (\is_string($value)) {
                     $decoded = json_decode($value, true);
                     if (\is_array($decoded)) {
@@ -48,7 +54,7 @@ trait TemperatureTileHelper
                 }
 
                 $targetIdent = (string) ($value['ident'] ?? '');
-                if (!\in_array($targetIdent, $this->GetTemperatureTileIdents(), true)) {
+                if (!\in_array($targetIdent, $this->GetSensorTileIdents(), true)) {
                     return true;
                 }
 
@@ -60,16 +66,16 @@ trait TemperatureTileHelper
                 $targetValue = $value['value'] ?? null;
                 $variable = IPS_GetVariable($variableID);
                 if ($variable['VariableType'] === VARIABLETYPE_BOOLEAN) {
-                    $targetValue = $this->NormalizeTemperatureTileBooleanValue($targetValue);
+                    $targetValue = $this->NormalizeSensorTileBooleanValue($targetValue);
                 } elseif ($variable['VariableType'] === VARIABLETYPE_INTEGER || $variable['VariableType'] === VARIABLETYPE_FLOAT) {
-                    $targetValue = $this->NormalizeTemperatureTileNumericValue($targetIdent, $targetValue);
+                    $targetValue = $this->NormalizeSensorTileNumericValue($targetIdent, $targetValue);
                 }
 
                 $this->RequestAction($targetIdent, $targetValue);
                 return true;
 
-            case 'TemperatureTile.Refresh':
-                $this->UpdateTemperatureTileValue();
+            case 'SensorTile.Refresh':
+                $this->UpdateSensorTileValue();
                 return true;
         }
 
@@ -79,14 +85,14 @@ trait TemperatureTileHelper
     /**
      * Sendet den aktuellen Kachelzustand an die HTML-SDK-Visualisierung.
      */
-    protected function UpdateTemperatureTileValue(): void
+    protected function UpdateSensorTileValue(): void
     {
-        if (!$this->ShouldUseTemperatureTile()) {
+        if (!$this->ShouldUseSensorTile()) {
             return;
         }
 
         $this->UpdateVisualizationValue(json_encode(
-            $this->BuildTemperatureTileData(),
+            $this->BuildSensorTileData(),
             JSON_HEX_TAG | JSON_HEX_APOS | JSON_HEX_AMP | JSON_HEX_QUOT
         ));
     }
@@ -94,27 +100,27 @@ trait TemperatureTileHelper
     /**
      * Aktualisiert die Kachel nur, wenn ein relevanter Wert geaendert wurde.
      */
-    protected function UpdateTemperatureTileValueIfRelevant(string $ident): void
+    protected function UpdateSensorTileValueIfRelevant(string $ident): void
     {
-        if (!\in_array($ident, $this->GetTemperatureTileIdents(), true)) {
+        if (!\in_array($ident, $this->GetSensorTileIdents(), true)) {
             return;
         }
 
-        $this->UpdateTemperatureTileValue();
+        $this->UpdateSensorTileValue();
     }
 
     /**
      * Baut die Datenstruktur fuer die HTML-Kachel.
      */
-    protected function BuildTemperatureTileData(): array
+    protected function BuildSensorTileData(): array
     {
         $values = [];
         $features = [];
 
-        foreach ($this->GetTemperatureTileIdents() as $ident) {
-            $feature = $this->FindTemperatureTileFeature($ident);
+        foreach ($this->GetSensorTileIdents() as $ident) {
+            $feature = $this->FindSensorTileFeature($ident);
             if ($feature !== null) {
-                $features[$ident] = $this->BuildTemperatureTileFeatureData($feature);
+                $features[$ident] = $this->BuildSensorTileFeatureData($feature);
             }
 
             $variableID = $this->GetObjectIDByIdent($ident);
@@ -126,12 +132,12 @@ trait TemperatureTileHelper
             $values[$ident] = [
                 'available' => true,
                 'value'     => $rawValue,
-                'formatted' => $this->FormatTemperatureTileValue($ident, $rawValue)
+                'formatted' => $this->FormatSensorTileValue($ident, $rawValue, $variableID)
             ];
         }
 
-        if (!isset($features['temperature'])) {
-            [$min, $max] = $this->GetTemperatureTileTemperatureRange(null);
+        if ($this->GetObjectIDByIdent('temperature') !== false && !isset($features['temperature'])) {
+            [$min, $max] = $this->GetSensorTileTemperatureRange(null);
             $features['temperature'] = [
                 'type'     => 'numeric',
                 'unit'     => "\u{00B0}C",
@@ -144,7 +150,7 @@ trait TemperatureTileHelper
         }
 
         return [
-            'type'     => 'temperature',
+            'type'     => 'sensor',
             'name'     => IPS_GetName($this->InstanceID),
             'features' => $features,
             'values'   => $values
@@ -152,19 +158,36 @@ trait TemperatureTileHelper
     }
 
     /**
-     * Liefert alle Idents, welche die Temperatur-Kachel beobachten oder bedienen kann.
+     * Liefert alle Idents, welche die Sensor-Kachel beobachten oder bedienen kann.
      */
-    protected function GetTemperatureTileIdents(): array
+    protected function GetSensorTileIdents(): array
     {
-        return array_values(array_unique(array_merge(['temperature', 'humidity'], $this->GetTemperatureTileSettingIdents())));
+        return array_values(array_unique(array_merge($this->GetSensorTilePrimaryIdents(), $this->GetSensorTileSettingIdents())));
     }
 
     /**
-     * Liefert alle Einstellungs-Idents der Temperatur-Kachel.
+     * Liefert alle Hauptwerte der Sensor-Kachel.
      */
-    private function GetTemperatureTileSettingIdents(): array
+    private function GetSensorTilePrimaryIdents(): array
     {
-        return array_merge($this->GetTemperatureTileControlIdents(), [
+        return [
+            'presence',
+            'occupancy',
+            'motion',
+            'temperature',
+            'humidity',
+            'illuminance',
+            'illuminance_lux'
+        ];
+    }
+
+    /**
+     * Liefert alle Einstellungs-Idents der Sensor-Kachel.
+     */
+    private function GetSensorTileSettingIdents(): array
+    {
+        return array_merge($this->GetSensorTileControlIdents(), [
+            'no_occupancy_since',
             'battery',
             'battery_low',
             'linkquality',
@@ -173,22 +196,33 @@ trait TemperatureTileHelper
     }
 
     /**
-     * Liefert alle bedienbaren Temperatur-Einstellungs-Idents.
+     * Liefert alle bedienbaren Sensor-Einstellungs-Idents.
      */
-    private function GetTemperatureTileControlIdents(): array
+    private function GetSensorTileControlIdents(): array
     {
         return [
             'temperature_calibration',
             'temperature_unit',
             'temperature_units',
-            'temperature_unit_convert'
+            'temperature_unit_convert',
+            'illuminance_calibration',
+            'illuminance_interval',
+            'illuminance_report',
+            'motion_sensitivity',
+            'presence_sensitivity',
+            'presence_threshold',
+            'occupancy_timeout',
+            'motion_detection_distance',
+            'detection_delay',
+            'fading_time',
+            'indicator'
         ];
     }
 
     /**
      * Baut Feature-Metadaten fuer die HTML-Kachel.
      */
-    private function BuildTemperatureTileFeatureData(array $feature): array
+    private function BuildSensorTileFeatureData(array $feature): array
     {
         $step = isset($feature['value_step']) ? (float) $feature['value_step'] : 0.0;
         $data = [
@@ -204,14 +238,17 @@ trait TemperatureTileHelper
             $data['max'] = (float) $feature['value_max'];
         }
         if (($feature['property'] ?? '') === 'temperature') {
-            [$data['min'], $data['max']] = $this->GetTemperatureTileTemperatureRange($feature);
+            [$data['min'], $data['max']] = $this->GetSensorTileTemperatureRange($feature);
         }
         if ($step > 0) {
             $data['step'] = $step;
-            $data['digits'] = $this->GetTemperatureTileDigitsFromStep($step);
-        } elseif (($data['unit'] === "\u{00B0}C") || strpos((string) ($feature['property'] ?? ''), 'temperature') !== false) {
+            $data['digits'] = $this->GetSensorTileDigitsFromStep($step);
+        } elseif ($this->IsSensorTileTemperatureFeature($feature)) {
             $data['step'] = 0.1;
             $data['digits'] = 1;
+        } elseif ($this->IsSensorTileIlluminanceFeature($feature)) {
+            $data['step'] = 1;
+            $data['digits'] = 0;
         }
         if (isset($feature['values']) && \is_array($feature['values'])) {
             $data['values'] = array_values($feature['values']);
@@ -229,14 +266,14 @@ trait TemperatureTileHelper
     /**
      * Liefert den Temperaturbereich aus dem Expose oder aus dem konfigurierbaren Fallback.
      */
-    private function GetTemperatureTileTemperatureRange(?array $feature): array
+    private function GetSensorTileTemperatureRange(?array $feature): array
     {
         $min = isset($feature['value_min'])
             ? (float) $feature['value_min']
-            : $this->ReadTemperatureTileFallbackRange(self::PROPERTY_TEMPERATURE_PRESENTATION_FALLBACK_MIN, -40.0);
+            : $this->ReadSensorTileFallbackRange(self::PROPERTY_TEMPERATURE_PRESENTATION_FALLBACK_MIN, -40.0);
         $max = isset($feature['value_max'])
             ? (float) $feature['value_max']
-            : $this->ReadTemperatureTileFallbackRange(self::PROPERTY_TEMPERATURE_PRESENTATION_FALLBACK_MAX, 80.0);
+            : $this->ReadSensorTileFallbackRange(self::PROPERTY_TEMPERATURE_PRESENTATION_FALLBACK_MAX, 80.0);
 
         if ($max <= $min) {
             $max = $min + 1.0;
@@ -248,7 +285,7 @@ trait TemperatureTileHelper
     /**
      * Liest einen Fallback-Wert, ohne aeltere Instanzen mit fehlender Property zu stoeren.
      */
-    private function ReadTemperatureTileFallbackRange(string $property, float $default): float
+    private function ReadSensorTileFallbackRange(string $property, float $default): float
     {
         try {
             return (float) $this->ReadPropertyFloat($property);
@@ -260,11 +297,11 @@ trait TemperatureTileHelper
     /**
      * Sucht ein Expose-Feature anhand seiner Property.
      */
-    private function FindTemperatureTileFeature(string $property): ?array
+    private function FindSensorTileFeature(string $property): ?array
     {
         $exposes = $this->ReadAttributeArray(self::ATTRIBUTE_EXPOSES);
         foreach ($exposes as $expose) {
-            $found = $this->FindTemperatureTileFeatureRecursive($expose, $property);
+            $found = $this->FindSensorTileFeatureRecursive($expose, $property);
             if ($found !== null) {
                 return $found;
             }
@@ -276,7 +313,7 @@ trait TemperatureTileHelper
     /**
      * Rekursive Suche in gruppierten Exposes.
      */
-    private function FindTemperatureTileFeatureRecursive(array $feature, string $property): ?array
+    private function FindSensorTileFeatureRecursive(array $feature, string $property): ?array
     {
         if (($feature['property'] ?? '') === $property) {
             return $feature;
@@ -291,7 +328,7 @@ trait TemperatureTileHelper
                 continue;
             }
 
-            $found = $this->FindTemperatureTileFeatureRecursive($subFeature, $property);
+            $found = $this->FindSensorTileFeatureRecursive($subFeature, $property);
             if ($found !== null) {
                 return $found;
             }
@@ -303,9 +340,9 @@ trait TemperatureTileHelper
     /**
      * Normalisiert numerische Werte gemaess Expose-Grenzen.
      */
-    private function NormalizeTemperatureTileNumericValue(string $ident, mixed $value): float|int
+    private function NormalizeSensorTileNumericValue(string $ident, mixed $value): float|int
     {
-        $feature = $this->FindTemperatureTileFeature($ident);
+        $feature = $this->FindSensorTileFeature($ident);
         $number = (float) $value;
         $min = isset($feature['value_min']) ? (float) $feature['value_min'] : null;
         $max = isset($feature['value_max']) ? (float) $feature['value_max'] : null;
@@ -320,7 +357,7 @@ trait TemperatureTileHelper
         if ($step > 0) {
             $base = $min ?? 0.0;
             $number = $base + (round(($number - $base) / $step) * $step);
-            $number = round($number, $this->GetTemperatureTileDigitsFromStep($step));
+            $number = round($number, $this->GetSensorTileDigitsFromStep($step));
         }
 
         $variableID = $this->GetObjectIDByIdent($ident);
@@ -334,7 +371,7 @@ trait TemperatureTileHelper
     /**
      * Normalisiert boolesche Werte aus der HTML-Kachel.
      */
-    private function NormalizeTemperatureTileBooleanValue(mixed $value): bool
+    private function NormalizeSensorTileBooleanValue(mixed $value): bool
     {
         if (\is_bool($value)) {
             return $value;
@@ -349,44 +386,68 @@ trait TemperatureTileHelper
     /**
      * Formatiert einen Kachelwert.
      */
-    private function FormatTemperatureTileValue(string $ident, mixed $value): string
+    private function FormatSensorTileValue(string $ident, mixed $value, ?int $variableID = null): string
     {
         if (\is_bool($value)) {
-            return $value ? $this->Translate('On') : $this->Translate('Off');
+            return $this->FormatSensorTileBooleanValue($ident, $value);
         }
 
         if ($ident === 'last_seen') {
             return \date('d.m.Y H:i:s', (int) $value);
         }
 
-        $feature = $this->FindTemperatureTileFeature($ident);
+        $feature = $this->FindSensorTileFeature($ident);
         if ($feature !== null && (($feature['type'] ?? '') === 'numeric')) {
             $unit = (string) ($feature['unit'] ?? '');
-            $digits = $this->GetTemperatureTileDigits($ident, $feature);
+            $digits = $this->GetSensorTileDigits($ident, $feature);
             return number_format((float) $value, $digits, ',', '.') . ($unit !== '' ? ' ' . $unit : '');
+        }
+        if ($variableID !== null && \function_exists('GetValueFormatted')) {
+            try {
+                return GetValueFormatted($variableID);
+            } catch (\Throwable) {
+                // Bei sehr neuen Presentations koennen Test-Stubs oder aeltere Systeme
+                // die Formatierung noch nicht kennen. Die Kachel bleibt trotzdem nutzbar.
+            }
         }
 
         if (\is_string($value)) {
-            return $this->TranslateTemperatureTileValue($value);
+            return $this->TranslateSensorTileValue($value);
         }
 
         return (string) $value;
     }
 
     /**
-     * Ermittelt die Anzeige-Nachkommastellen fuer einen Temperatur-Kachelwert.
+     * Formatiert boolesche Sensorwerte mit sprechenden Statusmeldungen.
      */
-    private function GetTemperatureTileDigits(string $ident, ?array $feature): int
+    private function FormatSensorTileBooleanValue(string $ident, bool $value): string
+    {
+        return match ($ident) {
+            'presence'  => $value ? 'Anwesend' : 'Abwesend',
+            'occupancy',
+            'motion'    => $value ? 'Bewegung erkannt' : 'Keine Bewegung',
+            default     => $value ? $this->Translate('On') : $this->Translate('Off')
+        };
+    }
+
+    /**
+     * Ermittelt die Anzeige-Nachkommastellen fuer einen Sensor-Kachelwert.
+     */
+    private function GetSensorTileDigits(string $ident, ?array $feature): int
     {
         if ($feature !== null && isset($feature['value_step'])) {
-            return $this->GetTemperatureTileDigitsFromStep((float) $feature['value_step']);
+            return $this->GetSensorTileDigitsFromStep((float) $feature['value_step']);
         }
 
-        $unit = (string) ($feature['unit'] ?? '');
-        if ($unit === "\u{00B0}C" || strpos($ident, 'temperature') !== false) {
+        if ($feature !== null && $this->IsSensorTileTemperatureFeature($feature)) {
             return 1;
         }
+        $unit = (string) ($feature['unit'] ?? '');
         if ($unit === '%' || $unit === 'lqi') {
+            return 0;
+        }
+        if ($unit === 'lx' || strpos($ident, 'illuminance') !== false) {
             return 0;
         }
 
@@ -394,9 +455,25 @@ trait TemperatureTileHelper
     }
 
     /**
+     * Prueft auf Temperatur-Exposes.
+     */
+    private function IsSensorTileTemperatureFeature(array $feature): bool
+    {
+        return ($feature['unit'] ?? '') === "\u{00B0}C" || strpos((string) ($feature['property'] ?? ''), 'temperature') !== false;
+    }
+
+    /**
+     * Prueft auf Beleuchtungsstaerke-Exposes.
+     */
+    private function IsSensorTileIlluminanceFeature(array $feature): bool
+    {
+        return ($feature['unit'] ?? '') === 'lx' || strpos((string) ($feature['property'] ?? ''), 'illuminance') !== false;
+    }
+
+    /**
      * Liefert die Nachkommastellen passend zur Schrittweite.
      */
-    private function GetTemperatureTileDigitsFromStep(float $step): int
+    private function GetSensorTileDigitsFromStep(float $step): int
     {
         if ($step <= 0) {
             return 0;
@@ -410,13 +487,16 @@ trait TemperatureTileHelper
     /**
      * Einfache lesbare Bezeichnungen fuer bekannte Enum-Werte.
      */
-    private function TranslateTemperatureTileValue(string $value): string
+    private function TranslateSensorTileValue(string $value): string
     {
         $labels = [
             'celsius'    => 'Celsius',
             'fahrenheit' => 'Fahrenheit',
             'C'          => 'Celsius',
-            'F'          => 'Fahrenheit'
+            'F'          => 'Fahrenheit',
+            'low'        => 'Niedrig',
+            'medium'     => 'Mittel',
+            'high'       => 'Hoch'
         ];
 
         return $labels[$value] ?? $value;

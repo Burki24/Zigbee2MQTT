@@ -99,67 +99,138 @@
         .sensor-values {
             display: grid;
             justify-items: center;
-            gap: 7px;
+            gap: 14px;
             width: 100%;
         }
 
-        .temperature-readout {
-            display: grid;
-            justify-items: center;
-            min-width: 150px;
+        .alert-state {
+            --state-color: var(--muted);
+            --state-soft: var(--chip);
+            display: none;
+            align-items: center;
+            justify-content: center;
+            gap: 12px;
+            color: var(--state-color);
+            text-align: left;
         }
 
-        .temperature-value {
+        .alert-state.visible {
             display: flex;
-            align-items: baseline;
-            gap: 4px;
-            color: var(--text);
-            font-size: 52px;
-            font-weight: 400;
+        }
+
+        .alert-state.active {
+            --state-color: #e53935;
+            --state-soft: rgba(229, 57, 53, 0.12);
+        }
+
+        .alert-state.inactive {
+            --state-color: #14914a;
+            --state-soft: rgba(20, 145, 74, 0.13);
+        }
+
+        .alert-icon-button {
+            display: grid;
+            place-items: center;
+            width: 58px;
+            height: 58px;
+            border-radius: 50%;
+            color: var(--state-color);
+            background: var(--state-soft);
+        }
+
+        .alert-icon {
+            width: 29px;
+            height: 29px;
+        }
+
+        .alert-label {
+            color: var(--state-color);
+            font-size: 25px;
+            font-weight: 500;
             line-height: 1.05;
             white-space: nowrap;
         }
 
-        .temperature-icon {
-            width: 24px;
-            height: 24px;
-            flex: 0 0 auto;
-        }
-
-        .temperature-caption {
-            margin-top: 5px;
-            color: var(--muted);
-            font-size: 12px;
-            letter-spacing: 0;
-            text-transform: uppercase;
-        }
-
-        .humidity-readout {
-            display: none;
-            align-items: center;
-            gap: 7px;
-            margin-top: 8px;
-            color: var(--muted);
-            font-size: 18px;
-            line-height: 1.15;
-            white-space: nowrap;
-        }
-
-        .humidity-readout.visible {
-            display: flex;
-        }
-
-        .humidity-icon {
-            width: 17px;
-            height: 17px;
-            flex: 0 0 auto;
-        }
-
-        .humidity-caption {
+        .alert-caption,
+        .metric-caption {
             color: var(--muted);
             font-size: 11px;
             letter-spacing: 0;
             text-transform: uppercase;
+        }
+
+        .metric-list {
+            display: grid;
+            justify-items: center;
+            gap: 7px;
+            width: 100%;
+        }
+
+        .metric-item {
+            display: none;
+            align-items: baseline;
+            justify-content: center;
+            gap: 7px;
+            color: var(--muted);
+            line-height: 1.15;
+            white-space: nowrap;
+        }
+
+        .metric-item.visible {
+            display: flex;
+        }
+
+        .metric-item.primary {
+            display: grid;
+            justify-items: center;
+            gap: 5px;
+            color: var(--text);
+        }
+
+        .metric-main {
+            display: flex;
+            align-items: baseline;
+            gap: 4px;
+            color: var(--muted);
+            font-size: 18px;
+        }
+
+        .metric-item.primary .metric-main {
+            color: var(--text);
+            font-size: 52px;
+            font-weight: 400;
+            line-height: 1.05;
+        }
+
+        .sensor-values.has-alert .metric-list {
+            gap: 5px;
+        }
+
+        .sensor-values.has-alert .metric-item.primary {
+            display: flex;
+            gap: 7px;
+            color: var(--muted);
+        }
+
+        .sensor-values.has-alert .metric-item.primary .metric-main {
+            color: var(--muted);
+            font-size: 18px;
+        }
+
+        .metric-icon {
+            width: 18px;
+            height: 18px;
+            flex: 0 0 auto;
+        }
+
+        .metric-item.primary .metric-icon {
+            width: 24px;
+            height: 24px;
+        }
+
+        .sensor-values.has-alert .metric-item.primary .metric-icon {
+            width: 18px;
+            height: 18px;
         }
 
         .settings-list {
@@ -288,13 +359,26 @@
                 transform: translate(-50%, -38%);
             }
 
-            .temperature-value {
+            .metric-item.primary .metric-main {
                 font-size: 38px;
             }
 
-            .temperature-icon {
+            .metric-item.primary .metric-icon {
                 width: 20px;
                 height: 20px;
+            }
+
+            .sensor-values.has-alert .metric-item.primary .metric-main {
+                font-size: 16px;
+            }
+
+            .alert-label {
+                font-size: 21px;
+            }
+
+            .alert-icon-button {
+                width: 50px;
+                height: 50px;
             }
 
             .settings-list {
@@ -338,30 +422,63 @@
             </button>
 
             <div class="sensor-wrap">
-                <div class="sensor-values">
-                    <div class="temperature-readout">
-                        <div class="temperature-value">
-                            <svg class="temperature-icon" viewBox="0 0 24 24" aria-hidden="true">
-                                <path d="M14 4v8.2a5 5 0 1 1-4 0V4a2 2 0 0 1 4 0z" fill="none" stroke="currentColor" stroke-width="2" stroke-linejoin="round"></path>
-                                <path d="M12 15v3" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round"></path>
+                <div class="sensor-values" id="sensorValues">
+                    <div class="alert-state" id="alertState">
+                        <div class="alert-icon-button">
+                            <svg class="alert-icon" viewBox="0 0 24 24" aria-hidden="true">
+                                <path d="M12 3a4 4 0 1 1 0 8a4 4 0 0 1 0-8z" fill="none" stroke="currentColor" stroke-width="1.8"></path>
+                                <path d="M5 21a7 7 0 0 1 14 0" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round"></path>
                             </svg>
-                            <span id="temperatureValue">--</span>
                         </div>
-                        <div class="temperature-caption">Temperatur</div>
+                        <div>
+                            <div class="alert-label" id="alertLabel">--</div>
+                            <div class="alert-caption" id="alertCaption">Status</div>
+                        </div>
                     </div>
-                    <div class="humidity-readout" id="humidityReadout">
-                        <svg class="humidity-icon" viewBox="0 0 24 24" aria-hidden="true">
-                            <path d="M12 3.5s6 6.2 6 10.6a6 6 0 0 1-12 0c0-4.4 6-10.6 6-10.6z" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linejoin="round"></path>
-                        </svg>
-                        <span id="humidityValue">--</span>
-                        <span class="humidity-caption">Luftfeuchtigkeit</span>
+                    <div class="metric-list" id="metricList">
+                        <div class="metric-item" data-ident="temperature">
+                            <span class="metric-main">
+                                <svg class="metric-icon" viewBox="0 0 24 24" aria-hidden="true">
+                                    <path d="M14 4v8.2a5 5 0 1 1-4 0V4a2 2 0 0 1 4 0z" fill="none" stroke="currentColor" stroke-width="2" stroke-linejoin="round"></path>
+                                    <path d="M12 15v3" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round"></path>
+                                </svg>
+                                <span data-value="temperature">--</span>
+                            </span>
+                            <span class="metric-caption">Temperatur</span>
+                        </div>
+                        <div class="metric-item" data-ident="humidity">
+                            <span class="metric-main">
+                                <svg class="metric-icon" viewBox="0 0 24 24" aria-hidden="true">
+                                    <path d="M12 3.5s6 6.2 6 10.6a6 6 0 0 1-12 0c0-4.4 6-10.6 6-10.6z" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linejoin="round"></path>
+                                </svg>
+                                <span data-value="humidity">--</span>
+                            </span>
+                            <span class="metric-caption">Luftfeuchtigkeit</span>
+                        </div>
+                        <div class="metric-item" data-ident="illuminance">
+                            <span class="metric-main">
+                                <svg class="metric-icon" viewBox="0 0 24 24" aria-hidden="true">
+                                    <path d="M12 3v2.2" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round"></path>
+                                    <path d="M12 18.8V21" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round"></path>
+                                    <path d="M4.2 12H2" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round"></path>
+                                    <path d="M22 12h-2.2" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round"></path>
+                                    <path d="M17.5 6.5l1.6-1.6" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round"></path>
+                                    <path d="M4.9 19.1l1.6-1.6" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round"></path>
+                                    <path d="M6.5 6.5L4.9 4.9" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round"></path>
+                                    <path d="M19.1 19.1l-1.6-1.6" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round"></path>
+                                    <circle cx="12" cy="12" r="4.4" fill="none" stroke="currentColor" stroke-width="1.8"></circle>
+                                </svg>
+                                <span data-value="illuminance">--</span>
+                            </span>
+                            <span class="metric-caption">Helligkeit</span>
+                        </div>
                     </div>
                 </div>
             </div>
         </section>
 
         <section class="view settings-view" id="settingsView">
-            <button class="nav-button active" id="showMain" type="button" title="Temperatur">
+            <button class="nav-button active" id="showMain" type="button" title="Sensor">
                 <svg class="nav-icon" viewBox="0 0 24 24" aria-hidden="true">
                     <path d="M14 4v8.2a5 5 0 1 1-4 0V4a2 2 0 0 1 4 0z" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linejoin="round"></path>
                     <path d="M12 15v3" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round"></path>
@@ -376,11 +493,29 @@
         let activeView = "main";
 
         const labels = {
+            presence: "Präsenz",
+            occupancy: "Bewegung",
+            motion: "Bewegung",
+            temperature: "Temperatur",
             temperature_calibration: "Kalibrierung",
             temperature_unit: "Einheit",
             temperature_units: "Einheit",
             temperature_unit_convert: "Einheit",
             humidity: "Luftfeuchtigkeit",
+            illuminance: "Helligkeit",
+            illuminance_lux: "Helligkeit",
+            illuminance_calibration: "Helligkeit Kalibrierung",
+            illuminance_interval: "Helligkeit Intervall",
+            illuminance_report: "Helligkeit Bericht",
+            motion_sensitivity: "Bewegung Empfindlichkeit",
+            presence_sensitivity: "Präsenz Empfindlichkeit",
+            presence_threshold: "Präsenz Schwelle",
+            occupancy_timeout: "Bewegung Timeout",
+            motion_detection_distance: "Erkennungsdistanz",
+            detection_delay: "Erkennungsverzögerung",
+            fading_time: "Abklingzeit",
+            indicator: "Anzeige",
+            no_occupancy_since: "Keine Bewegung seit",
             battery: "Batterie",
             battery_low: "Batterie niedrig",
             linkquality: "Verbindung",
@@ -390,13 +525,36 @@
             celsius: "Celsius",
             fahrenheit: "Fahrenheit",
             C: "Celsius",
-            F: "Fahrenheit"
+            F: "Fahrenheit",
+            low: "Niedrig",
+            medium: "Mittel",
+            high: "Hoch"
+        };
+        const alertOrder = ["presence", "occupancy", "motion"];
+        const metricOrder = ["temperature", "humidity", "illuminance", "illuminance_lux"];
+        const metricTarget = {
+            temperature: "temperature",
+            humidity: "humidity",
+            illuminance: "illuminance",
+            illuminance_lux: "illuminance"
         };
         const settingsOrder = [
             "temperature_calibration",
             "temperature_unit",
             "temperature_units",
             "temperature_unit_convert",
+            "illuminance_calibration",
+            "illuminance_interval",
+            "illuminance_report",
+            "motion_sensitivity",
+            "presence_sensitivity",
+            "presence_threshold",
+            "occupancy_timeout",
+            "motion_detection_distance",
+            "detection_delay",
+            "fading_time",
+            "indicator",
+            "no_occupancy_since",
             "battery",
             "battery_low",
             "linkquality",
@@ -406,9 +564,12 @@
         const mainView = document.getElementById("mainView");
         const settingsView = document.getElementById("settingsView");
         const settingsList = document.getElementById("settingsList");
-        const temperatureValue = document.getElementById("temperatureValue");
-        const humidityReadout = document.getElementById("humidityReadout");
-        const humidityValue = document.getElementById("humidityValue");
+        const sensorValues = document.getElementById("sensorValues");
+        const alertState = document.getElementById("alertState");
+        const alertLabel = document.getElementById("alertLabel");
+        const alertCaption = document.getElementById("alertCaption");
+        const metricElements = Array.from(document.querySelectorAll("[data-ident]"));
+        const metricValueElements = new Map(Array.from(document.querySelectorAll("[data-value]")).map((element) => [element.dataset.value, element]));
 
         function handleMessage(message) {
             const nextData = normalizeMessage(message);
@@ -437,7 +598,7 @@
                 return null;
             }
 
-            if (message.type !== "temperature" || !message.values || typeof message.values !== "object") {
+            if (message.type !== "sensor" || !message.values || typeof message.values !== "object") {
                 return null;
             }
 
@@ -489,7 +650,7 @@
         function formattedValue(ident, value) {
             const feature = featureOf(ident);
             if (typeof value === "boolean") {
-                return value ? "An" : "Aus";
+                return booleanLabel(ident, value);
             }
             if (feature.type === "numeric") {
                 const config = numericConfig(ident);
@@ -499,6 +660,17 @@
                 return valueLabels[value] || value;
             }
             return String(value ?? "");
+        }
+
+        function booleanLabel(ident, value) {
+            if (ident === "presence") {
+                return value ? "Anwesend" : "Abwesend";
+            }
+            if (ident === "occupancy" || ident === "motion") {
+                return value ? "Bewegung erkannt" : "Keine Bewegung";
+            }
+
+            return value ? "An" : "Aus";
         }
 
         function ensureValue(ident, value) {
@@ -533,12 +705,12 @@
             }
             ensureValue(ident, next);
             render();
-            sendAction("TemperatureTile.Action", JSON.stringify({ ident, value: next }));
+            sendAction("SensorTile.Action", JSON.stringify({ ident, value: next }));
         }
 
         function render() {
             if (!normalizeMessage(data)) {
-                data = { type: "temperature", values: {}, features: {} };
+                data = { type: "sensor", values: {}, features: {} };
             }
 
             mainView.classList.toggle("active", activeView === "main");
@@ -549,26 +721,86 @@
         }
 
         function renderMain() {
-            const item = valueOf("temperature");
-            const feature = featureOf("temperature");
-            const digits = Number(feature.digits ?? 1);
-            const unit = String(feature.unit || "\u00b0C");
-            const value = item ? Number(item.value) : NaN;
+            const alert = firstAvailableAlert();
+            renderAlert(alert);
 
-            if (Number.isFinite(value)) {
-                temperatureValue.textContent = `${numberFormat(value, digits)} ${unit || "\u00b0C"}`;
-            } else {
-                temperatureValue.textContent = "--";
+            let visibleMetrics = 0;
+            const renderedMetricTargets = new Set();
+            for (const element of metricElements) {
+                element.classList.remove("visible", "primary");
             }
 
-            const humidityItem = valueOf("humidity");
-            if (humidityItem) {
-                humidityValue.textContent = humidityItem.formatted || formattedValue("humidity", humidityItem.value);
-                humidityReadout.classList.add("visible");
-            } else {
-                humidityValue.textContent = "--";
-                humidityReadout.classList.remove("visible");
+            for (const ident of metricOrder) {
+                const item = valueOf(ident);
+                if (!item) {
+                    continue;
+                }
+
+                const target = metricTarget[ident] || ident;
+                if (renderedMetricTargets.has(target)) {
+                    continue;
+                }
+                const valueElement = metricValueElements.get(target);
+                const itemElement = metricElements.find((element) => element.dataset.ident === target);
+                if (!valueElement || !itemElement) {
+                    continue;
+                }
+
+                valueElement.textContent = item.formatted || formattedValue(ident, item.value);
+                renderedMetricTargets.add(target);
+                itemElement.classList.add("visible");
+                if (!alert && visibleMetrics === 0) {
+                    itemElement.classList.add("primary");
+                }
+                visibleMetrics++;
             }
+
+            sensorValues.classList.toggle("has-alert", !!alert);
+        }
+
+        function firstAvailableAlert() {
+            for (const ident of alertOrder) {
+                const item = valueOf(ident);
+                if (item) {
+                    const active = isAlertActive(item.value);
+                    return {
+                        ident,
+                        active,
+                        text: item.formatted || booleanLabel(ident, active)
+                    };
+                }
+            }
+
+            return null;
+        }
+
+        function isAlertActive(value) {
+            if (typeof value === "boolean") {
+                return value;
+            }
+            if (typeof value === "number") {
+                return value !== 0;
+            }
+            if (typeof value === "string") {
+                return ["1", "true", "on", "yes", "presence", "occupancy", "motion", "detected"].includes(value.toLowerCase());
+            }
+
+            return !!value;
+        }
+
+        function renderAlert(alert) {
+            alertState.classList.toggle("visible", !!alert);
+            alertState.classList.toggle("active", !!alert && alert.active);
+            alertState.classList.toggle("inactive", !!alert && !alert.active);
+
+            if (!alert) {
+                alertLabel.textContent = "--";
+                alertCaption.textContent = "Status";
+                return;
+            }
+
+            alertLabel.textContent = alert.text;
+            alertCaption.textContent = labels[alert.ident] || "Status";
         }
 
         function renderSettings() {

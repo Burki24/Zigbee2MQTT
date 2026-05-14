@@ -11,7 +11,7 @@ require_once __DIR__ . '/VariableProfileHelper.php';
 require_once __DIR__ . '/VariablePresentationHelper.php';
 require_once __DIR__ . '/MeteredSwitchTileHelper.php';
 require_once __DIR__ . '/HeatingTileHelper.php';
-require_once __DIR__ . '/TemperatureTileHelper.php';
+require_once __DIR__ . '/SensorTileHelper.php';
 require_once __DIR__ . '/MQTTHelper.php';
 require_once __DIR__ . '/ColorHelper.php';
 
@@ -37,7 +37,7 @@ abstract class ModulBase extends \IPSModuleStrict
     use VariablePresentationHelper;
     use MeteredSwitchTileHelper;
     use HeatingTileHelper;
-    use TemperatureTileHelper;
+    use SensorTileHelper;
     use SendData;
     private const MINIMAL_MODUL_VERSION = 5.1;
     private const PROPERTY_DISABLE_METERED_SWITCH_TILE = 'DisableMeteredSwitchTile';
@@ -275,8 +275,10 @@ abstract class ModulBase extends \IPSModuleStrict
         ['group_type' => '', 'feature' => 'power', 'profile' => '~Watt', 'variableType' => VARIABLETYPE_FLOAT],
         ['group_type' => '', 'feature' => 'battery', 'profile' => '~Battery.100', 'variableType' => VARIABLETYPE_INTEGER],
         ['group_type' => '', 'feature' => 'occupancy', 'profile' => '~Presence', 'variableType' => VARIABLETYPE_BOOLEAN],
+        ['group_type' => '', 'feature' => 'motion', 'profile' => '~Motion', 'variableType' => VARIABLETYPE_BOOLEAN],
         ['group_type' => '', 'feature' => 'pi_heating_demand', 'profile' => '~Valve', 'variableType' => VARIABLETYPE_INTEGER],
         ['group_type' => '', 'feature' => 'presence', 'profile' => '~Presence', 'variableType' => VARIABLETYPE_BOOLEAN],
+        ['group_type' => '', 'feature' => 'illuminance', 'profile' => '~Illumination', 'variableType' => VARIABLETYPE_INTEGER],
         ['group_type' => '', 'feature' => 'illuminance_lux', 'profile' => '~Illumination', 'variableType' => VARIABLETYPE_INTEGER],
         ['group_type' => '', 'feature' => 'child_lock', 'profile' => '~Lock', 'variableType' => VARIABLETYPE_BOOLEAN],
         ['group_type' => '', 'feature' => 'window_open', 'profile' => '~Window', 'variableType' => VARIABLETYPE_BOOLEAN],
@@ -591,9 +593,9 @@ abstract class ModulBase extends \IPSModuleStrict
                 return $this->HandleHeatingTileAction($ident, $value);
             },
             // Behandelt HTML-SDK Kachelaktionen
-            strpos($ident, 'TemperatureTile.') === 0 => function () use ($ident, $value)
+            strpos($ident, 'SensorTile.') === 0 => function () use ($ident, $value)
             {
-                return $this->HandleTemperatureTileAction($ident, $value);
+                return $this->HandleSensorTileAction($ident, $value);
             },
             // Behandelt HTML-SDK Kachelaktionen
             strpos($ident, 'MeteredSwitchTile.') === 0 => function () use ($ident, $value)
@@ -1115,7 +1117,7 @@ abstract class ModulBase extends \IPSModuleStrict
      */
     protected function UpdateCustomTileVisualizationType(): void
     {
-        $this->SetVisualizationType(($this->ShouldUseHeatingTile() || $this->ShouldUseTemperatureTile() || $this->ShouldUseMeteredSwitchTile()) ? 1 : 0);
+        $this->SetVisualizationType(($this->ShouldUseHeatingTile() || $this->ShouldUseSensorTile() || $this->ShouldUseMeteredSwitchTile()) ? 1 : 0);
     }
 
     // Variablenmanagement
@@ -1225,14 +1227,18 @@ abstract class ModulBase extends \IPSModuleStrict
                     if ($association['Name'] == $value) {
                         $adjustedValue = $association['Value'];
                         $this->SendDebug(__FUNCTION__, 'Profilwert gefunden: ' . $value . ' -> ' . $adjustedValue, 0);
-                        return parent::SetValue($ident, $adjustedValue);
+                        $result = $this->SetValueByID($variableID, $adjustedValue);
+                        $this->UpdateHeatingTileValueIfRelevant($ident);
+                        $this->UpdateSensorTileValueIfRelevant($ident);
+                        $this->UpdateMeteredSwitchTileValueIfRelevant($ident);
+                        return $result;
                     }
                 }
             }
         }
 
         $this->SendDebug(__FUNCTION__, 'Setze Variable: ' . $ident . ' auf Wert: ' . json_encode($adjustedValue), 0);
-        $result = parent::SetValue($ident, $adjustedValue);
+        $result = $this->SetValueByID($variableID, $adjustedValue);
 
         // Spezialbehandlung für ColorTemp
         if ($ident === 'color_temp') {
@@ -1241,7 +1247,7 @@ abstract class ModulBase extends \IPSModuleStrict
             $this->SetValueDirect($kelvinIdent, $kelvinValue);
         }
         $this->UpdateHeatingTileValueIfRelevant($ident);
-        $this->UpdateTemperatureTileValueIfRelevant($ident);
+        $this->UpdateSensorTileValueIfRelevant($ident);
         $this->UpdateMeteredSwitchTileValueIfRelevant($ident);
         return $result;
     }
@@ -1328,10 +1334,19 @@ abstract class ModulBase extends \IPSModuleStrict
 
         $this->SendDebug(__FUNCTION__, \sprintf('Setze Variable: %s, Typ: %s, Wert: %s', $ident, $debugVarType, json_encode($value)), 0);
         // Setze den Wert der Variable
-        parent::SetValue($ident, $value);
+        $this->SetValueByID($variableID, $value);
         $this->UpdateHeatingTileValueIfRelevant($ident);
-        $this->UpdateTemperatureTileValueIfRelevant($ident);
+        $this->UpdateSensorTileValueIfRelevant($ident);
         $this->UpdateMeteredSwitchTileValueIfRelevant($ident);
+    }
+
+    /**
+     * Setzt einen Variablenwert per Objekt-ID.
+     */
+    private function SetValueByID(int $variableID, mixed $value): bool
+    {
+        \SetValue($variableID, $value);
+        return true;
     }
 
     // Feature & Expose Handling
@@ -1704,9 +1719,9 @@ abstract class ModulBase extends \IPSModuleStrict
         }
         $this->RegisterVariableBoolean('device_status', $this->Translate('Availability'), 'Z2M.DeviceStatus');
         if (isset($payload['state'])) {
-            parent::SetValue('device_status', $payload['state'] == 'online');
+            $this->SetValueDirect('device_status', $payload['state'] == 'online');
         } else { // leeren Payload, wenn z.B. Gerät gelöscht oder umbenannt wurde
-            parent::SetValue('device_status', false);
+            $this->SetValueDirect('device_status', false);
         }
         return true;
     }

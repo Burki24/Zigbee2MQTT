@@ -162,6 +162,20 @@ class Zigbee2MQTTBridge extends IPSModuleStrict
     }
 
     /**
+     * Setzt einen Variablenwert ueber die Objekt-ID.
+     */
+    protected function SetValue(string $Ident, mixed $Value): bool
+    {
+        $variableID = @IPS_GetObjectIDByIdent($Ident, $this->InstanceID);
+        if ($variableID === false) {
+            return false;
+        }
+
+        \SetValue($variableID, $Value);
+        return true;
+    }
+
+    /**
      * ReceiveData
      *
      * @param  string $JSONString
