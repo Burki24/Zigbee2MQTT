@@ -178,32 +178,60 @@ trait MeteredSwitchTileHelper
      */
     private function GetMeteredSwitchTileArchiveID(): int|false
     {
-        if (!\function_exists('IPS_GetInstanceListByModuleID')) {
-            return false;
+        $archiveModuleID = '{43192F0B-135B-4CE7-A0A7-1475603F3060}';
+
+        if (\function_exists('IPS_GetInstanceListByModuleID')) {
+            $archiveIDs = IPS_GetInstanceListByModuleID($archiveModuleID);
+            if (\is_array($archiveIDs) && $archiveIDs !== []) {
+                return (int) $archiveIDs[0];
+            }
         }
 
-        $archiveIDs = IPS_GetInstanceListByModuleID('{43192F0B-135B-4CE7-A0A7-1475603F3060}');
-        if (!\is_array($archiveIDs) || $archiveIDs === []) {
-            return false;
+        if (\function_exists('IPS_GetInstanceList') && \function_exists('IPS_GetInstance')) {
+            foreach (IPS_GetInstanceList() as $instanceID) {
+                try {
+                    $instance = IPS_GetInstance((int) $instanceID);
+                } catch (\Throwable) {
+                    continue;
+                }
+
+                if (($instance['ModuleInfo']['ModuleID'] ?? '') === $archiveModuleID) {
+                    return (int) $instanceID;
+                }
+            }
         }
 
-        return (int) $archiveIDs[0];
+        return false;
     }
 
     /**
-     * Prueft, ob ein Wert im Archive Control geloggt wird.
+     * Prueft, ob ein Wert im Archive Control geloggt oder graphisch sichtbar ist.
      */
     private function IsMeteredSwitchTileValueArchived(int $variableID, int|false $archiveID): bool
     {
-        if ($archiveID === false || !\function_exists('AC_GetLoggingStatus')) {
+        if ($archiveID === false) {
             return false;
         }
 
-        try {
-            return (bool) AC_GetLoggingStatus($archiveID, $variableID);
-        } catch (\Throwable) {
-            return false;
+        if (\function_exists('AC_GetLoggingStatus')) {
+            try {
+                if ((bool) AC_GetLoggingStatus($archiveID, $variableID)) {
+                    return true;
+                }
+            } catch (\Throwable) {
+                // Fallback auf GraphStatus
+            }
         }
+
+        if (\function_exists('AC_GetGraphStatus')) {
+            try {
+                return (bool) AC_GetGraphStatus($archiveID, $variableID);
+            } catch (\Throwable) {
+                return false;
+            }
+        }
+
+        return false;
     }
 
     /**
