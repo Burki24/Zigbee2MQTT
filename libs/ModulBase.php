@@ -42,7 +42,8 @@ abstract class ModulBase extends \IPSModuleStrict
     private const MINIMAL_MODUL_VERSION = 5.1;
     private const PROPERTY_DISABLE_METERED_SWITCH_TILE = 'DisableMeteredSwitchTile';
     private const PROPERTY_DISABLE_HEATING_TILE = 'DisableHeatingTile';
-    private const PROPERTY_DISABLE_TEMPERATURE_TILE = 'DisableTemperatureTile';
+    private const PROPERTY_TEMPERATURE_PRESENTATION_FALLBACK_MIN = 'TemperaturePresentationFallbackMin';
+    private const PROPERTY_TEMPERATURE_PRESENTATION_FALLBACK_MAX = 'TemperaturePresentationFallbackMax';
 
     /**
      * @var array STATE_PATTERN
@@ -424,7 +425,8 @@ abstract class ModulBase extends \IPSModuleStrict
         $this->RegisterPropertyString(self::MQTT_TOPIC, '');
         $this->RegisterPropertyBoolean(self::PROPERTY_DISABLE_METERED_SWITCH_TILE, false);
         $this->RegisterPropertyBoolean(self::PROPERTY_DISABLE_HEATING_TILE, false);
-        $this->RegisterPropertyBoolean(self::PROPERTY_DISABLE_TEMPERATURE_TILE, false);
+        $this->RegisterPropertyFloat(self::PROPERTY_TEMPERATURE_PRESENTATION_FALLBACK_MIN, -40.0);
+        $this->RegisterPropertyFloat(self::PROPERTY_TEMPERATURE_PRESENTATION_FALLBACK_MAX, 80.0);
         $this->RegisterAttributeArray(self::ATTRIBUTE_EXPOSES, []);
         $this->RegisterAttributeArray(self::ATTRIBUTE_FILTERED, []);
         $this->RegisterAttributeFloat(self::ATTRIBUTE_MODUL_VERSION, 5.0);

@@ -14,7 +14,8 @@ trait TemperatureTileHelper
      */
     protected function ShouldUseTemperatureTile(): bool
     {
-        return !$this->ReadPropertyBoolean(self::PROPERTY_DISABLE_TEMPERATURE_TILE) && $this->HasTemperatureTileCapabilities();
+        // Reine Thermometer nutzen die native Symcon-Temperatur-Wertanzeige.
+        return false;
     }
 
     /**

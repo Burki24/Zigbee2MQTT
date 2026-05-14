@@ -115,6 +115,11 @@ trait VariablePresentationHelper
             return;
         }
 
+        if ($this->IsThermometerValue($ident, $feature, $groupType)) {
+            $this->ApplyTemperatureValuePresentation($ident, $feature);
+            return;
+        }
+
         if (!isset($feature['value_min'], $feature['value_max'])) {
             return;
         }
@@ -168,6 +173,31 @@ trait VariablePresentationHelper
             'current_heating_setpoint',
             'occupied_cooling_setpoint'
         ], true);
+    }
+
+    /**
+     * Erkennt reine Thermometerwerte, die als Symcon-Temperatur-Wertkachel dargestellt werden sollen.
+     */
+    private function IsThermometerValue(string $ident, array $feature, ?string $groupType = null): bool
+    {
+        $effectiveGroupType = $groupType ?? ($feature['group_type'] ?? null);
+        $property = (string) ($feature['property'] ?? $ident);
+        $unit = isset($feature['unit']) && \is_string($feature['unit']) ? $feature['unit'] : '';
+
+        if (($feature['type'] ?? '') !== 'numeric') {
+            return false;
+        }
+        if ($effectiveGroupType === 'climate') {
+            return false;
+        }
+        if ($property !== 'temperature') {
+            return false;
+        }
+        if ($unit !== '' && $unit !== '°C') {
+            return false;
+        }
+
+        return !isset($feature['access']) || (((int) $feature['access'] & 2) !== 2);
     }
 
     /**
@@ -262,6 +292,76 @@ trait VariablePresentationHelper
     }
 
     /**
+     * Setzt fuer reine Temperaturmesswerte die native Symcon-Temperatur-Wertanzeige.
+     */
+    private function ApplyTemperatureValuePresentation(string $ident, array $feature): void
+    {
+        if (!$this->SupportsValuePresentation()) {
+            return;
+        }
+
+        $variableID = $this->GetObjectIDByIdent($ident);
+        if ($variableID === false) {
+            return;
+        }
+
+        [$min, $max] = $this->GetTemperaturePresentationRange($feature);
+
+        $unit = isset($feature['unit']) && \is_string($feature['unit']) ? $feature['unit'] : '°C';
+        IPS_SetVariableCustomPresentation($variableID, [
+            'PRESENTATION'        => \constant('VARIABLE_PRESENTATION_VALUE_PRESENTATION'),
+            'ICON'                => 'temperature-half',
+            'COLOR'               => -1,
+            'PREFIX'              => '',
+            'SUFFIX'              => $unit === '' ? ' °C' : ' ' . $unit,
+            'USAGE_TYPE'          => 1,
+            'PERCENTAGE'          => false,
+            'MIN'                 => $min,
+            'MAX'                 => $max,
+            'THOUSANDS_SEPARATOR' => '',
+            'DIGITS'              => isset($feature['value_step']) ? $this->GetDigitsFromStepSize((float) $feature['value_step']) : 1,
+            'DECIMAL_SEPARATOR'   => 'Client',
+            'INTERVALS_ACTIVE'    => false,
+            'INTERVALS'           => '[]'
+        ]);
+    }
+
+    /**
+     * Liefert den Temperaturbereich aus dem Expose oder aus dem konfigurierten Fallback.
+     */
+    private function GetTemperaturePresentationRange(array $feature): array
+    {
+        if (isset($feature['value_min'], $feature['value_max'])) {
+            $min = (float) $feature['value_min'];
+            $max = (float) $feature['value_max'];
+        } else {
+            $min = $this->ReadTemperaturePresentationFallback(self::PROPERTY_TEMPERATURE_PRESENTATION_FALLBACK_MIN, -40.0);
+            $max = $this->ReadTemperaturePresentationFallback(self::PROPERTY_TEMPERATURE_PRESENTATION_FALLBACK_MAX, 80.0);
+        }
+
+        if ($min > $max) {
+            [$min, $max] = [$max, $min];
+        }
+        if ($min === $max) {
+            $max = $min + 1.0;
+        }
+
+        return [$min, $max];
+    }
+
+    /**
+     * Liest Fallback-Grenzen robust, damit bestehende Instanzen beim Modulupdate weiterlaufen.
+     */
+    private function ReadTemperaturePresentationFallback(string $property, float $default): float
+    {
+        try {
+            return $this->ReadPropertyFloat($property);
+        } catch (\Throwable) {
+            return $default;
+        }
+    }
+
+    /**
      * Setzt fuer Enum-Exposes eine Aufzaehlungs-Darstellung.
      */
     protected function ApplyEnumerationPresentation(string $ident, array $feature): void
@@ -351,6 +451,14 @@ trait VariablePresentationHelper
     private function SupportsSwitchPresentation(): bool
     {
         return \function_exists('IPS_SetVariableCustomPresentation') && \defined('VARIABLE_PRESENTATION_SWITCH');
+    }
+
+    /**
+     * Prueft, ob Wertanzeige-Darstellungen verfuegbar sind.
+     */
+    private function SupportsValuePresentation(): bool
+    {
+        return \function_exists('IPS_SetVariableCustomPresentation') && \defined('VARIABLE_PRESENTATION_VALUE_PRESENTATION');
     }
 
     /**

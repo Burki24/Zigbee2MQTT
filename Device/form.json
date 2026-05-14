@@ -31,11 +31,6 @@
                             "type": "CheckBox",
                             "name": "DisableHeatingTile",
                             "caption": "Disable heating tile"
-                        },
-                        {
-                            "type": "CheckBox",
-                            "name": "DisableTemperatureTile",
-                            "caption": "Disable temperature tile"
                         }
                     ]
                 },
@@ -43,6 +38,40 @@
                     "type": "Image",
                     "image": "",
                     "width": "200px"
+                }
+            ]
+        },
+        {
+            "type": "ExpansionPanel",
+            "caption": "Temperature visualization",
+            "expanded": false,
+            "items": [
+                {
+                    "type": "Label",
+                    "caption": "Fallback range for temperature exposes without value_min/value_max."
+                },
+                {
+                    "type": "RowLayout",
+                    "items": [
+                        {
+                            "type": "NumberSpinner",
+                            "name": "TemperaturePresentationFallbackMin",
+                            "caption": "Minimum",
+                            "digits": 1,
+                            "minimum": -273.1,
+                            "maximum": 1000,
+                            "suffix": " °C"
+                        },
+                        {
+                            "type": "NumberSpinner",
+                            "name": "TemperaturePresentationFallbackMax",
+                            "caption": "Maximum",
+                            "digits": 1,
+                            "minimum": -273.1,
+                            "maximum": 1000,
+                            "suffix": " °C"
+                        }
+                    ]
                 }
             ]
         },
