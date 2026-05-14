@@ -151,7 +151,7 @@
 
         .row {
             display: grid;
-            grid-template-columns: 34px minmax(0, 1fr) auto;
+            grid-template-columns: 34px minmax(0, 1fr) auto 32px;
             align-items: center;
             min-height: 36px;
             gap: 8px;
@@ -186,6 +186,112 @@
             font-size: 14px;
         }
 
+        .archive-button {
+            display: grid;
+            place-items: center;
+            width: 30px;
+            height: 30px;
+            border: 0;
+            border-radius: 50%;
+            color: var(--text);
+            background: transparent;
+            cursor: pointer;
+            opacity: 0.72;
+        }
+
+        .archive-button:hover {
+            background: var(--chip);
+            opacity: 1;
+        }
+
+        .archive-button.placeholder {
+            visibility: hidden;
+            pointer-events: none;
+        }
+
+        .archive-button svg {
+            width: 20px;
+            height: 20px;
+        }
+
+        .chart-view {
+            background: transparent !important;
+            background-color: transparent !important;
+        }
+
+        .chart-shell {
+            position: absolute;
+            left: 18px;
+            right: 18px;
+            top: 92px;
+            bottom: 18px;
+            display: grid;
+            grid-template-rows: auto auto auto minmax(0, 1fr);
+            gap: 10px;
+            min-height: 0;
+        }
+
+        .chart-title {
+            overflow: hidden;
+            color: var(--text);
+            font-size: 17px;
+            font-weight: 500;
+            text-overflow: ellipsis;
+            white-space: nowrap;
+        }
+
+        .chart-subtitle {
+            color: var(--muted);
+            font-size: 13px;
+            min-height: 18px;
+        }
+
+        .range-tabs {
+            display: grid;
+            grid-template-columns: repeat(3, minmax(0, 1fr));
+            overflow: hidden;
+            width: min(230px, 100%);
+            border-radius: 7px;
+            background: rgba(16, 200, 178, 0.12);
+        }
+
+        .range-button {
+            height: 30px;
+            border: 0;
+            color: var(--accent);
+            background: transparent;
+            cursor: pointer;
+            font-size: 13px;
+        }
+
+        .range-button.active {
+            color: #ffffff;
+            background: var(--accent);
+        }
+
+        .chart-wrap {
+            position: relative;
+            min-height: 0;
+        }
+
+        .chart-svg {
+            width: 100%;
+            height: 100%;
+            min-height: 120px;
+            overflow: visible;
+        }
+
+        .chart-empty {
+            position: absolute;
+            left: 0;
+            right: 0;
+            top: 50%;
+            color: var(--muted);
+            font-size: 14px;
+            text-align: center;
+            transform: translateY(-50%);
+        }
+
         @media (max-width: 340px), (max-height: 300px) {
             .nav-button {
                 top: 58px;
@@ -203,6 +309,11 @@
 
             .list {
                 top: 112px;
+            }
+
+            .chart-shell {
+                top: 82px;
+                gap: 8px;
             }
 
             .row {
@@ -242,6 +353,32 @@
             </button>
             <div class="list" id="meterList"></div>
         </section>
+
+        <section class="view chart-view" id="chartView">
+            <button class="nav-button right active" id="showListFromChart" type="button" title="Messwerte">
+                <svg class="nav-icon" viewBox="0 0 24 24" aria-hidden="true">
+                    <path d="M8 6h13" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round"></path>
+                    <path d="M8 12h13" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round"></path>
+                    <path d="M8 18h13" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round"></path>
+                    <path d="M3 6h.01" fill="none" stroke="currentColor" stroke-width="3" stroke-linecap="round"></path>
+                    <path d="M3 12h.01" fill="none" stroke="currentColor" stroke-width="3" stroke-linecap="round"></path>
+                    <path d="M3 18h.01" fill="none" stroke="currentColor" stroke-width="3" stroke-linecap="round"></path>
+                </svg>
+            </button>
+            <div class="chart-shell">
+                <div class="chart-title" id="chartTitle">Verlauf</div>
+                <div class="chart-subtitle" id="chartSubtitle"></div>
+                <div class="range-tabs">
+                    <button class="range-button active" type="button" data-range="day">24 h</button>
+                    <button class="range-button" type="button" data-range="week">7 d</button>
+                    <button class="range-button" type="button" data-range="month">30 d</button>
+                </div>
+                <div class="chart-wrap">
+                    <svg class="chart-svg" id="archiveChart" viewBox="0 0 320 150" preserveAspectRatio="none" aria-hidden="true"></svg>
+                    <div class="chart-empty" id="chartEmpty"></div>
+                </div>
+            </div>
+        </section>
     </main>
 
     <script>
@@ -252,6 +389,11 @@
             current: "Strom"
         };
         const order = ["energy", "power", "voltage", "current"];
+        const rangeLabels = {
+            day: "Letzte 24 Stunden",
+            week: "Letzte 7 Tage",
+            month: "Letzte 30 Tage"
+        };
         const iconPaths = {
             power: '<path d="m13 2-7 12h6l-1 8 7-12h-6l1-8z" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linejoin="round"></path>',
             energy: '<path d="m13 2-7 12h6l-1 8 7-12h-6l1-8z" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linejoin="round"></path><path d="M5 22h14" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round"></path>',
@@ -264,8 +406,16 @@
 
         const powerView = document.getElementById("powerView");
         const listView = document.getElementById("listView");
+        const chartView = document.getElementById("chartView");
         const powerButton = document.getElementById("powerButton");
         const meterList = document.getElementById("meterList");
+        const chartTitle = document.getElementById("chartTitle");
+        const chartSubtitle = document.getElementById("chartSubtitle");
+        const archiveChart = document.getElementById("archiveChart");
+        const chartEmpty = document.getElementById("chartEmpty");
+        const rangeButtons = Array.from(document.querySelectorAll(".range-button"));
+        let activeArchiveIdent = null;
+        let activeArchiveRange = "day";
 
         function handleMessage(message) {
             const nextData = normalizeMessage(message);
@@ -273,7 +423,16 @@
                 return;
             }
 
+            const previousArchive = data.archive;
             data = nextData;
+            if (!data.archive && previousArchive) {
+                data.archive = previousArchive;
+            }
+            if (nextData.view === "archive" && nextData.archive) {
+                activeView = "archive";
+                activeArchiveIdent = nextData.archive.ident || activeArchiveIdent;
+                activeArchiveRange = nextData.archive.range || activeArchiveRange;
+            }
             render();
         }
 
@@ -306,6 +465,23 @@
             render();
         }
 
+        function requestArchive(ident, range = "day") {
+            activeArchiveIdent = ident;
+            activeArchiveRange = range;
+            activeView = "archive";
+            data.archive = {
+                ident,
+                label: labels[ident] || ident,
+                range,
+                unit: "",
+                available: false,
+                points: [],
+                message: "Lade Verlauf..."
+            };
+            render();
+            requestAction("MeteredSwitchTile.OpenArchive", JSON.stringify({ ident, range }));
+        }
+
         function render() {
             if (!data.values) {
                 data.values = {};
@@ -313,6 +489,7 @@
 
             powerView.classList.toggle("active", activeView === "power");
             listView.classList.toggle("active", activeView === "list");
+            chartView.classList.toggle("active", activeView === "archive");
 
             const state = data.values.state;
             const isOn = !!(state && state.value);
@@ -331,8 +508,18 @@
                 row.innerHTML = [
                     `<div class="row-icon"><svg viewBox="0 0 24 24" aria-hidden="true">${iconPaths[ident]}</svg></div>`,
                     `<div class="row-label">${labels[ident]}</div>`,
-                    `<div class="row-value">${item.formatted}</div>`
+                    `<div class="row-value">${item.formatted}</div>`,
+                    `<button class="archive-button${item.archived ? "" : " placeholder"}" type="button" title="Verlauf" aria-label="Verlauf" data-ident="${ident}">
+                        <svg viewBox="0 0 24 24" aria-hidden="true">
+                            <path d="M4 19h16" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round"></path>
+                            <path d="M5 16l4-4 3 2 5-7 2 3" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round"></path>
+                        </svg>
+                    </button>`
                 ].join("");
+                const archiveButton = row.querySelector(".archive-button");
+                if (item.archived) {
+                    archiveButton.addEventListener("click", () => requestArchive(ident, "day"));
+                }
                 meterList.appendChild(row);
                 renderedRows++;
             }
@@ -343,14 +530,118 @@
                 row.innerHTML = [
                     '<div class="row-icon"></div>',
                     '<div class="row-label">Keine Messwerte</div>',
-                    '<div class="row-value"></div>'
+                    '<div class="row-value"></div>',
+                    '<div></div>'
                 ].join("");
                 meterList.appendChild(row);
             }
+
+            renderArchive();
+        }
+
+        function renderArchive() {
+            const archive = data.archive || {};
+            const ident = archive.ident || activeArchiveIdent;
+            const range = archive.range || activeArchiveRange;
+            activeArchiveRange = range || "day";
+
+            chartTitle.textContent = archive.label || labels[ident] || "Verlauf";
+            chartSubtitle.textContent = `${rangeLabels[activeArchiveRange] || rangeLabels.day}${archive.unit ? ` · ${archive.unit}` : ""}`;
+            rangeButtons.forEach((button) => {
+                const isActive = button.dataset.range === activeArchiveRange;
+                button.classList.toggle("active", isActive);
+            });
+
+            drawArchiveChart(archive);
+        }
+
+        function drawArchiveChart(archive) {
+            archiveChart.replaceChildren();
+
+            const points = Array.isArray(archive.points) ? archive.points : [];
+            if (!archive.available || points.length < 2) {
+                chartEmpty.textContent = archive.message || "Keine Archivdaten";
+                return;
+            }
+            chartEmpty.textContent = "";
+
+            const width = 320;
+            const height = 150;
+            const padLeft = 8;
+            const padRight = 8;
+            const padTop = 14;
+            const padBottom = 22;
+            const values = points.map((point) => Number(point.value)).filter((value) => Number.isFinite(value));
+            const times = points.map((point) => Number(point.time)).filter((value) => Number.isFinite(value));
+            let minValue = Math.min(...values);
+            let maxValue = Math.max(...values);
+            const minTime = Math.min(...times);
+            const maxTime = Math.max(...times);
+
+            if (minValue === maxValue) {
+                minValue -= 1;
+                maxValue += 1;
+            }
+
+            const valueRange = maxValue - minValue;
+            const timeRange = Math.max(1, maxTime - minTime);
+            const x = (time) => padLeft + ((Number(time) - minTime) / timeRange) * (width - padLeft - padRight);
+            const y = (value) => padTop + (1 - ((Number(value) - minValue) / valueRange)) * (height - padTop - padBottom);
+            const pathPoints = points
+                .filter((point) => Number.isFinite(Number(point.time)) && Number.isFinite(Number(point.value)))
+                .map((point) => `${x(point.time).toFixed(1)},${y(point.value).toFixed(1)}`)
+                .join(" ");
+
+            for (const gridY of [padTop, padTop + ((height - padTop - padBottom) / 2), height - padBottom]) {
+                const line = svgElement("line", {
+                    x1: padLeft,
+                    y1: gridY,
+                    x2: width - padRight,
+                    y2: gridY,
+                    stroke: "rgba(120, 120, 120, 0.28)",
+                    "stroke-width": "1"
+                });
+                archiveChart.appendChild(line);
+            }
+
+            const polyline = svgElement("polyline", {
+                points: pathPoints,
+                fill: "none",
+                stroke: "var(--accent)",
+                "stroke-width": "2.6",
+                "stroke-linecap": "round",
+                "stroke-linejoin": "round"
+            });
+            archiveChart.appendChild(polyline);
+
+            const lastPoint = points[points.length - 1];
+            archiveChart.appendChild(svgElement("circle", {
+                cx: x(lastPoint.time).toFixed(1),
+                cy: y(lastPoint.value).toFixed(1),
+                r: "4",
+                fill: "var(--accent)"
+            }));
+        }
+
+        function svgElement(name, attributes) {
+            const element = document.createElementNS("http://www.w3.org/2000/svg", name);
+            for (const [key, value] of Object.entries(attributes)) {
+                element.setAttribute(key, value);
+            }
+            return element;
         }
 
         document.getElementById("showListRight").addEventListener("click", () => setView("list"));
         document.getElementById("showPowerRight").addEventListener("click", () => setView("power"));
+        document.getElementById("showListFromChart").addEventListener("click", () => setView("list"));
+        rangeButtons.forEach((button) => {
+            button.addEventListener("click", () => {
+                if (!activeArchiveIdent) {
+                    return;
+                }
+                requestArchive(activeArchiveIdent, button.dataset.range || "day");
+            });
+        });
         powerButton.addEventListener("click", () => requestAction("MeteredSwitchTile.Toggle", true));
 
         render();
