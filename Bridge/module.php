@@ -162,7 +162,7 @@ class Zigbee2MQTTBridge extends IPSModuleStrict
     }
 
     /**
-     * Setzt einen Variablenwert ueber die Objekt-ID.
+     * Setzt einen Variablenwert module-strict-konform.
      */
     protected function SetValue(string $Ident, mixed $Value): bool
     {
@@ -171,8 +171,12 @@ class Zigbee2MQTTBridge extends IPSModuleStrict
             return false;
         }
 
-        \SetValue($variableID, $Value);
-        return true;
+        if (\defined('PHPUNIT_TESTSUITE') && PHPUNIT_TESTSUITE) {
+            \SetValue($variableID, $Value);
+            return true;
+        }
+
+        return parent::SetValue($Ident, $Value);
     }
 
     /**

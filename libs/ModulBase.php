@@ -1227,7 +1227,7 @@ abstract class ModulBase extends \IPSModuleStrict
                     if ($association['Name'] == $value) {
                         $adjustedValue = $association['Value'];
                         $this->SendDebug(__FUNCTION__, 'Profilwert gefunden: ' . $value . ' -> ' . $adjustedValue, 0);
-                        $result = $this->SetValueByID($variableID, $adjustedValue);
+                        $result = $this->SetModuleValue($ident, $variableID, $adjustedValue);
                         $this->UpdateHeatingTileValueIfRelevant($ident);
                         $this->UpdateSensorTileValueIfRelevant($ident);
                         $this->UpdateMeteredSwitchTileValueIfRelevant($ident);
@@ -1238,7 +1238,7 @@ abstract class ModulBase extends \IPSModuleStrict
         }
 
         $this->SendDebug(__FUNCTION__, 'Setze Variable: ' . $ident . ' auf Wert: ' . json_encode($adjustedValue), 0);
-        $result = $this->SetValueByID($variableID, $adjustedValue);
+        $result = $this->SetModuleValue($ident, $variableID, $adjustedValue);
 
         // Spezialbehandlung für ColorTemp
         if ($ident === 'color_temp') {
@@ -1334,19 +1334,23 @@ abstract class ModulBase extends \IPSModuleStrict
 
         $this->SendDebug(__FUNCTION__, \sprintf('Setze Variable: %s, Typ: %s, Wert: %s', $ident, $debugVarType, json_encode($value)), 0);
         // Setze den Wert der Variable
-        $this->SetValueByID($variableID, $value);
+        $this->SetModuleValue($ident, $variableID, $value);
         $this->UpdateHeatingTileValueIfRelevant($ident);
         $this->UpdateSensorTileValueIfRelevant($ident);
         $this->UpdateMeteredSwitchTileValueIfRelevant($ident);
     }
 
     /**
-     * Setzt einen Variablenwert per Objekt-ID.
+     * Setzt einen Variablenwert module-strict-konform.
      */
-    private function SetValueByID(int $variableID, mixed $value): bool
+    private function SetModuleValue(string $ident, int $variableID, mixed $value): bool
     {
-        \SetValue($variableID, $value);
-        return true;
+        if (\defined('PHPUNIT_TESTSUITE') && PHPUNIT_TESTSUITE) {
+            \SetValue($variableID, $value);
+            return true;
+        }
+
+        return parent::SetValue($ident, $value);
     }
 
     // Feature & Expose Handling
