@@ -42,9 +42,20 @@
             ]
         },
         {
+            "type": "Label",
+            "caption": ""
+        },
+        {
+            "type": "Button",
+            "visible": false,
+            "caption": "Show missing translations",
+            "onClick": "IPS_RequestAction($id, 'ShowMissingTranslations', true);"
+        },
+        {
             "type": "ExpansionPanel",
             "caption": "Temperature visualization",
             "expanded": false,
+            "visible": false,
             "items": [
                 {
                     "type": "Label",
@@ -74,16 +85,6 @@
                     ]
                 }
             ]
-        },
-        {
-            "type": "Label",
-            "caption": ""
-        },
-        {
-            "type": "Button",
-            "visible": false,
-            "caption": "Show missing translations",
-            "onClick": "IPS_RequestAction($id, 'ShowMissingTranslations', true);"
         }
     ],
     "actions": [

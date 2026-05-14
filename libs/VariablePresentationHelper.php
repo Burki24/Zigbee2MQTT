@@ -111,7 +111,7 @@ trait VariablePresentationHelper
     protected function ApplyNumericFeaturePresentation(string $ident, array $feature, ?string $groupType = null): void
     {
         if ($this->ShouldSuppressNumericSliderPresentation($ident, $feature)) {
-            $this->ApplyNumericValueInputPresentation($ident, $feature);
+            $this->ResetCustomPresentation($ident);
             return;
         }
 
