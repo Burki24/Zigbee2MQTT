@@ -30,17 +30,11 @@ trait MeteredSwitchTileHelper
      */
     protected function HasMeteredSwitchTileCapabilities(): bool
     {
-        if ($this->GetObjectIDByIdent('state') === false) {
+        if ($this->GetMeteredSwitchTileSwitchIdents() === []) {
             return false;
         }
 
-        foreach (['power', 'energy', 'voltage', 'current'] as $ident) {
-            if ($this->GetObjectIDByIdent($ident) !== false) {
-                return true;
-            }
-        }
-
-        return false;
+        return $this->GetMeteredSwitchTileMeasurementIdents() !== [];
     }
 
     /**
@@ -50,12 +44,19 @@ trait MeteredSwitchTileHelper
     {
         switch ($ident) {
             case 'MeteredSwitchTile.Toggle':
-                $stateID = $this->GetObjectIDByIdent('state');
+                $switchIdents = $this->GetMeteredSwitchTileSwitchIdents();
+                $request = $this->DecodeMeteredSwitchTileRequest($value);
+                $stateIdent = (string) ($request['ident'] ?? ($switchIdents[0] ?? 'state'));
+                if (!\in_array($stateIdent, $switchIdents, true)) {
+                    return true;
+                }
+
+                $stateID = $this->GetObjectIDByIdent($stateIdent);
                 if ($stateID === false) {
                     return true;
                 }
 
-                $this->RequestAction('state', !((bool) GetValue($stateID)));
+                $this->RequestAction($stateIdent, !((bool) GetValue($stateID)));
                 return true;
 
             case 'MeteredSwitchTile.Refresh':
@@ -110,9 +111,25 @@ trait MeteredSwitchTileHelper
      */
     protected function BuildMeteredSwitchTileData(?array $archiveData = null): array
     {
+        $switches = [];
+        foreach ($this->GetMeteredSwitchTileSwitchIdents() as $ident) {
+            $variableID = $this->GetObjectIDByIdent($ident);
+            if ($variableID === false) {
+                continue;
+            }
+
+            $rawValue = GetValue($variableID);
+            $switches[$ident] = [
+                'available' => true,
+                'label'     => $this->GetMeteredSwitchTileLabel($ident),
+                'value'     => (bool) $rawValue,
+                'formatted' => $this->FormatMeteredSwitchTileValue($ident, $rawValue)
+            ];
+        }
+
         $values = [];
         $archiveID = $this->GetMeteredSwitchTileArchiveID();
-        foreach ($this->GetMeteredSwitchTileIdents() as $ident) {
+        foreach ($this->GetMeteredSwitchTileMeasurementIdents() as $ident) {
             $variableID = $this->GetObjectIDByIdent($ident);
             if ($variableID === false) {
                 continue;
@@ -121,6 +138,8 @@ trait MeteredSwitchTileHelper
             $rawValue = GetValue($variableID);
             $values[$ident] = [
                 'available' => true,
+                'label'     => $this->GetMeteredSwitchTileLabel($ident),
+                'unit'      => $this->GetMeteredSwitchTileUnit($ident),
                 'value'     => $rawValue,
                 'formatted' => $this->FormatMeteredSwitchTileValue($ident, $rawValue),
                 'archived'  => $this->IsMeteredSwitchTileValueArchived($variableID, $archiveID)
@@ -130,6 +149,7 @@ trait MeteredSwitchTileHelper
         $data = [
             'type'   => 'meteredSwitch',
             'name'   => IPS_GetName($this->InstanceID),
+            'switches' => $switches,
             'values' => $values
         ];
 
@@ -146,7 +166,10 @@ trait MeteredSwitchTileHelper
      */
     protected function GetMeteredSwitchTileIdents(): array
     {
-        return ['state', 'power', 'energy', 'voltage', 'current'];
+        return array_values(array_unique(array_merge(
+            $this->GetMeteredSwitchTileSwitchIdents(),
+            $this->GetMeteredSwitchTileMeasurementIdents()
+        )));
     }
 
     /**
@@ -154,7 +177,69 @@ trait MeteredSwitchTileHelper
      */
     private function GetMeteredSwitchTileArchiveIdents(): array
     {
-        return ['power', 'energy', 'voltage', 'current'];
+        return $this->GetMeteredSwitchTileMeasurementIdents();
+    }
+
+    /**
+     * Liefert alle vorhandenen Schaltkanaele der Kachel.
+     */
+    private function GetMeteredSwitchTileSwitchIdents(): array
+    {
+        $idents = [];
+        $candidates = ['state'];
+
+        for ($index = 1; $index <= 16; $index++) {
+            $candidates[] = 'state_' . $index;
+            $candidates[] = 'state_l' . $index;
+        }
+
+        foreach ($candidates as $ident) {
+            if ($this->GetObjectIDByIdent($ident) !== false) {
+                $idents[] = $ident;
+            }
+        }
+
+        return $idents;
+    }
+
+    /**
+     * Liefert alle vorhandenen Messwert-Idents passend zu den Schaltkanaelen.
+     */
+    private function GetMeteredSwitchTileMeasurementIdents(): array
+    {
+        $idents = [];
+        $suffixes = $this->GetMeteredSwitchTileChannelSuffixes();
+        $metricIdents = ['energy', 'power', 'voltage', 'current'];
+
+        foreach ($suffixes as $suffix) {
+            foreach ($metricIdents as $metricIdent) {
+                $ident = $metricIdent . $suffix;
+                if ($this->GetObjectIDByIdent($ident) !== false) {
+                    $idents[] = $ident;
+                }
+            }
+        }
+
+        foreach ($metricIdents as $ident) {
+            if (!\in_array($ident, $idents, true) && $this->GetObjectIDByIdent($ident) !== false) {
+                $idents[] = $ident;
+            }
+        }
+
+        return $idents;
+    }
+
+    /**
+     * Liefert die Kanal-Suffixe anhand der vorhandenen Schaltkanaele.
+     */
+    private function GetMeteredSwitchTileChannelSuffixes(): array
+    {
+        $suffixes = [];
+        foreach ($this->GetMeteredSwitchTileSwitchIdents() as $ident) {
+            $suffixes[] = $ident === 'state' ? '' : substr($ident, 5);
+        }
+
+        return array_values(array_unique($suffixes));
     }
 
     /**
@@ -310,7 +395,7 @@ trait MeteredSwitchTileHelper
      */
     private function GetMeteredSwitchTileUnit(string $ident): string
     {
-        return match ($ident) {
+        return match ($this->GetMeteredSwitchTileBaseIdent($ident)) {
             'power'   => 'W',
             'energy'  => 'kWh',
             'voltage' => 'V',
@@ -324,13 +409,19 @@ trait MeteredSwitchTileHelper
      */
     private function GetMeteredSwitchTileLabel(string $ident): string
     {
-        return match ($ident) {
+        $baseIdent = $this->GetMeteredSwitchTileBaseIdent($ident);
+        $suffix = $this->GetMeteredSwitchTileLabelSuffix($ident, $baseIdent);
+
+        $label = match ($baseIdent) {
+            'state'   => 'Status',
             'power'   => 'Leistung',
             'energy'  => 'Energie',
             'voltage' => 'Spannung',
             'current' => 'Strom',
             default   => $ident
         };
+
+        return $label . $suffix;
     }
 
     /**
@@ -338,7 +429,7 @@ trait MeteredSwitchTileHelper
      */
     private function FormatMeteredSwitchTileValue(string $ident, mixed $value): string
     {
-        switch ($ident) {
+        switch ($this->GetMeteredSwitchTileBaseIdent($ident)) {
             case 'state':
                 return $value ? $this->Translate('On') : $this->Translate('Off');
             case 'power':
@@ -352,5 +443,40 @@ trait MeteredSwitchTileHelper
         }
 
         return (string) $value;
+    }
+
+    /**
+     * Liefert den Basis-Ident ohne Kanal-Suffix.
+     */
+    private function GetMeteredSwitchTileBaseIdent(string $ident): string
+    {
+        foreach (['state', 'energy', 'power', 'voltage', 'current'] as $baseIdent) {
+            if ($ident === $baseIdent || str_starts_with($ident, $baseIdent . '_')) {
+                return $baseIdent;
+            }
+        }
+
+        return $ident;
+    }
+
+    /**
+     * Liefert eine lesbare Kanalnummer als Label-Suffix.
+     */
+    private function GetMeteredSwitchTileLabelSuffix(string $ident, string $baseIdent): string
+    {
+        if ($ident === $baseIdent) {
+            return '';
+        }
+
+        $suffix = substr($ident, \strlen($baseIdent));
+        if (preg_match('/^_(\d+)$/', $suffix, $matches)) {
+            return ' ' . $matches[1];
+        }
+
+        if (preg_match('/^_l(\d+)$/i', $suffix, $matches)) {
+            return ' L' . $matches[1];
+        }
+
+        return ' ' . strtoupper(ltrim($suffix, '_'));
     }
 }

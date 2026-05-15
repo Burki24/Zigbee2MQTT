@@ -132,6 +132,81 @@
             height: 54%;
         }
 
+        .power-wrap.hidden {
+            display: none;
+        }
+
+        .switch-list {
+            position: absolute;
+            left: 22px;
+            right: 84px;
+            top: 64px;
+            bottom: 16px;
+            display: grid;
+            align-content: center;
+            gap: 6px;
+            overflow: hidden;
+        }
+
+        .switch-list.hidden {
+            display: none;
+        }
+
+        .switch-toggle {
+            display: grid;
+            grid-template-columns: 34px minmax(0, 1fr) auto;
+            align-items: center;
+            width: 100%;
+            min-height: 34px;
+            padding: 0;
+            border: 0;
+            border-radius: 7px;
+            color: var(--text);
+            background: transparent;
+            cursor: pointer;
+            text-align: left;
+        }
+
+        .switch-toggle:hover {
+            background: var(--chip);
+        }
+
+        .switch-toggle:active {
+            transform: scale(0.99);
+        }
+
+        .switch-state-icon {
+            display: grid;
+            place-items: center;
+            color: var(--button-off);
+        }
+
+        .switch-toggle.on .switch-state-icon {
+            color: var(--accent);
+        }
+
+        .switch-state-icon svg {
+            width: 23px;
+            height: 23px;
+        }
+
+        .switch-state-label {
+            overflow: hidden;
+            text-overflow: ellipsis;
+            white-space: nowrap;
+            font-size: 14px;
+        }
+
+        .switch-state-text {
+            color: var(--muted);
+            font-size: 13px;
+            white-space: nowrap;
+        }
+
+        .switch-toggle.on .switch-state-text {
+            color: var(--accent);
+        }
+
         .list-view {
             background: transparent !important;
             background-color: transparent !important;
@@ -325,6 +400,18 @@
                 top: 112px;
             }
 
+            .switch-list {
+                left: 18px;
+                right: 72px;
+                top: 56px;
+                bottom: 12px;
+                gap: 4px;
+            }
+
+            .switch-toggle {
+                min-height: 32px;
+            }
+
             .chart-shell {
                 top: 82px;
                 gap: 8px;
@@ -356,6 +443,7 @@
                     </svg>
                 </button>
             </div>
+            <div class="switch-list hidden" id="switchList"></div>
         </section>
 
         <section class="view list-view" id="listView">
@@ -397,12 +485,13 @@
 
     <script>
         const labels = {
+            state: "Status",
             power: "Leistung",
             energy: "Energie",
             voltage: "Spannung",
             current: "Strom"
         };
-        const order = ["energy", "power", "voltage", "current"];
+        const metricOrder = ["energy", "power", "voltage", "current"];
         const rangeLabels = {
             day: "Letzte 24 Stunden",
             week: "Letzte 7 Tage",
@@ -421,7 +510,9 @@
         const powerView = document.getElementById("powerView");
         const listView = document.getElementById("listView");
         const chartView = document.getElementById("chartView");
+        const powerWrap = document.querySelector(".power-wrap");
         const powerButton = document.getElementById("powerButton");
+        const switchList = document.getElementById("switchList");
         const meterList = document.getElementById("meterList");
         const chartTitle = document.getElementById("chartTitle");
         const chartSubtitle = document.getElementById("chartSubtitle");
@@ -430,6 +521,7 @@
         const rangeButtons = Array.from(document.querySelectorAll(".range-button"));
         let activeArchiveIdent = null;
         let activeArchiveRange = "day";
+        let primarySwitchIdent = "state";
 
         function handleMessage(message) {
             const nextData = normalizeMessage(message);
@@ -467,8 +559,24 @@
                 return null;
             }
 
-            if (message.type !== "meteredSwitch" || !message.values || typeof message.values !== "object") {
+            if (message.type !== "meteredSwitch") {
                 return null;
+            }
+
+            if (!message.values || typeof message.values !== "object") {
+                message.values = {};
+            }
+            if (!message.switches || typeof message.switches !== "object") {
+                message.switches = {};
+            }
+            if (Object.keys(message.switches).length === 0 && message.values.state) {
+                message.switches = {
+                    state: {
+                        label: labels.state,
+                        value: !!message.values.state.value,
+                        formatted: message.values.state.formatted || ""
+                    }
+                };
             }
 
             return message;
@@ -485,7 +593,7 @@
             activeView = "archive";
             data.archive = {
                 ident,
-                label: labels[ident] || ident,
+                label: getMetricLabel(ident, data.values?.[ident]),
                 range,
                 unit: "",
                 available: false,
@@ -505,24 +613,21 @@
             listView.classList.toggle("active", activeView === "list");
             chartView.classList.toggle("active", activeView === "archive");
 
-            const state = data.values.state;
-            const isOn = !!(state && state.value);
-            powerButton.classList.toggle("off", !isOn);
+            renderSwitches();
 
             meterList.replaceChildren();
             let renderedRows = 0;
-            const availableKeys = Object.keys(data.values || {});
-            for (const ident of order) {
-                const item = data.values[ident];
-                if (!item) {
+            for (const [ident, item] of Object.entries(data.values || {})) {
+                const baseIdent = getBaseIdent(ident);
+                if (!metricOrder.includes(baseIdent)) {
                     continue;
                 }
                 const row = document.createElement("div");
                 row.className = "row";
                 row.innerHTML = [
-                    `<div class="row-icon"><svg viewBox="0 0 24 24" aria-hidden="true">${iconPaths[ident]}</svg></div>`,
-                    `<div class="row-label">${labels[ident]}</div>`,
-                    `<div class="row-value">${item.formatted}</div>`,
+                    `<div class="row-icon"><svg viewBox="0 0 24 24" aria-hidden="true">${iconPaths[baseIdent]}</svg></div>`,
+                    `<div class="row-label">${escapeHtml(getMetricLabel(ident, item))}</div>`,
+                    `<div class="row-value">${escapeHtml(item.formatted || "")}</div>`,
                     `<button class="archive-button${item.archived ? "" : " placeholder"}" type="button" title="Verlauf" aria-label="Verlauf" data-ident="${ident}">
                         <svg viewBox="0 0 24 24" aria-hidden="true">
                             <path d="M4 19h16" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round"></path>
@@ -553,13 +658,59 @@
             renderArchive();
         }
 
+        function renderSwitches() {
+            const switches = getSwitchEntries();
+            const useSwitchList = switches.length > 1;
+            primarySwitchIdent = switches[0]?.[0] || "state";
+
+            powerWrap.classList.toggle("hidden", useSwitchList);
+            switchList.classList.toggle("hidden", !useSwitchList);
+
+            if (!useSwitchList) {
+                const item = switches[0]?.[1];
+                powerButton.classList.toggle("off", !(item && item.value));
+                switchList.replaceChildren();
+                return;
+            }
+
+            switchList.replaceChildren();
+            for (const [ident, item] of switches) {
+                const button = document.createElement("button");
+                button.className = `switch-toggle${item.value ? " on" : ""}`;
+                button.type = "button";
+                button.title = item.label || ident;
+                button.innerHTML = [
+                    `<span class="switch-state-icon"><svg viewBox="0 0 24 24" aria-hidden="true">${powerIconPath()}</svg></span>`,
+                    `<span class="switch-state-label">${escapeHtml(item.label || ident)}</span>`,
+                    `<span class="switch-state-text">${escapeHtml(item.formatted || (item.value ? "An" : "Aus"))}</span>`
+                ].join("");
+                button.addEventListener("click", () => requestSwitchToggle(ident));
+                switchList.appendChild(button);
+            }
+        }
+
+        function getSwitchEntries() {
+            const switches = data.switches && typeof data.switches === "object" ? data.switches : {};
+            const entries = Object.entries(switches);
+            if (entries.length > 0) {
+                return entries;
+            }
+
+            const state = data.values?.state;
+            return state ? [["state", {
+                label: labels.state,
+                value: !!state.value,
+                formatted: state.formatted || ""
+            }]] : [];
+        }
+
         function renderArchive() {
             const archive = data.archive || {};
             const ident = archive.ident || activeArchiveIdent;
             const range = archive.range || activeArchiveRange;
             activeArchiveRange = range || "day";
 
-            chartTitle.textContent = archive.label || labels[ident] || "Verlauf";
+            chartTitle.textContent = archive.label || getMetricLabel(ident, data.values?.[ident]) || "Verlauf";
             chartSubtitle.textContent = `${rangeLabels[activeArchiveRange] || rangeLabels.day}${archive.unit ? ` · ${archive.unit}` : ""}`;
             rangeButtons.forEach((button) => {
                 const isActive = button.dataset.range === activeArchiveRange;
@@ -685,6 +836,46 @@
             return element;
         }
 
+        function requestSwitchToggle(ident) {
+            requestAction("MeteredSwitchTile.Toggle", JSON.stringify({ ident }));
+        }
+
+        function getBaseIdent(ident) {
+            for (const baseIdent of ["state", ...metricOrder]) {
+                if (ident === baseIdent || ident.startsWith(`${baseIdent}_`)) {
+                    return baseIdent;
+                }
+            }
+
+            return ident;
+        }
+
+        function getMetricLabel(ident, item = null) {
+            if (item && item.label) {
+                return item.label;
+            }
+
+            const baseIdent = getBaseIdent(ident);
+            if (ident === baseIdent) {
+                return labels[baseIdent] || ident;
+            }
+
+            return `${labels[baseIdent] || baseIdent} ${ident.slice(baseIdent.length).replace(/^_/, "").toUpperCase()}`;
+        }
+
+        function powerIconPath() {
+            return '<path d="M12 2v10" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round"></path><path d="M7.4 5.6a8 8 0 1 0 9.2 0" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round"></path>';
+        }
+
+        function escapeHtml(value) {
+            return String(value)
+                .replace(/&/g, "&amp;")
+                .replace(/</g, "&lt;")
+                .replace(/>/g, "&gt;")
+                .replace(/"/g, "&quot;")
+                .replace(/'/g, "&#039;");
+        }
+
         document.getElementById("showListRight").addEventListener("click", () => setView("list"));
         document.getElementById("showPowerRight").addEventListener("click", () => setView("power"));
         document.getElementById("showListFromChart").addEventListener("click", () => setView("list"));
@@ -696,7 +887,7 @@
                 requestArchive(activeArchiveIdent, button.dataset.range || "day");
             });
         });
-        powerButton.addEventListener("click", () => requestAction("MeteredSwitchTile.Toggle", true));
+        powerButton.addEventListener("click", () => requestSwitchToggle(primarySwitchIdent));
 
         render();
     </script>
