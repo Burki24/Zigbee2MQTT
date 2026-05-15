@@ -194,7 +194,11 @@ trait MeteredSwitchTileHelper
         }
 
         foreach ($candidates as $ident) {
-            if ($this->GetObjectIDByIdent($ident) !== false) {
+            $variableID = $this->GetObjectIDByIdent($ident);
+            if ($variableID === false) {
+                continue;
+            }
+            if (IPS_GetVariable($variableID)['VariableType'] === VARIABLETYPE_BOOLEAN) {
                 $idents[] = $ident;
             }
         }
