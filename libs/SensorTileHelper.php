@@ -176,6 +176,7 @@ trait SensorTileHelper
             'motion',
             'temperature',
             'humidity',
+            'soil_moisture',
             'illuminance',
             'illuminance_lux'
         ];

@@ -502,6 +502,7 @@
             temperature_units: "Einheit",
             temperature_unit_convert: "Einheit",
             humidity: "Luftfeuchtigkeit",
+            soil_moisture: "Bodenfeuchtigkeit",
             illuminance: "Helligkeit",
             illuminance_lux: "Helligkeit",
             illuminance_calibration: "Helligkeit Kalibrierung",
@@ -531,10 +532,11 @@
             high: "Hoch"
         };
         const alertOrder = ["presence", "occupancy", "motion"];
-        const metricOrder = ["temperature", "humidity", "illuminance", "illuminance_lux"];
+        const metricOrder = ["temperature", "humidity", "soil_moisture", "illuminance", "illuminance_lux"];
         const metricTarget = {
             temperature: "temperature",
             humidity: "humidity",
+            soil_moisture: "humidity",
             illuminance: "illuminance",
             illuminance_lux: "illuminance"
         };
@@ -747,6 +749,10 @@
                 }
 
                 valueElement.textContent = item.formatted || formattedValue(ident, item.value);
+                const captionElement = itemElement.querySelector(".metric-caption");
+                if (captionElement) {
+                    captionElement.textContent = labels[ident] || labels[target] || target;
+                }
                 renderedMetricTargets.add(target);
                 itemElement.classList.add("visible");
                 if (!alert && visibleMetrics === 0) {
