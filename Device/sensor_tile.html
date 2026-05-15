@@ -182,6 +182,7 @@
 
         .metric-item.primary {
             display: grid;
+            order: -1;
             justify-items: center;
             gap: 5px;
             color: var(--text);
@@ -532,7 +533,7 @@
             high: "Hoch"
         };
         const alertOrder = ["presence", "occupancy", "motion"];
-        const metricOrder = ["temperature", "humidity", "soil_moisture", "illuminance", "illuminance_lux"];
+        const metricOrder = ["soil_moisture", "temperature", "humidity", "illuminance", "illuminance_lux"];
         const metricTarget = {
             temperature: "temperature",
             humidity: "humidity",
