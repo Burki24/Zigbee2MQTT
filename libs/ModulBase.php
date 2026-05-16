@@ -8,6 +8,7 @@ require_once __DIR__ . '/AttributeArrayHelper.php';
 require_once __DIR__ . '/BufferHelper.php';
 require_once __DIR__ . '/SemaphoreHelper.php';
 require_once __DIR__ . '/VariableProfileHelper.php';
+require_once __DIR__ . '/Localization/TranslationHelper.php';
 require_once __DIR__ . '/Configuration/DeviceFormHelper.php';
 require_once __DIR__ . '/Visualization/VariablePresentationHelper.php';
 require_once __DIR__ . '/Visualization/MeteredSwitchTileHelper.php';
@@ -38,6 +39,7 @@ abstract class ModulBase extends \IPSModuleStrict
     use Semaphore;
     use ColorHelper;
     use VariableProfileHelper;
+    use TranslationHelper;
     use DeviceFormHelper;
     use VariablePresentationHelper;
     use MeteredSwitchTileHelper;
@@ -1108,37 +1110,8 @@ abstract class ModulBase extends \IPSModuleStrict
             }
         }
         $DebugData['missingTranslations'] = $this->missingTranslations;
-        return 'data:application/json;base64,' . base64_encode(json_encode($DebugData, JSON_PRETTY_PRINT));
-    }
 
-    /**
-     * Translate
-     *
-     * Überschreibt Translate um die Übersetzung aus der globalen json zu nutzen.
-     *
-     * @param  string $Text
-     * @return string
-     */
-    public function Translate(string $Text): string
-    {
-        $translation = array_merge_recursive(
-            json_decode(file_get_contents(__DIR__ . '/locale.json'), true),
-            json_decode(file_get_contents(__DIR__ . '/locale_z2m.json'), true)
-        );
-        $language = IPS_GetSystemLanguage();
-        $code = explode('_', $language)[0];
-        if (isset($translation['translations'])) {
-            if (isset($translation['translations'][$language])) {
-                if (isset($translation['translations'][$language][$Text])) {
-                    return $translation['translations'][$language][$Text];
-                }
-            } elseif (isset($translation['translations'][$code])) {
-                if (isset($translation['translations'][$code][$Text])) {
-                    return $translation['translations'][$code][$Text];
-                }
-            }
-        }
-        return $Text;
+        return 'data:application/json;base64,' . base64_encode(json_encode($DebugData, JSON_PRETTY_PRINT));
     }
 
     /**
@@ -1505,20 +1478,6 @@ abstract class ModulBase extends \IPSModuleStrict
      * @return bool
      */
     abstract protected function UpdateDeviceInfo(): bool;
-
-    protected function ShowMissingTranslations(): bool
-    {
-        $this->UpdateFormField('ShowMissingTranslations', 'visible', true);
-        $Values = [];
-        foreach ($this->missingTranslations as $KVP) {
-            $Values[] = [
-                'type'  => array_key_first($KVP),
-                'value' => $KVP[array_key_first($KVP)]
-            ];
-        }
-        $this->UpdateFormField('MissingTranslationsList', 'values', json_encode($Values));
-        return true;
-    }
 
     /**
      * Wandelt ein verschachteltes Array in ein eindimensionales Array mit zusammengesetzten Schlüsseln um
@@ -3784,66 +3743,6 @@ abstract class ModulBase extends \IPSModuleStrict
         $this->SendDebug(__FUNCTION__ . ' Known Variables Array:', json_encode($knownVariables), 0);
 
         return $knownVariables;
-    }
-
-    /**
-     * isValueInLocaleJson
-     *
-     * Prüft, ob ein Wert in der locale.json vorhanden ist.
-     *
-     * @param string $value Der zu prüfende Wert.
-     * @return bool Gibt true zurück, wenn der Wert in der locale.json vorhanden ist, andernfalls false.
-     *
-     *@see file_exists()
-     *@see strtoupper()
-     *@see substr()
-     *@see json_decode()
-     */
-    private function isValueInLocaleJson(string $Text, string $Type): bool
-    {
-        $translation = json_decode(file_get_contents(__DIR__ . '/locale_z2m.json'), true);
-        $language = IPS_GetSystemLanguage();
-        $code = explode('_', $language)[0];
-        if (isset($translation['translations'])) {
-            if (isset($translation['translations'][$language])) {
-                if (isset($translation['translations'][$language][$Text])) {
-                    return true;
-                }
-            } elseif (isset($translation['translations'][$code])) {
-                if (isset($translation['translations'][$code][$Text])) {
-                    return true;
-                }
-            }
-        }
-        $this->addValueToTranslationsBuffer($Text, $Type);
-        return false;
-    }
-
-    /**
-     * addValueToTranslationsBuffer
-     *
-     * Fügt einen Wert zum Missingtranslations Buffer hinzu, wenn er noch nicht vorhanden ist.
-     * Gibt eine Liste an Begriffen, die noch in der locale.json ergänzt werden müssen.
-     *
-     * @param string $value Der hinzuzufügende Wert.
-     * @return void
-     *
-     * @see file_exists()
-     * @see file_get_contents()
-     * @see json_decode()
-     * @see json_encode()
-     * @see in_array()
-     * @see file_put_contents()
-     */
-    private function addValueToTranslationsBuffer(string $value, string $type): void
-    {
-        $translations = $this->missingTranslations;
-        $missingKVP = [$type => $value];
-        // Füge den neuen Begriff hinzu, wenn er noch nicht existiert
-        if (!\in_array($missingKVP, $translations)) {
-            $translations[] = $missingKVP;
-            $this->missingTranslations = $translations;
-        }
     }
 
     /**
