@@ -88,6 +88,14 @@ trait MeteredSwitchTileHelper
             return;
         }
 
+        $this->UpdateMeteredSwitchTileVisualizationValue($archiveData);
+    }
+
+    /**
+     * Sendet den aktuellen Kachelzustand ohne erneute Capability-Pruefung.
+     */
+    private function UpdateMeteredSwitchTileVisualizationValue(?array $archiveData = null): void
+    {
         $this->UpdateVisualizationValue(json_encode(
             $this->BuildMeteredSwitchTileData($archiveData),
             JSON_HEX_TAG | JSON_HEX_APOS | JSON_HEX_AMP | JSON_HEX_QUOT
@@ -103,7 +111,7 @@ trait MeteredSwitchTileHelper
             return;
         }
 
-        $this->UpdateMeteredSwitchTileValue();
+        $this->UpdateMeteredSwitchTileVisualizationValue();
     }
 
     /**

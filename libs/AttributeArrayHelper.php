@@ -42,7 +42,23 @@ trait AttributeArrayHelper
      */
     protected function ReadAttributeArray(string $name): array
     {
-        return json_decode($this->ReadAttributeString($name), true);
+        set_error_handler(static function (): bool {
+            return true;
+        });
+        try {
+            $data = $this->ReadAttributeString($name);
+        } catch (\Throwable) {
+            return [];
+        } finally {
+            restore_error_handler();
+        }
+
+        if (!\is_string($data) || $data === '') {
+            return [];
+        }
+
+        $decoded = json_decode($data, true);
+        return \is_array($decoded) ? $decoded : [];
     }
 
     /**
