@@ -205,7 +205,8 @@ class DevicesTest extends DumpInclude
         $this->assertStringContainsString('"ident":"position"', $html);
         $this->assertStringContainsString('"button_left"', $html);
         $this->assertStringContainsString('"button_right"', $html);
-        $this->assertStringContainsString('Oben gekippt', $html);
+        $this->assertStringContainsString('Gekippt', $html);
+        $this->assertStringNotContainsString('Oben gekippt', $html);
     }
     public function testSenoroWinv2()
     {

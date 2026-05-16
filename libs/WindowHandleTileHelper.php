@@ -304,10 +304,10 @@ trait WindowHandleTileHelper
     private function FormatWindowHandleTilePosition(string $position): string
     {
         return match ($position) {
-            'up'    => 'Oben gekippt',
-            'down'  => 'Unten geschlossen',
-            'left'  => 'Links offen',
-            'right' => 'Rechts offen',
+            'up'    => 'Gekippt',
+            'down'  => 'Geschlossen',
+            'left',
+            'right' => 'Offen',
             default => $position !== '' ? $position : 'Unbekannt'
         };
     }
