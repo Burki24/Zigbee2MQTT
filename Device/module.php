@@ -111,23 +111,25 @@ class Zigbee2MQTTDevice extends \Zigbee2MQTT\ModulBase
      */
     public function GetVisualizationTile(): string
     {
+        $tilePath = dirname(__DIR__) . '/libs/Visualization/tiles/';
+
         if ($this->ShouldUseHeatingTile()) {
-            $html = file_get_contents(__DIR__ . '/heating_tile.html');
+            $html = file_get_contents($tilePath . 'heating_tile.html');
             $data = $this->BuildHeatingTileData();
         } elseif ($this->ShouldUseMeteredSwitchTile()) {
-            $html = file_get_contents(__DIR__ . '/metered_switch_tile.html');
+            $html = file_get_contents($tilePath . 'metered_switch_tile.html');
             $data = $this->BuildMeteredSwitchTileData();
         } elseif ($this->ShouldUseWindowHandleTile()) {
-            $html = file_get_contents(__DIR__ . '/window_handle_tile.html');
+            $html = file_get_contents($tilePath . 'window_handle_tile.html');
             $data = $this->BuildWindowHandleTileData();
         } elseif ($this->ShouldUseSecurityTile()) {
-            $html = file_get_contents(__DIR__ . '/security_tile.html');
+            $html = file_get_contents($tilePath . 'security_tile.html');
             $data = $this->BuildSecurityTileData();
         } elseif ($this->ShouldUseActionTile()) {
-            $html = file_get_contents(__DIR__ . '/action_tile.html');
+            $html = file_get_contents($tilePath . 'action_tile.html');
             $data = $this->BuildActionTileData();
         } elseif ($this->ShouldUseSensorTile()) {
-            $html = file_get_contents(__DIR__ . '/sensor_tile.html');
+            $html = file_get_contents($tilePath . 'sensor_tile.html');
             $data = $this->BuildSensorTileData();
         } else {
             return '';
