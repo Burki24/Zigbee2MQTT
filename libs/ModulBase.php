@@ -12,6 +12,7 @@ require_once __DIR__ . '/VariablePresentationHelper.php';
 require_once __DIR__ . '/MeteredSwitchTileHelper.php';
 require_once __DIR__ . '/HeatingTileHelper.php';
 require_once __DIR__ . '/SensorTileHelper.php';
+require_once __DIR__ . '/SecurityTileHelper.php';
 require_once __DIR__ . '/MQTTHelper.php';
 require_once __DIR__ . '/ColorHelper.php';
 
@@ -38,10 +39,12 @@ abstract class ModulBase extends \IPSModuleStrict
     use MeteredSwitchTileHelper;
     use HeatingTileHelper;
     use SensorTileHelper;
+    use SecurityTileHelper;
     use SendData;
     private const MINIMAL_MODUL_VERSION = 5.1;
     private const PROPERTY_DISABLE_METERED_SWITCH_TILE = 'DisableMeteredSwitchTile';
     private const PROPERTY_DISABLE_HEATING_TILE = 'DisableHeatingTile';
+    private const PROPERTY_DISABLE_SECURITY_TILE = 'DisableSecurityTile';
     private const PROPERTY_TEMPERATURE_PRESENTATION_FALLBACK_MIN = 'TemperaturePresentationFallbackMin';
     private const PROPERTY_TEMPERATURE_PRESENTATION_FALLBACK_MAX = 'TemperaturePresentationFallbackMax';
 
@@ -428,6 +431,7 @@ abstract class ModulBase extends \IPSModuleStrict
         $this->RegisterPropertyString(self::MQTT_TOPIC, '');
         $this->RegisterPropertyBoolean(self::PROPERTY_DISABLE_METERED_SWITCH_TILE, false);
         $this->RegisterPropertyBoolean(self::PROPERTY_DISABLE_HEATING_TILE, false);
+        $this->RegisterPropertyBoolean(self::PROPERTY_DISABLE_SECURITY_TILE, false);
         $this->RegisterPropertyFloat(self::PROPERTY_TEMPERATURE_PRESENTATION_FALLBACK_MIN, -40.0);
         $this->RegisterPropertyFloat(self::PROPERTY_TEMPERATURE_PRESENTATION_FALLBACK_MAX, 80.0);
         $this->RegisterAttributeArray(self::ATTRIBUTE_EXPOSES, []);
@@ -597,6 +601,11 @@ abstract class ModulBase extends \IPSModuleStrict
             strpos($ident, 'SensorTile.') === 0 => function () use ($ident, $value)
             {
                 return $this->HandleSensorTileAction($ident, $value);
+            },
+            // Behandelt HTML-SDK Kachelaktionen
+            strpos($ident, 'SecurityTile.') === 0 => function () use ($ident, $value)
+            {
+                return $this->HandleSecurityTileAction($ident, $value);
             },
             // Behandelt HTML-SDK Kachelaktionen
             strpos($ident, 'MeteredSwitchTile.') === 0 => function () use ($ident, $value)
@@ -1118,7 +1127,7 @@ abstract class ModulBase extends \IPSModuleStrict
      */
     protected function UpdateCustomTileVisualizationType(): void
     {
-        $this->SetVisualizationType(($this->ShouldUseHeatingTile() || $this->ShouldUseSensorTile() || $this->ShouldUseMeteredSwitchTile()) ? 1 : 0);
+        $this->SetVisualizationType(($this->ShouldUseHeatingTile() || $this->ShouldUseMeteredSwitchTile() || $this->ShouldUseSecurityTile() || $this->ShouldUseSensorTile()) ? 1 : 0);
     }
 
     // Variablenmanagement
@@ -1231,6 +1240,7 @@ abstract class ModulBase extends \IPSModuleStrict
                         $result = $this->SetModuleValue($ident, $variableID, $adjustedValue);
                         $this->UpdateHeatingTileValueIfRelevant($ident);
                         $this->UpdateSensorTileValueIfRelevant($ident);
+                        $this->UpdateSecurityTileValueIfRelevant($ident);
                         $this->UpdateMeteredSwitchTileValueIfRelevant($ident);
                         return $result;
                     }
@@ -1249,6 +1259,7 @@ abstract class ModulBase extends \IPSModuleStrict
         }
         $this->UpdateHeatingTileValueIfRelevant($ident);
         $this->UpdateSensorTileValueIfRelevant($ident);
+        $this->UpdateSecurityTileValueIfRelevant($ident);
         $this->UpdateMeteredSwitchTileValueIfRelevant($ident);
         return $result;
     }
@@ -1338,6 +1349,7 @@ abstract class ModulBase extends \IPSModuleStrict
         $this->SetModuleValue($ident, $variableID, $value);
         $this->UpdateHeatingTileValueIfRelevant($ident);
         $this->UpdateSensorTileValueIfRelevant($ident);
+        $this->UpdateSecurityTileValueIfRelevant($ident);
         $this->UpdateMeteredSwitchTileValueIfRelevant($ident);
     }
 

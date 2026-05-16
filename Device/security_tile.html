@@ -1,0 +1,499 @@
+<!doctype html>
+<html lang="de">
+<head>
+    <meta charset="utf-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1">
+    <style>
+        :root {
+            --safe: #10c8b2;
+            --alert: #f04438;
+            --warning: #f59e0b;
+            --info: #607d8b;
+            --text: #111111;
+            --muted: #667085;
+            --chip: rgba(0, 0, 0, 0.055);
+        }
+
+        * {
+            box-sizing: border-box;
+        }
+
+        html,
+        body {
+            width: 100%;
+            height: 100%;
+            margin: 0;
+            overflow: hidden;
+            background: transparent !important;
+            background-color: transparent !important;
+            color: var(--text);
+            font-family: system-ui, -apple-system, BlinkMacSystemFont, "Segoe UI", sans-serif;
+        }
+
+        button {
+            font: inherit;
+        }
+
+        .tile {
+            position: relative;
+            width: 100%;
+            height: 100%;
+            min-height: 240px;
+            overflow: hidden;
+            background: transparent !important;
+            background-color: transparent !important;
+        }
+
+        .view {
+            position: absolute;
+            inset: 0;
+            display: none;
+            width: 100%;
+            height: 100%;
+            padding: 18px;
+            background: transparent !important;
+            background-color: transparent !important;
+        }
+
+        .view.active {
+            display: block;
+        }
+
+        .nav-button {
+            position: absolute;
+            top: 74px;
+            right: 42px;
+            display: grid;
+            place-items: center;
+            width: 50px;
+            height: 50px;
+            border: 0;
+            border-radius: 50%;
+            color: var(--text);
+            background: transparent;
+            cursor: pointer;
+            z-index: 3;
+        }
+
+        .nav-button:hover,
+        .nav-button.active {
+            background: var(--chip);
+        }
+
+        .nav-button.hidden {
+            display: none;
+        }
+
+        .nav-icon {
+            width: 27px;
+            height: 27px;
+        }
+
+        .status-wrap {
+            position: absolute;
+            left: 50%;
+            top: 50%;
+            display: grid;
+            justify-items: center;
+            gap: 14px;
+            width: min(76vw, 330px);
+            max-width: calc(100% - 84px);
+            transform: translate(-50%, -40%);
+        }
+
+        .status-button {
+            --state-color: var(--safe);
+            display: grid;
+            place-items: center;
+            width: min(32vw, 32vh, 142px);
+            height: min(32vw, 32vh, 142px);
+            min-width: 104px;
+            min-height: 104px;
+            border-radius: 50%;
+            color: #ffffff;
+            background: var(--state-color);
+            box-shadow: 0 0 42px color-mix(in srgb, var(--state-color) 26%, transparent);
+        }
+
+        .status-button.alert {
+            --state-color: var(--alert);
+        }
+
+        .status-button.warning {
+            --state-color: var(--warning);
+        }
+
+        .status-button.info {
+            --state-color: var(--info);
+        }
+
+        .status-icon {
+            width: 52%;
+            height: 52%;
+        }
+
+        .status-text {
+            display: grid;
+            justify-items: center;
+            gap: 3px;
+            width: 100%;
+        }
+
+        .status-value {
+            overflow: hidden;
+            max-width: 100%;
+            color: var(--text);
+            font-size: clamp(31px, 10vw, 52px);
+            font-weight: 400;
+            line-height: 1.05;
+            text-align: center;
+            text-overflow: ellipsis;
+            white-space: nowrap;
+        }
+
+        .status-caption {
+            overflow: hidden;
+            max-width: 100%;
+            color: var(--muted);
+            font-size: 11px;
+            letter-spacing: 0;
+            text-align: center;
+            text-overflow: ellipsis;
+            text-transform: uppercase;
+            white-space: nowrap;
+        }
+
+        .detail-list {
+            position: absolute;
+            left: 22px;
+            right: 22px;
+            top: 126px;
+            bottom: 18px;
+            display: grid;
+            align-content: start;
+            gap: 0;
+            overflow: hidden;
+        }
+
+        .row {
+            display: grid;
+            grid-template-columns: 34px minmax(0, 1fr) auto;
+            align-items: center;
+            min-height: 38px;
+            gap: 8px;
+            color: var(--text);
+        }
+
+        .row-icon {
+            display: grid;
+            place-items: center;
+            color: var(--text);
+        }
+
+        .row-icon.safe {
+            color: var(--safe);
+        }
+
+        .row-icon.alert {
+            color: var(--alert);
+        }
+
+        .row-icon.warning {
+            color: var(--warning);
+        }
+
+        .row-icon.info {
+            color: var(--info);
+        }
+
+        .row-icon svg {
+            width: 22px;
+            height: 22px;
+        }
+
+        .row-label,
+        .row-value {
+            overflow: hidden;
+            font-size: 14px;
+            text-overflow: ellipsis;
+            white-space: nowrap;
+        }
+
+        .row-value {
+            max-width: 46vw;
+            text-align: right;
+        }
+
+        @media (max-width: 340px), (max-height: 300px) {
+            .nav-button {
+                top: 58px;
+                right: 24px;
+                width: 44px;
+                height: 44px;
+            }
+
+            .status-wrap {
+                width: min(82vw, 260px);
+                transform: translate(-50%, -36%);
+            }
+
+            .status-button {
+                min-width: 88px;
+                min-height: 88px;
+            }
+
+            .detail-list {
+                top: 108px;
+                left: 18px;
+                right: 18px;
+            }
+
+            .row {
+                min-height: 34px;
+            }
+
+            .row-label,
+            .row-value {
+                font-size: 13px;
+            }
+        }
+    </style>
+</head>
+<body>
+    <main class="tile">
+        <section class="view main-view active" id="mainView">
+            <button class="nav-button" id="showDetails" type="button" title="Details">
+                <svg class="nav-icon" viewBox="0 0 24 24" aria-hidden="true">
+                    <path d="M8 6h13" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round"></path>
+                    <path d="M8 12h13" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round"></path>
+                    <path d="M8 18h13" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round"></path>
+                    <path d="M3 6h.01" fill="none" stroke="currentColor" stroke-width="3" stroke-linecap="round"></path>
+                    <path d="M3 12h.01" fill="none" stroke="currentColor" stroke-width="3" stroke-linecap="round"></path>
+                    <path d="M3 18h.01" fill="none" stroke="currentColor" stroke-width="3" stroke-linecap="round"></path>
+                </svg>
+            </button>
+
+            <div class="status-wrap">
+                <div class="status-button" id="statusButton">
+                    <svg class="status-icon" id="statusIcon" viewBox="0 0 24 24" aria-hidden="true"></svg>
+                </div>
+                <div class="status-text">
+                    <div class="status-value" id="statusValue">OK</div>
+                    <div class="status-caption" id="statusCaption">Status</div>
+                </div>
+            </div>
+        </section>
+
+        <section class="view detail-view" id="detailView">
+            <button class="nav-button active" id="showMain" type="button" title="Status">
+                <svg class="nav-icon" viewBox="0 0 24 24" aria-hidden="true">
+                    <path d="M12 22s8-4 8-10V5l-8-3-8 3v7c0 6 8 10 8 10z" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linejoin="round"></path>
+                    <path d="m9 12 2 2 4-5" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round"></path>
+                </svg>
+            </button>
+            <div class="detail-list" id="detailList"></div>
+        </section>
+    </main>
+
+    <script>
+        let data = __INITIAL_DATA__;
+        let activeView = "main";
+
+        const detailOrder = [
+            "contact",
+            "window_open",
+            "smoke",
+            "carbon_monoxide",
+            "gas",
+            "water_leak",
+            "tamper",
+            "vibration",
+            "alarm",
+            "alarm_status",
+            "battery",
+            "battery_low",
+            "device_status",
+            "linkquality",
+            "last_seen",
+            "voltage",
+            "illuminance",
+            "illuminance_lux",
+            "temperature",
+            "humidity"
+        ];
+
+        const iconPaths = {
+            shield: '<path d="M12 22s8-4 8-10V5l-8-3-8 3v7c0 6 8 10 8 10z" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linejoin="round"></path><path d="m9 12 2 2 4-5" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round"></path>',
+            door: '<path d="M5 21h14" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round"></path><path d="M7 21V4.5A1.5 1.5 0 0 1 8.5 3H17v18" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linejoin="round"></path><path d="M14 12h.01" fill="none" stroke="currentColor" stroke-width="3" stroke-linecap="round"></path>',
+            alert: '<path d="M12 9v4" fill="none" stroke="currentColor" stroke-width="1.9" stroke-linecap="round"></path><path d="M12 17h.01" fill="none" stroke="currentColor" stroke-width="2.6" stroke-linecap="round"></path><path d="M10.3 4.2 2.7 17.4A2 2 0 0 0 4.4 20h15.2a2 2 0 0 0 1.7-2.6L13.7 4.2a2 2 0 0 0-3.4 0z" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linejoin="round"></path>',
+            drop: '<path d="M12 3.5s6 6.2 6 10.6a6 6 0 0 1-12 0c0-4.4 6-10.6 6-10.6z" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linejoin="round"></path>',
+            battery: '<path d="M3 8h15a2 2 0 0 1 2 2v4a2 2 0 0 1-2 2H3z" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linejoin="round"></path><path d="M20 10.5h1.5v3H20" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round"></path>',
+            signal: '<path d="M4 19h.01" fill="none" stroke="currentColor" stroke-width="2.8" stroke-linecap="round"></path><path d="M8.5 15.5a5 5 0 0 1 7 0" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round"></path><path d="M5 12a10 10 0 0 1 14 0" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round"></path>',
+            clock: '<circle cx="12" cy="12" r="9" fill="none" stroke="currentColor" stroke-width="1.8"></circle><path d="M12 7v5l3 2" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round"></path>',
+            plug: '<path d="M8 2v6" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round"></path><path d="M16 2v6" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round"></path><path d="M6 8h12v3a6 6 0 0 1-12 0V8z" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linejoin="round"></path><path d="M12 17v5" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round"></path>',
+            bolt: '<path d="m13 2-7 12h6l-1 8 7-12h-6l1-8z" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linejoin="round"></path>',
+            sun: '<circle cx="12" cy="12" r="4.4" fill="none" stroke="currentColor" stroke-width="1.8"></circle><path d="M12 3v2.2M12 18.8V21M4.2 12H2M22 12h-2.2M17.5 6.5l1.6-1.6M4.9 19.1l1.6-1.6M6.5 6.5 4.9 4.9M19.1 19.1l-1.6-1.6" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round"></path>',
+            thermo: '<path d="M14 4v8.2a5 5 0 1 1-4 0V4a2 2 0 0 1 4 0z" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linejoin="round"></path><path d="M12 15v3" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round"></path>'
+        };
+
+        const mainView = document.getElementById("mainView");
+        const detailView = document.getElementById("detailView");
+        const showDetails = document.getElementById("showDetails");
+        const statusButton = document.getElementById("statusButton");
+        const statusIcon = document.getElementById("statusIcon");
+        const statusValue = document.getElementById("statusValue");
+        const statusCaption = document.getElementById("statusCaption");
+        const detailList = document.getElementById("detailList");
+
+        function handleMessage(message) {
+            const nextData = normalizeMessage(message);
+            if (!nextData) {
+                return;
+            }
+
+            data = nextData;
+            render();
+        }
+
+        function normalizeMessage(message) {
+            if (Array.isArray(message) && message.length === 1) {
+                message = message[0];
+            }
+
+            if (typeof message === "string") {
+                try {
+                    message = JSON.parse(message);
+                } catch {
+                    return null;
+                }
+            }
+
+            if (!message || typeof message !== "object") {
+                return null;
+            }
+
+            if (message.type !== "security") {
+                return null;
+            }
+
+            if (!message.values || typeof message.values !== "object") {
+                message.values = {};
+            }
+            if (!message.primary || typeof message.primary !== "object") {
+                message.primary = {
+                    label: "Status",
+                    formatted: "OK",
+                    level: "safe",
+                    icon: "shield"
+                };
+            }
+
+            return message;
+        }
+
+        function setView(view) {
+            activeView = view;
+            render();
+        }
+
+        function render() {
+            if (!normalizeMessage(data)) {
+                data = { type: "security", primary: {}, values: {} };
+            }
+
+            const hasDetails = Object.keys(data.values || {}).length > 1;
+            if (!hasDetails && activeView !== "main") {
+                activeView = "main";
+            }
+
+            mainView.classList.toggle("active", activeView === "main");
+            detailView.classList.toggle("active", activeView === "details");
+            showDetails.classList.toggle("hidden", !hasDetails);
+            renderPrimary();
+            renderDetails();
+        }
+
+        function renderPrimary() {
+            const primary = data.primary || {};
+            const level = primary.level || "safe";
+            statusButton.className = `status-button ${level}`;
+            statusIcon.innerHTML = iconPaths[primary.icon] || iconPaths.shield;
+            statusValue.textContent = primary.formatted || "OK";
+            statusCaption.textContent = primary.label || "Status";
+        }
+
+        function renderDetails() {
+            detailList.replaceChildren();
+            const entries = orderedEntries(data.values || {});
+            for (const [ident, item] of entries) {
+                const row = document.createElement("div");
+                row.className = "row";
+                const icon = iconFor(ident, item);
+                row.innerHTML = [
+                    `<div class="row-icon ${escapeHtml(item.level || "info")}"><svg viewBox="0 0 24 24" aria-hidden="true">${iconPaths[icon] || iconPaths.shield}</svg></div>`,
+                    `<div class="row-label">${escapeHtml(item.label || ident)}</div>`,
+                    `<div class="row-value">${escapeHtml(item.formatted || "")}</div>`
+                ].join("");
+                detailList.appendChild(row);
+            }
+        }
+
+        function orderedEntries(values) {
+            const entries = Object.entries(values);
+            const order = new Map(detailOrder.map((ident, index) => [ident, index]));
+            return entries.sort(([a], [b]) => (order.get(a) ?? 999) - (order.get(b) ?? 999));
+        }
+
+        function iconFor(ident, item) {
+            if (item && item.primary && data.primary && data.primary.ident === ident && data.primary.icon) {
+                return data.primary.icon;
+            }
+            if (ident === "contact" || ident === "window_open") {
+                return "door";
+            }
+            if (ident === "water_leak" || ident === "humidity") {
+                return "drop";
+            }
+            if (ident === "smoke" || ident === "carbon_monoxide" || ident === "gas") {
+                return "alert";
+            }
+            if (ident === "battery" || ident === "battery_low") {
+                return "battery";
+            }
+            if (ident === "linkquality") {
+                return "signal";
+            }
+            if (ident === "last_seen") {
+                return "clock";
+            }
+            if (ident === "device_status") {
+                return "plug";
+            }
+            if (ident === "voltage") {
+                return "bolt";
+            }
+            if (ident === "illuminance" || ident === "illuminance_lux") {
+                return "sun";
+            }
+            if (ident === "temperature") {
+                return "thermo";
+            }
+            return "shield";
+        }
+
+        function escapeHtml(value) {
+            return String(value)
+                .replace(/&/g, "&amp;")
+                .replace(/</g, "&lt;")
+                .replace(/>/g, "&gt;")
+                .replace(/"/g, "&quot;")
+                .replace(/'/g, "&#039;");
+        }
+
+        document.getElementById("showDetails").addEventListener("click", () => setView("details"));
+        document.getElementById("showMain").addEventListener("click", () => setView("main"));
+
+        render();
+    </script>
+</body>
+</html>

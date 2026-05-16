@@ -1,0 +1,65 @@
+{
+    "Instance": {},
+    "Model": "TS0203",
+    "ModelUrl": "https://www.zigbee2mqtt.io/devices/TS0203.html",
+    "Config": {
+        "IEEE": "0x00158d0000000001",
+        "MQTTBaseTopic": "zigbee2mqtt",
+        "MQTTTopic": "Test/Kontakt"
+    },
+    "Exposes": [
+        {
+            "name": "battery",
+            "label": "Battery",
+            "access": 1,
+            "type": "numeric",
+            "property": "battery",
+            "description": "Remaining battery in %",
+            "category": "diagnostic",
+            "unit": "%",
+            "value_max": 100,
+            "value_min": 0
+        },
+        {
+            "name": "contact",
+            "label": "Contact",
+            "access": 1,
+            "type": "binary",
+            "property": "contact",
+            "description": "Indicates whether the device is opened or closed",
+            "value_on": false,
+            "value_off": true
+        },
+        {
+            "name": "battery_low",
+            "label": "Battery low",
+            "access": 1,
+            "type": "binary",
+            "property": "battery_low",
+            "description": "Indicates if the battery of this device is almost empty",
+            "category": "diagnostic",
+            "value_on": true,
+            "value_off": false
+        },
+        {
+            "name": "linkquality",
+            "label": "Linkquality",
+            "access": 1,
+            "type": "numeric",
+            "property": "linkquality",
+            "description": "Link quality (signal strength)",
+            "category": "diagnostic",
+            "unit": "lqi",
+            "value_max": 255,
+            "value_min": 0
+        }
+    ],
+    "LastPayload": {
+        "battery": 88,
+        "battery_low": false,
+        "contact": true,
+        "last_seen": 1778910000,
+        "linkquality": 123
+    },
+    "Childs": {}
+}
