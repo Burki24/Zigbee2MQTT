@@ -17,6 +17,7 @@
 - [4. Konfiguration](#4-konfiguration)
   - [4.1 Visualisierung und Kacheln](#41-visualisierung-und-kacheln)
   - [4.2 Temperatur-Visualisierung](#42-temperatur-visualisierung)
+  - [4.3 Farbtemperatur in der Beleuchtungs-Kachel](#43-farbtemperatur-in-der-beleuchtungs-kachel)
 - [5. Statusvariablen](#5-statusvariablen)
 - [6. PHP-Funktionsreferenz](#6-php-funktionsreferenz)
 - [7. Aktionen](#7-aktionen)
@@ -104,6 +105,21 @@ Falls ein Temperatur-Expose keinen Wertebereich mitliefert, verwendet das Modul 
 | Maximum | `80,0 °C` |
 
 Der Bereich ist nur für die Darstellung relevant. Er ändert keine Gerätewerte und keine von Zigbee2MQTT gelieferten Exposes.
+
+### 4.3 Farbtemperatur in der Beleuchtungs-Kachel
+
+Für Leuchtmittel mit `color_temp` legt das Modul zusätzlich die Variable `color_temp_kelvin` an. Diese Variable wird für die Farbtemperatur-Seite der Symcon-Standardkachel **Beleuchtung** verwendet, damit die Bedienung in Kelvin statt in Mired erfolgt.
+
+Zigbee2MQTT liefert den Bereich für `color_temp` normalerweise in Mired. Das Modul rechnet diesen Bereich automatisch in Kelvin um:
+
+| Zigbee2MQTT Expose | Symcon-Variable | Darstellung |
+| ------------------ | --------------- | ----------- |
+| `color_temp` | `color_temp` | Mired-Wert für Zigbee2MQTT |
+| `color_temp` | `color_temp_kelvin` | Kelvin-Bedienung für die Beleuchtungs-Kachel |
+
+Wenn Zigbee2MQTT `value_min` und `value_max` für `color_temp` liefert, wird daraus der Kelvin-Bereich berechnet. Beispiel: Aus `value_min: 200` und `value_max: 454` wird ungefähr `2202 K` bis `5000 K`.
+
+Falls kein Wertebereich vorhanden ist, verwendet das Modul den Standardbereich `1000 K` bis `12000 K`. Zusätzlich wird ein Farbverlauf von Warmweiß bis Kaltweiß gesetzt, der zum jeweiligen Kelvin-Bereich passt.
 
 ## 5. Statusvariablen
 
