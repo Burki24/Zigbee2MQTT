@@ -3213,13 +3213,9 @@ abstract class ModulBase extends \IPSModuleStrict
      */
     private function registerVariableProfile(array $expose): string
     {
-        $type = $expose['type'] ?? '';
-        $property = $expose['property'] ?? $expose['name'];
-        $ProfileName = 'Z2M.' . strtolower($property);
-
-        // Entferne das doppelte Präfix, falls vorhanden
-        $ProfileName = str_replace('Z2M.Z2M_', 'Z2M.', $ProfileName);
-        $ProfileName = str_replace('&', '_and_', $ProfileName);
+        $type = (string) ($expose['type'] ?? '');
+        $property = $this->getExposeProperty($expose);
+        $ProfileName = $this->getExposeProfileName($property);
 
         // State-Mapping prüfen
         if (isset(self::$stateDefinitions[$property])) {
@@ -3227,54 +3223,83 @@ abstract class ModulBase extends \IPSModuleStrict
         }
 
         // Enum-Profil-Logik
-        if ($type === 'enum' && isset($expose['values'])) {
+        if ($this->isEnumExpose($expose)) {
             return $this->registerEnumProfile($expose, $ProfileName);
         }
 
         // Standard-Profil prüfen
         if ($type === 'binary') {
-            if (isset($expose['value_on']) && isset($expose['value_off'])) {
-                $valueOn = $expose['value_on'];
-                $valueOff = $expose['value_off'];
-
-                // Prüfen, ob die Werte Strings sind, bevor strtoupper verwendet wird
-                if (
-                    ($valueOn === true && $valueOff === false) ||
-                    ($valueOn === false && $valueOff === true) ||
-                    (
-                        \is_string($valueOn) && \is_string($valueOff) &&
-                        (
-                            (strtoupper($valueOn) === 'ON' && strtoupper($valueOff) === 'OFF') ||
-                            (strtoupper($valueOn) === 'TRUE' && strtoupper($valueOff) === 'FALSE')
-                        )
-                    )
-                ) {
-                    return '~Switch';
-                } else {
-                    // Erstelle Profilwerte für boolean-Variable
-                    $profileValues = [
-                        [false, $this->convertLabelToName($valueOff), '', 0xFF0000],  // Rot für Aus (false)
-                        [true, $this->convertLabelToName($valueOn), '', 0x00FF00]     // Grün für An (true)
-                    ];
-
-                    // Registriere das Boolean-Profil direkt
-                    $this->RegisterProfileBooleanEx(
-                        $ProfileName,
-                        'Power',  // Icon
-                        '',       // Prefix
-                        '',       // Suffix
-                        $profileValues
-                    );
-
-                    $this->SendDebug(__FUNCTION__, 'Custom Boolean-Profil erstellt: ' . $ProfileName . ' mit Werten: ' . json_encode($profileValues), 0);
-                    return $ProfileName;
-                }
-            }
-            return '~Switch';
+            return $this->registerBinaryExposeProfile($expose, $ProfileName);
         }
 
         // Typ-spezifisches Profil erstellen
         return $this->handleProfileType($type, $expose, $ProfileName);
+    }
+
+    private function getExposeProperty(array $expose): string
+    {
+        return (string) ($expose['property'] ?? $expose['name'] ?? '');
+    }
+
+    private function getExposeProfileName(string $property): string
+    {
+        $ProfileName = 'Z2M.' . strtolower($property);
+        $ProfileName = str_replace('Z2M.Z2M_', 'Z2M.', $ProfileName);
+        return str_replace('&', '_and_', $ProfileName);
+    }
+
+    private function isEnumExpose(array $expose): bool
+    {
+        return ($expose['type'] ?? '') === 'enum' && isset($expose['values']);
+    }
+
+    private function registerBinaryExposeProfile(array $expose, string $ProfileName): string
+    {
+        if (!isset($expose['value_on']) || !isset($expose['value_off'])) {
+            return '~Switch';
+        }
+
+        $valueOn = $expose['value_on'];
+        $valueOff = $expose['value_off'];
+        if ($this->usesStandardSwitchValues($valueOn, $valueOff)) {
+            return '~Switch';
+        }
+
+        return $this->registerCustomBinaryExposeProfile($ProfileName, $valueOn, $valueOff);
+    }
+
+    private function usesStandardSwitchValues(mixed $valueOn, mixed $valueOff): bool
+    {
+        if (($valueOn === true && $valueOff === false) || ($valueOn === false && $valueOff === true)) {
+            return true;
+        }
+
+        if (!\is_string($valueOn) || !\is_string($valueOff)) {
+            return false;
+        }
+
+        $normalizedOn = strtoupper($valueOn);
+        $normalizedOff = strtoupper($valueOff);
+        return ($normalizedOn === 'ON' && $normalizedOff === 'OFF') || ($normalizedOn === 'TRUE' && $normalizedOff === 'FALSE');
+    }
+
+    private function registerCustomBinaryExposeProfile(string $ProfileName, mixed $valueOn, mixed $valueOff): string
+    {
+        $profileValues = [
+            [false, $this->convertLabelToName((string) $valueOff), '', 0xFF0000],
+            [true, $this->convertLabelToName((string) $valueOn), '', 0x00FF00]
+        ];
+
+        $this->RegisterProfileBooleanEx(
+            $ProfileName,
+            'Power',
+            '',
+            '',
+            $profileValues
+        );
+
+        $this->SendDebug(__FUNCTION__, 'Custom Boolean-Profil erstellt: ' . $ProfileName . ' mit Werten: ' . json_encode($profileValues), 0);
+        return $ProfileName;
     }
 
     /**
@@ -3490,7 +3515,7 @@ abstract class ModulBase extends \IPSModuleStrict
      *
      * @return string Der Name des erstellten Profils.
      *
-     * @see \Zigbee2MQTT\ModulBase::registerBinaryProfile()
+     * @see \Zigbee2MQTT\ModulBase::registerBinaryExposeProfile()
      * @see \Zigbee2MQTT\ModulBase::registerEnumProfile()
      * @see \Zigbee2MQTT\ModulBase::registerNumericProfile()
      * @see \Zigbee2MQTT\ModulBase::handleProfileType()
@@ -3506,7 +3531,7 @@ abstract class ModulBase extends \IPSModuleStrict
 
         switch ($type) {
             case 'binary':
-                return $this->registerBinaryProfile($ProfileName);
+                return $this->registerBinaryExposeProfile($expose, $ProfileName);
 
             case 'enum':
                 return $this->registerEnumProfile($expose, $ProfileName);
@@ -3523,7 +3548,7 @@ abstract class ModulBase extends \IPSModuleStrict
                 // Für climate-Typen die Features einzeln verarbeiten
                 if (isset($expose['features'])) {
                     foreach ($expose['features'] as $feature) {
-                        $featureProfileName = 'Z2M.' . strtolower($feature['property']);
+                        $featureProfileName = $this->getExposeProfileName($this->getExposeProperty($feature));
                         $this->handleProfileType($feature['type'], $feature, $featureProfileName);
                     }
                 }
@@ -3540,50 +3565,6 @@ abstract class ModulBase extends \IPSModuleStrict
     }
 
     // Profiltypen
-
-    /**
-     * registerBinaryProfile
-     *
-     * Erstellt ein binäres Profil für Variablen mit zwei Zuständen.
-     *
-     * Diese Methode erstellt ein Profil für boolesche Werte mit folgenden Eigenschaften:
-     * - Zwei Zustände (An/Aus bzw. true/false)
-     * - Farbkodierung (Grün für An, Rot für Aus)
-     * - Power-Icon für die Visualisierung
-     * - Übersetzbare Beschriftungen
-     *
-     * @param string $ProfileName Der eindeutige Name für das zu erstellende Profil (z.B. 'Z2M.Switch')
-     *
-     * @return string Der Name des erstellten Profils, identisch mit dem Eingabeparameter
-     *
-     * Beispiel:
-     * ```php
-     * $profile = $this->registerBinaryProfile('Z2M.Switch');
-     * // Erstellt ein Profil mit den Werten:
-     * // false -> "Aus" (rot)
-     * // true  -> "An"  (grün)
-     * ```
-     *
-     * @see \Zigbee2MQTT\ModulBase::RegisterProfileBooleanEx()
-     * @see \IPSModule::SendDebug()
-     */
-    private function registerBinaryProfile(string $ProfileName): string
-    {
-        // Registriere das Boolean-Profil mit ON/OFF Werten
-        $this->RegisterProfileBooleanEx(
-            $ProfileName,
-            'Power',  // Icon
-            '',       // Prefix
-            '',       // Suffix
-            [
-                [false, 'Off', '', 0xFF0000],  // Rot für Aus
-                [true, 'On', '', 0x00FF00]     // Grün für An
-            ]
-        );
-
-        $this->SendDebug(__FUNCTION__, 'Binary-Profil erstellt: ' . $ProfileName, 0);
-        return $ProfileName;
-    }
 
     /**
      * registerEnumProfile
