@@ -2547,50 +2547,56 @@ abstract class ModulBase extends \IPSModuleStrict
      */
     private function handlePresetVariable(string $ident, mixed $value): bool
     {
-        // Hauptvariable ohne _presets suffix
-        $mainIdent = str_replace('_presets', '', $ident);
-
-        // Prüfen ob die Variable in presetDefinitions definiert ist mit redirect=true
-        if (isset(self::$presetDefinitions[$mainIdent]['redirect'])) {
+        $mainIdent = $this->getPresetMainIdent($ident);
+        if ($this->shouldRedirectPresetAction($mainIdent)) {
             $this->SendDebug(__FUNCTION__, 'Preset-Variable wird direkt umgeleitet: ' . $mainIdent, 0);
-
-            // Wichtig: Payload mit mainIdent erstellen (ohne _presets)
-            if ($this->isCompositeKey($mainIdent)) {
-                $payload = $this->buildNestedPayload($mainIdent, $value); // Verwendet mainIdent
-            } else {
-                $payload = [$mainIdent => $value]; // Verwendet mainIdent
-            }
-
-            // Sende den Wert und aktualisiere beide Variablen bei Erfolg
-            if (!$this->SendSetCommand($payload)) {
-                return false;
-            }
-
-            $this->SetValueDirect($ident, $value);
-            $this->SetValueDirect($mainIdent, $value);
-
-            return true;
+            return $this->sendPresetAction($ident, $mainIdent, $value);
         }
 
-        // Standard-Verarbeitung für nicht umgeleitete Presets...
         $this->SendDebug(__FUNCTION__, 'Aktion über presets erfolgt, Weiterleitung zur eigentlichen Variable: ' . $mainIdent, 0);
+        return $this->sendPresetAction($ident, $mainIdent, $value);
+    }
 
-        // Payload mit mainIdent erstellen (ohne _presets)
-        if ($this->isCompositeKey($mainIdent)) {
-            $payload = $this->buildNestedPayload($mainIdent, $value); // Verwendet mainIdent
-        } else {
-            $payload = [$mainIdent => $value]; // Verwendet mainIdent
-        }
+    /**
+     * Liefert die Hauptvariable zu einer Preset-Variable.
+     */
+    private function getPresetMainIdent(string $ident): string
+    {
+        return str_replace('_presets', '', $ident);
+    }
 
-        // Sende Befehl und aktualisiere beide Variablen bei Erfolg
-        if (!$this->SendSetCommand($payload)) {
+    /**
+     * Prueft, ob ein Preset laut vordefinierter Konfiguration direkt umgeleitet wird.
+     */
+    private function shouldRedirectPresetAction(string $mainIdent): bool
+    {
+        return isset(self::$presetDefinitions[$mainIdent]['redirect']);
+    }
+
+    /**
+     * Sendet eine Preset-Aktion an die Hauptvariable und aktualisiert beide lokalen Variablen.
+     */
+    private function sendPresetAction(string $presetIdent, string $mainIdent, mixed $value): bool
+    {
+        if (!$this->SendSetCommand($this->buildPresetActionPayload($mainIdent, $value))) {
             return false;
         }
 
-        $this->SetValueDirect($ident, $value);
+        $this->SetValueDirect($presetIdent, $value);
         $this->SetValueDirect($mainIdent, $value);
-
         return true;
+    }
+
+    /**
+     * Baut das MQTT-Payload fuer eine Preset-Aktion.
+     */
+    private function buildPresetActionPayload(string $mainIdent, mixed $value): array
+    {
+        if ($this->isCompositeKey($mainIdent)) {
+            return $this->buildNestedPayload($mainIdent, $value);
+        }
+
+        return [$mainIdent => $value];
     }
 
     /**
