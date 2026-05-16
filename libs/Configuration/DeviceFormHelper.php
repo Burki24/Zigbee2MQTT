@@ -133,6 +133,12 @@ trait DeviceFormHelper
             'caption',
             $this->Translate('Active visualization: ') . $this->GetDeviceFormActiveVisualizationLabel($tiles)
         );
+        $this->SetDeviceFormField(
+            $form,
+            'HeatingTilePresetSettings',
+            'visible',
+            (bool) $tiles[self::PROPERTY_DISABLE_HEATING_TILE]['available']
+        );
     }
 
     /**

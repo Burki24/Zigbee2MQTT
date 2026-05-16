@@ -31,6 +31,26 @@ class DevicesTest extends DumpInclude
         //$this->assertSame(count($Debug['Childs']) + $OffsetDebugChild, count(IPS_GetChildrenIDs($iid)), 'Anzahl Variablen aus dem Debug ('.count($Debug['Childs']).') und Erzeugte Variablen ('.count(IPS_GetChildrenIDs($iid)).') vom Test unterscheiden sich');
         $this->assertSame(self::count_recursive($Debug['LastPayload']) + $OffestLastPayload, count(IPS_GetChildrenIDs($iid)) + $OffsetChildrenIDs, 'Anzahl LastPayload (' . self::count_recursive($Debug['LastPayload']) + $OffestLastPayload . ') und Erzeugte Variablen (' . count(IPS_GetChildrenIDs($iid)) + $OffsetChildrenIDs . ') unterscheiden sich');
         $this->assertCount(0, self::getExportDebugData($iid)['missingTranslations'], 'Fehlende übersetzungen gefunden:' . var_export(self::getExportDebugData($iid)['missingTranslations'], true));
+
+        $html = IPS\InstanceManager::getInstanceInterface($iid)->GetVisualizationTile();
+        $this->assertStringContainsString('"type":"heating"', $html);
+        $this->assertStringContainsString('"presets":[18,20,22]', $html);
+
+        $form = json_decode(IPS_GetConfigurationForm($iid), true);
+        $this->assertFormItemVisible($form, 'VisualizationSettings');
+        $this->assertFormItemVisible($form, 'DisableHeatingTile');
+        $this->assertFormItemVisible($form, 'HeatingTilePresetSettings');
+        $this->assertFormItemVisible($form, 'HeatingTilePreset1');
+        $this->assertFormItemVisible($form, 'HeatingTilePreset2');
+        $this->assertFormItemVisible($form, 'HeatingTilePreset3');
+
+        IPS_SetProperty($iid, 'HeatingTilePreset1', 16.0);
+        IPS_SetProperty($iid, 'HeatingTilePreset2', 19.5);
+        IPS_SetProperty($iid, 'HeatingTilePreset3', 21.0);
+        IPS_ApplyChanges($iid);
+
+        $html = IPS\InstanceManager::getInstanceInterface($iid)->GetVisualizationTile();
+        $this->assertStringContainsString('"presets":[16,19.5,21]', $html);
     }
 
     public function testTS130F()

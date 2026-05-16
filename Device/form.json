@@ -69,6 +69,51 @@
                     "visible": false
                 },
                 {
+                    "type": "ExpansionPanel",
+                    "name": "HeatingTilePresetSettings",
+                    "caption": "Heating tile presets",
+                    "expanded": false,
+                    "visible": false,
+                    "items": [
+                        {
+                            "type": "Label",
+                            "caption": "Setpoint presets shown on the heating tile."
+                        },
+                        {
+                            "type": "RowLayout",
+                            "items": [
+                                {
+                                    "type": "NumberSpinner",
+                                    "name": "HeatingTilePreset1",
+                                    "caption": "Preset 1",
+                                    "digits": 1,
+                                    "minimum": 0,
+                                    "maximum": 40,
+                                    "suffix": " °C"
+                                },
+                                {
+                                    "type": "NumberSpinner",
+                                    "name": "HeatingTilePreset2",
+                                    "caption": "Preset 2",
+                                    "digits": 1,
+                                    "minimum": 0,
+                                    "maximum": 40,
+                                    "suffix": " °C"
+                                },
+                                {
+                                    "type": "NumberSpinner",
+                                    "name": "HeatingTilePreset3",
+                                    "caption": "Preset 3",
+                                    "digits": 1,
+                                    "minimum": 0,
+                                    "maximum": 40,
+                                    "suffix": " °C"
+                                }
+                            ]
+                        }
+                    ]
+                },
+                {
                     "type": "CheckBox",
                     "name": "DisableSecurityTile",
                     "caption": "Disable security tile",

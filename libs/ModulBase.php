@@ -57,6 +57,9 @@ abstract class ModulBase extends \IPSModuleStrict
     private const PROPERTY_DISABLE_ACTION_TILE = 'DisableActionTile';
     private const PROPERTY_TEMPERATURE_PRESENTATION_FALLBACK_MIN = 'TemperaturePresentationFallbackMin';
     private const PROPERTY_TEMPERATURE_PRESENTATION_FALLBACK_MAX = 'TemperaturePresentationFallbackMax';
+    private const PROPERTY_HEATING_TILE_PRESET_1 = 'HeatingTilePreset1';
+    private const PROPERTY_HEATING_TILE_PRESET_2 = 'HeatingTilePreset2';
+    private const PROPERTY_HEATING_TILE_PRESET_3 = 'HeatingTilePreset3';
 
     /**
      * @var array STATE_PATTERN
@@ -430,6 +433,9 @@ abstract class ModulBase extends \IPSModuleStrict
         $this->RegisterPropertyBoolean(self::PROPERTY_DISABLE_ACTION_TILE, false);
         $this->RegisterPropertyFloat(self::PROPERTY_TEMPERATURE_PRESENTATION_FALLBACK_MIN, -40.0);
         $this->RegisterPropertyFloat(self::PROPERTY_TEMPERATURE_PRESENTATION_FALLBACK_MAX, 80.0);
+        $this->RegisterPropertyFloat(self::PROPERTY_HEATING_TILE_PRESET_1, 18.0);
+        $this->RegisterPropertyFloat(self::PROPERTY_HEATING_TILE_PRESET_2, 20.0);
+        $this->RegisterPropertyFloat(self::PROPERTY_HEATING_TILE_PRESET_3, 22.0);
         $this->RegisterAttributeArray(self::ATTRIBUTE_EXPOSES, []);
         $this->RegisterAttributeArray(self::ATTRIBUTE_FILTERED, []);
         $this->RegisterAttributeFloat(self::ATTRIBUTE_MODUL_VERSION, 5.0);

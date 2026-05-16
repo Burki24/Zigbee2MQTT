@@ -190,7 +190,20 @@ trait HeatingTileHelper
             'type'     => 'heating',
             'name'     => IPS_GetName($this->InstanceID),
             'features' => $features,
-            'values'   => $values
+            'values'   => $values,
+            'presets'  => $this->GetHeatingTilePresetValues()
+        ];
+    }
+
+    /**
+     * Liefert die konfigurierten Solltemperatur-Presets fuer die Kachel.
+     */
+    private function GetHeatingTilePresetValues(): array
+    {
+        return [
+            $this->ReadPropertyFloat(self::PROPERTY_HEATING_TILE_PRESET_1),
+            $this->ReadPropertyFloat(self::PROPERTY_HEATING_TILE_PRESET_2),
+            $this->ReadPropertyFloat(self::PROPERTY_HEATING_TILE_PRESET_3)
         ];
     }
 

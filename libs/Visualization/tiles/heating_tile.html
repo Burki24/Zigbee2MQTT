@@ -500,9 +500,9 @@
                         </button>
                     </div>
                     <div class="preset-row" aria-label="Solltemperatur Presets">
-                        <button class="preset-button" type="button" data-setpoint-preset="18">18 &deg;C</button>
-                        <button class="preset-button" type="button" data-setpoint-preset="20">20 &deg;C</button>
-                        <button class="preset-button" type="button" data-setpoint-preset="22">22 &deg;C</button>
+                        <button class="preset-button" type="button" data-setpoint-preset-index="0"></button>
+                        <button class="preset-button" type="button" data-setpoint-preset-index="1"></button>
+                        <button class="preset-button" type="button" data-setpoint-preset-index="2"></button>
                     </div>
                     <div class="heat-line">
                         <span id="runningState">Inaktiv</span>
@@ -630,7 +630,7 @@
         const demandBar = document.getElementById("demandBar");
         const comfortList = document.getElementById("comfortList");
         const deviceList = document.getElementById("deviceList");
-        const setpointPresetButtons = Array.from(document.querySelectorAll("[data-setpoint-preset]"));
+        const setpointPresetButtons = Array.from(document.querySelectorAll("[data-setpoint-preset-index]"));
 
         function handleMessage(message) {
             const nextData = normalizeMessage(message);
@@ -805,13 +805,31 @@
         }
 
         function renderSetpointPresets(setpointNumber, config) {
+            const presets = configuredSetpointPresets();
             for (const button of setpointPresetButtons) {
-                const preset = Number(button.dataset.setpointPreset);
+                const preset = presets[Number(button.dataset.setpointPresetIndex)];
+                button.hidden = preset === undefined;
+                if (preset === undefined) {
+                    continue;
+                }
                 const presetValue = clampToStep("occupied_heating_setpoint", preset);
                 const isAvailable = preset >= config.min && preset <= config.max;
+                button.dataset.setpointPreset = String(preset);
+                button.textContent = `${numberFormat(preset, 1).replace(/,0$/, "")} °C`;
                 button.disabled = !isAvailable;
                 button.classList.toggle("active", isAvailable && presetValue === setpointNumber);
             }
+        }
+
+        function configuredSetpointPresets() {
+            if (!Array.isArray(data.presets)) {
+                return [18, 20, 22];
+            }
+
+            return data.presets
+                .map((preset) => Number(preset))
+                .filter((preset) => Number.isFinite(preset))
+                .slice(0, 3);
         }
 
         function renderSettingsList(container, idents) {
@@ -943,7 +961,12 @@
         document.getElementById("decreaseSetpoint").addEventListener("click", () => commitSetpoint(currentSetpointNumber() - numericConfig("occupied_heating_setpoint").step));
         document.getElementById("increaseSetpoint").addEventListener("click", () => commitSetpoint(currentSetpointNumber() + numericConfig("occupied_heating_setpoint").step));
         for (const button of setpointPresetButtons) {
-            button.addEventListener("click", () => commitSetpoint(Number(button.dataset.setpointPreset)));
+            button.addEventListener("click", () => {
+                const preset = Number(button.dataset.setpointPreset);
+                if (Number.isFinite(preset)) {
+                    commitSetpoint(preset);
+                }
+            });
         }
 
         render();
