@@ -599,108 +599,102 @@ abstract class ModulBase extends \IPSModuleStrict
      * @see \Zigbee2MQTT\ModulBase::handleStandardVariable()
      * @see json_encode()
      */
-    public function RequestAction(string $ident, mixed $value): void
+    public function RequestAction(string $Ident, mixed $Value): void
     {
-        $this->SendDebug(__FUNCTION__, 'Aufgerufen für Ident: ' . $ident . ' mit Wert: ' . json_encode($value), 0);
+        $this->SendDebug(__FUNCTION__, 'Aufgerufen für Ident: ' . $Ident . ' mit Wert: ' . json_encode($Value), 0);
 
-        $handled = match (true) {
-            // Behandelt HTML-SDK Kachelaktionen
-            strpos($ident, 'HeatingTile.') === 0 => function () use ($ident, $value)
-            {
-                return $this->HandleHeatingTileAction($ident, $value);
-            },
-            // Behandelt HTML-SDK Kachelaktionen
-            strpos($ident, 'SensorTile.') === 0 => function () use ($ident, $value)
-            {
-                return $this->HandleSensorTileAction($ident, $value);
-            },
-            // Behandelt HTML-SDK Kachelaktionen
-            strpos($ident, 'SecurityTile.') === 0 => function () use ($ident, $value)
-            {
-                return $this->HandleSecurityTileAction($ident, $value);
-            },
-            // Behandelt HTML-SDK Kachelaktionen
-            strpos($ident, 'WindowHandleTile.') === 0 => function () use ($ident, $value)
-            {
-                return $this->HandleWindowHandleTileAction($ident, $value);
-            },
-            strpos($ident, 'ActionTile.') === 0 => function () use ($ident, $value)
-            {
-                return $this->HandleActionTileAction($ident, $value);
-            },
-            // Behandelt HTML-SDK Kachelaktionen
-            strpos($ident, 'MeteredSwitchTile.') === 0 => function () use ($ident, $value)
-            {
-                return $this->HandleMeteredSwitchTileAction($ident, $value);
-            },
-            // Behandelt UpdateInfo
-            $ident == 'UpdateInfo' => function ()
-            {
-                $this->SendDebug(__FUNCTION__, 'Verarbeite UpdateInfo', 0);
-                return $this->UpdateDeviceInfo();
-            },
-            // Behandelt ShowMissingTranslations
-            $ident == 'ShowMissingTranslations' => function ()
-            {
-                $this->SendDebug(__FUNCTION__, 'Verarbeite ShowMissingTranslations', 0);
-                return $this->ShowMissingTranslations();
-            },
-            // Behandelt Presets - WICHTIG: Vor dem Composite Key Check!
-            strpos($ident, 'presets') !== false => function () use ($ident, $value)
-            {
-                $this->SendDebug(__FUNCTION__, 'Verarbeite Preset: ' . $ident, 0);
-                return $this->handlePresetVariable($ident, $value);
-            },
-            // Behandelt _and_ Keys - WICHTIG: Vor dem Composite Key Check!
-            strpos($ident, '_and_') !== false => function () use ($ident, $value)
-            {
-                $ident = str_replace('_and_', '&', $ident);
-                $this->SendDebug(__FUNCTION__, 'recall action: ' . $ident, 0);
-                return $this->RequestAction($ident, $value);
-            },
-            // Behandelt Composite Keys (z.B. color_options__execute_if_off)
-            strpos($ident, '__') !== false => function () use ($ident, $value)
-            {
-                $this->SendDebug(__FUNCTION__, 'Verarbeite Composite Key: ' . $ident, 0);
-                $payload = $this->buildNestedPayload($ident, $value);
-                return $this->SendSetCommand($payload);
-            },
-            // Behandelt String-Variablen ohne Rückmeldung
-            \in_array($ident, self::$stringVariablesNoResponse) => function () use ($ident, $value)
-            {
-                $this->SendDebug(__FUNCTION__, 'Verarbeite String ohne Rückmeldung: ' . $ident, 0);
-                return $this->handleStringVariableNoResponse($ident, (string) $value);
-            },
-            // Behandelt Farbvariablen (exakte Namen prüfen)
-            \in_array($ident, ['color', 'color_hs', 'color_rgb', 'color_temp_kelvin']) => function () use ($ident, $value)
-            {
-                $this->SendDebug(__FUNCTION__, 'Verarbeite Farbvariable: ' . $ident, 0);
-                return $this->handleColorVariable($ident, $value);
-            },
-            // Behandelt Status-Variablen
-            preg_match(self::STATE_PATTERN['SYMCON'], $ident) => function () use ($ident, $value)
-            {
-                $this->SendDebug(__FUNCTION__, 'Verarbeite Status-Variable: ' . $ident, 0);
-                return $this->handleStateVariable($ident, $value);
-            },
-            // Behandelt Standard-Variablen
-            default => function () use ($ident, $value)
-            {
-                $this->SendDebug(__FUNCTION__, 'Verarbeite Standard-Variable: ' . $ident, 0);
-                return $this->handleStandardVariable($ident, $value);
-            },
-        };
-
-        $result = $handled();
+        $result = $this->handleRequestAction($Ident, $Value);
 
         if ($result === false) {
             //hier eine exception werfen?
-            $this->SendDebug(__FUNCTION__, 'Fehler beim Verarbeiten der Aktion: ' . $ident . ' (Rückgabewert false)', 0);
+            $this->SendDebug(__FUNCTION__, 'Fehler beim Verarbeiten der Aktion: ' . $Ident . ' (Rückgabewert false)', 0);
         } else {
-            $this->SendDebug(__FUNCTION__, 'Aktion erfolgreich verarbeitet: ' . $ident, 0);
+            $this->SendDebug(__FUNCTION__, 'Aktion erfolgreich verarbeitet: ' . $Ident, 0);
         }
 
     }
+
+    /**
+     * Leitet eine Aktion an den passenden internen Handler weiter.
+     */
+    private function handleRequestAction(string $ident, mixed $value): bool
+    {
+        $tileResult = $this->handleTileRequestAction($ident, $value);
+        if ($tileResult !== null) {
+            return $tileResult;
+        }
+
+        if ($ident == 'UpdateInfo') {
+            $this->SendDebug(__FUNCTION__, 'Verarbeite UpdateInfo', 0);
+            return $this->UpdateDeviceInfo();
+        }
+
+        if ($ident == 'ShowMissingTranslations') {
+            $this->SendDebug(__FUNCTION__, 'Verarbeite ShowMissingTranslations', 0);
+            return $this->ShowMissingTranslations();
+        }
+
+        return $this->handleVariableRequestAction($ident, $value);
+    }
+
+    /**
+     * Leitet HTML-SDK-Kachelaktionen an die jeweilige Kachel-Logik weiter.
+     */
+    private function handleTileRequestAction(string $ident, mixed $value): ?bool
+    {
+        return match (true) {
+            str_starts_with($ident, 'HeatingTile.')       => $this->HandleHeatingTileAction($ident, $value),
+            str_starts_with($ident, 'SensorTile.')        => $this->HandleSensorTileAction($ident, $value),
+            str_starts_with($ident, 'SecurityTile.')      => $this->HandleSecurityTileAction($ident, $value),
+            str_starts_with($ident, 'WindowHandleTile.')  => $this->HandleWindowHandleTileAction($ident, $value),
+            str_starts_with($ident, 'ActionTile.')        => $this->HandleActionTileAction($ident, $value),
+            str_starts_with($ident, 'MeteredSwitchTile.') => $this->HandleMeteredSwitchTileAction($ident, $value),
+            default                                      => null
+        };
+    }
+
+    /**
+     * Verarbeitet Variablenaktionen, die als MQTT-Set-Befehl enden.
+     */
+    private function handleVariableRequestAction(string $ident, mixed $value): bool
+    {
+        // Presets muessen vor Composite Keys verarbeitet werden.
+        if (strpos($ident, 'presets') !== false) {
+            $this->SendDebug(__FUNCTION__, 'Verarbeite Preset: ' . $ident, 0);
+            return $this->handlePresetVariable($ident, $value);
+        }
+
+        if (strpos($ident, '_and_') !== false) {
+            $ident = str_replace('_and_', '&', $ident);
+            $this->SendDebug(__FUNCTION__, 'recall action: ' . $ident, 0);
+            $this->RequestAction($ident, $value);
+            return true;
+        }
+
+        if (strpos($ident, '__') !== false) {
+            $this->SendDebug(__FUNCTION__, 'Verarbeite Composite Key: ' . $ident, 0);
+            return $this->SendSetCommand($this->buildNestedPayload($ident, $value));
+        }
+
+        if (\in_array($ident, self::$stringVariablesNoResponse, true)) {
+            $this->SendDebug(__FUNCTION__, 'Verarbeite String ohne Rückmeldung: ' . $ident, 0);
+            return $this->handleStringVariableNoResponse($ident, (string) $value);
+        }
+
+        if (\in_array($ident, ['color', 'color_hs', 'color_rgb', 'color_temp_kelvin'], true)) {
+            $this->SendDebug(__FUNCTION__, 'Verarbeite Farbvariable: ' . $ident, 0);
+            return $this->handleColorVariable($ident, $value);
+        }
+
+        if (preg_match(self::STATE_PATTERN['SYMCON'], $ident)) {
+            $this->SendDebug(__FUNCTION__, 'Verarbeite Status-Variable: ' . $ident, 0);
+            return $this->handleStateVariable($ident, $value);
+        }
+
+        $this->SendDebug(__FUNCTION__, 'Verarbeite Standard-Variable: ' . $ident, 0);
+        return $this->handleStandardVariable($ident, $value);
+    }
+
     /**
      * ReceiveData
      *
