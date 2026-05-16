@@ -32,12 +32,20 @@ trait BufferHelper
     {
         if (strpos($name, 'Multi_') === 0) {
             $Lines = '';
-            foreach ($this->{'BufferListe_' . $name} as $BufferIndex) {
-                $Lines .= $this->{'Part_' . $name . $BufferIndex};
+            $BufferList = $this->{'BufferListe_' . $name};
+            if (!\is_array($BufferList)) {
+                return $this->GetBufferFallbackValue($name);
             }
-            return unserialize($Lines);
+            foreach ($BufferList as $BufferIndex) {
+                $Part = $this->{'Part_' . $name . $BufferIndex};
+                if (!\is_string($Part)) {
+                    return $this->GetBufferFallbackValue($name);
+                }
+                $Lines .= $Part;
+            }
+            return $this->UnserializeBufferValue($Lines, $name);
         }
-        return unserialize($this->GetBuffer($name));
+        return $this->UnserializeBufferValue($this->ReadRawBuffer($name), $name);
     }
 
     /**
@@ -68,5 +76,53 @@ trait BufferHelper
             return;
         }
         $this->SetBuffer($name, $Data);
+    }
+
+    /**
+     * Liest einen Rohwert aus dem Instance-Buffer, ohne temporaere Symcon-Warnungen fatal werden zu lassen.
+     */
+    private function ReadRawBuffer(string $name): string|false
+    {
+        set_error_handler(static function (): bool {
+            return true;
+        });
+        try {
+            $Data = $this->GetBuffer($name);
+        } catch (\Throwable) {
+            return false;
+        } finally {
+            restore_error_handler();
+        }
+
+        return \is_string($Data) ? $Data : false;
+    }
+
+    /**
+     * Deserialisiert einen Bufferwert und liefert bei unlesbarem Inhalt einen definierten Fallback.
+     */
+    private function UnserializeBufferValue(string|false $Data, string $name): mixed
+    {
+        if ($Data === false || $Data === '') {
+            return $this->GetBufferFallbackValue($name);
+        }
+
+        $Value = @unserialize($Data);
+        if ($Value === false && $Data !== serialize(false)) {
+            return $this->GetBufferFallbackValue($name);
+        }
+
+        return $Value;
+    }
+
+    /**
+     * Liefert einen Fallback fuer fehlende Bufferwerte.
+     */
+    private function GetBufferFallbackValue(string $name): mixed
+    {
+        if (method_exists($this, 'GetDefaultBufferValue')) {
+            return $this->GetDefaultBufferValue($name);
+        }
+
+        return false;
     }
 }

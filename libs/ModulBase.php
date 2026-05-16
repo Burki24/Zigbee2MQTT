@@ -1353,7 +1353,48 @@ abstract class ModulBase extends \IPSModuleStrict
             return true;
         }
 
-        return parent::SetValue($ident, $value);
+        set_error_handler(static function (): bool {
+            return true;
+        });
+        try {
+            return parent::SetValue($ident, $value);
+        } catch (\Throwable) {
+            return false;
+        } finally {
+            restore_error_handler();
+        }
+    }
+
+    /**
+     * Sendet HTML-SDK-Kachelwerte und ignoriert temporaere Symcon-Reload-Fenster.
+     */
+    protected function UpdateCustomTileVisualizationValue(string $value): void
+    {
+        set_error_handler(static function (): bool {
+            return true;
+        });
+        try {
+            $this->UpdateVisualizationValue($value);
+        } catch (\Throwable) {
+            // Beim Modul-Reload kann das InstanceInterface kurz fehlen; der naechste Wert aktualisiert die Kachel erneut.
+        } finally {
+            restore_error_handler();
+        }
+    }
+
+    /**
+     * Liefert konservative Defaults, wenn Symcon waehrend eines Modul-Reloads keinen Buffer lesen kann.
+     */
+    protected function GetDefaultBufferValue(string $name): mixed
+    {
+        return match ($name) {
+            'BUFFER_MQTT_SUSPENDED',
+            'BUFFER_PROCESSING_MIGRATION' => true,
+            'lastPayload',
+            'missingTranslations',
+            'brightnessConfig'            => [],
+            default                       => false
+        };
     }
 
     // Feature & Expose Handling
