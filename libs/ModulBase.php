@@ -2164,57 +2164,110 @@ abstract class ModulBase extends \IPSModuleStrict
             return false;
         }
 
-        // Bei Boolean-Werten prüfen, ob es ein spezielles Mapping gibt
         if (\is_bool($value)) {
-            $exposes = $this->ReadAttributeArray(self::ATTRIBUTE_EXPOSES);
-            foreach ($exposes as $expose) {
-                $features = isset($expose['features']) ? $expose['features'] : [$expose];
-                foreach ($features as $feature) {
-                    if (isset($feature['property']) && $feature['property'] === $ident && $this->isWriteOnlySingleEnumCommand($feature)) {
-                        if (!$value) {
-                            return true;
-                        }
-                        $payload = [$ident => $feature['values'][0]];
-                        return $this->SendSetCommand($payload);
-                    }
-
-                    if (isset($feature['property']) && $feature['property'] === $ident &&
-                        isset($feature['value_on']) && isset($feature['value_off']) &&
-                        $feature['type'] === 'binary') {
-
-                        // Benutzerdefinierte Werte verwenden
-                        $value = $value ? $feature['value_on'] : $feature['value_off'];
-                        $payload = [$ident => $value];
-                        return $this->SendSetCommand($payload);
-                    }
-                }
+            $boolResult = $this->handleStandardBooleanVariable($ident, $value);
+            if ($boolResult !== null) {
+                return $boolResult;
             }
-
-            // Fallback auf Standard ON/OFF
-            $value = $value ? 'ON' : 'OFF';
+            $value = $this->convertOnOffValue($value, false);
         }
 
-        // Prüfe auf composite key vor der brightness Prüfung
         if ($this->isCompositeKey($ident)) {
             $payload = $this->buildNestedPayload($ident, $value);
             $this->SendDebug(__FUNCTION__, 'Sende composite payload: ' . json_encode($payload), 0);
             return $this->SendSetCommand($payload);
         }
 
-        // light-Brightness wird immer das Profil ~Intensity.100 haben
         if ($ident === 'brightness') {
-            // Konvertiere Prozentwert (0-100) in Gerätewert
-            $deviceValue = $this->normalizeValueToRange($value, true);
-            $payload = ['brightness' => $deviceValue];
-            $this->SendSetCommand($payload);
-            return true;
+            return $this->sendBrightnessAction($value);
         }
 
-        // Erstelle das Standard-Payload
+        return $this->sendStandardActionPayload($ident, $value);
+    }
+
+    /**
+     * Verarbeitet boolesche Standard-Aktionen mit Expose-spezifischem Mapping.
+     */
+    private function handleStandardBooleanVariable(string $ident, bool $value): ?bool
+    {
+        $feature = $this->findExposeFeatureByProperty($ident);
+        if ($feature === null) {
+            return null;
+        }
+
+        if ($this->isWriteOnlySingleEnumCommand($feature)) {
+            if (!$value) {
+                return true;
+            }
+            return $this->SendSetCommand([$ident => $feature['values'][0]]);
+        }
+
+        if (($feature['type'] ?? '') === 'binary' && isset($feature['value_on'], $feature['value_off'])) {
+            return $this->SendSetCommand([$ident => $value ? $feature['value_on'] : $feature['value_off']]);
+        }
+
+        return null;
+    }
+
+    /**
+     * Sucht ein gespeichertes Expose-Feature anhand seiner Property.
+     */
+    private function findExposeFeatureByProperty(string $property): ?array
+    {
+        foreach ($this->ReadAttributeArray(self::ATTRIBUTE_EXPOSES) as $expose) {
+            $feature = $this->findExposeFeatureByPropertyRecursive($expose, $property);
+            if ($feature !== null) {
+                return $feature;
+            }
+        }
+
+        return null;
+    }
+
+    /**
+     * Rekursive Suche in gruppierten Exposes.
+     */
+    private function findExposeFeatureByPropertyRecursive(array $feature, string $property): ?array
+    {
+        if (($feature['property'] ?? null) === $property) {
+            return $feature;
+        }
+
+        if (!isset($feature['features']) || !\is_array($feature['features'])) {
+            return null;
+        }
+
+        foreach ($feature['features'] as $subFeature) {
+            if (!\is_array($subFeature)) {
+                continue;
+            }
+
+            $found = $this->findExposeFeatureByPropertyRecursive($subFeature, $property);
+            if ($found !== null) {
+                return $found;
+            }
+        }
+
+        return null;
+    }
+
+    /**
+     * Sendet eine Helligkeitsaktion im Wertebereich des Zigbee2MQTT-Geraets.
+     */
+    private function sendBrightnessAction(mixed $value): bool
+    {
+        $payload = ['brightness' => $this->normalizeValueToRange($value, true)];
+        $this->SendSetCommand($payload);
+        return true;
+    }
+
+    /**
+     * Sendet ein einfaches Set-Payload fuer Standard-Aktionen.
+     */
+    private function sendStandardActionPayload(string $ident, mixed $value): bool
+    {
         $payload = [$ident => $value];
-
-        $this->SendDebug(__FUNCTION__, 'Sende payload: ' . json_encode($payload), 0);
-
+        $this->SendDebug('handleStandardVariable', 'Sende payload: ' . json_encode($payload), 0);
         return $this->SendSetCommand($payload);
     }
 
@@ -2791,29 +2844,38 @@ abstract class ModulBase extends \IPSModuleStrict
             return false;
         }
 
-        $variableProps = ['property' => $key];
-        $ident = $key;
-        $formattedLabel = $this->convertLabelToName($key);
-        $variableID = $this->getOrRegisterVariable($ident, $variableProps, $formattedLabel);
-
-        if (!$variableID) {
+        if (!$this->ensureSpecialVariable($key)) {
             return true;
         }
 
-        // Spezielle Verarbeitung für die Variable
-        $adjustedValue = $this->adjustSpecialValue($ident, $value);
-
-        // Debug-Ausgabe des verarbeiteten Wertes
-        $debugValue = \is_array($adjustedValue) ? json_encode($adjustedValue) : $adjustedValue;
-        $this->SendDebug(__FUNCTION__ . ' :: ' . __LINE__ . ' :: ', $key . ' verarbeitet: ' . $key . ' => ' . $debugValue, 0);
-
-        // Wert setzen
-        $this->SetValueDirect($ident, $adjustedValue);
-
-        $this->SendDebug(__FUNCTION__, \sprintf('SetValueDirect aufgerufen für %s mit Wert: %s (Typ: %s)', $ident, \is_array($adjustedValue) ? json_encode($adjustedValue) : $adjustedValue, gettype($adjustedValue)), 0);
-        // Allgemeine Aktualisierung von Preset-Variablen
-        $this->updatePresetVariable($ident, $adjustedValue);
+        $adjustedValue = $this->adjustSpecialValue($key, $value);
+        $this->storeSpecialVariableValue($key, $adjustedValue);
         return true;
+    }
+
+    /**
+     * Stellt sicher, dass eine Spezialvariable vorhanden ist.
+     */
+    private function ensureSpecialVariable(string $ident): bool
+    {
+        return (bool) $this->getOrRegisterVariable($ident, ['property' => $ident], $this->convertLabelToName($ident));
+    }
+
+    /**
+     * Speichert den angepassten Wert einer Spezialvariable.
+     */
+    private function storeSpecialVariableValue(string $ident, mixed $adjustedValue): void
+    {
+        $debugValue = $this->formatPayloadDebugValue($adjustedValue);
+        $this->SendDebug('processSpecialVariable' . ' :: ' . __LINE__ . ' :: ', $ident . ' verarbeitet: ' . $ident . ' => ' . $debugValue, 0);
+
+        $this->SetValueDirect($ident, $adjustedValue);
+        $this->SendDebug(
+            'processSpecialVariable',
+            \sprintf('SetValueDirect aufgerufen für %s mit Wert: %s (Typ: %s)', $ident, $debugValue, gettype($adjustedValue)),
+            0
+        );
+        $this->updatePresetVariable($ident, $adjustedValue);
     }
 
     /**
