@@ -8,6 +8,7 @@ require_once __DIR__ . '/AttributeArrayHelper.php';
 require_once __DIR__ . '/BufferHelper.php';
 require_once __DIR__ . '/SemaphoreHelper.php';
 require_once __DIR__ . '/VariableProfileHelper.php';
+require_once __DIR__ . '/Configuration/DeviceFormHelper.php';
 require_once __DIR__ . '/Visualization/VariablePresentationHelper.php';
 require_once __DIR__ . '/Visualization/MeteredSwitchTileHelper.php';
 require_once __DIR__ . '/Visualization/HeatingTileHelper.php';
@@ -37,6 +38,7 @@ abstract class ModulBase extends \IPSModuleStrict
     use Semaphore;
     use ColorHelper;
     use VariableProfileHelper;
+    use DeviceFormHelper;
     use VariablePresentationHelper;
     use MeteredSwitchTileHelper;
     use HeatingTileHelper;

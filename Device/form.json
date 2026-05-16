@@ -21,36 +21,12 @@
                             "name": "IEEE",
                             "caption": "IEEE Address",
                             "enabled": false
-                        },
-                        {
-                            "type": "CheckBox",
-                            "name": "DisableMeteredSwitchTile",
-                            "caption": "Disable switch tile"
-                        },
-                        {
-                            "type": "CheckBox",
-                            "name": "DisableHeatingTile",
-                            "caption": "Disable heating tile"
-                        },
-                        {
-                            "type": "CheckBox",
-                            "name": "DisableSecurityTile",
-                            "caption": "Disable security tile"
-                        },
-                        {
-                            "type": "CheckBox",
-                            "name": "DisableWindowHandleTile",
-                            "caption": "Disable window handle tile"
-                        },
-                        {
-                            "type": "CheckBox",
-                            "name": "DisableActionTile",
-                            "caption": "Disable action tile"
                         }
                     ]
                 },
                 {
                     "type": "Image",
+                    "name": "DeviceImage",
                     "image": "",
                     "width": "200px"
                 }
@@ -58,16 +34,63 @@
         },
         {
             "type": "Label",
+            "name": "DeviceInformationLink",
             "caption": ""
         },
         {
             "type": "Button",
+            "name": "ShowMissingTranslationsButton",
             "visible": false,
             "caption": "Show missing translations",
             "onClick": "IPS_RequestAction($id, 'ShowMissingTranslations', true);"
         },
         {
             "type": "ExpansionPanel",
+            "name": "VisualizationSettings",
+            "caption": "Visualization",
+            "expanded": false,
+            "visible": false,
+            "items": [
+                {
+                    "type": "Label",
+                    "name": "VisualizationStatus",
+                    "caption": ""
+                },
+                {
+                    "type": "CheckBox",
+                    "name": "DisableMeteredSwitchTile",
+                    "caption": "Disable switch tile",
+                    "visible": false
+                },
+                {
+                    "type": "CheckBox",
+                    "name": "DisableHeatingTile",
+                    "caption": "Disable heating tile",
+                    "visible": false
+                },
+                {
+                    "type": "CheckBox",
+                    "name": "DisableSecurityTile",
+                    "caption": "Disable security tile",
+                    "visible": false
+                },
+                {
+                    "type": "CheckBox",
+                    "name": "DisableWindowHandleTile",
+                    "caption": "Disable window handle tile",
+                    "visible": false
+                },
+                {
+                    "type": "CheckBox",
+                    "name": "DisableActionTile",
+                    "caption": "Disable action tile",
+                    "visible": false
+                }
+            ]
+        },
+        {
+            "type": "ExpansionPanel",
+            "name": "TemperatureVisualization",
             "caption": "Temperature visualization",
             "expanded": false,
             "visible": false,
@@ -147,6 +170,7 @@
                         {
                             "type": "Button",
                             "caption": "Download Debug Data",
+                            "name": "DownloadDebugData",
                             "download": "Z2M_Debug.json",
                             "onClick": [
                                 "echo Z2M_UIExportDebugData($id);"
@@ -158,6 +182,10 @@
                             "onClick": "IPS_RequestAction($id, 'ShowIeeeEditWarning', true);"
                         }
                     ]
+                },
+                {
+                    "caption": "Testcenter",
+                    "type": "TestCenter"
                 }
             ]
         },
@@ -198,10 +226,6 @@
                     }
                 ]
             }
-        },
-        {
-            "caption": "Testcenter",
-            "type": "TestCenter"
         },
         {
             "type": "Label",

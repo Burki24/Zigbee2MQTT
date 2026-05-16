@@ -167,6 +167,14 @@ class DevicesTest extends DumpInclude
         $this->assertStringContainsString('"primary":{"ident":"action"', $html);
         $this->assertStringContainsString('Bereit', $html);
         $this->assertStringContainsString('Helligkeit hoch', $html);
+
+        $form = json_decode(IPS_GetConfigurationForm($iid), true);
+        $this->assertFormItemVisible($form, 'VisualizationSettings');
+        $this->assertFormItemVisible($form, 'DisableActionTile');
+        $this->assertFormItemHidden($form, 'DisableMeteredSwitchTile');
+        $this->assertFormItemHidden($form, 'DisableHeatingTile');
+        $this->assertFormItemHidden($form, 'DisableSecurityTile');
+        $this->assertFormItemHidden($form, 'DisableWindowHandleTile');
     }
 
     public function testBMCT_SLZ()
@@ -183,6 +191,14 @@ class DevicesTest extends DumpInclude
 
         $html = IPS\InstanceManager::getInstanceInterface($iid)->GetVisualizationTile();
         $this->assertStringContainsString('"type":"meteredSwitch"', $html);
+
+        $form = json_decode(IPS_GetConfigurationForm($iid), true);
+        $this->assertFormItemVisible($form, 'VisualizationSettings');
+        $this->assertFormItemVisible($form, 'DisableMeteredSwitchTile');
+        $this->assertFormItemHidden($form, 'DisableActionTile');
+        $this->assertFormItemHidden($form, 'DisableHeatingTile');
+        $this->assertFormItemHidden($form, 'DisableSecurityTile');
+        $this->assertFormItemHidden($form, 'DisableWindowHandleTile');
     }
 
     public function testWT_A03E()
@@ -216,6 +232,15 @@ class DevicesTest extends DumpInclude
         $this->assertStringContainsString('"button_right"', $html);
         $this->assertStringContainsString('Gekippt', $html);
         $this->assertStringNotContainsString('Oben gekippt', $html);
+
+        $form = json_decode(IPS_GetConfigurationForm($iid), true);
+        $this->assertFormItemVisible($form, 'VisualizationSettings');
+        $this->assertFormItemVisible($form, 'DisableWindowHandleTile');
+        $this->assertFormItemVisible($form, 'DisableSecurityTile');
+        $this->assertFormItemHidden($form, 'DisableActionTile');
+        $this->assertFormItemHidden($form, 'DisableMeteredSwitchTile');
+        $this->assertFormItemHidden($form, 'DisableHeatingTile');
+        $this->assertFormItemHidden($form, 'TemperatureVisualization');
     }
     public function testSenoroWinv2()
     {
@@ -261,4 +286,37 @@ class DevicesTest extends DumpInclude
         $this->assertCount(0, self::getExportDebugData($iid)['missingTranslations'], 'Fehlende übersetzungen gefunden:' . var_export(self::getExportDebugData($iid)['missingTranslations'], true));
     }
 
+    private function assertFormItemVisible(array $form, string $name): void
+    {
+        $item = $this->findFormItemByName($form, $name);
+        $this->assertNotNull($item, 'Form item not found: ' . $name);
+        $this->assertTrue($item['visible'] ?? true, 'Form item should be visible: ' . $name);
+    }
+
+    private function assertFormItemHidden(array $form, string $name): void
+    {
+        $item = $this->findFormItemByName($form, $name);
+        $this->assertNotNull($item, 'Form item not found: ' . $name);
+        $this->assertFalse($item['visible'] ?? true, 'Form item should be hidden: ' . $name);
+    }
+
+    private function findFormItemByName(array $node, string $name): ?array
+    {
+        if (($node['name'] ?? null) === $name) {
+            return $node;
+        }
+
+        foreach ($node as $child) {
+            if (!\is_array($child)) {
+                continue;
+            }
+
+            $match = $this->findFormItemByName($child, $name);
+            if ($match !== null) {
+                return $match;
+            }
+        }
+
+        return null;
+    }
 }

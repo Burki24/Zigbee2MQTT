@@ -80,26 +80,9 @@ class Zigbee2MQTTDevice extends \Zigbee2MQTT\ModulBase
      */
     public function GetConfigurationForm(): string
     {
-        $Form = json_decode(file_get_contents(__DIR__ . '/form.json'), true);
-        $Model = $this->ReadAttributeString('Model');
+        $form = json_decode(file_get_contents(__DIR__ . '/form.json'), true);
 
-        // Setze das Gerätebild
-        $Form['elements'][0]['items'][1]['image'] = $this->ReadAttributeString('Icon');
-
-        // Modul Link einfügen, wenn nicht leer
-        if ($Model) {
-            $ModelUrl = str_replace([' ', '/'], '_', $Model);
-            $Form['elements'][1]['caption'] = $this->Translate('Link to device information: ') .
-            'https://www.zigbee2mqtt.io/devices/' . rawurlencode($ModelUrl) . '.html';
-            $Form['actions'][1]['items'][0]['items'][1]['download'] = 'Z2M_Debug_' . rawurlencode($ModelUrl) . '.json';
-        } else {
-            $Form['elements'][1]['visible'] = false;
-        }
-        if (count($this->missingTranslations)) {
-            $Form['elements'][2]['visible'] = true;
-        }
-        $Form['elements'][3]['visible'] = @IPS_GetObjectIDByIdent('temperature', $this->InstanceID) !== false;
-        return json_encode($Form);
+        return json_encode($this->BuildDeviceConfigurationForm($form));
     }
 
     /**
@@ -111,35 +94,64 @@ class Zigbee2MQTTDevice extends \Zigbee2MQTT\ModulBase
      */
     public function GetVisualizationTile(): string
     {
-        $tilePath = dirname(__DIR__) . '/libs/Visualization/tiles/';
-
-        if ($this->ShouldUseHeatingTile()) {
-            $html = file_get_contents($tilePath . 'heating_tile.html');
-            $data = $this->BuildHeatingTileData();
-        } elseif ($this->ShouldUseMeteredSwitchTile()) {
-            $html = file_get_contents($tilePath . 'metered_switch_tile.html');
-            $data = $this->BuildMeteredSwitchTileData();
-        } elseif ($this->ShouldUseWindowHandleTile()) {
-            $html = file_get_contents($tilePath . 'window_handle_tile.html');
-            $data = $this->BuildWindowHandleTileData();
-        } elseif ($this->ShouldUseSecurityTile()) {
-            $html = file_get_contents($tilePath . 'security_tile.html');
-            $data = $this->BuildSecurityTileData();
-        } elseif ($this->ShouldUseActionTile()) {
-            $html = file_get_contents($tilePath . 'action_tile.html');
-            $data = $this->BuildActionTileData();
-        } elseif ($this->ShouldUseSensorTile()) {
-            $html = file_get_contents($tilePath . 'sensor_tile.html');
-            $data = $this->BuildSensorTileData();
-        } else {
+        $tile = $this->GetVisualizationTileDefinition();
+        if ($tile === null) {
             return '';
         }
+
+        $html = file_get_contents(dirname(__DIR__) . '/libs/Visualization/tiles/' . $tile['template']);
+        $data = $tile['data']();
 
         return str_replace(
             '__INITIAL_DATA__',
             json_encode($data, JSON_HEX_TAG | JSON_HEX_APOS | JSON_HEX_AMP | JSON_HEX_QUOT),
             $html
         );
+    }
+
+    /**
+     * Liefert die erste passende Kachel nach der gewuenschten Prioritaet.
+     */
+    private function GetVisualizationTileDefinition(): ?array
+    {
+        if ($this->ShouldUseHeatingTile()) {
+            return [
+                'template' => 'heating_tile.html',
+                'data'     => fn (): array => $this->BuildHeatingTileData()
+            ];
+        }
+        if ($this->ShouldUseMeteredSwitchTile()) {
+            return [
+                'template' => 'metered_switch_tile.html',
+                'data'     => fn (): array => $this->BuildMeteredSwitchTileData()
+            ];
+        }
+        if ($this->ShouldUseWindowHandleTile()) {
+            return [
+                'template' => 'window_handle_tile.html',
+                'data'     => fn (): array => $this->BuildWindowHandleTileData()
+            ];
+        }
+        if ($this->ShouldUseSecurityTile()) {
+            return [
+                'template' => 'security_tile.html',
+                'data'     => fn (): array => $this->BuildSecurityTileData()
+            ];
+        }
+        if ($this->ShouldUseActionTile()) {
+            return [
+                'template' => 'action_tile.html',
+                'data'     => fn (): array => $this->BuildActionTileData()
+            ];
+        }
+        if ($this->ShouldUseSensorTile()) {
+            return [
+                'template' => 'sensor_tile.html',
+                'data'     => fn (): array => $this->BuildSensorTileData()
+            ];
+        }
+
+        return null;
     }
     /**
      * RequestAction
