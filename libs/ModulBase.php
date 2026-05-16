@@ -308,19 +308,10 @@ abstract class ModulBase extends \IPSModuleStrict
     ];
 
     /**
-     * @var array<string,array{
-     *   type: int,
-     *   name: string,
-     *   profile: string,
-     *   ident?: string,
+     * Definitionen fuer bekannte Sondervariablen, die ohne vollstaendige
+     * Expose-Metadaten registriert werden.
      *
-     * Definiert spezielle Variablen mit vordefinierten Eigenschaften
-     *
-     * Schlüssel:
-     *   - type: int Variablentyp
-     *   - name: string Anzeigename der Variable -> @todo Wozu? Wird in registerSpecialVariable nicht genutzt
-     *   - profile: string Profilname oder leer
-     *   - ident?: string Optional: Benutzerdefinierter Identifier
+     * @var array<string,array{type:int,name?:string,profile:string,ident?:string}>
      */
     protected static $specialVariables = [
         'last_seen'                  => ['type' => VARIABLETYPE_INTEGER, 'name' => 'Last Seen', 'profile' => '~UnixTimestamp'],
@@ -344,23 +335,16 @@ abstract class ModulBase extends \IPSModuleStrict
     ];
 
     /**
-     * @var array $stateDefinitions Array mit Status-Definitionen
+     * Definitionen fuer bekannte State-Features mit festen Werten und Profilen.
      *
-     * Definiert Status-Variablen mit festgelegten Wertebereichen
-     * @todo die Struktur nutzt VariablenName als Index. Im Code wird aber sowohl ProfileName als auch Ident bzw. features->property benutzt.
-     * Hier ist also irgendwas falsch.
-     * Fix vom 24.10.2025 auf Ident / features->property, da der ProfileName innerhalb des Array vorhanden ist.
-     *
-     * Struktur:
-     * [
-     *   'VarIdent' => [
-     *      'type'     => string,   // Typ der Variable (z.B. 'automode', 'valve')
-     *      'dataType' => integer,  // IPS Variablentyp (VARIABLETYPE_*)
-     *      'values'   => array,    // Erlaubte Werte für die Variable
-     *      'ident'    => string,   // Identifier für die Variable
-     *      'profile'  => string    // Profil für die Variable
-     *   ]
-     * ]
+     * @var array<string,array{
+     *     type:string,
+     *     dataType:int,
+     *     values:array<int,string>,
+     *     ident:string,
+     *     profile:string,
+     *     enableAction?:bool
+     * }>
      */
     protected static $stateDefinitions = [
         'auto_lock'   => ['type' => 'automode', 'dataType' => VARIABLETYPE_STRING, 'values' => ['AUTO', 'MANUAL'], 'ident' => 'auto_lock', 'profile' => 'Z2M.AutoLock', 'enableAction' => true],
@@ -450,16 +434,14 @@ abstract class ModulBase extends \IPSModuleStrict
         $this->RegisterAttributeArray(self::ATTRIBUTE_FILTERED, []);
         $this->RegisterAttributeFloat(self::ATTRIBUTE_MODUL_VERSION, 5.0);
 
-        /** Init Buffers */
+        // Init Buffers
         $this->BUFFER_MQTT_SUSPENDED = true;
         $this->BUFFER_PROCESSING_MIGRATION = false;
         $this->TransactionData = [];
         $this->lastPayload = [];
         $this->missingTranslations = [];
 
-        /** @todo cleanup old directory
-         * $this->createExposesDirectory();
-         */
+        // Legacy exposes directory creation is no longer used.
 
         // Statische Profile
         $this->RegisterProfileBooleanEx(
@@ -2125,6 +2107,15 @@ abstract class ModulBase extends \IPSModuleStrict
         }
     }
 
+    /**
+     * Verarbeitet Array-Werte aus dem Payload, die keine eigene Variable abbilden.
+     *
+     * Farb-Arrays werden an die Farbverarbeitung weitergereicht; andere Array-Werte
+     * werden nur ins Debug geschrieben, damit sie nicht ungefiltert serialisiert werden.
+     *
+     * @param string $ident Ident der Payload-Variable.
+     * @param array $value Array-Wert aus dem Zigbee2MQTT-Payload.
+     */
     private function processArrayValue(string $ident, array $value): void
     {
         if (strpos($ident, 'color') === 0) {
@@ -2136,6 +2127,19 @@ abstract class ModulBase extends \IPSModuleStrict
         $this->SendDebug(__FUNCTION__, 'Inhalt: ' . json_encode($value), 0);
     }
 
+    /**
+     * Behandelt Sonderfaelle, bevor ein Payload-Wert normal geschrieben wird.
+     *
+     * Dazu gehoeren zum Beispiel Helligkeit in Lichtgruppen und die automatische
+     * Spannungskonvertierung von Millivolt nach Volt.
+     *
+     * @param string $key Originaler Payload-Key.
+     * @param mixed $value Payload-Wert, der bei Bedarf angepasst wird.
+     * @param string $lowerKey Kleingeschriebener Payload-Key fuer Vergleiche.
+     * @param array $variableProps Expose-/Variableninformationen der bekannten Variable.
+     *
+     * @return bool True, wenn der Sonderfall vollstaendig verarbeitet wurde.
+     */
     private function processSpecialCases(string $key, mixed &$value, string $lowerKey, array $variableProps): bool
     {
         // Brightness in Lichtgruppen
@@ -3236,11 +3240,28 @@ abstract class ModulBase extends \IPSModuleStrict
         return $this->handleProfileType($type, $expose, $ProfileName);
     }
 
+    /**
+     * Ermittelt den fachlichen Property-Namen eines Exposes.
+     *
+     * Zigbee2MQTT nutzt je nach Expose-Struktur `property` oder `name`; diese
+     * Methode kapselt die Fallback-Reihenfolge fuer Profil- und Variablenlogik.
+     *
+     * @param array $expose Expose-Definition.
+     *
+     * @return string Property- oder Name-Wert, sonst leer.
+     */
     private function getExposeProperty(array $expose): string
     {
         return (string) ($expose['property'] ?? $expose['name'] ?? '');
     }
 
+    /**
+     * Erzeugt den konsistenten Z2M-Profilnamen zu einer Expose-Property.
+     *
+     * @param string $property Expose-Property.
+     *
+     * @return string Normalisierter Profilname mit `Z2M.`-Praefix.
+     */
     private function getExposeProfileName(string $property): string
     {
         $ProfileName = 'Z2M.' . strtolower($property);
@@ -3248,11 +3269,29 @@ abstract class ModulBase extends \IPSModuleStrict
         return str_replace('&', '_and_', $ProfileName);
     }
 
+    /**
+     * Prueft, ob ein Expose eine Enum-Definition mit Wertebereich ist.
+     *
+     * @param array $expose Expose-Definition.
+     *
+     * @return bool True fuer Enum-Exposes mit `values`.
+     */
     private function isEnumExpose(array $expose): bool
     {
         return ($expose['type'] ?? '') === 'enum' && isset($expose['values']);
     }
 
+    /**
+     * Liefert oder erstellt das passende Profil fuer Binary-Exposes.
+     *
+     * Standard-ON/OFF- und TRUE/FALSE-Paare verwenden das Symcon-Systemprofil
+     * `~Switch`; abweichende Wertpaare erhalten ein eigenes Z2M-Profil.
+     *
+     * @param array $expose Binary-Expose mit optionalen `value_on`/`value_off`.
+     * @param string $ProfileName Basisname fuer ein eigenes Profil.
+     *
+     * @return string Zu verwendender Profilname.
+     */
     private function registerBinaryExposeProfile(array $expose, string $ProfileName): string
     {
         if (!isset($expose['value_on']) || !isset($expose['value_off'])) {
@@ -3268,6 +3307,14 @@ abstract class ModulBase extends \IPSModuleStrict
         return $this->registerCustomBinaryExposeProfile($ProfileName, $valueOn, $valueOff);
     }
 
+    /**
+     * Prueft, ob ein Binary-Expose mit dem Standard-Switch-Profil abbildbar ist.
+     *
+     * @param mixed $valueOn Wert fuer den aktiven Zustand.
+     * @param mixed $valueOff Wert fuer den inaktiven Zustand.
+     *
+     * @return bool True, wenn `~Switch` ausreicht.
+     */
     private function usesStandardSwitchValues(mixed $valueOn, mixed $valueOff): bool
     {
         if (($valueOn === true && $valueOff === false) || ($valueOn === false && $valueOff === true)) {
@@ -3283,6 +3330,15 @@ abstract class ModulBase extends \IPSModuleStrict
         return ($normalizedOn === 'ON' && $normalizedOff === 'OFF') || ($normalizedOn === 'TRUE' && $normalizedOff === 'FALSE');
     }
 
+    /**
+     * Registriert ein eigenes Boolean-Profil fuer nicht standardisierte Binary-Werte.
+     *
+     * @param string $ProfileName Profilname.
+     * @param mixed $valueOn Wert fuer true.
+     * @param mixed $valueOff Wert fuer false.
+     *
+     * @return string Registrierter Profilname.
+     */
     private function registerCustomBinaryExposeProfile(string $ProfileName, mixed $valueOn, mixed $valueOff): string
     {
         $profileValues = [
@@ -4092,6 +4148,17 @@ abstract class ModulBase extends \IPSModuleStrict
         return;
     }
 
+    /**
+     * Registriert ein write-only Enum mit genau einem Wert als ausloesbaren Schalter.
+     *
+     * Solche Exposes liefern keinen Rueckkanal, sollen in Symcon aber trotzdem als
+     * Aktion verfuegbar sein.
+     *
+     * @param array $feature Expose-Feature.
+     * @param string $featureProperty Urspruengliche Property.
+     *
+     * @return bool True, wenn das Feature verarbeitet wurde.
+     */
     private function registerWriteOnlySingleEnumCommand(array $feature, string $featureProperty): bool
     {
         if (!$this->isWriteOnlySingleEnumCommand($feature)) {
@@ -4104,6 +4171,14 @@ abstract class ModulBase extends \IPSModuleStrict
         return true;
     }
 
+    /**
+     * Registriert bekannte State-Features mit eigener State-Konfiguration.
+     *
+     * @param string $featureProperty Feature-Property.
+     * @param array|null $feature Optionale Expose-Daten fuer Access-Informationen.
+     *
+     * @return bool True, wenn eine State-Konfiguration gefunden und verarbeitet wurde.
+     */
     private function registerStateFeatureVariable(string $featureProperty, ?array $feature): bool
     {
         $stateConfig = $this->getStateConfiguration($featureProperty, $feature);
@@ -4136,6 +4211,14 @@ abstract class ModulBase extends \IPSModuleStrict
         return true;
     }
 
+    /**
+     * Aktiviert Aktionen fuer State-Features entsprechend der State-Konfiguration.
+     *
+     * Explizite `enableAction`-Angaben haben Vorrang vor den normalen Access-Rechten.
+     *
+     * @param array $stateConfig State-Konfiguration aus getStateConfiguration().
+     * @param array|null $feature Optionale Expose-Daten.
+     */
     private function enableStateFeatureAction(array $stateConfig, ?array $feature): void
     {
         if (isset($stateConfig['enableAction'])) {
@@ -4148,6 +4231,13 @@ abstract class ModulBase extends \IPSModuleStrict
         $this->checkAndEnableAction($stateConfig['ident'], $feature);
     }
 
+    /**
+     * Registriert eine bekannte Sondervariable, sofern sie nicht gefiltert ist.
+     *
+     * @param array $feature Expose-Feature.
+     *
+     * @return bool True, wenn das Feature ein bekannter Sonderfall war.
+     */
     private function registerSpecialFeatureVariable(array $feature): bool
     {
         $property = (string) ($feature['property'] ?? '');
@@ -4165,6 +4255,18 @@ abstract class ModulBase extends \IPSModuleStrict
         return true;
     }
 
+    /**
+     * Registriert eine Variable anhand des ermittelten Modul-Variablentyps.
+     *
+     * @param array $feature Expose-Feature.
+     * @param string $ident Symcon-Ident.
+     * @param string $property Expose-Property.
+     * @param string $variableType Interner Variablentyp (`bool`, `int`, `float`, `string`, `text`, `composite`, `list`).
+     * @param string $profileName Zu verwendendes Symcon-Profil.
+     * @param string|null $exposeType Optionaler Expose-Typ fuer rekursive Sub-Features.
+     *
+     * @return bool True, wenn die normale Nachverarbeitung der Hauptvariable fortgesetzt werden soll.
+     */
     private function registerFeatureVariableByType(array $feature, string $ident, string $property, string $variableType, string $profileName, ?string $exposeType): bool
     {
         switch ($variableType) {
@@ -4199,6 +4301,15 @@ abstract class ModulBase extends \IPSModuleStrict
         }
     }
 
+    /**
+     * Registriert Composite-Features oder delegiert Farb-Composite-Features.
+     *
+     * @param array $feature Composite-Expose.
+     * @param string $ident Basis-Ident fuer Sub-Features.
+     * @param string|null $exposeType Optionaler Expose-Typ fuer rekursive Registrierung.
+     *
+     * @return bool True, wenn das Composite vollstaendig behandelt wurde und die Hauptmethode abbrechen soll.
+     */
     private function registerCompositeFeatureVariable(array $feature, string $ident, ?string $exposeType): bool
     {
         $property = (string) ($feature['property'] ?? '');
@@ -4223,6 +4334,11 @@ abstract class ModulBase extends \IPSModuleStrict
         return false;
     }
 
+    /**
+     * Registriert Preset-Variablen fuer ein Sub-Feature, sofern vorhanden.
+     *
+     * @param array $subFeature Sub-Feature aus einem Composite-Expose.
+     */
     private function registerSubFeaturePresetVariables(array $subFeature): void
     {
         if (!isset($subFeature['presets'])) {
@@ -4249,6 +4365,13 @@ abstract class ModulBase extends \IPSModuleStrict
         );
     }
 
+    /**
+     * Registriert ein List-Feature als JSON-String und optional dessen Item-Typ.
+     *
+     * @param array $feature List-Expose.
+     * @param string $ident Symcon-Ident der Listenvariable.
+     * @param string $property Expose-Property.
+     */
     private function registerListFeatureVariable(array $feature, string $ident, string $property): void
     {
         $this->RegisterVariableString(
@@ -4263,6 +4386,15 @@ abstract class ModulBase extends \IPSModuleStrict
         }
     }
 
+    /**
+     * Registriert die Kelvin-Hilfsvariable zur Farbtemperatur.
+     *
+     * Die Hilfsvariable ist eine moderne Tile-Visu-Ergaenzung zu `color_temp`
+     * und erhaelt immer eine Aktion, sofern sie nicht gefiltert ist.
+     *
+     * @param string $property Expose-Property.
+     * @param array $feature Farbtemperatur-Feature.
+     */
     private function registerColorTemperatureKelvinVariable(string $property, array $feature): void
     {
         if ($property !== 'color_temp') {
@@ -4280,6 +4412,16 @@ abstract class ModulBase extends \IPSModuleStrict
         $this->checkAndEnableAction($kelvinIdent, null, true);
     }
 
+    /**
+     * Registriert Preset-Variablen fuer das Hauptfeature.
+     *
+     * @param array $feature Expose-Feature.
+     * @param string $property Expose-Property.
+     * @param string $type Expose-Typ.
+     * @param string $unit Einheit des Werts.
+     * @param float $step Schrittweite des Werts.
+     * @param string|null $groupType Optionaler Gruppentyp.
+     */
     private function registerFeaturePresetVariables(array $feature, string $property, string $type, string $unit, float $step, ?string $groupType): void
     {
         if (!isset($feature['presets']) || empty($feature['presets'])) {
@@ -4699,6 +4841,16 @@ abstract class ModulBase extends \IPSModuleStrict
         return strpos($key, '__') !== false;
     }
 
+    /**
+     * Prueft, ob ein Enum-Feature nur als write-only Einzelkommando dient.
+     *
+     * Diese Exposes besitzen genau einen moeglichen Wert, keinen Lesezugriff und
+     * Schreibzugriff. Sie werden als ausloesbare Boolean-Aktion registriert.
+     *
+     * @param array $feature Expose-Feature.
+     *
+     * @return bool True fuer write-only Single-Enum-Kommandos.
+     */
     private function isWriteOnlySingleEnumCommand(array $feature): bool
     {
         return ($feature['type'] ?? '') === 'enum'

@@ -225,6 +225,11 @@ class Zigbee2MQTTDevice extends \Zigbee2MQTT\ModulBase
         return true;
     }
 
+    /**
+     * Laedt und speichert das Geraete-Icon aus der Zigbee2MQTT-Bildsammlung.
+     *
+     * @param string $Model Zigbee2MQTT-Modellkennung des Geraets.
+     */
     private function UpdateDeviceIcon(string $Model): void
     {
         // Leerzeichen durch Bindestriche für URL ersetzen
