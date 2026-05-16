@@ -161,6 +161,12 @@ class DevicesTest extends DumpInclude
         //$Debug['LastPayload'] ist leider unvollständig. Neues Z2M_Debug benötigt
         //$this->assertSame(self::count_recursive($Debug['LastPayload']) + $OffestLastPayload, count(IPS_GetChildrenIDs($iid)) + $OffsetChildrenIDs, 'Anzahl LastPayload ('.self::count_recursive($Debug['LastPayload']) + $OffestLastPayload.') und Erzeugte Variablen ('.count(IPS_GetChildrenIDs($iid)) + $OffsetChildrenIDs.') unterscheiden sich');
         $this->assertCount(0, self::getExportDebugData($iid)['missingTranslations'], 'Fehlende übersetzungen gefunden:' . var_export(self::getExportDebugData($iid)['missingTranslations'], true));
+
+        $html = IPS\InstanceManager::getInstanceInterface($iid)->GetVisualizationTile();
+        $this->assertStringContainsString('"type":"action"', $html);
+        $this->assertStringContainsString('"primary":{"ident":"action"', $html);
+        $this->assertStringContainsString('Bereit', $html);
+        $this->assertStringContainsString('Helligkeit hoch', $html);
     }
 
     public function testBMCT_SLZ()
@@ -174,6 +180,9 @@ class DevicesTest extends DumpInclude
         // Irgendwie fehlen Variablen aus dem Payload...
         // $this->assertSame(self::count_recursive($Debug['LastPayload']) + $OffestLastPayload, count(IPS_GetChildrenIDs($iid)) + $OffsetChildrenIDs, 'Anzahl LastPayload ('.self::count_recursive($Debug['LastPayload']) + $OffestLastPayload.') und Erzeugte Variablen ('.count(IPS_GetChildrenIDs($iid)) + $OffsetChildrenIDs.') unterscheiden sich');
         $this->assertCount(0, self::getExportDebugData($iid)['missingTranslations'], 'Fehlende übersetzungen gefunden:' . var_export(self::getExportDebugData($iid)['missingTranslations'], true));
+
+        $html = IPS\InstanceManager::getInstanceInterface($iid)->GetVisualizationTile();
+        $this->assertStringContainsString('"type":"meteredSwitch"', $html);
     }
 
     public function testWT_A03E()

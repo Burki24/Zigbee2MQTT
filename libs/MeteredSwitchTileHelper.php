@@ -186,11 +186,15 @@ trait MeteredSwitchTileHelper
     private function GetMeteredSwitchTileSwitchIdents(): array
     {
         $idents = [];
-        $candidates = ['state'];
+        $candidates = ['state', 'state_left', 'state_right'];
 
         for ($index = 1; $index <= 16; $index++) {
             $candidates[] = 'state_' . $index;
             $candidates[] = 'state_l' . $index;
+            $candidates[] = 'state_left_' . $index;
+            $candidates[] = 'state_right_' . $index;
+            $candidates[] = 'state_left_l' . $index;
+            $candidates[] = 'state_right_l' . $index;
         }
 
         foreach ($candidates as $ident) {
@@ -551,6 +555,15 @@ trait MeteredSwitchTileHelper
 
         if (preg_match('/^_l(\d+)$/i', $suffix, $matches)) {
             return ' L' . $matches[1];
+        }
+
+        if (preg_match('/^_(left|right)$/i', $suffix, $matches)) {
+            return $matches[1] === 'left' ? ' Links' : ' Rechts';
+        }
+
+        if (preg_match('/^_(left|right)_l?(\d+)$/i', $suffix, $matches)) {
+            $side = strtolower($matches[1]) === 'left' ? 'Links' : 'Rechts';
+            return ' ' . $side . ' ' . $matches[2];
         }
 
         return ' ' . strtoupper(ltrim($suffix, '_'));

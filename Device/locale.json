@@ -19,6 +19,7 @@
             "Disable switch tile": "Schalter-Kachel deaktivieren",
             "Disable security tile": "Sicherheits-Kachel deaktivieren",
             "Disable window handle tile": "Fenstergriff-Kachel deaktivieren",
+            "Disable action tile": "Aktions-Kachel deaktivieren",
             "Temperature visualization": "Temperatur-Visualisierung",
             "Fallback range for temperature exposes without value_min/value_max.": "Fallback-Bereich für Temperatur-Exposes ohne value_min/value_max.",
             "Minimum": "Minimum",
