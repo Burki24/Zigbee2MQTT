@@ -1804,16 +1804,40 @@ abstract class ModulBase extends \IPSModuleStrict
 
         // Payload-Daten verarbeiten
         foreach ($flattenedPayload as $key => $value) {
-            if ($value === null) {
-                $this->SendDebug(__FUNCTION__, \sprintf('Skip empty value for key=%s', $key), 0);
-                continue;
-            }
-            $this->SendDebug(__FUNCTION__, \sprintf('Verarbeite: Key=%s, Value=%s', $key, \is_array($value) ? json_encode($value) : (\is_bool($value) ? ($value ? 'TRUE' : 'FALSE') : (string) $value)), 0);
-
-            if (!$this->processSpecialVariable($key, $value)) {
-                $this->processVariable($key, $value);
-            }
+            $this->processPayloadEntry($key, $value);
         }
+    }
+
+    /**
+     * Verarbeitet einen einzelnen Eintrag des flach gemachten MQTT-Payloads.
+     */
+    private function processPayloadEntry(string $key, mixed $value): void
+    {
+        if ($value === null) {
+            $this->SendDebug('processPayload', \sprintf('Skip empty value for key=%s', $key), 0);
+            return;
+        }
+
+        $this->SendDebug('processPayload', \sprintf('Verarbeite: Key=%s, Value=%s', $key, $this->formatPayloadDebugValue($value)), 0);
+
+        if (!$this->processSpecialVariable($key, $value)) {
+            $this->processVariable($key, $value);
+        }
+    }
+
+    /**
+     * Formatiert einen Payload-Wert fuer Debugausgaben.
+     */
+    private function formatPayloadDebugValue(mixed $value): string
+    {
+        if (\is_array($value)) {
+            return (string) json_encode($value);
+        }
+        if (\is_bool($value)) {
+            return $value ? 'TRUE' : 'FALSE';
+        }
+
+        return (string) $value;
     }
 
     /**
@@ -1888,92 +1912,22 @@ abstract class ModulBase extends \IPSModuleStrict
      */
     private function processVariable(string $key, mixed $value): void
     {
-        // Neue Prüfung für composite keys
-        if ($this->isCompositeKey($key)) {
-            // Bestimme den Variablentyp basierend auf dem Wert
-            $varType = match (true) {
-                \is_bool($value) => [
-                    'type'         => VARIABLETYPE_BOOLEAN,
-                    'profile'      => '~Switch',
-                    'registerFunc' => 'RegisterVariableBoolean'
-                ],
-                \is_int($value) => [
-                    'type'         => VARIABLETYPE_INTEGER,
-                    'profile'      => '', // Hier ggf. ein passendes Profil wählen
-                    'registerFunc' => 'RegisterVariableInteger'
-                ],
-                \is_float($value) => [
-                    'type'         => VARIABLETYPE_FLOAT,
-                    'profile'      => '', // Hier ggf. ein passendes Profil wählen
-                    'registerFunc' => 'RegisterVariableFloat'
-                ],
-                default => [
-                    'type'         => VARIABLETYPE_STRING,
-                    'profile'      => '',
-                    'registerFunc' => 'RegisterVariableString'
-                ]
-            };
-
-            // Wenn Variable noch nicht existiert, registrieren
-            if (!$this->GetObjectIDByIdent($key)) {
-                $registerFunc = $varType['registerFunc'];
-                $this->$registerFunc(
-                    $key,
-                    $this->Translate($this->convertLabelToName($key)),
-                    $varType['profile']
-                );
-
-                // Zentrale EnableAction-Prüfung für neue Variable
-                $this->checkAndEnableAction($key);
-            }
-
-            $this->SetValue($key, $value);
+        if ($this->processCompositeKeyVariable($key, $value)) {
             return;
         }
 
-        // Wenn Value ein Array ist und color im Key vorkommt, spezielle Behandlung
-        if (\is_array($value) && strpos($key, 'color') === 0) {
-            $this->handleColorVariable($key, $value);
+        if ($this->processStructuredArrayVariable($key, $value)) {
             return;
         }
 
-        // Wenn Value ein Array ist und einen 'composite' Key enthält
-        if (\is_array($value) && isset($value['composite'])) {
-            foreach ($value['composite'] as $compositeKey => $compositeValue) {
-                $this->processVariable($compositeKey, $compositeValue);
-            }
-            return;
-        }
-
-        // Wenn Value ein Array ist und list im Type vorkommt
-        if (\is_array($value) && isset($value['type']) && $value['type'] === 'list') {
-            // Speichere komplette Liste als JSON
-            $this->SetValueDirect($key, json_encode($value));
-
-            // Verarbeite einzelne Einträge wenn vorhanden
-            if (isset($value['items'])) {
-                foreach ($value['items'] as $index => $item) {
-                    $itemKey = $key . '_item_' . $index;
-                    $this->processVariable($itemKey, $item);
-                }
-            }
-            return;
-        }
-
-        $lowerKey = strtolower($key);
         $ident = $key;
 
-        // Prüfe existierende Variable
-        $variableID = $this->GetObjectIDByIdent($ident);
-        if ($variableID !== false) {
-            $this->SendDebug(__FUNCTION__, 'Existierende Variable gefunden: ' . $ident, 0);
-            $this->SetValue($ident, $value);
-            // Allgemeine Aktualisierung von Preset-Variablen
-            $this->updatePresetVariable($ident, $value);
+        if ($this->updateExistingPayloadVariable($ident, $value)) {
             return;
         }
 
         // Bekannte Variablen laden und prüfen
+        $lowerKey = strtolower($key);
         $knownVariables = $this->getKnownVariables();
         if (!isset($knownVariables[$lowerKey])) {
             $this->SendDebug(__FUNCTION__, 'Variable nicht bekannt: ' . $key, 0);
@@ -1993,30 +1947,140 @@ abstract class ModulBase extends \IPSModuleStrict
             return;
         }
 
-        // Variable registrieren und Wert setzen
-        $variableID = $this->getOrRegisterVariable($ident, $variableProps);
-        if ($variableID) {
-            // Zentrale EnableAction-Prüfung auch bei neu angelegten Variablen
-            $this->checkAndEnableAction($ident, $variableProps);
-            $this->SetValue($ident, $value);
+        $this->registerKnownPayloadVariable($ident, $value, $variableProps);
+        $this->updatePayloadPresetVariable($ident, $value);
+    }
+
+    /**
+     * Verarbeitet Composite-Key-Variablen wie color_options__execute_if_off.
+     */
+    private function processCompositeKeyVariable(string $key, mixed $value): bool
+    {
+        if (!$this->isCompositeKey($key)) {
+            return false;
         }
 
-        // Zusätzlich: Preset-Variable aktualisieren wenn vorhanden
+        $varType = $this->getPayloadVariableTypeDefinition($value);
+        if (!$this->GetObjectIDByIdent($key)) {
+            $registerFunc = $varType['registerFunc'];
+            $this->$registerFunc(
+                $key,
+                $this->Translate($this->convertLabelToName($key)),
+                $varType['profile']
+            );
+            $this->checkAndEnableAction($key);
+        }
+
+        $this->SetValue($key, $value);
+        return true;
+    }
+
+    /**
+     * Ermittelt Registrierungsdaten fuer dynamisch angelegte Payload-Variablen.
+     */
+    private function getPayloadVariableTypeDefinition(mixed $value): array
+    {
+        return match (true) {
+            \is_bool($value) => [
+                'profile'      => '~Switch',
+                'registerFunc' => 'RegisterVariableBoolean'
+            ],
+            \is_int($value) => [
+                'profile'      => '',
+                'registerFunc' => 'RegisterVariableInteger'
+            ],
+            \is_float($value) => [
+                'profile'      => '',
+                'registerFunc' => 'RegisterVariableFloat'
+            ],
+            default => [
+                'profile'      => '',
+                'registerFunc' => 'RegisterVariableString'
+            ]
+        };
+    }
+
+    /**
+     * Verarbeitet Array-Werte mit besonderer Zigbee2MQTT-Struktur.
+     */
+    private function processStructuredArrayVariable(string $key, mixed $value): bool
+    {
+        if (!\is_array($value)) {
+            return false;
+        }
+
+        if (strpos($key, 'color') === 0) {
+            $this->handleColorVariable($key, $value);
+            return true;
+        }
+
+        if (isset($value['composite'])) {
+            foreach ($value['composite'] as $compositeKey => $compositeValue) {
+                $this->processVariable($compositeKey, $compositeValue);
+            }
+            return true;
+        }
+
+        if (isset($value['type']) && $value['type'] === 'list') {
+            $this->processListPayloadVariable($key, $value);
+            return true;
+        }
+
+        return false;
+    }
+
+    /**
+     * Speichert Listen als JSON und verarbeitet deren Items einzeln.
+     */
+    private function processListPayloadVariable(string $key, array $value): void
+    {
+        $this->SetValueDirect($key, json_encode($value));
+        if (!isset($value['items']) || !\is_array($value['items'])) {
+            return;
+        }
+
+        foreach ($value['items'] as $index => $item) {
+            $this->processVariable($key . '_item_' . $index, $item);
+        }
+    }
+
+    /**
+     * Aktualisiert eine bereits vorhandene Variable aus einem Payload-Wert.
+     */
+    private function updateExistingPayloadVariable(string $ident, mixed $value): bool
+    {
+        if ($this->GetObjectIDByIdent($ident) === false) {
+            return false;
+        }
+
+        $this->SendDebug('processVariable', 'Existierende Variable gefunden: ' . $ident, 0);
+        $this->SetValue($ident, $value);
+        $this->updatePresetVariable($ident, $value);
+        return true;
+    }
+
+    /**
+     * Registriert eine bekannte Variable bei Bedarf und setzt ihren Wert.
+     */
+    private function registerKnownPayloadVariable(string $ident, mixed $value, array $variableProps): void
+    {
+        $variableID = $this->getOrRegisterVariable($ident, $variableProps);
+        if (!$variableID) {
+            return;
+        }
+
+        $this->checkAndEnableAction($ident, $variableProps);
+        $this->SetValue($ident, $value);
+    }
+
+    /**
+     * Aktualisiert die zugehoerige Preset-Variable, wenn sie vorhanden ist.
+     */
+    private function updatePayloadPresetVariable(string $ident, mixed $value): void
+    {
         $presetIdent = $ident . '_presets';
         if ($this->GetObjectIDByIdent($presetIdent) !== false) {
             $this->SetValue($presetIdent, $value);
-        }
-        // Liste verarbeiten
-        if (\is_array($value) && isset($value['type']) && $value['type'] === 'list') {
-            // Speichere komplette Liste als JSON
-            $this->SetValueDirect($key, json_encode($value));
-
-            // Verarbeite einzelne Einträge
-            foreach ($value as $index => $item) {
-                $itemKey = $key . '_item_' . $index;
-                $this->processVariable($itemKey, $item);
-            }
-            return;
         }
     }
 
