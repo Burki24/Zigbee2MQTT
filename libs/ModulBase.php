@@ -2371,88 +2371,117 @@ abstract class ModulBase extends \IPSModuleStrict
      */
     private function handleColorVariable(string $ident, mixed $value): bool
     {
-        $handled = match ($ident) {
-            'color' => function () use ($value)
-            {
-                $this->SendDebug(__FUNCTION__, 'Color Value: ' . json_encode($value), 0);
-                if (\is_int($value)) { //Schaltaktion aus Symcon
-                    if ($this->GetValue('color') !== $value) {
-                        $mode = $this->getColorMode();
-                        return $this->setColor($value, $mode);
-                    }
-                    return false;
-                } elseif (\is_array($value)) { //Datenempfang
-                    // Prüfen auf x/y Werte im color Array
-                    if (isset($value['color']) && isset($value['color']['x']) && isset($value['color']['y'])) {
-                        //  x/y Werte innerhalb color
-                        $brightness = $value['brightness'] ?? 254;
-                        $this->SendDebug(__FUNCTION__, 'Processing color with brightness: ' . $brightness, 0);
-                        // Umrechnung der x und y Werte in einen HEX-Wert mit Helligkeit
-                        $hexValue = $this->xyToInt($value['color']['x'], $value['color']['y'], $brightness);
-                        $this->SetValueDirect('color', $hexValue);
-                    } elseif (isset($value['x']) && isset($value['y'])) {
-                        // Direkte x/y Werte
-                        $brightness = $value['brightness'] ?? 254;
-                        $this->SendDebug(__FUNCTION__, 'Processing color with brightness: ' . $brightness, 0);
-                        // Umrechnung der x und y Werte in einen HEX-Wert mit Helligkeit
-                        $hexValue = $this->xyToInt($value['x'], $value['y'], $brightness);
-                        $this->SetValueDirect('color', $hexValue);
-                    } elseif (isset($value['hue']) && isset($value['saturation'])) {
-                        $brightness = $value['brightness'] ?? 254;
-                        $this->SendDebug(__FUNCTION__, 'Processing color with brightness: ' . $brightness, 0);
-                        // Umrechnung der H und S Werte in einen HEX-Wert mit Helligkeit
-                        $hexValue = $this->HSVToInt($value['hue'], $value['saturation'], $brightness);
-                        $this->SetValueDirect('color', $hexValue);
-                    }
-                    return true;
-                }
-                $this->SendDebug(__FUNCTION__, 'Ungültiger Wert für color: ' . json_encode($value), 0);
-                return false;
-            },
-            'color_hs' => function () use ($value)
-            {
-                $this->SendDebug(__FUNCTION__, 'Color HS', 0);
-                return $this->setColor($value, 'hs');
-            },
-            'color_rgb' => function () use ($value)
-            {
-                $this->SendDebug(__FUNCTION__, 'Color RGB', 0);
-                return $this->setColor($value, 'cie', 'color_rgb');
-            },
-            'color_temp_kelvin' => function () use ($value)
-            {
-                // Konvertiere Kelvin zu Mired
-                $convertedValue = $this->convertKelvinToMired($value);
-                $payloadKey = 'color_temp'; // Zigbee2MQTT erwartet immer color_temp als Key
-                $payload = [$payloadKey => $convertedValue];
-
-                // Debug Ausgabe
-                $this->SendDebug(__FUNCTION__, \sprintf('Converting %dK to %d Mired', $value, $convertedValue), 0);
-
-                // Sende Payload an Gerät
-                if (!$this->SendSetCommand($payload)) {
-                    return false;
-                }
-
-                // Aktualisiere auch die Mired-Variable
-                $this->SetValueDirect('color_temp', $convertedValue);
-
-                return true;
-            },
-            'color_temp' => function () use ($value)
-            {
-                $convertedValue = $this->convertKelvinToMired($value);
-                $this->SendDebug(__FUNCTION__, 'Converted Color Temp: ' . $convertedValue, 0);
-                $payload = ['color_temp' => $convertedValue];
-                return $this->SendSetCommand($payload);
-            },
-            default => function ()
-            {
-                return false;
-            },
+        return match ($ident) {
+            'color'             => $this->handleMainColorVariable($value),
+            'color_hs'          => $this->handleColorSpaceAction($value, 'hs'),
+            'color_rgb'         => $this->handleColorSpaceAction($value, 'cie', 'color_rgb'),
+            'color_temp_kelvin' => $this->handleColorTemperatureKelvinAction($value),
+            'color_temp'        => $this->handleColorTemperatureAction($value),
+            default             => false,
         };
+    }
 
-        return $handled();
+    /**
+     * Verarbeitet die Haupt-Farbvariable fuer Aktion und Datenempfang.
+     */
+    private function handleMainColorVariable(mixed $value): bool
+    {
+        $this->SendDebug('handleColorVariable', 'Color Value: ' . json_encode($value), 0);
+
+        if (\is_int($value)) {
+            return $this->handleIntegerColorAction($value);
+        }
+
+        if (\is_array($value)) {
+            return $this->updateColorVariableFromPayload($value);
+        }
+
+        $this->SendDebug('handleColorVariable', 'Ungültiger Wert für color: ' . json_encode($value), 0);
+        return false;
+    }
+
+    /**
+     * Sendet eine Farbe aus der Symcon-Farbauswahl an Zigbee2MQTT.
+     */
+    private function handleIntegerColorAction(int $value): bool
+    {
+        if ($this->GetValue('color') === $value) {
+            return false;
+        }
+
+        return $this->setColor($value, $this->getColorMode());
+    }
+
+    /**
+     * Aktualisiert die lokale Farbvariable aus einem Zigbee2MQTT-Farbpayload.
+     */
+    private function updateColorVariableFromPayload(array $value): bool
+    {
+        $hexValue = $this->getColorIntFromPayload($value);
+        if ($hexValue !== null) {
+            $this->SetValueDirect('color', $hexValue);
+        }
+
+        return true;
+    }
+
+    /**
+     * Wandelt bekannte Zigbee2MQTT-Farbpayloads in einen Symcon-Integer-Farbwert.
+     */
+    private function getColorIntFromPayload(array $value): ?int
+    {
+        $brightness = $value['brightness'] ?? 254;
+        $this->SendDebug('handleColorVariable', 'Processing color with brightness: ' . $brightness, 0);
+
+        if (isset($value['color']['x'], $value['color']['y'])) {
+            return $this->xyToInt($value['color']['x'], $value['color']['y'], $brightness);
+        }
+
+        if (isset($value['x'], $value['y'])) {
+            return $this->xyToInt($value['x'], $value['y'], $brightness);
+        }
+
+        if (isset($value['hue'], $value['saturation'])) {
+            return $this->HSVToInt($value['hue'], $value['saturation'], $brightness);
+        }
+
+        return null;
+    }
+
+    /**
+     * Sendet eine Farbaktion in einem expliziten Farbraum.
+     */
+    private function handleColorSpaceAction(mixed $value, string $mode, string $z2mMode = 'color'): bool
+    {
+        $this->SendDebug('handleColorVariable', 'Color mode: ' . $mode . ', Z2M mode: ' . $z2mMode, 0);
+        return $this->setColor($value, $mode, $z2mMode);
+    }
+
+    /**
+     * Sendet eine Kelvin-Farbtemperatur als Zigbee2MQTT-Mired-Wert und aktualisiert die Mired-Variable.
+     */
+    private function handleColorTemperatureKelvinAction(mixed $value): bool
+    {
+        $convertedValue = $this->convertKelvinToMired($value);
+        $this->SendDebug('handleColorVariable', \sprintf('Converting %dK to %d Mired', $value, $convertedValue), 0);
+
+        if (!$this->SendSetCommand(['color_temp' => $convertedValue])) {
+            return false;
+        }
+
+        $this->SetValueDirect('color_temp', $convertedValue);
+        return true;
+    }
+
+    /**
+     * Sendet eine Farbtemperaturaktion an Zigbee2MQTT.
+     */
+    private function handleColorTemperatureAction(mixed $value): bool
+    {
+        $convertedValue = $this->convertKelvinToMired($value);
+        $this->SendDebug('handleColorVariable', 'Converted Color Temp: ' . $convertedValue, 0);
+
+        return $this->SendSetCommand(['color_temp' => $convertedValue]);
     }
 
     /**
