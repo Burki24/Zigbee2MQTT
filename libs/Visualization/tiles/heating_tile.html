@@ -13,7 +13,6 @@
             --muted: #667085;
             --line: rgba(17, 24, 39, 0.12);
             --chip: rgba(0, 0, 0, 0.055);
-            --dial-track: rgba(17, 24, 39, 0.14);
             --inactive: #607d8b;
         }
 
@@ -119,66 +118,60 @@
             position: absolute;
             left: 50%;
             top: 50%;
-            display: grid;
-            justify-items: center;
-            width: min(82vw, 330px);
+            display: flex;
+            flex-direction: column;
+            align-items: center;
+            width: min(84vw, 360px);
             max-width: calc(100% - 54px);
             transform: translate(-50%, -47%);
         }
 
-        .current {
-            position: absolute;
-            left: 50%;
-            top: 50%;
-            z-index: 2;
-            min-height: 22px;
+        .temperature-stack {
+            display: grid;
+            justify-items: center;
+            gap: 22px;
+            width: 100%;
+        }
+
+        .temperature-display {
+            display: grid;
+            justify-items: center;
+            gap: 4px;
+            min-width: 0;
+        }
+
+        .temperature-display.primary .temperature-value {
+            font-size: 68px;
+        }
+
+        .temperature-display.secondary .temperature-value {
+            font-size: 38px;
+        }
+
+        .temperature-value {
+            max-width: 100%;
+            overflow: hidden;
             color: var(--text);
-            font-size: 32px;
             font-weight: 400;
             line-height: 1;
-            transform: translate(-50%, -8%);
+            text-overflow: ellipsis;
             white-space: nowrap;
         }
 
-        .dial {
-            position: relative;
-            width: min(100%, 300px);
-            aspect-ratio: 1;
-            touch-action: none;
-            user-select: none;
+        .temperature-label {
+            color: var(--muted);
+            font-size: 11px;
+            font-weight: 500;
+            letter-spacing: 0;
+            text-transform: uppercase;
         }
 
-        .dial-svg {
-            position: absolute;
-            inset: 0;
-            width: 100%;
-            height: 100%;
-            overflow: visible;
-        }
-
-        .dial-track,
-        .dial-fill {
-            fill: none;
-            stroke-linecap: round;
-            stroke-width: 4;
-        }
-
-        .dial-track {
-            stroke: var(--dial-track);
-        }
-
-        .dial-fill {
-            stroke: url(#temperatureGradient);
-        }
-
-        .dial-handle {
-            fill: #21aef4;
-            stroke: none;
-            filter: drop-shadow(0 2px 3px rgba(0, 0, 0, 0.18));
-        }
-
-        .dial-tick {
-            stroke: none;
+        .setpoint-control {
+            display: grid;
+            grid-template-columns: 58px minmax(0, 1fr) 58px;
+            align-items: center;
+            gap: 18px;
+            width: min(100%, 330px);
         }
 
         .step-button {
@@ -201,58 +194,6 @@
         .step-icon {
             width: 24px;
             height: 24px;
-        }
-
-        .dial-step {
-            position: absolute;
-            display: none;
-            top: 54%;
-            z-index: 2;
-            transform: translateY(-50%);
-        }
-
-        .dial-step.left {
-            left: -8px;
-        }
-
-        .dial-step.right {
-            right: -8px;
-        }
-
-        .target {
-            position: absolute;
-            left: 50%;
-            top: 41%;
-            z-index: 2;
-            display: flex;
-            align-items: center;
-            justify-content: center;
-            width: min(70%, 210px);
-            min-width: 0;
-            transform: translate(-50%, -50%);
-        }
-
-        .target-value {
-            max-width: 100%;
-            overflow: hidden;
-            color: var(--text);
-            font-size: 18px;
-            font-weight: 600;
-            line-height: 1;
-            text-overflow: ellipsis;
-            white-space: nowrap;
-        }
-
-        .target-unit {
-            display: none;
-        }
-
-        .target-icon {
-            flex: 0 0 auto;
-            width: 18px;
-            height: 18px;
-            margin-right: 2px;
-            color: var(--text);
         }
 
         .heat-line {
@@ -430,12 +371,8 @@
             }
 
             .thermostat {
-                width: min(82vw, 330px);
-                max-width: calc(100% - 68px);
-            }
-
-            .dial {
-                width: min(100%, 270px);
+                width: min(86vw, 330px);
+                max-width: calc(100% - 52px);
             }
 
             .step-button {
@@ -443,20 +380,21 @@
                 height: 48px;
             }
 
-            .dial-step.left {
-                left: -4px;
+            .temperature-stack {
+                gap: 16px;
             }
 
-            .dial-step.right {
-                right: -4px;
+            .setpoint-control {
+                grid-template-columns: 48px minmax(0, 1fr) 48px;
+                gap: 12px;
             }
 
-            .target-value {
-                font-size: 16px;
+            .temperature-display.primary .temperature-value {
+                font-size: 50px;
             }
 
-            .current {
-                font-size: 28px;
+            .temperature-display.secondary .temperature-value {
+                font-size: 30px;
             }
 
             .settings-list {
@@ -506,45 +444,33 @@
             </button>
 
             <div class="thermostat">
-                <div class="dial" id="setpointDial">
-                    <svg class="dial-svg" id="setpointDialSvg" viewBox="0 0 240 240" aria-hidden="true">
-                        <defs>
-                            <linearGradient id="temperatureGradient" x1="36" y1="198" x2="204" y2="198" gradientUnits="userSpaceOnUse">
-                                <stop offset="0" stop-color="#21aef4"></stop>
-                                <stop offset="0.48" stop-color="#8d8398"></stop>
-                                <stop offset="1" stop-color="#ff5a34"></stop>
-                            </linearGradient>
-                        </defs>
-                        <path class="dial-track" d="M51.1 177.9 A90 90 0 1 1 188.9 177.9"></path>
-                        <path class="dial-fill" id="setpointArc" d="M51.1 177.9 A90 90 0 1 1 188.9 177.9"></path>
-                        <g id="temperatureTicks"></g>
-                        <circle class="dial-handle" id="setpointHandle" cx="51.1" cy="177.9" r="10"></circle>
-                    </svg>
-                    <div class="current" id="currentTemperature"></div>
-                    <button class="step-button dial-step left" id="decreaseSetpoint" type="button" title="Kuehler">
-                        <svg class="step-icon" viewBox="0 0 24 24" aria-hidden="true">
-                            <path d="M5 12h14" fill="none" stroke="currentColor" stroke-width="2.4" stroke-linecap="round"></path>
-                        </svg>
-                    </button>
-                    <div class="target">
-                        <svg class="target-icon" viewBox="0 0 24 24" aria-hidden="true">
-                            <path d="M14 4v8.2a5 5 0 1 1-4 0V4a2 2 0 0 1 4 0z" fill="none" stroke="currentColor" stroke-width="2" stroke-linejoin="round"></path>
-                            <path d="M12 15v3" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round"></path>
-                        </svg>
-                        <div class="target-value" id="setpointValue">--</div>
-                        <div class="target-unit">Solltemperatur</div>
+                <div class="temperature-stack">
+                    <div class="temperature-display primary">
+                        <div class="temperature-value" id="currentTemperature">--</div>
+                        <div class="temperature-label">Temperatur</div>
                     </div>
-                    <button class="step-button dial-step right" id="increaseSetpoint" type="button" title="Waermer">
-                        <svg class="step-icon" viewBox="0 0 24 24" aria-hidden="true">
-                            <path d="M12 5v14" fill="none" stroke="currentColor" stroke-width="2.4" stroke-linecap="round"></path>
-                            <path d="M5 12h14" fill="none" stroke="currentColor" stroke-width="2.4" stroke-linecap="round"></path>
-                        </svg>
-                    </button>
-                </div>
-                <div class="heat-line">
-                    <span id="runningState">Inaktiv</span>
-                    <div class="heat-bar"><div class="heat-bar-fill" id="demandBar"></div></div>
-                    <span id="demandValue">0 %</span>
+                    <div class="setpoint-control">
+                        <button class="step-button" id="increaseSetpoint" type="button" title="Waermer">
+                            <svg class="step-icon" viewBox="0 0 24 24" aria-hidden="true">
+                                <path d="M12 5v14" fill="none" stroke="currentColor" stroke-width="2.4" stroke-linecap="round"></path>
+                                <path d="M5 12h14" fill="none" stroke="currentColor" stroke-width="2.4" stroke-linecap="round"></path>
+                            </svg>
+                        </button>
+                        <div class="temperature-display secondary">
+                            <div class="temperature-value" id="setpointValue">--</div>
+                            <div class="temperature-label">Solltemperatur</div>
+                        </div>
+                        <button class="step-button" id="decreaseSetpoint" type="button" title="Kuehler">
+                            <svg class="step-icon" viewBox="0 0 24 24" aria-hidden="true">
+                                <path d="M5 12h14" fill="none" stroke="currentColor" stroke-width="2.4" stroke-linecap="round"></path>
+                            </svg>
+                        </button>
+                    </div>
+                    <div class="heat-line">
+                        <span id="runningState">Inaktiv</span>
+                        <div class="heat-bar"><div class="heat-bar-fill" id="demandBar"></div></div>
+                        <span id="demandValue">0 %</span>
+                    </div>
                 </div>
             </div>
         </section>
@@ -660,25 +586,12 @@
         const comfortView = document.getElementById("comfortView");
         const deviceView = document.getElementById("deviceView");
         const setpointValue = document.getElementById("setpointValue");
-        const setpointDial = document.getElementById("setpointDial");
-        const setpointDialSvg = document.getElementById("setpointDialSvg");
-        const setpointArc = document.getElementById("setpointArc");
-        const setpointHandle = document.getElementById("setpointHandle");
-        const temperatureTicks = document.getElementById("temperatureTicks");
         const currentTemperature = document.getElementById("currentTemperature");
         const runningState = document.getElementById("runningState");
         const demandValue = document.getElementById("demandValue");
         const demandBar = document.getElementById("demandBar");
         const comfortList = document.getElementById("comfortList");
         const deviceList = document.getElementById("deviceList");
-        let dialPointerId = null;
-        const dialGeometry = {
-            cx: 120,
-            cy: 120,
-            radius: 90,
-            start: 140,
-            end: 400
-        };
 
         function handleMessage(message) {
             const nextData = normalizeMessage(message);
@@ -795,82 +708,6 @@
             return clampToStep("occupied_heating_setpoint", setpoint ? setpoint.value : config.min);
         }
 
-        function setpointProgress(value) {
-            const config = numericConfig("occupied_heating_setpoint");
-            const range = config.max - config.min;
-            if (range <= 0) {
-                return 0;
-            }
-            return Math.max(0, Math.min(1, (Number(value) - config.min) / range));
-        }
-
-        function pointOnDial(progress, radiusOffset = 0) {
-            const angle = (dialGeometry.start + ((dialGeometry.end - dialGeometry.start) * progress)) * Math.PI / 180;
-            const radius = dialGeometry.radius + radiusOffset;
-            return {
-                x: dialGeometry.cx + (Math.cos(angle) * radius),
-                y: dialGeometry.cy + (Math.sin(angle) * radius)
-            };
-        }
-
-        function temperatureColor(progress) {
-            const blue = [33, 174, 244];
-            const mid = [141, 131, 152];
-            const red = [255, 90, 52];
-            const left = progress < 0.5 ? blue : mid;
-            const right = progress < 0.5 ? mid : red;
-            const local = progress < 0.5 ? progress * 2 : (progress - 0.5) * 2;
-            const rgb = left.map((part, index) => Math.round(part + ((right[index] - part) * local)));
-            return `rgb(${rgb[0]}, ${rgb[1]}, ${rgb[2]})`;
-        }
-
-        function renderDialTicks() {
-            if (temperatureTicks.childElementCount > 0) {
-                return;
-            }
-
-            for (let i = 0; i <= 18; i++) {
-                const progress = i / 18;
-                const point = pointOnDial(progress);
-                const tick = document.createElementNS("http://www.w3.org/2000/svg", "circle");
-                tick.setAttribute("class", "dial-tick");
-                tick.setAttribute("cx", String(point.x));
-                tick.setAttribute("cy", String(point.y));
-                tick.setAttribute("r", i === 0 || i === 18 ? "0" : "2.7");
-                tick.setAttribute("fill", temperatureColor(progress));
-                temperatureTicks.appendChild(tick);
-            }
-        }
-
-        function valueFromDialEvent(event) {
-            const config = numericConfig("occupied_heating_setpoint");
-            const rect = setpointDialSvg.getBoundingClientRect();
-            const x = ((event.clientX - rect.left) / rect.width) * 240;
-            const y = ((event.clientY - rect.top) / rect.height) * 240;
-            let angle = Math.atan2(y - dialGeometry.cy, x - dialGeometry.cx) * 180 / Math.PI;
-            if (angle < dialGeometry.start) {
-                angle += 360;
-            }
-            angle = Math.max(dialGeometry.start, Math.min(dialGeometry.end, angle));
-            const progress = (angle - dialGeometry.start) / (dialGeometry.end - dialGeometry.start);
-            return clampToStep("occupied_heating_setpoint", config.min + (progress * (config.max - config.min)));
-        }
-
-        function updateDial(value) {
-            const progress = setpointProgress(value);
-            const point = pointOnDial(progress);
-
-            setpointHandle.setAttribute("cx", String(point.x));
-            setpointHandle.setAttribute("cy", String(point.y));
-            setpointHandle.setAttribute("fill", temperatureColor(progress));
-        }
-
-        function previewSetpoint(value) {
-            const next = clampToStep("occupied_heating_setpoint", value);
-            ensureValue("occupied_heating_setpoint", next);
-            render();
-        }
-
         function sendAction(ident, value) {
             if (typeof requestAction === "function") {
                 requestAction(ident, value);
@@ -900,7 +737,6 @@
                 data = { type: "heating", values: {}, features: {} };
             }
 
-            renderDialTicks();
             mainView.classList.toggle("active", activeView === "main");
             comfortView.classList.toggle("active", activeView === "comfort");
             deviceView.classList.toggle("active", activeView === "device");
@@ -918,9 +754,8 @@
             const run = valueOf("running_state");
             const setpointNumber = clampToStep("occupied_heating_setpoint", setpoint ? setpoint.value : config.min);
 
-            setpointValue.textContent = current ? current.formatted : "";
-            currentTemperature.textContent = `${numberFormat(setpointNumber, config.digits)} \u00b0C`;
-            updateDial(setpointNumber);
+            currentTemperature.textContent = current ? current.formatted : "--";
+            setpointValue.textContent = `${numberFormat(setpointNumber, config.digits)} \u00b0C`;
 
             const demandNumber = demand ? Math.max(0, Math.min(100, Number(demand.value))) : 0;
             demandValue.textContent = `${numberFormat(demandNumber, 0)} %`;
@@ -1057,34 +892,6 @@
         document.getElementById("deviceHome").addEventListener("click", () => setView("main"));
         document.getElementById("decreaseSetpoint").addEventListener("click", () => commitSetpoint(currentSetpointNumber() - numericConfig("occupied_heating_setpoint").step));
         document.getElementById("increaseSetpoint").addEventListener("click", () => commitSetpoint(currentSetpointNumber() + numericConfig("occupied_heating_setpoint").step));
-
-        setpointDial.addEventListener("pointerdown", (event) => {
-            if (event.target.closest("button")) {
-                return;
-            }
-            dialPointerId = event.pointerId;
-            setpointDial.setPointerCapture(event.pointerId);
-            previewSetpoint(valueFromDialEvent(event));
-        });
-        setpointDial.addEventListener("pointermove", (event) => {
-            if (dialPointerId !== event.pointerId) {
-                return;
-            }
-            previewSetpoint(valueFromDialEvent(event));
-        });
-        setpointDial.addEventListener("pointerup", (event) => {
-            if (dialPointerId !== event.pointerId) {
-                return;
-            }
-            dialPointerId = null;
-            commitSetpoint(valueFromDialEvent(event));
-        });
-        setpointDial.addEventListener("pointercancel", (event) => {
-            if (dialPointerId !== event.pointerId) {
-                return;
-            }
-            dialPointerId = null;
-        });
 
         render();
     </script>

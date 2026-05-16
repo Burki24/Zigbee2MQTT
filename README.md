@@ -221,6 +221,7 @@ Details stehen in der [Dokumentation des Geräte-Moduls](Device/README.md#41-vis
 **Version 5.43:**
 
 - Moderne HTML-SDK-Kacheln für Heizungen, Schaltaktoren mit Messwerten, Sensoren, Sicherheitsgeräte, Fenstergriffe und Aktionsgeräte ergänzt.
+- Heizungs-Kacheln zeigen Ist- und Solltemperatur ohne Ringslider und bedienen die Solltemperatur per Plus-/Minus-Tasten.
 - Schaltaktoren mit Messwerten unterstützen archivierte Messwerte direkt in der Kachel als Graphen.
 - Mehrkanal-Schaltaktoren können mehrere Schaltausgänge in einer Kachel darstellen.
 - Temperatur-, Farbtemperatur-, Enum- und Numeric-Exposes erhalten passendere moderne Tile-Darstellungen, soweit die Exposes die nötigen Werte liefern.
