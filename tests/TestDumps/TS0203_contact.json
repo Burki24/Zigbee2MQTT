@@ -42,6 +42,16 @@
             "value_off": false
         },
         {
+            "name": "tamper",
+            "label": "Tamper",
+            "access": 1,
+            "type": "binary",
+            "property": "tamper",
+            "description": "Indicates whether the device is tampered",
+            "value_on": true,
+            "value_off": false
+        },
+        {
             "name": "linkquality",
             "label": "Linkquality",
             "access": 1,
@@ -58,6 +68,7 @@
         "battery": 88,
         "battery_low": false,
         "contact": true,
+        "tamper": false,
         "last_seen": 1778910000,
         "linkquality": 123
     },

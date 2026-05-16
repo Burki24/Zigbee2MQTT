@@ -68,7 +68,8 @@ class DevicesTest extends DumpInclude
 
         $html = IPS\InstanceManager::getInstanceInterface($iid)->GetVisualizationTile();
         $this->assertStringContainsString('"type":"security"', $html);
-        $this->assertStringContainsString('"ident":"contact"', $html);
+        $this->assertStringContainsString('"primary":{"ident":"contact"', $html);
+        $this->assertStringContainsString('"tamper"', $html);
         $this->assertStringContainsString('"level":"safe"', $html);
         $this->assertStringContainsString('Geschlossen', $html);
     }

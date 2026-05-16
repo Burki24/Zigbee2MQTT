@@ -127,6 +127,8 @@ trait SecurityTileHelper
     private function GetSecurityTilePrimaryIdents(): array
     {
         return [
+            'contact',
+            'window_open',
             'smoke',
             'carbon_monoxide',
             'gas',
@@ -134,9 +136,7 @@ trait SecurityTileHelper
             'tamper',
             'vibration',
             'alarm',
-            'alarm_status',
-            'contact',
-            'window_open'
+            'alarm_status'
         ];
     }
 
@@ -191,6 +191,14 @@ trait SecurityTileHelper
      */
     private function BuildSecurityTilePrimaryState(array $values): array
     {
+        foreach (['contact', 'window_open'] as $ident) {
+            if (!isset($values[$ident])) {
+                continue;
+            }
+
+            return $this->BuildSecurityTilePrimaryCandidate($ident, $values[$ident]);
+        }
+
         $fallback = null;
 
         foreach ($this->GetSecurityTilePrimaryIdents() as $ident) {
@@ -199,14 +207,7 @@ trait SecurityTileHelper
             }
 
             $item = $values[$ident];
-            $candidate = [
-                'ident'     => $ident,
-                'label'     => $item['label'],
-                'value'     => $item['value'],
-                'formatted' => $item['formatted'],
-                'level'     => $item['level'],
-                'icon'      => $this->GetSecurityTileIcon($ident)
-            ];
+            $candidate = $this->BuildSecurityTilePrimaryCandidate($ident, $item);
 
             if ($item['level'] === 'alert') {
                 return $candidate;
@@ -222,6 +223,21 @@ trait SecurityTileHelper
             'formatted' => 'OK',
             'level'     => 'safe',
             'icon'      => 'shield'
+        ];
+    }
+
+    /**
+     * Baut einen einheitlichen Hauptstatus-Kandidaten.
+     */
+    private function BuildSecurityTilePrimaryCandidate(string $ident, array $item): array
+    {
+        return [
+            'ident'     => $ident,
+            'label'     => $item['label'],
+            'value'     => $item['value'],
+            'formatted' => $item['formatted'],
+            'level'     => $item['level'],
+            'icon'      => $this->GetSecurityTileIcon($ident)
         ];
     }
 
