@@ -1257,12 +1257,7 @@ abstract class ModulBase extends \IPSModuleStrict
                         $adjustedValue = $association['Value'];
                         $this->SendDebug(__FUNCTION__, 'Profilwert gefunden: ' . $value . ' -> ' . $adjustedValue, 0);
                         $result = $this->SetModuleValue($ident, $variableID, $adjustedValue);
-                        $this->UpdateHeatingTileValueIfRelevant($ident);
-                        $this->UpdateSensorTileValueIfRelevant($ident);
-                        $this->UpdateSecurityTileValueIfRelevant($ident);
-                        $this->UpdateWindowHandleTileValueIfRelevant($ident);
-                        $this->UpdateActionTileValueIfRelevant($ident);
-                        $this->UpdateMeteredSwitchTileValueIfRelevant($ident);
+                        $this->UpdateCustomTileValuesIfRelevant($ident);
                         return $result;
                     }
                 }
@@ -1278,12 +1273,7 @@ abstract class ModulBase extends \IPSModuleStrict
             $kelvinValue = $this->convertMiredToKelvin($value);
             $this->SetValueDirect($kelvinIdent, $kelvinValue);
         }
-        $this->UpdateHeatingTileValueIfRelevant($ident);
-        $this->UpdateSensorTileValueIfRelevant($ident);
-        $this->UpdateSecurityTileValueIfRelevant($ident);
-        $this->UpdateWindowHandleTileValueIfRelevant($ident);
-        $this->UpdateActionTileValueIfRelevant($ident);
-        $this->UpdateMeteredSwitchTileValueIfRelevant($ident);
+        $this->UpdateCustomTileValuesIfRelevant($ident);
         return $result;
     }
 
@@ -1370,6 +1360,14 @@ abstract class ModulBase extends \IPSModuleStrict
         $this->SendDebug(__FUNCTION__, \sprintf('Setze Variable: %s, Typ: %s, Wert: %s', $ident, $debugVarType, json_encode($value)), 0);
         // Setze den Wert der Variable
         $this->SetModuleValue($ident, $variableID, $value);
+        $this->UpdateCustomTileValuesIfRelevant($ident);
+    }
+
+    /**
+     * Aktualisiert alle eigenen HTML-SDK-Kacheln, die den geaenderten Ident verwenden.
+     */
+    private function UpdateCustomTileValuesIfRelevant(string $ident): void
+    {
         $this->UpdateHeatingTileValueIfRelevant($ident);
         $this->UpdateSensorTileValueIfRelevant($ident);
         $this->UpdateSecurityTileValueIfRelevant($ident);
