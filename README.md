@@ -18,6 +18,7 @@ Anbindung von [zigbee2mqtt](https://www.zigbee2mqtt.io) an IP-Symcon.
   - [3.2 Update von Modul Version 4.5 auf 5.x](#32-update-von-modul-version-45-auf-5x)
   - [3.3 Installation der IP-Symcon Extension in Zigbee2MQTT](#33-installation-der-ip-symcon-extension-in-zigbee2mqtt)
 - [4. Konfiguration in IP-Symcon](#4-konfiguration-in-ip-symcon)
+  - [4.1 Tile-Visualisierung](#41-tile-visualisierung)
 - [5. Changelog](#5-changelog)
 - [6. Spenden](#6-spenden)
 - [7. Lizenz](#7-lizenz)
@@ -198,7 +199,34 @@ Bitte den einzelnen Modulen entnehmen:
 - [Device](Device/README.md)
 - [Group](Group/README.md)
 
+### 4.1 Tile-Visualisierung
+
+Geräte-Instanzen können automatisch eine moderne HTML-SDK-Kachel verwenden, wenn die von Zigbee2MQTT gelieferten Exposes eindeutig zu einem unterstützten Gerätetyp passen.
+
+Unterstützt werden derzeit eigene Kacheln für:
+
+- Heizungen und Heizventile
+- Schaltaktoren mit Leistungsmessung, auch mit mehreren Schaltausgängen
+- Sensoren wie Temperatur, Luftfeuchtigkeit, Bodenfeuchtigkeit, Helligkeit und Batterie
+- Sicherheits- und Präsenzsensoren
+- Fenstergriffe
+- Taster, Fernbedienungen und Szenen-Auslöser
+
+Die Instanz-Konfiguration zeigt nur die Visualisierungsoptionen an, die für das jeweilige Gerät verfügbar sind. Dort kann eine automatisch gewählte Spezialkachel auch deaktiviert werden, wenn stattdessen die Standard-Visualisierung von Symcon genutzt werden soll.
+
+Details stehen in der [Dokumentation des Geräte-Moduls](Device/README.md#41-visualisierung-und-kacheln).
+
 ## 5. Changelog  
+
+**Version 5.43:**
+
+- Moderne HTML-SDK-Kacheln für Heizungen, Schaltaktoren mit Messwerten, Sensoren, Sicherheitsgeräte, Fenstergriffe und Aktionsgeräte ergänzt.
+- Schaltaktoren mit Messwerten unterstützen archivierte Messwerte direkt in der Kachel als Graphen.
+- Mehrkanal-Schaltaktoren können mehrere Schaltausgänge in einer Kachel darstellen.
+- Temperatur-, Farbtemperatur-, Enum- und Numeric-Exposes erhalten passendere moderne Tile-Darstellungen, soweit die Exposes die nötigen Werte liefern.
+- Die Geräte-Konfiguration zeigt Visualisierungsoptionen nur noch an, wenn sie für die Instanz fachlich verfügbar sind.
+- Temperatur-Visualisierungen können einen konfigurierbaren Fallback-Bereich nutzen, wenn Zigbee2MQTT keine `value_min`/`value_max` Werte liefert.
+- Interne Struktur der Visualisierungs- und Variablenregistrierung refaktoriert, ohne die öffentlichen Modul-Funktionen zu ändern.
 
 **Version 5.42:**  
 

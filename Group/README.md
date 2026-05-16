@@ -78,7 +78,8 @@
 
    Mit dieser Funktion können alle Aktionen einer Variable ausgelöst werden.  
 
-   [!IMPORTANT] Bei der Nutzung von RequestAction innerhalb eines Aktionsskript darf nicht die Variable übergeben werden, welche dieses Aktionsskript nutzt.  Sonst wird eine Endlosschleife ausgelöst.  Anstatt RequestAction sind die Z2M_Command oder Z2M_WriteValue* Instanzfuntionen zu benutzen.  
+   > [!IMPORTANT]
+   > Bei der Nutzung von RequestAction innerhalb eines Aktionsskriptes darf nicht die Variable übergeben werden, welche dieses Aktionsskript nutzt. Sonst wird eine Endlosschleife ausgelöst. Anstatt RequestAction sind die Z2M_Command oder Z2M_WriteValue* Instanz-Funktionen zu benutzen.
 
    **Beispiel:**
 
@@ -94,14 +95,14 @@
 ### Z2M_WriteValueBoolean <!-- omit in toc -->
 
    ```php
-   bool Z2M_WriteValueBoolean(int $InstanzId, bool $Value);
+   bool Z2M_WriteValueBoolean(int $InstanzId, string $Ident, bool $Value);
    ```
 
    Mit dieser Funktion können Bool Werte an eine Instanz gesendet werden.
 
    **Beispiel:**
 
-   VariablenIndent `State` der Instanz 12345
+   Variablen-Ident `state` der Instanz 12345
 
    ```php
    Z2M_WriteValueBoolean(12345, 'state', true); //Einschalten
@@ -112,14 +113,14 @@
 ### Z2M_WriteValueInteger <!-- omit in toc -->
 
    ```php
-   bool Z2M_WriteValueInteger(int $InstanzId, int $Value);
+   bool Z2M_WriteValueInteger(int $InstanzId, string $Ident, int $Value);
    ```
 
    Mit dieser Funktion können Integer Werte an eine Instanz gesendet werden.
 
    **Beispiel:**
 
-   VariablenIndent `Position` der Instanz 12345
+   Variablen-Ident `position` der Instanz 12345
 
    ```php
    Z2M_WriteValueInteger(12345, 'position', 50); // Setze Position auf 50
@@ -130,17 +131,17 @@
 ### Z2M_WriteValueFloat <!-- omit in toc -->
 
    ```php
-   bool Z2M_WriteValueFloat(int $InstanzId, float $Value);
+   bool Z2M_WriteValueFloat(int $InstanzId, string $Ident, float $Value);
    ```
 
    Mit dieser Funktion können Float Werte an eine Instanz gesendet werden.
 
    **Beispiel:**
 
-   VariablenIndent `Kalibrierzeit` der Instanz 12345
+   Variablen-Ident `calibration_time` der Instanz 12345
 
    ```php
-   Z2M_WriteValueFloat(12345, 'calibration_time', 22.5); // Setze Kalibrirung auf 22,5 Sekunden
+   Z2M_WriteValueFloat(12345, 'calibration_time', 22.5); // Setze Kalibrierung auf 22,5 Sekunden
    ```
 
 ---
@@ -148,14 +149,14 @@
 ### Z2M_WriteValueString <!-- omit in toc -->
 
    ```php
-   bool Z2M_WriteValueString(int $InstanzId, string $Value);
+   bool Z2M_WriteValueString(int $InstanzId, string $Ident, string $Value);
    ```
 
    Mit dieser Funktion können String Werte an eine Instanz gesendet werden.
 
    **Beispiel:**
 
-   VariablenIndent `Effekt` der Instanz 12345
+   Variablen-Ident `effect` der Instanz 12345
 
    ```php
    Z2M_WriteValueString(12345, 'effect', 'blink'); // Effekt Blinken ausführen
@@ -163,13 +164,62 @@
 
 ---
 
+### Z2M_ReadValue <!-- omit in toc -->
+
+   ```php
+   bool Z2M_ReadValue(int $InstanzId, string $Property);
+   ```
+
+   Mit dieser Funktion wird eine Leseanfrage für eine bestimmte Eigenschaft an die Gruppe gesendet.
+
+   **Beispiel:**
+
+   ```php
+   Z2M_ReadValue(12345, 'state'); // Lese Status
+   ```
+
+---
+
+### Z2M_SendGetCommand <!-- omit in toc -->
+
+   ```php
+   bool Z2M_SendGetCommand(int $InstanzId);
+   ```
+
+   Mit dieser Funktion wird eine Leseanfrage für alle bekannten Eigenschaften an die Gruppe gesendet.
+
+   **Beispiel:**
+
+   ```php
+   Z2M_SendGetCommand(12345);
+   ```
+
+---
+
+### Z2M_SendSetCommand <!-- omit in toc -->
+
+   ```php
+   bool Z2M_SendSetCommand(int $InstanzId, array $Payload);
+   ```
+
+   Mit dieser Funktion kann ein beliebiger Payload (Datensatz) an die Gruppe gesendet werden.
+
+   **Beispiel:**
+
+   ```php
+   $Payload['brightness_step_onoff'] = 10;
+   Z2M_SendSetCommand(12345, $Payload);
+   ```
+
+---
+
 ### Z2M_Command <!-- omit in toc -->
 
    ```php
-   Z2M_Command(int $InstanzId, string $Topic, string $Value)
+   bool Z2M_Command(int $InstanzId, string $Topic, string $Value);
    ```
 
-   Mit dies Funktion kann ein belibiger Payload (Datensatz) an das Gerät (Geräte-Topic) gesendet werden.
+   Mit dieser Funktion kann ein beliebiger Payload (Datensatz) an das Gerät (Geräte-Topic) gesendet werden.
 
    **Beispiel:**
 
@@ -185,10 +235,10 @@
 ### Z2M_CommandEx <!-- omit in toc -->
 
    ```php
-   Z2M_CommandEx(int $InstanzId,string $fulltopic, string $value)
+   bool Z2M_CommandEx(int $InstanzId, string $FullTopic, string $Value);
    ```
 
-   Mit dies Funktion kann ein beliebiger Payload (Datensatz) an Z2M gesendet werden.
+   Mit dieser Funktion kann ein beliebiger Payload (Datensatz) an Z2M gesendet werden.
 
    **Beispiel:**
 
@@ -213,15 +263,15 @@ Hier als Beispiel das Schrittweise auf/abdimmen.
 
 Liste aller Aktionen:
 
-| Funktion                            | Vorraussetzung (Variable) |
+| Funktion                            | Voraussetzung (Variable) |
 | :---------------------------------- | :------------------------ |
-| Einchaltverzögerung                 | Countdown                 |
-| Auschaltverzögerung                 | Countdown                 |
+| Einschaltverzögerung                | Countdown                 |
+| Ausschaltverzögerung                | Countdown                 |
 | Helligkeit mit Übergangszeit        | Helligkeit                |
 | Dimmen der Helligkeit (absolut)     | Helligkeit                |
 | Dimmen der Helligkeit (relativ)     | Helligkeit                |
-| Dimmen der Farbtemperatur (absolut) | Farbtemepatur             |
-| Dimmen der Farbtemperatur (relativ) | Farbtemepatur             |
+| Dimmen der Farbtemperatur (absolut) | Farbtemperatur            |
+| Dimmen der Farbtemperatur (relativ) | Farbtemperatur            |
 | Farbe mit Übergangszeit             | Farbe                     |
 
 ## 8. Anhang
