@@ -2661,60 +2661,89 @@ abstract class ModulBase extends \IPSModuleStrict
         $this->SendDebug(__FUNCTION__, 'Variable ID: ' . $varID . ', Typ: ' . $varType . ', Ursprünglicher Wert: ' . json_encode($value), 0);
 
         switch ($varType) {
-            case 0:
-                if (\is_bool($value)) {
-                    $this->SendDebug(__FUNCTION__, 'Wert ist bereits bool: ' . json_encode($value), 0);
-                    return $value;
-                }
-                if (\is_string($value)) {
-                    $normalizedValue = strtoupper(trim($value, " \t\n\r\0\x0B\"'"));
-
-                    // Exposes-Daten für diesen Identifier abrufen
-                    $exposes = $this->ReadAttributeArray(self::ATTRIBUTE_EXPOSES);
-                    foreach ($exposes as $expose) {
-                        // Features durchsuchen
-                        $features = isset($expose['features']) ? $expose['features'] : [$expose];
-                        foreach ($features as $feature) {
-                            if (isset($feature['property']) && $feature['property'] === $ident &&
-                                isset($feature['value_on']) && isset($feature['value_off']) &&
-                                $feature['type'] === 'binary') {
-
-                                // Prüfen ob der Wert dem value_on entspricht
-                                if ($value === $feature['value_on']) {
-                                    return true;
-                                }
-                                // Prüfen ob der Wert dem value_off entspricht
-                                elseif ($value === $feature['value_off']) {
-                                    return false;
-                                }
-                            }
-                        }
-                    }
-                    // Standardprüfung für übliche Bool-Textwerte als Fallback
-                    if (\in_array($normalizedValue, ['ON', 'TRUE', 'YES', '1', 'LOCK', 'OPEN'], true)) {
-                        return true;
-                    }
-                    if (\in_array($normalizedValue, ['OFF', 'FALSE', 'NO', '0', 'UNLOCK', 'CLOSE', 'CLOSED'], true)) {
-                        return false;
-                    }
-
-                    $this->SendDebug(__FUNCTION__, 'Unbekannter boolescher Stringwert für ' . $ident . ': ' . json_encode($value) . ' -> false', 0);
-                    return false;
-                }
-                return (bool) $value;
-            case 1:
+            case VARIABLETYPE_BOOLEAN:
+                return $this->adjustBooleanValueByType($ident, $value);
+            case VARIABLETYPE_INTEGER:
                 $this->SendDebug(__FUNCTION__, 'Konvertiere zu int: ' . (int) $value, 0);
                 return (int) $value;
-            case 2:
+            case VARIABLETYPE_FLOAT:
                 $this->SendDebug(__FUNCTION__, 'Konvertiere zu float: ' . (float) $value, 0);
                 return (float) $value;
-            case 3:
+            case VARIABLETYPE_STRING:
                 $this->SendDebug(__FUNCTION__, 'Konvertiere zu string: ' . (string) $value, 0);
                 return (string) $value;
             default:
                 $this->SendDebug(__FUNCTION__, 'Unbekannter Variablentyp für ID ' . $varID . ', Wert: ' . json_encode($value), 0);
                 return $value;
         }
+    }
+
+    /**
+     * Konvertiert empfangene Werte passend fuer boolesche IPS-Variablen.
+     */
+    private function adjustBooleanValueByType(string $ident, mixed $value): bool
+    {
+        if (\is_bool($value)) {
+            $this->SendDebug('adjustValueByType', 'Wert ist bereits bool: ' . json_encode($value), 0);
+            return $value;
+        }
+
+        if (\is_string($value)) {
+            $exposeValue = $this->getBooleanValueFromExpose($ident, $value);
+            if ($exposeValue !== null) {
+                return $exposeValue;
+            }
+
+            $knownValue = $this->getBooleanValueFromKnownString($value);
+            if ($knownValue !== null) {
+                return $knownValue;
+            }
+
+            $this->SendDebug('adjustValueByType', 'Unbekannter boolescher Stringwert für ' . $ident . ': ' . json_encode($value) . ' -> false', 0);
+            return false;
+        }
+
+        return (bool) $value;
+    }
+
+    /**
+     * Nutzt value_on/value_off aus dem Expose, wenn vorhanden.
+     */
+    private function getBooleanValueFromExpose(string $ident, string $value): ?bool
+    {
+        $feature = $this->findExposeFeatureByProperty($ident);
+        if (
+            $feature === null ||
+            ($feature['type'] ?? '') !== 'binary' ||
+            !isset($feature['value_on'], $feature['value_off'])
+        ) {
+            return null;
+        }
+
+        if ($value === $feature['value_on']) {
+            return true;
+        }
+        if ($value === $feature['value_off']) {
+            return false;
+        }
+
+        return null;
+    }
+
+    /**
+     * Interpretiert bekannte Zigbee2MQTT-/Symcon-Textwerte als Boolean.
+     */
+    private function getBooleanValueFromKnownString(string $value): ?bool
+    {
+        $normalizedValue = strtoupper(trim($value, " \t\n\r\0\x0B\"'"));
+        if (\in_array($normalizedValue, ['ON', 'TRUE', 'YES', '1', 'LOCK', 'OPEN'], true)) {
+            return true;
+        }
+        if (\in_array($normalizedValue, ['OFF', 'FALSE', 'NO', '0', 'UNLOCK', 'CLOSE', 'CLOSED'], true)) {
+            return false;
+        }
+
+        return null;
     }
 
     // Farbmanagement
