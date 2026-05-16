@@ -174,6 +174,38 @@
             width: min(100%, 330px);
         }
 
+        .preset-row {
+            display: grid;
+            grid-template-columns: repeat(3, 1fr);
+            gap: 8px;
+            width: min(100%, 230px);
+        }
+
+        .preset-button {
+            height: 32px;
+            border: 0;
+            border-radius: 7px;
+            color: var(--accent);
+            background: rgba(16, 200, 178, 0.12);
+            cursor: pointer;
+            font-size: 13px;
+            font-weight: 500;
+            letter-spacing: 0;
+            white-space: nowrap;
+        }
+
+        .preset-button.active {
+            color: #ffffff;
+            background: var(--accent);
+        }
+
+        .preset-button:disabled {
+            color: var(--muted);
+            background: var(--chip);
+            cursor: default;
+            opacity: 0.45;
+        }
+
         .step-button {
             position: relative;
             display: grid;
@@ -450,9 +482,8 @@
                         <div class="temperature-label">Temperatur</div>
                     </div>
                     <div class="setpoint-control">
-                        <button class="step-button" id="increaseSetpoint" type="button" title="Waermer">
+                        <button class="step-button" id="decreaseSetpoint" type="button" title="Kuehler">
                             <svg class="step-icon" viewBox="0 0 24 24" aria-hidden="true">
-                                <path d="M12 5v14" fill="none" stroke="currentColor" stroke-width="2.4" stroke-linecap="round"></path>
                                 <path d="M5 12h14" fill="none" stroke="currentColor" stroke-width="2.4" stroke-linecap="round"></path>
                             </svg>
                         </button>
@@ -460,11 +491,17 @@
                             <div class="temperature-value" id="setpointValue">--</div>
                             <div class="temperature-label">Solltemperatur</div>
                         </div>
-                        <button class="step-button" id="decreaseSetpoint" type="button" title="Kuehler">
+                        <button class="step-button" id="increaseSetpoint" type="button" title="Waermer">
                             <svg class="step-icon" viewBox="0 0 24 24" aria-hidden="true">
+                                <path d="M12 5v14" fill="none" stroke="currentColor" stroke-width="2.4" stroke-linecap="round"></path>
                                 <path d="M5 12h14" fill="none" stroke="currentColor" stroke-width="2.4" stroke-linecap="round"></path>
                             </svg>
                         </button>
+                    </div>
+                    <div class="preset-row" aria-label="Solltemperatur Presets">
+                        <button class="preset-button" type="button" data-setpoint-preset="18">18 &deg;C</button>
+                        <button class="preset-button" type="button" data-setpoint-preset="20">20 &deg;C</button>
+                        <button class="preset-button" type="button" data-setpoint-preset="22">22 &deg;C</button>
                     </div>
                     <div class="heat-line">
                         <span id="runningState">Inaktiv</span>
@@ -592,6 +629,7 @@
         const demandBar = document.getElementById("demandBar");
         const comfortList = document.getElementById("comfortList");
         const deviceList = document.getElementById("deviceList");
+        const setpointPresetButtons = Array.from(document.querySelectorAll("[data-setpoint-preset]"));
 
         function handleMessage(message) {
             const nextData = normalizeMessage(message);
@@ -756,12 +794,23 @@
 
             currentTemperature.textContent = current ? current.formatted : "--";
             setpointValue.textContent = `${numberFormat(setpointNumber, config.digits)} \u00b0C`;
+            renderSetpointPresets(setpointNumber, config);
 
             const demandNumber = demand ? Math.max(0, Math.min(100, Number(demand.value))) : 0;
             demandValue.textContent = `${numberFormat(demandNumber, 0)} %`;
             demandBar.style.width = `${demandNumber}%`;
             runningState.textContent = run ? (run.formatted || formattedValue("running_state", run.value)) : "Inaktiv";
             mainView.classList.toggle("heating", (run && run.value === "heat") || demandNumber > 0);
+        }
+
+        function renderSetpointPresets(setpointNumber, config) {
+            for (const button of setpointPresetButtons) {
+                const preset = Number(button.dataset.setpointPreset);
+                const presetValue = clampToStep("occupied_heating_setpoint", preset);
+                const isAvailable = preset >= config.min && preset <= config.max;
+                button.disabled = !isAvailable;
+                button.classList.toggle("active", isAvailable && presetValue === setpointNumber);
+            }
         }
 
         function renderSettingsList(container, idents) {
@@ -892,6 +941,9 @@
         document.getElementById("deviceHome").addEventListener("click", () => setView("main"));
         document.getElementById("decreaseSetpoint").addEventListener("click", () => commitSetpoint(currentSetpointNumber() - numericConfig("occupied_heating_setpoint").step));
         document.getElementById("increaseSetpoint").addEventListener("click", () => commitSetpoint(currentSetpointNumber() + numericConfig("occupied_heating_setpoint").step));
+        for (const button of setpointPresetButtons) {
+            button.addEventListener("click", () => commitSetpoint(Number(button.dataset.setpointPreset)));
+        }
 
         render();
     </script>
