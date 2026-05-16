@@ -4033,62 +4033,20 @@ abstract class ModulBase extends \IPSModuleStrict
 
         $this->SendDebug(__FUNCTION__ . ' Registriere Variable für Property: ', $featureProperty, 0);
 
-        if (\is_array($feature) && $this->isWriteOnlySingleEnumCommand($feature)) {
-            $ident = str_replace('&', '_and_', $featureProperty);
-            $this->RegisterVariableBoolean($ident, $this->Translate($this->convertLabelToName($featureProperty)), '~Switch');
-            $this->checkAndEnableAction($ident, $feature, true);
+        if (\is_array($feature) && $this->registerWriteOnlySingleEnumCommand($feature, $featureProperty)) {
             return;
         }
 
-        // Übergebe das komplette Feature-Array für Access-Check
-        $stateConfig = $this->getStateConfiguration($featureProperty, \is_array($feature) ? $feature : null);
-        if ($stateConfig !== null) {
-            $formattedLabel = $this->convertLabelToName($featureProperty);
-
-            // Registriere Variable basierend auf dataType
-            switch ($stateConfig['dataType']) {
-                case VARIABLETYPE_BOOLEAN:
-                    $this->RegisterVariableBoolean(
-                        $stateConfig['ident'],
-                        $this->Translate($formattedLabel),
-                        $stateConfig['profile']
-                    );
-                    break;
-                case VARIABLETYPE_STRING:
-                    $this->RegisterVariableString(
-                        $stateConfig['ident'],
-                        $this->Translate($formattedLabel),
-                        $stateConfig['profile']
-                    );
-                    break;
-                default:
-                    $this->SendDebug(__FUNCTION__, 'Unsupported state dataType: ' . $stateConfig['dataType'], 0);
-                    return;
-            }
-
-            // Zentrale EnableAction-Prüfung für State-Variablen
-            // Prüfe erst auf explizite enableAction-Definition in stateConfig
-            if (isset($stateConfig['enableAction'])) {
-                // Explizit definierter enableAction-Wert hat Vorrang
-                if ($stateConfig['enableAction']) {
-                    $this->checkAndEnableAction($stateConfig['ident'], \is_array($feature) ? $feature : null, true);
-                }
-                // Wenn explizit false, dann kein EnableAction - auch nicht über Access-Rechte
-            } else {
-                // Kein expliziter enableAction-Wert, verwende Access-basierte Prüfung
-                $this->checkAndEnableAction($stateConfig['ident'], \is_array($feature) ? $feature : null);
-            }
+        if ($this->registerStateFeatureVariable($featureProperty, \is_array($feature) ? $feature : null)) {
             return;
         }
 
-        // Überprüfung auf spezielle Fälle
-        if (isset(self::$specialVariables[$feature['property']])) {
-            $aFiltered = $this->ReadAttributeArray(self::ATTRIBUTE_FILTERED);
-            if (\in_array($feature['property'], $aFiltered, true)) {
-                $this->SendDebug(__FUNCTION__, 'Skipping filtered special variable: ' . $feature['property'], 0);
-                return;
-            }
-            $this->registerSpecialVariable($feature);
+        if (!\is_array($feature)) {
+            $this->SendDebug(__FUNCTION__, 'Error: Feature details missing for property: ' . $featureProperty, 0);
+            return;
+        }
+
+        if ($this->registerSpecialFeatureVariable($feature)) {
             return;
         }
 
@@ -4118,91 +4076,9 @@ abstract class ModulBase extends \IPSModuleStrict
             $profileName = $this->registerVariableProfile($feature);
         }
 
-        // Registrierung der Variable basierend auf dem Variablentyp
         $ident = str_replace('&', '_and_', $property);
-        switch ($variableType) {
-            case 'bool':
-                $this->SendDebug(__FUNCTION__, 'Registering Boolean Variable: ' . $property, 0);
-                $this->RegisterVariableBoolean($ident, $this->Translate($this->convertLabelToName($property)), $profileName);
-                break;
-            case 'int':
-                $this->SendDebug(__FUNCTION__, 'Registering Integer Variable: ' . $property, 0);
-                $this->RegisterVariableInteger($ident, $this->Translate($this->convertLabelToName($property)), $profileName);
-                break;
-            case 'float':
-                $this->SendDebug(__FUNCTION__, 'Registering Float Variable: ' . $property, 0);
-                $this->RegisterVariableFloat($ident, $this->Translate($this->convertLabelToName($property)), $profileName);
-                break;
-            case 'string':
-                $this->SendDebug(__FUNCTION__, 'Registering String Variable: ' . $property, 0);
-                $this->RegisterVariableString($ident, $this->Translate($this->convertLabelToName($property)), $profileName);
-                break;
-            case 'text':
-                $this->SendDebug(__FUNCTION__, 'Registering Text Variable: ' . $property, 0);
-                $this->RegisterVariableString($ident, $this->Translate($this->convertLabelToName($property))); // Kein Profilname übergeben
-                break;
-                // Zusätzliche Registrierung für 'composite' Farb-Variablen
-            case 'composite':
-                $this->SendDebug(__FUNCTION__, 'Registering Composite Variable: ' . $property, 0);
-
-                // Bestehende Color-Variable Logik beibehalten
-                if (isset($feature['color_mode'])) {
-                    $this->registerColorVariable($feature);
-                    return;
-                }
-
-                // Feature-Verarbeitung
-                if (isset($feature['features'])) {
-                    foreach ($feature['features'] as $subFeature) {
-                        // Bilde Sub-Properties
-                        $subProperty = $subFeature['property'];
-                        $subProperty = str_replace('&', '_and_', $subFeature['property']);
-                        $subFeature['property'] = $ident . '__' . $subProperty;
-
-                        // Preset-Handling für Sub-Features
-                        if (isset($subFeature['presets'])) {
-                            $aFiltered = $this->ReadAttributeArray(self::ATTRIBUTE_FILTERED);
-                            $subPresetIdent = $subFeature['property'] . '_presets';
-                            if (!\in_array($subPresetIdent, $aFiltered, true)) {
-                                $variableType = $this->getVariableTypeFromProfile(
-                                    $subFeature['type'] ?? 'numeric',
-                                    $subFeature['property'],
-                                    $subFeature['unit'] ?? '',
-                                    $subFeature['value_step'] ?? 1.0
-                                );
-                                $this->registerPresetVariables(
-                                    $subFeature['presets'],
-                                    $subFeature['property'],
-                                    $variableType,
-                                    $subFeature
-                                );
-                            }
-                        }
-
-                        // Rekursiver Aufruf mit einzelnem Feature
-                        $this->registerVariable($subFeature, $exposeType);
-                    }
-                }
-                break;
-
-            case 'list':
-                // Hauptvariable als JSON Array
-                $this->RegisterVariableString(
-                    $ident,
-                    $this->Translate($this->convertLabelToName($property))
-                );
-
-                // Registriere item_type als composite
-                if (isset($feature['item_type'])) {
-                    $itemFeature = $feature['item_type'];
-                    $itemFeature['property'] = $ident . '_item';
-                    $this->registerVariable($itemFeature);
-                }
-                break;
-
-            default:
-                $this->SendDebug(__FUNCTION__, 'Unsupported variable type: ' . $variableType, 0);
-                return;
+        if (!$this->registerFeatureVariableByType($feature, $ident, $property, $variableType, $profileName, $exposeType)) {
+            return;
         }
 
         // Zentrale EnableAction-Prüfung für die Hauptvariable, außer bei composite
@@ -4210,28 +4086,215 @@ abstract class ModulBase extends \IPSModuleStrict
             $this->checkAndEnableAction($ident, $feature);
             $this->ApplyFeaturePresentation($ident, $feature, $groupType);
         }
-        // Zusätzliche Registrierung der color_temp_kelvin Variable, wenn color_temp registriert wird
-        if ($property === 'color_temp') {
-            $kelvinIdent = $property . '_kelvin';
-            $aFiltered = $this->ReadAttributeArray(self::ATTRIBUTE_FILTERED);
-            if (!\in_array($kelvinIdent, $aFiltered, true)) {
-                $this->RegisterVariableInteger($kelvinIdent, $this->Translate('Color Temperature Kelvin'), '~TWColor');
-                $this->ApplyColorTemperaturePresentation($kelvinIdent, $feature);
-                // color_temp_kelvin ist eine spezielle UI-Variable, die immer EnableAction haben soll
-                $this->checkAndEnableAction($kelvinIdent, null, true);
-            }
-        }
-        // Preset-Verarbeitung nach der normalen Variablenregistrierung
-        if (isset($feature['presets']) && !empty($feature['presets'])) {
-            $presetIdent = $property . '_presets';
-            $aFiltered = $this->ReadAttributeArray(self::ATTRIBUTE_FILTERED);
-            if (!\in_array($presetIdent, $aFiltered, true)) {
-                $variableType = $this->getVariableTypeFromProfile($type, $property, $unit, $step, $groupType);
-                $this->registerPresetVariables($feature['presets'], $feature['property'], $variableType, $feature);
-                $this->SendDebug(__FUNCTION__, 'Registered presets for: ' . $feature['property'], 0);
-            }
-        }
+
+        $this->registerColorTemperatureKelvinVariable($property, $feature);
+        $this->registerFeaturePresetVariables($feature, $property, $type, $unit, $step, $groupType);
         return;
+    }
+
+    private function registerWriteOnlySingleEnumCommand(array $feature, string $featureProperty): bool
+    {
+        if (!$this->isWriteOnlySingleEnumCommand($feature)) {
+            return false;
+        }
+
+        $ident = str_replace('&', '_and_', $featureProperty);
+        $this->RegisterVariableBoolean($ident, $this->Translate($this->convertLabelToName($featureProperty)), '~Switch');
+        $this->checkAndEnableAction($ident, $feature, true);
+        return true;
+    }
+
+    private function registerStateFeatureVariable(string $featureProperty, ?array $feature): bool
+    {
+        $stateConfig = $this->getStateConfiguration($featureProperty, $feature);
+        if ($stateConfig === null) {
+            return false;
+        }
+
+        $formattedLabel = $this->convertLabelToName($featureProperty);
+        switch ($stateConfig['dataType']) {
+            case VARIABLETYPE_BOOLEAN:
+                $this->RegisterVariableBoolean(
+                    $stateConfig['ident'],
+                    $this->Translate($formattedLabel),
+                    $stateConfig['profile']
+                );
+                break;
+            case VARIABLETYPE_STRING:
+                $this->RegisterVariableString(
+                    $stateConfig['ident'],
+                    $this->Translate($formattedLabel),
+                    $stateConfig['profile']
+                );
+                break;
+            default:
+                $this->SendDebug(__FUNCTION__, 'Unsupported state dataType: ' . $stateConfig['dataType'], 0);
+                return true;
+        }
+
+        $this->enableStateFeatureAction($stateConfig, $feature);
+        return true;
+    }
+
+    private function enableStateFeatureAction(array $stateConfig, ?array $feature): void
+    {
+        if (isset($stateConfig['enableAction'])) {
+            if ($stateConfig['enableAction']) {
+                $this->checkAndEnableAction($stateConfig['ident'], $feature, true);
+            }
+            return;
+        }
+
+        $this->checkAndEnableAction($stateConfig['ident'], $feature);
+    }
+
+    private function registerSpecialFeatureVariable(array $feature): bool
+    {
+        $property = (string) ($feature['property'] ?? '');
+        if (!isset(self::$specialVariables[$property])) {
+            return false;
+        }
+
+        $aFiltered = $this->ReadAttributeArray(self::ATTRIBUTE_FILTERED);
+        if (\in_array($property, $aFiltered, true)) {
+            $this->SendDebug(__FUNCTION__, 'Skipping filtered special variable: ' . $property, 0);
+            return true;
+        }
+
+        $this->registerSpecialVariable($feature);
+        return true;
+    }
+
+    private function registerFeatureVariableByType(array $feature, string $ident, string $property, string $variableType, string $profileName, ?string $exposeType): bool
+    {
+        switch ($variableType) {
+            case 'bool':
+                $this->SendDebug(__FUNCTION__, 'Registering Boolean Variable: ' . $property, 0);
+                $this->RegisterVariableBoolean($ident, $this->Translate($this->convertLabelToName($property)), $profileName);
+                return true;
+            case 'int':
+                $this->SendDebug(__FUNCTION__, 'Registering Integer Variable: ' . $property, 0);
+                $this->RegisterVariableInteger($ident, $this->Translate($this->convertLabelToName($property)), $profileName);
+                return true;
+            case 'float':
+                $this->SendDebug(__FUNCTION__, 'Registering Float Variable: ' . $property, 0);
+                $this->RegisterVariableFloat($ident, $this->Translate($this->convertLabelToName($property)), $profileName);
+                return true;
+            case 'string':
+                $this->SendDebug(__FUNCTION__, 'Registering String Variable: ' . $property, 0);
+                $this->RegisterVariableString($ident, $this->Translate($this->convertLabelToName($property)), $profileName);
+                return true;
+            case 'text':
+                $this->SendDebug(__FUNCTION__, 'Registering Text Variable: ' . $property, 0);
+                $this->RegisterVariableString($ident, $this->Translate($this->convertLabelToName($property)));
+                return true;
+            case 'composite':
+                return !$this->registerCompositeFeatureVariable($feature, $ident, $exposeType);
+            case 'list':
+                $this->registerListFeatureVariable($feature, $ident, $property);
+                return true;
+            default:
+                $this->SendDebug(__FUNCTION__, 'Unsupported variable type: ' . $variableType, 0);
+                return false;
+        }
+    }
+
+    private function registerCompositeFeatureVariable(array $feature, string $ident, ?string $exposeType): bool
+    {
+        $property = (string) ($feature['property'] ?? '');
+        $this->SendDebug(__FUNCTION__, 'Registering Composite Variable: ' . $property, 0);
+
+        if (isset($feature['color_mode'])) {
+            $this->registerColorVariable($feature);
+            return true;
+        }
+
+        if (!isset($feature['features'])) {
+            return false;
+        }
+
+        foreach ($feature['features'] as $subFeature) {
+            $subProperty = str_replace('&', '_and_', $subFeature['property']);
+            $subFeature['property'] = $ident . '__' . $subProperty;
+            $this->registerSubFeaturePresetVariables($subFeature);
+            $this->registerVariable($subFeature, $exposeType);
+        }
+
+        return false;
+    }
+
+    private function registerSubFeaturePresetVariables(array $subFeature): void
+    {
+        if (!isset($subFeature['presets'])) {
+            return;
+        }
+
+        $aFiltered = $this->ReadAttributeArray(self::ATTRIBUTE_FILTERED);
+        $subPresetIdent = $subFeature['property'] . '_presets';
+        if (\in_array($subPresetIdent, $aFiltered, true)) {
+            return;
+        }
+
+        $variableType = $this->getVariableTypeFromProfile(
+            $subFeature['type'] ?? 'numeric',
+            $subFeature['property'],
+            $subFeature['unit'] ?? '',
+            $subFeature['value_step'] ?? 1.0
+        );
+        $this->registerPresetVariables(
+            $subFeature['presets'],
+            $subFeature['property'],
+            $variableType,
+            $subFeature
+        );
+    }
+
+    private function registerListFeatureVariable(array $feature, string $ident, string $property): void
+    {
+        $this->RegisterVariableString(
+            $ident,
+            $this->Translate($this->convertLabelToName($property))
+        );
+
+        if (isset($feature['item_type'])) {
+            $itemFeature = $feature['item_type'];
+            $itemFeature['property'] = $ident . '_item';
+            $this->registerVariable($itemFeature);
+        }
+    }
+
+    private function registerColorTemperatureKelvinVariable(string $property, array $feature): void
+    {
+        if ($property !== 'color_temp') {
+            return;
+        }
+
+        $kelvinIdent = $property . '_kelvin';
+        $aFiltered = $this->ReadAttributeArray(self::ATTRIBUTE_FILTERED);
+        if (\in_array($kelvinIdent, $aFiltered, true)) {
+            return;
+        }
+
+        $this->RegisterVariableInteger($kelvinIdent, $this->Translate('Color Temperature Kelvin'), '~TWColor');
+        $this->ApplyColorTemperaturePresentation($kelvinIdent, $feature);
+        $this->checkAndEnableAction($kelvinIdent, null, true);
+    }
+
+    private function registerFeaturePresetVariables(array $feature, string $property, string $type, string $unit, float $step, ?string $groupType): void
+    {
+        if (!isset($feature['presets']) || empty($feature['presets'])) {
+            return;
+        }
+
+        $presetIdent = $property . '_presets';
+        $aFiltered = $this->ReadAttributeArray(self::ATTRIBUTE_FILTERED);
+        if (\in_array($presetIdent, $aFiltered, true)) {
+            return;
+        }
+
+        $variableType = $this->getVariableTypeFromProfile($type, $property, $unit, $step, $groupType);
+        $this->registerPresetVariables($feature['presets'], $feature['property'], $variableType, $feature);
+        $this->SendDebug(__FUNCTION__, 'Registered presets for: ' . $feature['property'], 0);
     }
 
     /**
