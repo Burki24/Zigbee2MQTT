@@ -47,7 +47,7 @@ class DevicesTest extends DumpInclude
 
     public function testWHD02()
     {
-        [$iid,$Debug] = $this->createTestInstance('TS130F.json');
+        [$iid,$Debug] = $this->createTestInstance('WHD02.json');
         $OffestLastPayload = 0;
         // device_status bei den IPS_GetChildrenIDs abziehen
         $OffsetChildrenIDs = -1;
@@ -55,6 +55,11 @@ class DevicesTest extends DumpInclude
         $this->assertSame(count($Debug['Childs']) + $OffsetDebugChild, count(IPS_GetChildrenIDs($iid)), 'Anzahl Variablen aus dem Debug (' . count($Debug['Childs']) . ') und Erzeugte Variablen (' . count(IPS_GetChildrenIDs($iid)) . ') vom Test unterscheiden sich');
         $this->assertSame(self::count_recursive($Debug['LastPayload']) + $OffestLastPayload, count(IPS_GetChildrenIDs($iid)) + $OffsetChildrenIDs, 'Anzahl LastPayload (' . self::count_recursive($Debug['LastPayload']) + $OffestLastPayload . ') und Erzeugte Variablen (' . count(IPS_GetChildrenIDs($iid)) + $OffsetChildrenIDs . ') unterscheiden sich');
         $this->assertCount(0, self::getExportDebugData($iid)['missingTranslations'], 'Fehlende übersetzungen gefunden:' . var_export(self::getExportDebugData($iid)['missingTranslations'], true));
+
+        $html = IPS\InstanceManager::getInstanceInterface($iid)->GetVisualizationTile();
+        $this->assertStringContainsString('"type":"meteredSwitch"', $html);
+        $this->assertStringContainsString('"switches":{"state"', $html);
+        $this->assertStringContainsString('"values":[]', $html);
     }
 
     public function testTRVZB()

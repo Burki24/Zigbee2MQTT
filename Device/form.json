@@ -25,7 +25,7 @@
                         {
                             "type": "CheckBox",
                             "name": "DisableMeteredSwitchTile",
-                            "caption": "Disable metered switch tile"
+                            "caption": "Disable switch tile"
                         },
                         {
                             "type": "CheckBox",

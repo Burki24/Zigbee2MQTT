@@ -5,12 +5,12 @@ declare(strict_types=1);
 namespace Zigbee2MQTT;
 
 /**
- * Trait fuer eine HTML-SDK-Kachel fuer Schaltaktoren mit Messwerten.
+ * Trait fuer eine HTML-SDK-Kachel fuer Schaltaktoren mit optionalen Messwerten.
  */
 trait MeteredSwitchTileHelper
 {
     /**
-     * Prueft, ob die Mess-Schalter-Kachel aktiv verwendet werden soll.
+     * Prueft, ob die Schalter-Kachel aktiv verwendet werden soll.
      */
     protected function ShouldUseMeteredSwitchTile(): bool
     {
@@ -26,7 +26,7 @@ trait MeteredSwitchTileHelper
     }
 
     /**
-     * Prueft, ob diese Instanz als Schaltaktor mit Messwerten dargestellt werden kann.
+     * Prueft, ob diese Instanz als Schaltaktor dargestellt werden kann.
      */
     protected function HasMeteredSwitchTileCapabilities(): bool
     {
@@ -34,7 +34,7 @@ trait MeteredSwitchTileHelper
             return false;
         }
 
-        return $this->GetMeteredSwitchTileMeasurementIdents() !== [];
+        return $this->HasMeteredSwitchTileSwitchGroupCapability();
     }
 
     /**
@@ -207,6 +207,28 @@ trait MeteredSwitchTileHelper
     }
 
     /**
+     * Prueft, ob mindestens ein Schaltkanal aus einer Zigbee2MQTT-switch-Gruppe kommt.
+     */
+    private function HasMeteredSwitchTileSwitchGroupCapability(): bool
+    {
+        $foundFeature = false;
+
+        foreach ($this->GetMeteredSwitchTileSwitchIdents() as $ident) {
+            $feature = $this->FindMeteredSwitchTileFeature($ident);
+            if ($feature === null) {
+                continue;
+            }
+
+            $foundFeature = true;
+            if (($feature['group_type'] ?? '') === 'switch') {
+                return true;
+            }
+        }
+
+        return !$foundFeature;
+    }
+
+    /**
      * Liefert alle vorhandenen Messwert-Idents passend zu den Schaltkanaelen.
      */
     private function GetMeteredSwitchTileMeasurementIdents(): array
@@ -244,6 +266,56 @@ trait MeteredSwitchTileHelper
         }
 
         return array_values(array_unique($suffixes));
+    }
+
+    /**
+     * Sucht ein Feature in den gespeicherten Exposes.
+     */
+    private function FindMeteredSwitchTileFeature(string $property): ?array
+    {
+        $exposes = $this->ReadAttributeArray(self::ATTRIBUTE_EXPOSES);
+
+        foreach ($exposes as $expose) {
+            $found = $this->FindMeteredSwitchTileFeatureRecursive($expose, $property);
+            if ($found !== null) {
+                return $found;
+            }
+        }
+
+        return null;
+    }
+
+    /**
+     * Rekursive Feature-Suche fuer verschachtelte Zigbee2MQTT-Exposes.
+     */
+    private function FindMeteredSwitchTileFeatureRecursive(array $feature, string $property, ?string $groupType = null): ?array
+    {
+        $currentGroupType = $groupType;
+        if (isset($feature['type']) && \in_array($feature['type'], ['light', 'switch', 'lock', 'cover', 'climate', 'fan', 'text'], true)) {
+            $currentGroupType = (string) $feature['type'];
+        }
+
+        if (($feature['property'] ?? $feature['name'] ?? null) === $property) {
+            $feature['group_type'] = $feature['group_type'] ?? $currentGroupType;
+            return $feature;
+        }
+
+        if (!isset($feature['features']) || !\is_array($feature['features'])) {
+            return null;
+        }
+
+        foreach ($feature['features'] as $subFeature) {
+            if (!\is_array($subFeature)) {
+                continue;
+            }
+
+            $found = $this->FindMeteredSwitchTileFeatureRecursive($subFeature, $property, $currentGroupType);
+            if ($found !== null) {
+                return $found;
+            }
+        }
+
+        return null;
     }
 
     /**

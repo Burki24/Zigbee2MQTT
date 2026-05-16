@@ -82,6 +82,10 @@
             background: var(--chip);
         }
 
+        .nav-button.hidden {
+            display: none;
+        }
+
         .nav-button.left {
             left: 42px;
         }
@@ -150,6 +154,10 @@
 
         .switch-list.hidden {
             display: none;
+        }
+
+        .power-view.no-values .switch-list {
+            right: 28px;
         }
 
         .switch-row {
@@ -434,6 +442,10 @@
                 gap: 6px;
             }
 
+            .power-view.no-values .switch-list {
+                right: 18px;
+            }
+
             .switch-row {
                 min-height: 36px;
                 grid-template-columns: minmax(0, 1fr) 36px;
@@ -560,6 +572,7 @@
         const chartView = document.getElementById("chartView");
         const powerWrap = document.querySelector(".power-wrap");
         const powerButton = document.getElementById("powerButton");
+        const showListRight = document.getElementById("showListRight");
         const switchList = document.getElementById("switchList");
         const channelTabs = document.getElementById("channelTabs");
         const meterList = document.getElementById("meterList");
@@ -658,10 +671,16 @@
             if (!data.values) {
                 data.values = {};
             }
+            const hasMeasurements = Object.entries(data.values || {}).some(([ident]) => metricOrder.includes(getBaseIdent(ident)));
+            if (!hasMeasurements && activeView !== "power") {
+                activeView = "power";
+            }
 
             powerView.classList.toggle("active", activeView === "power");
+            powerView.classList.toggle("no-values", !hasMeasurements);
             listView.classList.toggle("active", activeView === "list");
             chartView.classList.toggle("active", activeView === "archive");
+            showListRight.classList.toggle("hidden", !hasMeasurements);
 
             renderSwitches();
             const channelEntries = getChannelEntries();

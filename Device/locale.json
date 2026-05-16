@@ -16,6 +16,7 @@
             "Please use this function carefully!\r\nAn incorrect IEEE address can lead to malfunctions.": "Bitte benutzen Sie diese Funktion mit Aufmerksamkeit!\r\nEine falsche IEEE Adresse kann zu Fehlfunktionen führen.",
             "Link to device information: ": "Link zur Geräteinformation: ",
             "Get Device Infos": "Geräteinformationen abrufen",
+            "Disable switch tile": "Schalter-Kachel deaktivieren",
             "Temperature visualization": "Temperatur-Visualisierung",
             "Fallback range for temperature exposes without value_min/value_max.": "Fallback-Bereich für Temperatur-Exposes ohne value_min/value_max.",
             "Minimum": "Minimum",
