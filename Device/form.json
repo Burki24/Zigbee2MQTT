@@ -36,6 +36,11 @@
                             "type": "CheckBox",
                             "name": "DisableSecurityTile",
                             "caption": "Disable security tile"
+                        },
+                        {
+                            "type": "CheckBox",
+                            "name": "DisableWindowHandleTile",
+                            "caption": "Disable window handle tile"
                         }
                     ]
                 },

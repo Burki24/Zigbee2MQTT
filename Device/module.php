@@ -117,6 +117,9 @@ class Zigbee2MQTTDevice extends \Zigbee2MQTT\ModulBase
         } elseif ($this->ShouldUseMeteredSwitchTile()) {
             $html = file_get_contents(__DIR__ . '/metered_switch_tile.html');
             $data = $this->BuildMeteredSwitchTileData();
+        } elseif ($this->ShouldUseWindowHandleTile()) {
+            $html = file_get_contents(__DIR__ . '/window_handle_tile.html');
+            $data = $this->BuildWindowHandleTileData();
         } elseif ($this->ShouldUseSecurityTile()) {
             $html = file_get_contents(__DIR__ . '/security_tile.html');
             $data = $this->BuildSecurityTileData();

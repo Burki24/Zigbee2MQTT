@@ -200,8 +200,11 @@ class DevicesTest extends DumpInclude
         $this->assertCount(0, self::getExportDebugData($iid)['missingTranslations'], 'Fehlende übersetzungen gefunden:' . var_export(self::getExportDebugData($iid)['missingTranslations'], true));
 
         $html = IPS\InstanceManager::getInstanceInterface($iid)->GetVisualizationTile();
-        $this->assertStringContainsString('"type":"security"', $html);
-        $this->assertStringContainsString('"ident":"alarm"', $html);
+        $this->assertStringContainsString('"type":"windowHandle"', $html);
+        $this->assertStringContainsString('"ident":"position"', $html);
+        $this->assertStringContainsString('"button_left"', $html);
+        $this->assertStringContainsString('"button_right"', $html);
+        $this->assertStringContainsString('Oben gekippt', $html);
     }
     public function testSenoroWinv2()
     {

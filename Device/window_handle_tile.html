@@ -1,0 +1,612 @@
+<!doctype html>
+<html lang="de">
+<head>
+    <meta charset="utf-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1">
+    <style>
+        :root {
+            --safe: #10c8b2;
+            --alert: #f04438;
+            --tilted: #2f80ed;
+            --active: #10c8b2;
+            --warning: #f59e0b;
+            --info: #607d8b;
+            --text: #111111;
+            --muted: #667085;
+            --chip: rgba(0, 0, 0, 0.055);
+        }
+
+        * {
+            box-sizing: border-box;
+        }
+
+        html,
+        body {
+            width: 100%;
+            height: 100%;
+            margin: 0;
+            overflow: hidden;
+            background: transparent !important;
+            background-color: transparent !important;
+            color: var(--text);
+            font-family: system-ui, -apple-system, BlinkMacSystemFont, "Segoe UI", sans-serif;
+        }
+
+        button {
+            font: inherit;
+        }
+
+        .tile {
+            position: relative;
+            width: 100%;
+            height: 100%;
+            min-height: 240px;
+            overflow: hidden;
+            background: transparent !important;
+            background-color: transparent !important;
+        }
+
+        .view {
+            position: absolute;
+            inset: 0;
+            display: none;
+            width: 100%;
+            height: 100%;
+            padding: 18px;
+            background: transparent !important;
+            background-color: transparent !important;
+        }
+
+        .view.active {
+            display: block;
+        }
+
+        .nav-button {
+            position: absolute;
+            top: 74px;
+            right: 42px;
+            display: grid;
+            place-items: center;
+            width: 50px;
+            height: 50px;
+            border: 0;
+            border-radius: 50%;
+            color: var(--text);
+            background: transparent;
+            cursor: pointer;
+            z-index: 3;
+        }
+
+        .nav-button:hover,
+        .nav-button.active {
+            background: var(--chip);
+        }
+
+        .nav-button.hidden {
+            display: none;
+        }
+
+        .nav-icon {
+            width: 27px;
+            height: 27px;
+        }
+
+        .handle-wrap {
+            position: absolute;
+            left: 50%;
+            top: 50%;
+            display: grid;
+            justify-items: center;
+            gap: 12px;
+            width: min(82vw, 360px);
+            max-width: calc(100% - 84px);
+            transform: translate(-50%, -41%);
+        }
+
+        .alarm-pill {
+            --state-color: var(--safe);
+            display: inline-flex;
+            align-items: center;
+            gap: 8px;
+            min-width: 114px;
+            height: 32px;
+            padding: 0 12px;
+            border-radius: 999px;
+            color: var(--state-color);
+            background: rgba(16, 200, 178, 0.12);
+            font-size: 14px;
+            justify-content: center;
+        }
+
+        .alarm-pill.alert {
+            --state-color: var(--alert);
+            background: rgba(240, 68, 56, 0.12);
+        }
+
+        .pill-icon {
+            width: 18px;
+            height: 18px;
+        }
+
+        .position-orb {
+            --state-color: var(--safe);
+            display: grid;
+            place-items: center;
+            width: min(26vw, 26vh, 118px);
+            height: min(26vw, 26vh, 118px);
+            min-width: 88px;
+            min-height: 88px;
+            border-radius: 50%;
+            color: #ffffff;
+            background: var(--state-color);
+            box-shadow: 0 12px 34px rgba(0, 0, 0, 0.12);
+        }
+
+        .position-orb.alert {
+            --state-color: var(--alert);
+        }
+
+        .position-orb.tilted {
+            --state-color: var(--tilted);
+        }
+
+        .position-orb.info {
+            --state-color: var(--info);
+        }
+
+        .position-icon {
+            width: 56%;
+            height: 56%;
+        }
+
+        .position-text {
+            display: grid;
+            justify-items: center;
+            gap: 2px;
+            width: 100%;
+        }
+
+        .position-value {
+            overflow: hidden;
+            max-width: 100%;
+            color: var(--text);
+            font-size: clamp(28px, 9vw, 46px);
+            font-weight: 400;
+            line-height: 1.05;
+            text-align: center;
+            text-overflow: ellipsis;
+            white-space: nowrap;
+        }
+
+        .position-caption {
+            overflow: hidden;
+            max-width: 100%;
+            color: var(--muted);
+            font-size: 11px;
+            letter-spacing: 0;
+            text-align: center;
+            text-overflow: ellipsis;
+            text-transform: uppercase;
+            white-space: nowrap;
+        }
+
+        .button-row {
+            display: grid;
+            grid-template-columns: repeat(2, minmax(0, 1fr));
+            gap: 10px;
+            width: min(280px, 100%);
+        }
+
+        .handle-button {
+            display: grid;
+            grid-template-columns: 28px minmax(0, 1fr);
+            align-items: center;
+            min-height: 38px;
+            gap: 8px;
+            padding: 6px 10px;
+            border-radius: 7px;
+            background: var(--chip);
+            color: var(--muted);
+        }
+
+        .handle-button.active {
+            color: var(--active);
+            background: rgba(16, 200, 178, 0.12);
+        }
+
+        .button-icon {
+            display: grid;
+            place-items: center;
+            width: 28px;
+            height: 28px;
+            border-radius: 50%;
+            background: rgba(255, 255, 255, 0.52);
+        }
+
+        .button-icon svg {
+            width: 18px;
+            height: 18px;
+        }
+
+        .button-copy {
+            min-width: 0;
+        }
+
+        .button-label,
+        .button-value {
+            overflow: hidden;
+            text-overflow: ellipsis;
+            white-space: nowrap;
+        }
+
+        .button-label {
+            color: var(--text);
+            font-size: 13px;
+        }
+
+        .button-value {
+            font-size: 11px;
+        }
+
+        .detail-list {
+            position: absolute;
+            left: 22px;
+            right: 22px;
+            top: 126px;
+            bottom: 18px;
+            display: grid;
+            align-content: start;
+            gap: 0;
+            overflow: hidden;
+        }
+
+        .row {
+            display: grid;
+            grid-template-columns: 34px minmax(0, 1fr) auto;
+            align-items: center;
+            min-height: 36px;
+            gap: 8px;
+            color: var(--text);
+        }
+
+        .row-icon {
+            display: grid;
+            place-items: center;
+            color: var(--info);
+        }
+
+        .row-icon.safe {
+            color: var(--safe);
+        }
+
+        .row-icon.alert {
+            color: var(--alert);
+        }
+
+        .row-icon.tilted,
+        .row-icon.active {
+            color: var(--active);
+        }
+
+        .row-icon.warning {
+            color: var(--warning);
+        }
+
+        .row-icon svg {
+            width: 22px;
+            height: 22px;
+        }
+
+        .row-label,
+        .row-value {
+            overflow: hidden;
+            font-size: 14px;
+            text-overflow: ellipsis;
+            white-space: nowrap;
+        }
+
+        .row-value {
+            max-width: 46vw;
+            text-align: right;
+        }
+
+        @media (max-width: 340px), (max-height: 300px) {
+            .nav-button {
+                top: 58px;
+                right: 24px;
+                width: 44px;
+                height: 44px;
+            }
+
+            .handle-wrap {
+                width: min(86vw, 280px);
+                transform: translate(-50%, -38%);
+            }
+
+            .position-orb {
+                min-width: 78px;
+                min-height: 78px;
+            }
+
+            .button-row {
+                gap: 7px;
+            }
+
+            .handle-button {
+                min-height: 34px;
+                padding: 5px 8px;
+            }
+
+            .detail-list {
+                top: 108px;
+                left: 18px;
+                right: 18px;
+            }
+
+            .row {
+                min-height: 33px;
+            }
+
+            .row-label,
+            .row-value {
+                font-size: 13px;
+            }
+        }
+    </style>
+</head>
+<body>
+    <main class="tile">
+        <section class="view main-view active" id="mainView">
+            <button class="nav-button" id="showDetails" type="button" title="Details">
+                <svg class="nav-icon" viewBox="0 0 24 24" aria-hidden="true">
+                    <path d="M8 6h13" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round"></path>
+                    <path d="M8 12h13" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round"></path>
+                    <path d="M8 18h13" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round"></path>
+                    <path d="M3 6h.01" fill="none" stroke="currentColor" stroke-width="3" stroke-linecap="round"></path>
+                    <path d="M3 12h.01" fill="none" stroke="currentColor" stroke-width="3" stroke-linecap="round"></path>
+                    <path d="M3 18h.01" fill="none" stroke="currentColor" stroke-width="3" stroke-linecap="round"></path>
+                </svg>
+            </button>
+
+            <div class="handle-wrap">
+                <div class="alarm-pill" id="alarmPill">
+                    <svg class="pill-icon" viewBox="0 0 24 24" aria-hidden="true">
+                        <path d="M12 22s8-4 8-10V5l-8-3-8 3v7c0 6 8 10 8 10z" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linejoin="round"></path>
+                        <path d="m9 12 2 2 4-5" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round"></path>
+                    </svg>
+                    <span id="alarmValue">OK</span>
+                </div>
+
+                <div class="position-orb" id="positionOrb">
+                    <svg class="position-icon" id="positionIcon" viewBox="0 0 24 24" aria-hidden="true"></svg>
+                </div>
+
+                <div class="position-text">
+                    <div class="position-value" id="positionValue">--</div>
+                    <div class="position-caption" id="positionCaption">Griffposition</div>
+                </div>
+
+                <div class="button-row" id="buttonRow"></div>
+            </div>
+        </section>
+
+        <section class="view detail-view" id="detailView">
+            <button class="nav-button active" id="showMain" type="button" title="Griff">
+                <svg class="nav-icon" viewBox="0 0 24 24" aria-hidden="true">
+                    <path d="M12 3v18" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round"></path>
+                    <path d="M7 7h10v10H7z" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linejoin="round"></path>
+                    <path d="M12 12h5" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round"></path>
+                </svg>
+            </button>
+            <div class="detail-list" id="detailList"></div>
+        </section>
+    </main>
+
+    <script>
+        let data = __INITIAL_DATA__;
+        let activeView = "main";
+
+        const detailOrder = [
+            "alarm",
+            "position",
+            "opening_mode",
+            "button_left",
+            "button_right",
+            "battery",
+            "battery_low",
+            "temperature",
+            "humidity",
+            "linkquality",
+            "last_seen",
+            "alarm_switch",
+            "handlesound",
+            "keysound",
+            "sensitivity",
+            "duration",
+            "update_frequency",
+            "vibration",
+            "vibration_limit"
+        ];
+        const iconPaths = {
+            handle: '<path d="M12 3v18" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round"></path><path d="M7 7h10v10H7z" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linejoin="round"></path><path d="M12 12h5" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round"></path>',
+            tilt: '<path d="M5 19 17 5" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round"></path><path d="M7 5h10v10" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linejoin="round"></path><path d="M12 10h5" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round"></path>',
+            left: '<path d="M12 3v18" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round"></path><path d="M7 7h10v10H7z" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linejoin="round"></path><path d="M12 12H7" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round"></path>',
+            right: '<path d="M12 3v18" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round"></path><path d="M7 7h10v10H7z" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linejoin="round"></path><path d="M12 12h5" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round"></path>',
+            alarm: '<path d="M12 9v4" fill="none" stroke="currentColor" stroke-width="1.9" stroke-linecap="round"></path><path d="M12 17h.01" fill="none" stroke="currentColor" stroke-width="2.6" stroke-linecap="round"></path><path d="M10.3 4.2 2.7 17.4A2 2 0 0 0 4.4 20h15.2a2 2 0 0 0 1.7-2.6L13.7 4.2a2 2 0 0 0-3.4 0z" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linejoin="round"></path>',
+            shield: '<path d="M12 22s8-4 8-10V5l-8-3-8 3v7c0 6 8 10 8 10z" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linejoin="round"></path><path d="m9 12 2 2 4-5" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round"></path>',
+            button: '<rect x="5" y="6" width="14" height="12" rx="3" fill="none" stroke="currentColor" stroke-width="1.8"></rect><path d="M9 12h6" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round"></path>',
+            battery: '<path d="M3 8h15a2 2 0 0 1 2 2v4a2 2 0 0 1-2 2H3z" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linejoin="round"></path><path d="M20 10.5h1.5v3H20" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round"></path>',
+            signal: '<path d="M4 19h.01" fill="none" stroke="currentColor" stroke-width="2.8" stroke-linecap="round"></path><path d="M8.5 15.5a5 5 0 0 1 7 0" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round"></path><path d="M5 12a10 10 0 0 1 14 0" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round"></path>',
+            clock: '<circle cx="12" cy="12" r="9" fill="none" stroke="currentColor" stroke-width="1.8"></circle><path d="M12 7v5l3 2" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round"></path>',
+            temperature: '<path d="M14 4v8.2a5 5 0 1 1-4 0V4a2 2 0 0 1 4 0z" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linejoin="round"></path><path d="M12 15v3" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round"></path>',
+            humidity: '<path d="M12 3.5s6 6.2 6 10.6a6 6 0 0 1-12 0c0-4.4 6-10.6 6-10.6z" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linejoin="round"></path>',
+            setting: '<path d="M4 21v-7M4 10V3M12 21v-9M12 8V3M20 21v-5M20 12V3M2 14h4M10 8h4M18 16h4" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round"></path>',
+            vibration: '<path d="M7 7c3 3 3 7 0 10" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round"></path><path d="M12 5c4 4 4 10 0 14" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round"></path><path d="M17 7c3 3 3 7 0 10" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round"></path>'
+        };
+
+        const mainView = document.getElementById("mainView");
+        const detailView = document.getElementById("detailView");
+        const showDetails = document.getElementById("showDetails");
+        const alarmPill = document.getElementById("alarmPill");
+        const alarmValue = document.getElementById("alarmValue");
+        const positionOrb = document.getElementById("positionOrb");
+        const positionIcon = document.getElementById("positionIcon");
+        const positionValue = document.getElementById("positionValue");
+        const positionCaption = document.getElementById("positionCaption");
+        const buttonRow = document.getElementById("buttonRow");
+        const detailList = document.getElementById("detailList");
+
+        function handleMessage(message) {
+            const nextData = normalizeMessage(message);
+            if (!nextData) {
+                return;
+            }
+
+            data = nextData;
+            render();
+        }
+
+        function normalizeMessage(message) {
+            if (Array.isArray(message) && message.length === 1) {
+                message = message[0];
+            }
+
+            if (typeof message === "string") {
+                try {
+                    message = JSON.parse(message);
+                } catch {
+                    return null;
+                }
+            }
+
+            if (!message || typeof message !== "object" || message.type !== "windowHandle") {
+                return null;
+            }
+
+            if (!message.values || typeof message.values !== "object") {
+                message.values = {};
+            }
+            if (!message.position || typeof message.position !== "object") {
+                message.position = { formatted: "--", caption: "Griffposition", level: "info", icon: "handle" };
+            }
+            if (!message.alarm || typeof message.alarm !== "object") {
+                message.alarm = { formatted: "OK", level: "safe" };
+            }
+            if (!message.buttons || typeof message.buttons !== "object") {
+                message.buttons = {};
+            }
+
+            return message;
+        }
+
+        function setView(view) {
+            activeView = view;
+            render();
+        }
+
+        function render() {
+            if (!normalizeMessage(data)) {
+                data = { type: "windowHandle", values: {}, position: {}, alarm: {}, buttons: {} };
+            }
+
+            const hasDetails = Object.keys(data.values || {}).length > 4;
+            if (!hasDetails && activeView !== "main") {
+                activeView = "main";
+            }
+
+            mainView.classList.toggle("active", activeView === "main");
+            detailView.classList.toggle("active", activeView === "details");
+            showDetails.classList.toggle("hidden", !hasDetails);
+            renderMain();
+            renderDetails();
+        }
+
+        function renderMain() {
+            alarmPill.className = `alarm-pill ${data.alarm.level || "safe"}`;
+            alarmValue.textContent = data.alarm.formatted || "OK";
+
+            positionOrb.className = `position-orb ${data.position.level || "info"}`;
+            positionIcon.innerHTML = iconPaths[data.position.icon] || iconPaths.handle;
+            positionValue.textContent = data.position.formatted || "--";
+            positionCaption.textContent = data.position.caption || "Griffposition";
+
+            buttonRow.replaceChildren();
+            for (const item of Object.values(data.buttons || {})) {
+                const button = document.createElement("div");
+                button.className = `handle-button ${item.level === "active" ? "active" : ""}`;
+                button.innerHTML = [
+                    `<span class="button-icon"><svg viewBox="0 0 24 24" aria-hidden="true">${iconPaths.button}</svg></span>`,
+                    `<span class="button-copy"><span class="button-label">${escapeHtml(item.label || "")}</span><span class="button-value">${escapeHtml(item.formatted || "")}</span></span>`
+                ].join("");
+                buttonRow.appendChild(button);
+            }
+        }
+
+        function renderDetails() {
+            detailList.replaceChildren();
+            for (const [ident, item] of orderedEntries(data.values || {})) {
+                const row = document.createElement("div");
+                row.className = "row";
+                const icon = iconFor(item.kind);
+                row.innerHTML = [
+                    `<div class="row-icon ${escapeHtml(item.level || "info")}"><svg viewBox="0 0 24 24" aria-hidden="true">${iconPaths[icon] || iconPaths.setting}</svg></div>`,
+                    `<div class="row-label">${escapeHtml(item.label || ident)}</div>`,
+                    `<div class="row-value">${escapeHtml(item.formatted || "")}</div>`
+                ].join("");
+                detailList.appendChild(row);
+            }
+        }
+
+        function orderedEntries(values) {
+            const entries = Object.entries(values);
+            const order = new Map(detailOrder.map((ident, index) => [ident, index]));
+            return entries.sort(([a], [b]) => (order.get(a) ?? 999) - (order.get(b) ?? 999));
+        }
+
+        function iconFor(kind) {
+            if (kind === "alarm") {
+                return "alarm";
+            }
+            if (kind === "position") {
+                return "handle";
+            }
+            if (kind === "button") {
+                return "button";
+            }
+            if (kind === "battery") {
+                return "battery";
+            }
+            if (kind === "signal") {
+                return "signal";
+            }
+            if (kind === "clock") {
+                return "clock";
+            }
+            if (kind === "temperature") {
+                return "temperature";
+            }
+            if (kind === "humidity") {
+                return "humidity";
+            }
+            if (kind === "vibration") {
+                return "vibration";
+            }
+            return "setting";
+        }
+
+        function escapeHtml(value) {
+            return String(value)
+                .replace(/&/g, "&amp;")
+                .replace(/</g, "&lt;")
+                .replace(/>/g, "&gt;")
+                .replace(/"/g, "&quot;")
+                .replace(/'/g, "&#039;");
+        }
+
+        document.getElementById("showDetails").addEventListener("click", () => setView("details"));
+        document.getElementById("showMain").addEventListener("click", () => setView("main"));
+
+        render();
+    </script>
+</body>
+</html>
