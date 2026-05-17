@@ -385,6 +385,44 @@ class DevicesTest extends DumpInclude
         $this->assertCount(0, self::getExportDebugData($iid)['missingTranslations'], 'Fehlende übersetzungen gefunden:' . var_export(self::getExportDebugData($iid)['missingTranslations'], true));
     }
 
+    public function testStaleCompositeCatalogParentsAreCleanedOnApplyChanges()
+    {
+        [$iid] = $this->createTestInstance('S4PL-00416EU.json');
+
+        $staleParents = [
+            'led_colors',
+            'led_night_mode',
+            'buttons_enabled',
+            'wifi_config'
+        ];
+
+        $catalog = $this->readStubAttributeArray($iid, 'VariableCatalog');
+        foreach ($staleParents as $ident) {
+            $catalog[$ident] = [
+                'ident'    => $ident,
+                'property' => $ident,
+                'label'    => $ident,
+                'source'   => 'expose',
+                'type'     => 'composite',
+                'created'  => false
+            ];
+        }
+        $this->writeStubAttributeArray($iid, 'VariableCatalog', $catalog);
+        $this->writeStubAttributeArray($iid, 'DisabledVariables', ['buttons_enabled']);
+        $this->writeStubAttributeArray($iid, 'DeletedVariables', ['wifi_config']);
+
+        IPS_ApplyChanges($iid);
+
+        $catalog = $this->readStubAttributeArray($iid, 'VariableCatalog');
+        foreach ($staleParents as $ident) {
+            $this->assertArrayNotHasKey($ident, $catalog, 'Stale composite parent must be removed from catalog: ' . $ident);
+        }
+        $this->assertArrayHasKey('led_colors__on_r', $catalog);
+        $this->assertArrayHasKey('wifi_config__enabled', $catalog);
+        $this->assertSame([], $this->readStubAttributeArray($iid, 'DisabledVariables'));
+        $this->assertSame([], $this->readStubAttributeArray($iid, 'DeletedVariables'));
+    }
+
     private function assertFormItemVisible(array $form, string $name): void
     {
         $item = $this->findFormItemByName($form, $name);
@@ -417,6 +455,46 @@ class DevicesTest extends DumpInclude
         }
 
         return null;
+    }
+
+    private function readStubAttributeArray(int $iid, string $name): array
+    {
+        $attributes = $this->readStubAttributes($iid);
+        $value = (string) ($attributes[$name]['Current'] ?? '');
+        $decoded = json_decode($value, true);
+        return \is_array($decoded) ? $decoded : [];
+    }
+
+    private function writeStubAttributeArray(int $iid, string $name, array $value): void
+    {
+        $module = $this->getStubModule($iid);
+        $reflection = new \ReflectionClass(IPSModule::class);
+        $attributeProperty = $reflection->getProperty('attributes');
+        $attributeProperty->setAccessible(true);
+
+        $attributes = $attributeProperty->getValue($module);
+        $this->assertArrayHasKey($name, $attributes, 'Attribute not found: ' . $name);
+        $attributes[$name]['Current'] = json_encode($value);
+        $attributeProperty->setValue($module, $attributes);
+    }
+
+    private function readStubAttributes(int $iid): array
+    {
+        $module = $this->getStubModule($iid);
+        $reflection = new \ReflectionClass(IPSModule::class);
+        $attributeProperty = $reflection->getProperty('attributes');
+        $attributeProperty->setAccessible(true);
+        $attributes = $attributeProperty->getValue($module);
+        return \is_array($attributes) ? $attributes : [];
+    }
+
+    private function getStubModule(int $iid): object
+    {
+        $interface = IPS\InstanceManager::getInstanceInterface($iid);
+        $reflection = new \ReflectionClass(IPSModuleStrict::class);
+        $moduleProperty = $reflection->getProperty('module');
+        $moduleProperty->setAccessible(true);
+        return $moduleProperty->getValue($interface);
     }
 
     private function findVariableSelectionRow(array $rows, string $ident): ?array

@@ -518,6 +518,7 @@ abstract class ModulBase extends \IPSModuleStrict
         $this->SendDebug('Filter', '.*(' . $Filter1 . '|' . $Filter2 . '|' . $Filter3 . ').*', 0);
         $this->SetReceiveDataFilter('.*(' . $Filter1 . '|' . $Filter2 . '|' . $Filter3 . ').*');
         $this->SetStatus(IS_ACTIVE);
+        $this->RefreshExposeVariableCatalog();
         $this->UpdateCustomTileVisualizationType();
     }
 
@@ -1741,11 +1742,7 @@ abstract class ModulBase extends \IPSModuleStrict
      */
     private function RefreshVariableCatalog(): void
     {
-        $validExposeIdents = [];
-        foreach ($this->ReadAttributeArray(self::ATTRIBUTE_EXPOSES) as $expose) {
-            $validExposeIdents = array_merge($validExposeIdents, $this->RememberExposeFeatureRecursive($expose));
-        }
-        $this->RemoveStaleExposeCatalogEntries($validExposeIdents);
+        $this->RefreshExposeVariableCatalog();
 
         foreach (IPS_GetChildrenIDs($this->InstanceID) as $childID) {
             $object = IPS_GetObject($childID);
@@ -1766,6 +1763,32 @@ abstract class ModulBase extends \IPSModuleStrict
         }
 
         $this->RefreshDeletedVariableCatalogState();
+    }
+
+    /**
+     * Aktualisiert den expose-basierten Teil des Variablenkatalogs.
+     *
+     * Alte reine Katalogeintraege fuer Composite-Eltern werden dabei entfernt,
+     * ohne vorhandene Variablen oder Payload-only Eintraege anzufassen.
+     *
+     * @param array|null $exposes Optional bereits geladene Exposes, sonst wird das Attribut genutzt.
+     */
+    private function RefreshExposeVariableCatalog(?array $exposes = null): void
+    {
+        $exposes ??= $this->ReadAttributeArray(self::ATTRIBUTE_EXPOSES);
+        if ($exposes === []) {
+            return;
+        }
+
+        $validExposeIdents = [];
+        foreach ($exposes as $expose) {
+            if (!\is_array($expose)) {
+                continue;
+            }
+
+            $validExposeIdents = array_merge($validExposeIdents, $this->RememberExposeFeatureRecursive($expose));
+        }
+        $this->RemoveStaleExposeCatalogEntries($validExposeIdents);
     }
 
     /**
@@ -1845,6 +1868,7 @@ abstract class ModulBase extends \IPSModuleStrict
         $validExposeIdents = array_unique($validExposeIdents);
         $catalog = $this->ReadAttributeArray(self::ATTRIBUTE_VARIABLE_CATALOG);
         $changed = false;
+        $removedIdents = [];
 
         foreach ($catalog as $ident => $entry) {
             if (!\is_array($entry) || ($entry['source'] ?? '') !== 'expose') {
@@ -1860,11 +1884,16 @@ abstract class ModulBase extends \IPSModuleStrict
             }
 
             unset($catalog[$ident]);
+            $removedIdents[] = (string) $ident;
             $changed = true;
         }
 
         if ($changed) {
             $this->WriteAttributeArray(self::ATTRIBUTE_VARIABLE_CATALOG, $catalog);
+            foreach ($removedIdents as $removedIdent) {
+                $this->RemoveVariableFromAttributeList(self::ATTRIBUTE_DISABLED_VARIABLES, $removedIdent);
+                $this->RemoveVariableFromAttributeList(self::ATTRIBUTE_DELETED_VARIABLES, $removedIdent);
+            }
         }
     }
 
@@ -2014,6 +2043,7 @@ abstract class ModulBase extends \IPSModuleStrict
                 }
             }
         }
+        $this->RefreshExposeVariableCatalog($exposes);
         $this->UpdateCustomTileVisualizationType();
     }
 
