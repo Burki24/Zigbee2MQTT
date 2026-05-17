@@ -1412,7 +1412,20 @@ abstract class ModulBase extends \IPSModuleStrict
         return ($feature['type'] ?? '') === 'composite'
             && isset($feature['features'])
             && \is_array($feature['features'])
+            && !$this->IsExposeColorComposite($feature)
             && !isset($feature['color_mode']);
+    }
+
+    /**
+     * Ermittelt, ob ein Composite-Expose als einzelne Farbvariable abgebildet wird.
+     */
+    private function IsExposeColorComposite(array $feature): bool
+    {
+        return ($feature['type'] ?? '') === 'composite'
+            && \in_array((string) ($feature['name'] ?? ''), ['color_xy', 'color_hs', 'color_rgb'], true)
+            && (string) ($feature['property'] ?? '') === 'color'
+            && isset($feature['features'])
+            && \is_array($feature['features']);
     }
 
     /**
@@ -1818,6 +1831,12 @@ abstract class ModulBase extends \IPSModuleStrict
     {
         if (isset($feature['color_mode'])) {
             return [];
+        }
+
+        if ($this->IsExposeColorComposite($feature)) {
+            $property = (string) ($feature['property'] ?? '');
+            $this->RememberVariableDefinition($property, $feature, 'expose');
+            return [$this->NormalizeVariableIdent($property)];
         }
 
         if ($this->IsExposeCompositeContainer($feature)) {
@@ -4599,6 +4618,11 @@ abstract class ModulBase extends \IPSModuleStrict
     private function CollectKnownVariableFeatures(array $feature, array &$features): void
     {
         if (isset($feature['color_mode'])) {
+            return;
+        }
+
+        if ($this->IsExposeColorComposite($feature)) {
+            $features[] = $feature;
             return;
         }
 

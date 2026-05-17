@@ -189,6 +189,75 @@ class DevicesTest extends DumpInclude
         $this->assertStringContainsString('"type":"sensor"', $html);
     }
 
+    public function testColorCompositeCatalogUsesSingleColorVariable()
+    {
+        if (!IPS_VariableProfileExists('~HexColor')) {
+            IPS_CreateVariableProfile('~HexColor', VARIABLETYPE_INTEGER);
+        }
+
+        [$iid, $Debug] = $this->createTestInstance('MixedLightSensor.json');
+        $interface = IPS\InstanceManager::getInstanceInterface($iid);
+        $topic = $Debug['Config']['MQTTBaseTopic'] . '/' . $Debug['Config']['MQTTTopic'];
+
+        $exposes = $Debug['Exposes'];
+        $exposes[0]['features'][] = [
+            'name'     => 'color_xy',
+            'label'    => 'Color (X/Y)',
+            'access'   => 7,
+            'type'     => 'composite',
+            'property' => 'color',
+            'features' => [
+                ['name' => 'x', 'label' => 'X', 'access' => 7, 'type' => 'numeric', 'property' => 'x'],
+                ['name' => 'y', 'label' => 'Y', 'access' => 7, 'type' => 'numeric', 'property' => 'y']
+            ]
+        ];
+        $exposes[0]['features'][] = [
+            'name'     => 'color_hs',
+            'label'    => 'Color (HS)',
+            'access'   => 7,
+            'type'     => 'composite',
+            'property' => 'color',
+            'features' => [
+                ['name' => 'hue', 'label' => 'Hue', 'access' => 7, 'type' => 'numeric', 'property' => 'hue'],
+                ['name' => 'saturation', 'label' => 'Saturation', 'access' => 7, 'type' => 'numeric', 'property' => 'saturation']
+            ]
+        ];
+
+        $staleColorSubFeatures = [
+            'color__x',
+            'color__y',
+            'color__hue',
+            'color__saturation'
+        ];
+
+        $catalog = $this->readStubAttributeArray($iid, 'VariableCatalog');
+        foreach ($staleColorSubFeatures as $ident) {
+            $catalog[$ident] = [
+                'ident'    => $ident,
+                'property' => $ident,
+                'label'    => $ident,
+                'source'   => 'expose',
+                'type'     => 'numeric',
+                'created'  => false
+            ];
+        }
+        $this->writeStubAttributeArray($iid, 'VariableCatalog', $catalog);
+        $this->writeStubAttributeArray($iid, 'DisabledVariables', ['color__x']);
+        $this->writeStubAttributeArray($iid, 'DeletedVariables', ['color__y']);
+
+        $interface->ReceiveData(self::buildMqttRequest($topic, ['exposes' => $exposes]));
+
+        $catalog = $this->readStubAttributeArray($iid, 'VariableCatalog');
+        $this->assertArrayHasKey('color', $catalog);
+        $this->assertNotFalse(@IPS_GetObjectIDByIdent('color', $iid));
+        foreach ($staleColorSubFeatures as $ident) {
+            $this->assertArrayNotHasKey($ident, $catalog, 'Technical color subfeature must not stay in catalog: ' . $ident);
+            $this->assertFalse(@IPS_GetObjectIDByIdent($ident, $iid), 'Technical color subfeature must not be created: ' . $ident);
+        }
+        $this->assertSame([], $this->readStubAttributeArray($iid, 'DisabledVariables'));
+        $this->assertSame([], $this->readStubAttributeArray($iid, 'DeletedVariables'));
+    }
+
     public function testMTD285_ZB()
     {
         [$iid,$Debug] = $this->createTestInstance('MTD285-ZB.json');
