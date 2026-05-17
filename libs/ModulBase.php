@@ -11,12 +11,12 @@ require_once __DIR__ . '/VariableProfileHelper.php';
 require_once __DIR__ . '/Localization/TranslationHelper.php';
 require_once __DIR__ . '/Configuration/DeviceFormHelper.php';
 require_once __DIR__ . '/Visualization/VariablePresentationHelper.php';
-require_once __DIR__ . '/Visualization/MeteredSwitchTileHelper.php';
-require_once __DIR__ . '/Visualization/HeatingTileHelper.php';
-require_once __DIR__ . '/Visualization/SensorTileHelper.php';
-require_once __DIR__ . '/Visualization/SecurityTileHelper.php';
-require_once __DIR__ . '/Visualization/WindowHandleTileHelper.php';
-require_once __DIR__ . '/Visualization/ActionTileHelper.php';
+require_once __DIR__ . '/Visualization/TileHelpers/MeteredSwitchTileHelper.php';
+require_once __DIR__ . '/Visualization/TileHelpers/HeatingTileHelper.php';
+require_once __DIR__ . '/Visualization/TileHelpers/SensorTileHelper.php';
+require_once __DIR__ . '/Visualization/TileHelpers/SecurityTileHelper.php';
+require_once __DIR__ . '/Visualization/TileHelpers/WindowHandleTileHelper.php';
+require_once __DIR__ . '/Visualization/TileHelpers/ActionTileHelper.php';
 require_once __DIR__ . '/MQTTHelper.php';
 require_once __DIR__ . '/ColorHelper.php';
 
