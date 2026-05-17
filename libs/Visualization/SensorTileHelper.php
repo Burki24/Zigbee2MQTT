@@ -26,6 +26,10 @@ trait SensorTileHelper
             return false;
         }
 
+        if ($this->HasSensorTileActuatorExposeGroup()) {
+            return false;
+        }
+
         foreach ($this->GetSensorTilePrimaryIdents() as $ident) {
             if ($this->GetObjectIDByIdent($ident) !== false) {
                 return true;
@@ -180,6 +184,50 @@ trait SensorTileHelper
             'illuminance',
             'illuminance_lux'
         ];
+    }
+
+    /**
+     * Schuetzt kombinierte Aktor-/Sensorgeraete davor, faelschlich als reine Sensor-Kachel zu gelten.
+     */
+    private function HasSensorTileActuatorExposeGroup(): bool
+    {
+        foreach ($this->ReadAttributeArray(self::ATTRIBUTE_EXPOSES) as $expose) {
+            if (!\is_array($expose)) {
+                continue;
+            }
+
+            if ($this->IsSensorTileActuatorExposeGroup($expose)) {
+                return true;
+            }
+        }
+
+        return false;
+    }
+
+    /**
+     * Erkennt rekursiv Zigbee2MQTT-Gruppen, die eine eigene Aktor-/Standarddarstellung benoetigen.
+     */
+    private function IsSensorTileActuatorExposeGroup(array $feature): bool
+    {
+        if (isset($feature['type']) && \in_array((string) $feature['type'], ['light', 'switch', 'lock', 'cover', 'climate', 'fan'], true)) {
+            return true;
+        }
+
+        if (!isset($feature['features']) || !\is_array($feature['features'])) {
+            return false;
+        }
+
+        foreach ($feature['features'] as $subFeature) {
+            if (!\is_array($subFeature)) {
+                continue;
+            }
+
+            if ($this->IsSensorTileActuatorExposeGroup($subFeature)) {
+                return true;
+            }
+        }
+
+        return false;
     }
 
     /**

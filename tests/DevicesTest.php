@@ -163,6 +163,14 @@ class DevicesTest extends DumpInclude
         $this->assertStringContainsString('"type":"sensor"', $html);
     }
 
+    public function testMixedLightSensorKeepsStandardVisualization()
+    {
+        [$iid] = $this->createTestInstance('MixedLightSensor.json');
+
+        $html = IPS\InstanceManager::getInstanceInterface($iid)->GetVisualizationTile();
+        $this->assertSame('', $html);
+    }
+
     public function testMTD285_ZB()
     {
         [$iid,$Debug] = $this->createTestInstance('MTD285-ZB.json');

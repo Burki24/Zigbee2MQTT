@@ -2375,7 +2375,10 @@ abstract class ModulBase extends \IPSModuleStrict
     {
         // Exposes verarbeiten wenn vorhanden
         if (isset($payload['exposes'])) {
-            $this->mapExposesToVariables($payload['exposes']);
+            if (\is_array($payload['exposes'])) {
+                $this->WriteAttributeArray(self::ATTRIBUTE_EXPOSES, $payload['exposes']);
+                $this->mapExposesToVariables($payload['exposes']);
+            }
             unset($payload['exposes']);
         }
 

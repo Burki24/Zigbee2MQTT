@@ -1,0 +1,47 @@
+{
+    "Config": {
+        "MQTTBaseTopic": "zigbee2mqtt",
+        "MQTTTopic": "Test/MixedLightSensor",
+        "IEEE": "0x0000000000000001"
+    },
+    "Exposes": [
+        {
+            "type": "light",
+            "features": [
+                {
+                    "name": "state",
+                    "label": "State",
+                    "access": 7,
+                    "type": "binary",
+                    "property": "state",
+                    "value_on": "ON",
+                    "value_off": "OFF",
+                    "value_toggle": "TOGGLE"
+                },
+                {
+                    "name": "brightness",
+                    "label": "Brightness",
+                    "access": 7,
+                    "type": "numeric",
+                    "property": "brightness",
+                    "value_min": 0,
+                    "value_max": 254
+                }
+            ]
+        },
+        {
+            "name": "illuminance",
+            "label": "Illuminance",
+            "access": 1,
+            "type": "numeric",
+            "property": "illuminance",
+            "unit": "lx"
+        }
+    ],
+    "LastPayload": {
+        "state": "ON",
+        "brightness": 128,
+        "illuminance": 42
+    },
+    "Childs": []
+}
