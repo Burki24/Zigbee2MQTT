@@ -80,7 +80,7 @@ Es werden nur Optionen angezeigt, die für das jeweilige Gerät fachlich passen.
 | Fenstergriff-Kachel | `position`, `alarm`, optional `action`, `action_left`, `action_right` | Griffzustand Geschlossen/Offen/Gekippt, Alarmstatus und Tasten |
 | Sicherheits-Kachel | z.B. `contact`, `occupancy`, `presence`, `tamper`, `smoke`, `battery_low` | Status-/Alarmdarstellung mit Priorität auf Kontakt- bzw. Bewegungszustand |
 | Aktions-Kachel | Taster-, Fernbedienungs- oder Szenen-Exposes | Letzte Aktion und verfügbare Aktionswerte |
-| Sensor-Kachel | z.B. `temperature`, `humidity`, `soil_moisture`, `illuminance`, `battery` | Messwertdarstellung für reine Sensoren, inklusive Detail-/Einstellseite wenn passende Einstellwerte vorhanden sind |
+| Sensor-Kachel | z.B. `temperature`, `humidity`, `soil_moisture`, `illuminance`, `presence`, `target_distance` | Messwertdarstellung für reine Sensoren und Radar-/Präsenzmelder, inklusive Detail-/Einstellseite wenn passende Einstellwerte vorhanden sind |
 
 Bei kombinierten Aktor-/Sensorgeräten bleibt die automatische Auswahl zunächst bei der Aktor- bzw. Standarddarstellung. Sobald passende Sensorwerte vorhanden sind, kann in der Instanzkonfiguration bewusst **Sensor-Kachel verwenden** aktiviert werden.
 

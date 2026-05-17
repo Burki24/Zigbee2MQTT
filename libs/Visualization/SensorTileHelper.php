@@ -186,6 +186,7 @@ trait SensorTileHelper
             'presence',
             'occupancy',
             'motion',
+            'motion_state',
             'temperature',
             'humidity',
             'soil_moisture',
@@ -244,6 +245,8 @@ trait SensorTileHelper
     private function GetSensorTileSettingIdents(): array
     {
         return array_merge($this->GetSensorTileControlIdents(), [
+            'target_distance',
+            'track_target_distance',
             'no_occupancy_since',
             'battery',
             'battery_low',
@@ -266,13 +269,42 @@ trait SensorTileHelper
             'illuminance_interval',
             'illuminance_report',
             'motion_sensitivity',
+            'move_sensitivity',
             'presence_sensitivity',
             'presence_threshold',
+            'presence_detection_options',
             'occupancy_timeout',
             'motion_detection_distance',
+            'motion_detection_sensitivity',
+            'static_detection_sensitivity',
+            'presence_keep_time',
+            'radar_sensitivity',
+            'detection_range',
+            'shield_range',
+            'entry_sensitivity',
+            'entry_distance_indentation',
+            'entry_filter_time',
+            'departure_delay',
+            'block_time',
+            'breaker_status',
+            'breaker_mode',
+            'illuminance_threshold',
+            'status_indication',
+            'sensor',
             'detection_delay',
             'fading_time',
-            'indicator'
+            'minimum_range',
+            'maximum_range',
+            'large_motion_detection_sensitivity',
+            'large_motion_detection_distance',
+            'medium_motion_detection_sensitivity',
+            'medium_motion_detection_distance',
+            'small_detection_sensitivity',
+            'small_detection_distance',
+            'ai_sensitivity_adaptive',
+            'indicator',
+            'led_indicator',
+            'self_test'
         ];
     }
 
@@ -553,7 +585,15 @@ trait SensorTileHelper
             'F'          => 'Fahrenheit',
             'low'        => 'Niedrig',
             'medium'     => 'Mittel',
-            'high'       => 'Hoch'
+            'high'       => 'Hoch',
+            'none'       => 'Keine Bewegung',
+            'small'      => 'Kleine Bewegung',
+            'large'      => 'Grosse Bewegung',
+            'far'        => 'Entfernt',
+            'near'       => 'Nah',
+            'both'       => 'Beide',
+            'radar'      => 'Radar',
+            'pir'        => 'PIR'
         ];
 
         return $labels[$value] ?? $value;

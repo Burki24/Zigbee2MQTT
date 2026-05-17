@@ -473,6 +473,19 @@
                             </span>
                             <span class="metric-caption">Helligkeit</span>
                         </div>
+                        <div class="metric-item" data-ident="target_distance">
+                            <span class="metric-main">
+                                <svg class="metric-icon" viewBox="0 0 24 24" aria-hidden="true">
+                                    <path d="M4 17h16" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round"></path>
+                                    <path d="M6 14l-2 3 2 3" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round"></path>
+                                    <path d="M18 14l2 3-2 3" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round"></path>
+                                    <path d="M8 7a4 4 0 0 1 8 0c0 3-4 7-4 7s-4-4-4-7z" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linejoin="round"></path>
+                                    <circle cx="12" cy="7" r="1.2" fill="currentColor"></circle>
+                                </svg>
+                                <span data-value="target_distance">--</span>
+                            </span>
+                            <span class="metric-caption">Zielentfernung</span>
+                        </div>
                     </div>
                 </div>
             </div>
@@ -497,6 +510,7 @@
             presence: "Präsenz",
             occupancy: "Bewegung",
             motion: "Bewegung",
+            motion_state: "Bewegungsstatus",
             temperature: "Temperatur",
             temperature_calibration: "Kalibrierung",
             temperature_unit: "Einheit",
@@ -509,14 +523,45 @@
             illuminance_calibration: "Helligkeit Kalibrierung",
             illuminance_interval: "Helligkeit Intervall",
             illuminance_report: "Helligkeit Bericht",
+            target_distance: "Zielentfernung",
+            track_target_distance: "Zielverfolgung",
             motion_sensitivity: "Bewegung Empfindlichkeit",
+            move_sensitivity: "Bewegung Empfindlichkeit",
             presence_sensitivity: "Präsenz Empfindlichkeit",
             presence_threshold: "Präsenz Schwelle",
+            presence_detection_options: "Präsenzerkennung",
             occupancy_timeout: "Bewegung Timeout",
             motion_detection_distance: "Erkennungsdistanz",
+            motion_detection_sensitivity: "Bewegung Empfindlichkeit",
+            static_detection_sensitivity: "Statische Empfindlichkeit",
+            presence_keep_time: "Haltezeit",
+            radar_sensitivity: "Radar Empfindlichkeit",
+            detection_range: "Erkennungsbereich",
+            shield_range: "Ausblendbereich",
+            entry_sensitivity: "Eintritt Empfindlichkeit",
+            entry_distance_indentation: "Eintritt Abstand",
+            entry_filter_time: "Eintritt Filterzeit",
+            departure_delay: "Verzögerung beim Verlassen",
+            block_time: "Sperrzeit",
+            breaker_status: "Schalterstatus",
+            breaker_mode: "Schaltermodus",
+            illuminance_threshold: "Helligkeit Schwelle",
+            status_indication: "Statusanzeige",
+            sensor: "Sensor",
             detection_delay: "Erkennungsverzögerung",
             fading_time: "Abklingzeit",
+            minimum_range: "Minimalbereich",
+            maximum_range: "Maximalbereich",
+            large_motion_detection_sensitivity: "Große Bewegung Empfindlichkeit",
+            large_motion_detection_distance: "Große Bewegung Distanz",
+            medium_motion_detection_sensitivity: "Mittlere Bewegung Empfindlichkeit",
+            medium_motion_detection_distance: "Mittlere Bewegung Distanz",
+            small_detection_sensitivity: "Kleine Bewegung Empfindlichkeit",
+            small_detection_distance: "Kleine Bewegung Distanz",
+            ai_sensitivity_adaptive: "Adaptive Empfindlichkeit",
             indicator: "Anzeige",
+            led_indicator: "LED Anzeige",
+            self_test: "Selbsttest",
             no_occupancy_since: "Keine Bewegung seit",
             battery: "Batterie",
             battery_low: "Batterie niedrig",
@@ -530,16 +575,25 @@
             F: "Fahrenheit",
             low: "Niedrig",
             medium: "Mittel",
-            high: "Hoch"
+            high: "Hoch",
+            none: "Keine Bewegung",
+            small: "Kleine Bewegung",
+            large: "Große Bewegung",
+            far: "Entfernt",
+            near: "Nah",
+            both: "Beide",
+            radar: "Radar",
+            pir: "PIR"
         };
-        const alertOrder = ["presence", "occupancy", "motion"];
-        const metricOrder = ["soil_moisture", "temperature", "humidity", "illuminance", "illuminance_lux"];
+        const alertOrder = ["presence", "occupancy", "motion", "motion_state"];
+        const metricOrder = ["soil_moisture", "temperature", "humidity", "illuminance", "illuminance_lux", "target_distance"];
         const metricTarget = {
             temperature: "temperature",
             humidity: "humidity",
             soil_moisture: "humidity",
             illuminance: "illuminance",
-            illuminance_lux: "illuminance"
+            illuminance_lux: "illuminance",
+            target_distance: "target_distance"
         };
         const settingsOrder = [
             "temperature_calibration",
@@ -550,13 +604,45 @@
             "illuminance_interval",
             "illuminance_report",
             "motion_sensitivity",
+            "move_sensitivity",
             "presence_sensitivity",
             "presence_threshold",
+            "presence_detection_options",
             "occupancy_timeout",
             "motion_detection_distance",
+            "motion_detection_sensitivity",
+            "static_detection_sensitivity",
+            "presence_keep_time",
+            "motion_state",
+            "target_distance",
+            "track_target_distance",
+            "radar_sensitivity",
+            "detection_range",
+            "shield_range",
+            "entry_sensitivity",
+            "entry_distance_indentation",
+            "entry_filter_time",
+            "departure_delay",
+            "block_time",
+            "breaker_status",
+            "breaker_mode",
+            "illuminance_threshold",
+            "status_indication",
+            "sensor",
             "detection_delay",
             "fading_time",
+            "minimum_range",
+            "maximum_range",
+            "large_motion_detection_sensitivity",
+            "large_motion_detection_distance",
+            "medium_motion_detection_sensitivity",
+            "medium_motion_detection_distance",
+            "small_detection_sensitivity",
+            "small_detection_distance",
+            "ai_sensitivity_adaptive",
             "indicator",
+            "led_indicator",
+            "self_test",
             "no_occupancy_since",
             "battery",
             "battery_low",
@@ -669,7 +755,7 @@
             if (ident === "presence") {
                 return value ? "Anwesend" : "Abwesend";
             }
-            if (ident === "occupancy" || ident === "motion") {
+            if (ident === "occupancy" || ident === "motion" || ident === "motion_state") {
                 return value ? "Bewegung erkannt" : "Keine Bewegung";
             }
 
@@ -789,7 +875,7 @@
                 return value !== 0;
             }
             if (typeof value === "string") {
-                return ["1", "true", "on", "yes", "presence", "occupancy", "motion", "detected"].includes(value.toLowerCase());
+                return ["1", "true", "on", "yes", "presence", "occupancy", "motion", "detected", "small", "medium", "large", "far", "near"].includes(value.toLowerCase());
             }
 
             return !!value;

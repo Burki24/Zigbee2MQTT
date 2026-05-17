@@ -199,6 +199,12 @@ class DevicesTest extends DumpInclude
         $this->assertSame(count($Debug['Childs']) + $OffsetDebugChild, count(IPS_GetChildrenIDs($iid)), 'Anzahl Variablen aus dem Debug (' . count($Debug['Childs']) . ') und Erzeugte Variablen (' . count(IPS_GetChildrenIDs($iid)) . ') vom Test unterscheiden sich');
         $this->assertSame(self::count_recursive($Debug['LastPayload']) + $OffestLastPayload, count(IPS_GetChildrenIDs($iid)) + $OffsetChildrenIDs, 'Anzahl LastPayload (' . self::count_recursive($Debug['LastPayload']) + $OffestLastPayload . ') und Erzeugte Variablen (' . count(IPS_GetChildrenIDs($iid)) + $OffsetChildrenIDs . ') unterscheiden sich');
         $this->assertCount(0, self::getExportDebugData($iid)['missingTranslations'], 'Fehlende übersetzungen gefunden:' . var_export(self::getExportDebugData($iid)['missingTranslations'], true));
+
+        $html = IPS\InstanceManager::getInstanceInterface($iid)->GetVisualizationTile();
+        $this->assertStringContainsString('"type":"sensor"', $html);
+        $this->assertStringContainsString('"target_distance":{"available":true', $html);
+        $this->assertStringContainsString('"presence_threshold":{"available":true', $html);
+        $this->assertStringContainsString('"move_sensitivity":{"available":true', $html);
     }
 
     public function testAB3257001NJ()
@@ -235,6 +241,13 @@ class DevicesTest extends DumpInclude
         $this->assertNotNull($row);
         $this->assertSame('Angelegt', $row['state']);
         $this->assertSame('Deaktivieren', $row['action']);
+
+        $html = IPS\InstanceManager::getInstanceInterface($iid)->GetVisualizationTile();
+        $this->assertStringContainsString('"type":"sensor"', $html);
+        $this->assertStringContainsString('"target_distance":{"available":true', $html);
+        $this->assertStringContainsString('"presence_detection_options":{"available":true', $html);
+        $this->assertStringContainsString('"ai_sensitivity_adaptive":{"available":true', $html);
+        $this->assertStringContainsString('"track_target_distance":{"available":true', $html);
     }
 
     public function test501_40()
