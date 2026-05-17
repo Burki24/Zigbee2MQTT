@@ -14,19 +14,19 @@ trait SensorTileHelper
      */
     protected function ShouldUseSensorTile(): bool
     {
-        return $this->HasSensorTileCapabilities();
+        if (!$this->HasSensorTileCapabilities()) {
+            return false;
+        }
+
+        return $this->ShouldForceSensorTile() || !$this->HasSensorTileActuatorExposeGroup();
     }
 
     /**
-     * Prueft, ob diese Instanz als reine Sensor-Kachel dargestellt werden kann.
+     * Prueft, ob diese Instanz Sensorwerte fuer die Sensor-Kachel besitzt.
      */
     protected function HasSensorTileCapabilities(): bool
     {
         if ($this->GetObjectIDByIdent('occupied_heating_setpoint') !== false) {
-            return false;
-        }
-
-        if ($this->HasSensorTileActuatorExposeGroup()) {
             return false;
         }
 
@@ -37,6 +37,14 @@ trait SensorTileHelper
         }
 
         return false;
+    }
+
+    /**
+     * Prueft, ob die Sensor-Kachel bewusst als Visualisierung gewaehlt wurde.
+     */
+    protected function ShouldForceSensorTile(): bool
+    {
+        return $this->ReadPropertyBoolean(self::PROPERTY_USE_SENSOR_TILE) && $this->HasSensorTileCapabilities();
     }
 
     /**
@@ -189,7 +197,7 @@ trait SensorTileHelper
     /**
      * Schuetzt kombinierte Aktor-/Sensorgeraete davor, faelschlich als reine Sensor-Kachel zu gelten.
      */
-    private function HasSensorTileActuatorExposeGroup(): bool
+    protected function HasSensorTileActuatorExposeGroup(): bool
     {
         foreach ($this->ReadAttributeArray(self::ATTRIBUTE_EXPOSES) as $expose) {
             if (!\is_array($expose)) {

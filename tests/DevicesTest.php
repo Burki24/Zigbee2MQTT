@@ -161,6 +161,11 @@ class DevicesTest extends DumpInclude
 
         $html = IPS\InstanceManager::getInstanceInterface($iid)->GetVisualizationTile();
         $this->assertStringContainsString('"type":"sensor"', $html);
+
+        $form = json_decode(IPS_GetConfigurationForm($iid), true);
+        $status = $this->findFormItemByName($form, 'VisualizationStatus');
+        $this->assertNotNull($status);
+        $this->assertStringContainsString('Sensor-Kachel', $status['caption']);
     }
 
     public function testMixedLightSensorKeepsStandardVisualization()
@@ -169,6 +174,19 @@ class DevicesTest extends DumpInclude
 
         $html = IPS\InstanceManager::getInstanceInterface($iid)->GetVisualizationTile();
         $this->assertSame('', $html);
+
+        $form = json_decode(IPS_GetConfigurationForm($iid), true);
+        $this->assertFormItemVisible($form, 'VisualizationSettings');
+        $this->assertFormItemVisible($form, 'UseSensorTile');
+        $status = $this->findFormItemByName($form, 'VisualizationStatus');
+        $this->assertNotNull($status);
+        $this->assertStringContainsString('Standard-Visualisierung', $status['caption']);
+
+        IPS_SetProperty($iid, 'UseSensorTile', true);
+        IPS_ApplyChanges($iid);
+
+        $html = IPS\InstanceManager::getInstanceInterface($iid)->GetVisualizationTile();
+        $this->assertStringContainsString('"type":"sensor"', $html);
     }
 
     public function testMTD285_ZB()

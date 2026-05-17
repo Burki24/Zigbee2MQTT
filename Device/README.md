@@ -82,6 +82,8 @@ Es werden nur Optionen angezeigt, die für das jeweilige Gerät fachlich passen.
 | Aktions-Kachel | Taster-, Fernbedienungs- oder Szenen-Exposes | Letzte Aktion und verfügbare Aktionswerte |
 | Sensor-Kachel | z.B. `temperature`, `humidity`, `soil_moisture`, `illuminance`, `battery` | Messwertdarstellung für reine Sensoren, inklusive Detail-/Einstellseite wenn passende Einstellwerte vorhanden sind |
 
+Bei kombinierten Aktor-/Sensorgeräten bleibt die automatische Auswahl zunächst bei der Aktor- bzw. Standarddarstellung. Sobald passende Sensorwerte vorhanden sind, kann in der Instanzkonfiguration bewusst **Sensor-Kachel verwenden** aktiviert werden.
+
 Die drei Solltemperatur-Presets der Heizungs-Kachel sind pro Instanz im Bereich **Visualisierung** konfigurierbar. Standardwerte sind `18,0 °C`, `20,0 °C` und `22,0 °C`.
 
 Wenn mehrere Kacheln fachlich passen, gilt folgende Priorität:

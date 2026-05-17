@@ -90,9 +90,15 @@ trait DeviceFormHelper
             $this->Translate('Action tile')
         );
         $sensorAvailable = $this->HasSensorTileCapabilities();
+        $sensorSelectable = $sensorAvailable && $this->HasSensorTileActuatorExposeGroup();
+        $tiles[self::PROPERTY_USE_SENSOR_TILE] = [
+            'available' => $sensorSelectable,
+            'enabled'   => $sensorSelectable && $this->ReadPropertyBoolean(self::PROPERTY_USE_SENSOR_TILE),
+            'label'     => $this->Translate('Sensor tile')
+        ];
         $tiles['SensorTile'] = [
             'available' => $sensorAvailable,
-            'enabled'   => $sensorAvailable,
+            'enabled'   => $this->ShouldUseSensorTile(),
             'label'     => $this->Translate('Sensor tile')
         ];
 
@@ -187,6 +193,9 @@ trait DeviceFormHelper
      */
     private function GetDeviceFormActiveVisualizationLabel(array $tiles): string
     {
+        if ($tiles['SensorTile']['enabled'] && $this->ShouldForceSensorTile()) {
+            return $tiles['SensorTile']['label'];
+        }
         if ($tiles[self::PROPERTY_DISABLE_HEATING_TILE]['enabled']) {
             return $tiles[self::PROPERTY_DISABLE_HEATING_TILE]['label'];
         }

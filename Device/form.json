@@ -130,6 +130,12 @@
                     "name": "DisableActionTile",
                     "caption": "Disable action tile",
                     "visible": false
+                },
+                {
+                    "type": "CheckBox",
+                    "name": "UseSensorTile",
+                    "caption": "Use sensor tile",
+                    "visible": false
                 }
             ]
         },

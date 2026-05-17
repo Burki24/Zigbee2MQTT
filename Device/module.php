@@ -114,6 +114,12 @@ class Zigbee2MQTTDevice extends \Zigbee2MQTT\ModulBase
      */
     private function GetVisualizationTileDefinition(): ?array
     {
+        if ($this->ShouldForceSensorTile()) {
+            return [
+                'template' => 'sensor_tile.html',
+                'data'     => fn (): array => $this->BuildSensorTileData()
+            ];
+        }
         if ($this->ShouldUseHeatingTile()) {
             return [
                 'template' => 'heating_tile.html',

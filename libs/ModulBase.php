@@ -55,6 +55,7 @@ abstract class ModulBase extends \IPSModuleStrict
     private const PROPERTY_DISABLE_SECURITY_TILE = 'DisableSecurityTile';
     private const PROPERTY_DISABLE_WINDOW_HANDLE_TILE = 'DisableWindowHandleTile';
     private const PROPERTY_DISABLE_ACTION_TILE = 'DisableActionTile';
+    private const PROPERTY_USE_SENSOR_TILE = 'UseSensorTile';
     private const PROPERTY_TEMPERATURE_PRESENTATION_FALLBACK_MIN = 'TemperaturePresentationFallbackMin';
     private const PROPERTY_TEMPERATURE_PRESENTATION_FALLBACK_MAX = 'TemperaturePresentationFallbackMax';
     private const PROPERTY_HEATING_TILE_PRESET_1 = 'HeatingTilePreset1';
@@ -431,6 +432,7 @@ abstract class ModulBase extends \IPSModuleStrict
         $this->RegisterPropertyBoolean(self::PROPERTY_DISABLE_SECURITY_TILE, false);
         $this->RegisterPropertyBoolean(self::PROPERTY_DISABLE_WINDOW_HANDLE_TILE, false);
         $this->RegisterPropertyBoolean(self::PROPERTY_DISABLE_ACTION_TILE, false);
+        $this->RegisterPropertyBoolean(self::PROPERTY_USE_SENSOR_TILE, false);
         $this->RegisterPropertyFloat(self::PROPERTY_TEMPERATURE_PRESENTATION_FALLBACK_MIN, -40.0);
         $this->RegisterPropertyFloat(self::PROPERTY_TEMPERATURE_PRESENTATION_FALLBACK_MAX, 80.0);
         $this->RegisterPropertyFloat(self::PROPERTY_HEATING_TILE_PRESET_1, 18.0);
