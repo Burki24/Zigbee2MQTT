@@ -225,7 +225,7 @@ Details stehen in der [Dokumentation des Geräte-Moduls](Device/README.md#44-var
 
 ## 5. Changelog  
 
-**Version 5.43:**
+**Version 6.00:**
 
 - Moderne HTML-SDK-Kacheln für Heizungen, Schaltaktoren mit Messwerten, Sensoren, Sicherheitsgeräte, Fenstergriffe und Aktionsgeräte ergänzt.
 - Heizungs-Kacheln zeigen Ist- und Solltemperatur ohne Ringslider und bedienen die Solltemperatur per Plus-/Minus-Tasten sowie pro Instanz konfigurierbare Presets.
