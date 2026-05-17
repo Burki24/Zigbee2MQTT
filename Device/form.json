@@ -168,6 +168,68 @@
                     ]
                 }
             ]
+        },
+        {
+            "type": "ExpansionPanel",
+            "name": "VariableSelectionSettings",
+            "caption": "Variables",
+            "expanded": false,
+            "visible": false,
+            "items": [
+                {
+                    "type": "Label",
+                    "caption": "Control which variables may be created automatically. Existing variables are not deleted."
+                },
+                {
+                    "type": "List",
+                    "name": "VariableSelectionList",
+                    "add": false,
+                    "delete": false,
+                    "rowCount": 8,
+                    "loadValuesFromConfiguration": false,
+                    "sort": {
+                        "column": "label",
+                        "direction": "ascending"
+                    },
+                    "columns": [
+                        {
+                            "caption": "Variable",
+                            "name": "label",
+                            "width": "auto",
+                            "quickFilter": true
+                        },
+                        {
+                            "caption": "Ident",
+                            "name": "ident",
+                            "width": "180px",
+                            "quickFilter": true
+                        },
+                        {
+                            "caption": "Source",
+                            "name": "source",
+                            "width": "90px"
+                        },
+                        {
+                            "caption": "Type",
+                            "name": "type",
+                            "width": "90px"
+                        },
+                        {
+                            "caption": "State",
+                            "name": "state",
+                            "width": "150px"
+                        },
+                        {
+                            "caption": "Action",
+                            "name": "action",
+                            "width": "100px",
+                            "align": "center",
+                            "onClick": "IPS_RequestAction($id, 'ToggleVariableCreation', $VariableSelectionList['ident']);"
+                        }
+                    ],
+                    "values": []
+                }
+            ]
         }
     ],
     "actions": [

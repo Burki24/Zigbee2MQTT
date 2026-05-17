@@ -82,6 +82,31 @@ class DevicesTest extends DumpInclude
         $this->assertStringContainsString('"values":[]', $html);
     }
 
+    public function testDeletedVariableIsNotRecreatedAndCanBeRestored()
+    {
+        [$iid,$Debug] = $this->createTestInstance('BMCT-SLZ.json');
+        $interface = IPS\InstanceManager::getInstanceInterface($iid);
+        $topic = $Debug['Config']['MQTTBaseTopic'] . '/' . $Debug['Config']['MQTTTopic'];
+
+        $powerID = IPS_GetObjectIDByIdent('power', $iid);
+        $this->assertNotFalse($powerID);
+        IPS_DeleteVariable($powerID);
+
+        $interface->ReceiveData(self::buildMqttRequest($topic, ['power' => 12.3]));
+        $this->assertFalse(@IPS_GetObjectIDByIdent('power', $iid), 'Deleted variable must not be recreated automatically.');
+
+        $form = json_decode(IPS_GetConfigurationForm($iid), true);
+        $list = $this->findFormItemByName($form, 'VariableSelectionList');
+        $this->assertNotNull($list);
+        $row = $this->findVariableSelectionRow($list['values'], 'power');
+        $this->assertNotNull($row);
+        $this->assertSame('Deleted', $row['state']);
+        $this->assertSame('Create', $row['action']);
+
+        IPS_RequestAction($iid, 'ToggleVariableCreation', 'power');
+        $this->assertNotFalse(@IPS_GetObjectIDByIdent('power', $iid), 'Re-enabled variable should be created again.');
+    }
+
     public function testTS0203ContactTile()
     {
         [$iid] = $this->createTestInstance('TS0203_contact.json');
@@ -338,5 +363,31 @@ class DevicesTest extends DumpInclude
         }
 
         return null;
+    }
+
+    private function findVariableSelectionRow(array $rows, string $ident): ?array
+    {
+        foreach ($rows as $row) {
+            if (($row['ident'] ?? null) === $ident) {
+                return $row;
+            }
+        }
+
+        return null;
+    }
+
+    private static function buildMqttRequest(string $topic, array $payload): string
+    {
+        return json_encode(
+            [
+                'DataID'           => '{7F7632D9-FA40-4F38-8DEA-C83CD4325A32}',
+                'PacketType'       => 3,
+                'QualityOfService' => 0,
+                'Retain'           => false,
+                'Topic'            => $topic,
+                'Payload'          => bin2hex(json_encode($payload))
+            ],
+            JSON_UNESCAPED_SLASHES
+        );
     }
 }

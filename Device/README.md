@@ -18,6 +18,7 @@
   - [4.1 Visualisierung und Kacheln](#41-visualisierung-und-kacheln)
   - [4.2 Temperatur-Visualisierung](#42-temperatur-visualisierung)
   - [4.3 Farbtemperatur in der Beleuchtungs-Kachel](#43-farbtemperatur-in-der-beleuchtungs-kachel)
+  - [4.4 Variablenverwaltung](#44-variablenverwaltung)
 - [5. Statusvariablen](#5-statusvariablen)
 - [6. PHP-Funktionsreferenz](#6-php-funktionsreferenz)
 - [7. Aktionen](#7-aktionen)
@@ -122,6 +123,14 @@ Zigbee2MQTT liefert den Bereich für `color_temp` normalerweise in Mired. Das Mo
 Wenn Zigbee2MQTT `value_min` und `value_max` für `color_temp` liefert, wird daraus der Kelvin-Bereich berechnet. Beispiel: Aus `value_min: 200` und `value_max: 454` wird ungefähr `2202 K` bis `5000 K`.
 
 Falls kein Wertebereich vorhanden ist, verwendet das Modul den Standardbereich `1000 K` bis `12000 K`. Zusätzlich wird ein Farbverlauf von Warmweiß bis Kaltweiß gesetzt, der zum jeweiligen Kelvin-Bereich passt.
+
+### 4.4 Variablenverwaltung
+
+Die Instanz merkt sich alle aus Exposes, Payloads und Systemmeldungen bekannten Variablen in einem lokalen Variablenkatalog. In der Konfiguration erscheint dazu der Bereich **Variables**. Dort kann pro Variable gesteuert werden, ob das Modul sie automatisch anlegen darf.
+
+Wird eine vom Modul bekannte Variable im Objektbaum gelöscht, wird sie bei der nächsten Geräteinformation oder beim nächsten passenden Payload nicht automatisch wieder angelegt. Sie erscheint stattdessen in der Variablenverwaltung mit dem Status `Deleted` und kann dort über `Create` bewusst wieder angelegt werden.
+
+Deaktivierte Variablen werden nicht automatisch gelöscht. Bestehende Variablen bleiben erhalten, werden aber nach einer manuellen Löschung nicht wieder neu erzeugt, solange sie deaktiviert sind.
 
 ## 5. Statusvariablen
 

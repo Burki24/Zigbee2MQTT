@@ -19,6 +19,7 @@ Anbindung von [zigbee2mqtt](https://www.zigbee2mqtt.io) an IP-Symcon.
   - [3.3 Installation der IP-Symcon Extension in Zigbee2MQTT](#33-installation-der-ip-symcon-extension-in-zigbee2mqtt)
 - [4. Konfiguration in IP-Symcon](#4-konfiguration-in-ip-symcon)
   - [4.1 Tile-Visualisierung](#41-tile-visualisierung)
+  - [4.2 Variablenverwaltung](#42-variablenverwaltung)
 - [5. Changelog](#5-changelog)
 - [6. Spenden](#6-spenden)
 - [7. Lizenz](#7-lizenz)
@@ -216,6 +217,12 @@ Die Instanz-Konfiguration zeigt nur die Visualisierungsoptionen an, die für das
 
 Details stehen in der [Dokumentation des Geräte-Moduls](Device/README.md#41-visualisierung-und-kacheln).
 
+### 4.2 Variablenverwaltung
+
+Geräte-Instanzen führen einen lokalen Variablenkatalog. Dadurch kann in der Instanz-Konfiguration gesteuert werden, welche bekannten Variablen automatisch angelegt werden dürfen. Vom Anwender gelöschte Variablen werden nicht automatisch wieder erzeugt und können später gezielt wieder angelegt werden.
+
+Details stehen in der [Dokumentation des Geräte-Moduls](Device/README.md#44-variablenverwaltung).
+
 ## 5. Changelog  
 
 **Version 5.43:**
@@ -227,6 +234,7 @@ Details stehen in der [Dokumentation des Geräte-Moduls](Device/README.md#41-vis
 - Temperatur-, Farbtemperatur-, Enum- und Numeric-Exposes erhalten passendere moderne Tile-Darstellungen, soweit die Exposes die nötigen Werte liefern.
 - Die Kelvin-Farbtemperaturvariable `color_temp_kelvin` nutzt den aus dem Zigbee2MQTT-Mired-Bereich berechneten Kelvin-Bereich für die Symcon-Standardkachel Beleuchtung.
 - Die Geräte-Konfiguration zeigt Visualisierungsoptionen nur noch an, wenn sie für die Instanz fachlich verfügbar sind.
+- Geräte-Instanzen erhalten eine Variablenverwaltung, mit der automatisch angelegte, nachgelieferte und gelöschte Variablen kontrolliert werden können.
 - Temperatur-Visualisierungen können einen konfigurierbaren Fallback-Bereich nutzen, wenn Zigbee2MQTT keine `value_min`/`value_max` Werte liefert.
 - Interne Struktur der Visualisierungs- und Variablenregistrierung refaktoriert, ohne die öffentlichen Modul-Funktionen zu ändern.
 

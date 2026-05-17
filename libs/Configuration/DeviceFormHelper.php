@@ -19,6 +19,7 @@ trait DeviceFormHelper
         $this->ConfigureDeviceFormHeader($form);
         $this->ConfigureDeviceFormVisualization($form, $tileStates);
         $this->ConfigureDeviceFormTemperatureVisualization($form, $tileStates);
+        $this->ConfigureDeviceFormVariableSelection($form);
         $this->ConfigureDeviceFormDiagnostics($form);
 
         return $form;
@@ -160,6 +161,17 @@ trait DeviceFormHelper
             );
 
         $this->SetDeviceFormField($form, 'TemperatureVisualization', 'visible', $visible);
+    }
+
+    /**
+     * Fuellt die dynamische Variablenverwaltung.
+     */
+    private function ConfigureDeviceFormVariableSelection(array &$form): void
+    {
+        $values = $this->BuildVariableSelectionFormValues();
+        $this->SetDeviceFormField($form, 'VariableSelectionSettings', 'visible', \count($values) > 0);
+        $this->SetDeviceFormField($form, 'VariableSelectionList', 'values', $values);
+        $this->SetDeviceFormField($form, 'VariableSelectionList', 'rowCount', min(12, max(4, \count($values) + 1)));
     }
 
     /**

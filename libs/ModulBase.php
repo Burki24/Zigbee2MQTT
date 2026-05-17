@@ -438,6 +438,9 @@ abstract class ModulBase extends \IPSModuleStrict
         $this->RegisterPropertyFloat(self::PROPERTY_HEATING_TILE_PRESET_3, 22.0);
         $this->RegisterAttributeArray(self::ATTRIBUTE_EXPOSES, []);
         $this->RegisterAttributeArray(self::ATTRIBUTE_FILTERED, []);
+        $this->RegisterAttributeArray(self::ATTRIBUTE_VARIABLE_CATALOG, []);
+        $this->RegisterAttributeArray(self::ATTRIBUTE_DISABLED_VARIABLES, []);
+        $this->RegisterAttributeArray(self::ATTRIBUTE_DELETED_VARIABLES, []);
         $this->RegisterAttributeFloat(self::ATTRIBUTE_MODUL_VERSION, 5.0);
 
         // Init Buffers
@@ -620,6 +623,11 @@ abstract class ModulBase extends \IPSModuleStrict
         if ($ident == 'ShowMissingTranslations') {
             $this->SendDebug(__FUNCTION__, 'Verarbeite ShowMissingTranslations', 0);
             return $this->ShowMissingTranslations();
+        }
+
+        if ($ident == 'ToggleVariableCreation') {
+            $this->SendDebug(__FUNCTION__, 'Verarbeite ToggleVariableCreation: ' . (string) $value, 0);
+            return $this->ToggleVariableCreation((string) $value);
         }
 
         return $this->handleVariableRequestAction($ident, $value);
@@ -1385,6 +1393,446 @@ abstract class ModulBase extends \IPSModuleStrict
         };
     }
 
+    /**
+     * Normalisiert ein Zigbee2MQTT-Property auf einen Symcon-Ident.
+     */
+    private function NormalizeVariableIdent(string $ident): string
+    {
+        return str_replace('&', '_and_', $ident);
+    }
+
+    /**
+     * Formatiert einen Ident fuer den Katalog, ohne die Uebersetzungspruefung anzustossen.
+     */
+    private function FormatVariableCatalogLabel(string $ident): string
+    {
+        $label = preg_replace('/_+/', ' ', $ident);
+        return ucwords((string) $label);
+    }
+
+    /**
+     * Merkt sich eine potenziell anlegbare Variable fuer die lokale Variablenverwaltung.
+     *
+     * Der Katalog ist bewusst modul-lokal und bleibt getrennt von den Zigbee2MQTT
+     * `filtered_attributes`, damit Anwenderentscheidungen die Z2M-Konfiguration nicht veraendern.
+     */
+    private function RememberVariableDefinition(string $ident, ?array $feature = null, string $source = 'payload', mixed $lastValue = null): void
+    {
+        $ident = $this->NormalizeVariableIdent($ident);
+        if ($ident === '') {
+            return;
+        }
+
+        $catalog = $this->ReadAttributeArray(self::ATTRIBUTE_VARIABLE_CATALOG);
+        $entry = $catalog[$ident] ?? [
+            'ident'   => $ident,
+            'created' => false
+        ];
+
+        $property = (string) ($feature['property'] ?? ($entry['property'] ?? $ident));
+        $currentSource = (string) ($entry['source'] ?? '');
+        $entry['ident'] = $ident;
+        $entry['property'] = $property;
+        $entry['label'] = (string) ($feature['label'] ?? ($entry['label'] ?? $this->FormatVariableCatalogLabel($property)));
+        $entry['source'] = ($currentSource !== '' && $source === 'payload') ? $currentSource : $source;
+        $entry['type'] = (string) ($feature['type'] ?? ($entry['type'] ?? $this->GetPayloadValueTypeName($lastValue)));
+        $entry['unit'] = (string) ($feature['unit'] ?? ($entry['unit'] ?? ''));
+        $entry['created'] = (bool) ($entry['created'] ?? false) || $this->GetObjectIDByIdent($ident) !== false;
+
+        if ($feature !== null && (!isset($entry['feature']) || \count($feature) > 2)) {
+            $entry['feature'] = $feature;
+        }
+
+        if ($lastValue !== null) {
+            $entry['payloadType'] = $this->GetPayloadValueTypeName($lastValue);
+            if (!\is_array($lastValue)) {
+                $entry['lastValue'] = $lastValue;
+            }
+        }
+
+        if (($catalog[$ident] ?? null) === $entry) {
+            return;
+        }
+
+        $catalog[$ident] = $entry;
+        $this->WriteAttributeArray(self::ATTRIBUTE_VARIABLE_CATALOG, $catalog);
+    }
+
+    /**
+     * Liefert eine stabile Typbeschreibung fuer Payload-basierte Katalogeintraege.
+     */
+    private function GetPayloadValueTypeName(mixed $value): string
+    {
+        return match (true) {
+            \is_bool($value)  => 'binary',
+            \is_int($value)   => 'integer',
+            \is_float($value) => 'numeric',
+            \is_array($value) => 'array',
+            default           => 'text'
+        };
+    }
+
+    /**
+     * Prueft, ob eine Variable neu angelegt werden darf.
+     */
+    private function CanCreateVariable(string $ident, ?array $feature = null, string $source = 'payload', mixed $lastValue = null): bool
+    {
+        $ident = $this->NormalizeVariableIdent($ident);
+        if ($ident === '') {
+            return false;
+        }
+
+        $this->RememberVariableDefinition($ident, $feature, $source, $lastValue);
+
+        if ($this->GetObjectIDByIdent($ident) !== false) {
+            return true;
+        }
+
+        if ($this->IsVariableCreationSuppressed($ident)) {
+            $this->SendDebug(__FUNCTION__, 'Variable creation suppressed: ' . $ident, 0);
+            return false;
+        }
+
+        $catalog = $this->ReadAttributeArray(self::ATTRIBUTE_VARIABLE_CATALOG);
+        if ((bool) ($catalog[$ident]['created'] ?? false)) {
+            $this->MarkVariableAsDeleted($ident);
+            $this->SendDebug(__FUNCTION__, 'Known variable was deleted by user, not recreated: ' . $ident, 0);
+            return false;
+        }
+
+        return true;
+    }
+
+    /**
+     * Prueft alle Quellen, die eine automatische Neuanlage verhindern.
+     */
+    private function IsVariableCreationSuppressed(string $ident): bool
+    {
+        $ident = $this->NormalizeVariableIdent($ident);
+        return \in_array($ident, $this->ReadAttributeArray(self::ATTRIBUTE_FILTERED), true)
+            || \in_array($ident, $this->ReadAttributeArray(self::ATTRIBUTE_DISABLED_VARIABLES), true)
+            || \in_array($ident, $this->ReadAttributeArray(self::ATTRIBUTE_DELETED_VARIABLES), true);
+    }
+
+    /**
+     * Markiert eine Variable im Katalog als erfolgreich angelegt.
+     */
+    private function MarkVariableCreated(string $ident): void
+    {
+        $ident = $this->NormalizeVariableIdent($ident);
+        if ($ident === '') {
+            return;
+        }
+
+        $catalog = $this->ReadAttributeArray(self::ATTRIBUTE_VARIABLE_CATALOG);
+        $entry = $catalog[$ident] ?? [
+            'ident'    => $ident,
+            'property' => $ident,
+            'label'    => $this->FormatVariableCatalogLabel($ident),
+            'source'   => 'existing'
+        ];
+
+        $entry['created'] = true;
+        unset($entry['deleted']);
+        if (($catalog[$ident] ?? null) !== $entry) {
+            $catalog[$ident] = $entry;
+            $this->WriteAttributeArray(self::ATTRIBUTE_VARIABLE_CATALOG, $catalog);
+        }
+        $this->RemoveVariableFromAttributeList(self::ATTRIBUTE_DELETED_VARIABLES, $ident);
+    }
+
+    /**
+     * Merkt sich, dass eine bekannte Variable vom Anwender entfernt wurde.
+     */
+    private function MarkVariableAsDeleted(string $ident): void
+    {
+        $ident = $this->NormalizeVariableIdent($ident);
+        if ($ident === '') {
+            return;
+        }
+
+        $this->AddVariableToAttributeList(self::ATTRIBUTE_DELETED_VARIABLES, $ident);
+        $catalog = $this->ReadAttributeArray(self::ATTRIBUTE_VARIABLE_CATALOG);
+        if (isset($catalog[$ident])) {
+            $catalog[$ident]['deleted'] = true;
+            $this->WriteAttributeArray(self::ATTRIBUTE_VARIABLE_CATALOG, $catalog);
+        }
+    }
+
+    /**
+     * Fuegt einen Ident einmalig zu einem Array-Attribut hinzu.
+     */
+    private function AddVariableToAttributeList(string $attribute, string $ident): void
+    {
+        $ident = $this->NormalizeVariableIdent($ident);
+        $values = $this->ReadAttributeArray($attribute);
+        if (\in_array($ident, $values, true)) {
+            return;
+        }
+
+        $values[] = $ident;
+        sort($values);
+        $this->WriteAttributeArray($attribute, $values);
+    }
+
+    /**
+     * Entfernt einen Ident aus einem Array-Attribut.
+     */
+    private function RemoveVariableFromAttributeList(string $attribute, string $ident): void
+    {
+        $ident = $this->NormalizeVariableIdent($ident);
+        $currentValues = $this->ReadAttributeArray($attribute);
+        $values = array_values(array_filter(
+            $currentValues,
+            static fn (mixed $value): bool => $value !== $ident
+        ));
+        if ($values === $currentValues) {
+            return;
+        }
+
+        $this->WriteAttributeArray($attribute, $values);
+    }
+
+    /**
+     * Aktiviert oder deaktiviert die automatische Anlage einer Variable.
+     */
+    protected function SetVariableCreationEnabled(string $ident, bool $enabled): bool
+    {
+        $ident = $this->NormalizeVariableIdent($ident);
+        if ($ident === '') {
+            return false;
+        }
+
+        if ($enabled) {
+            $this->RemoveVariableFromAttributeList(self::ATTRIBUTE_DISABLED_VARIABLES, $ident);
+            $this->RemoveVariableFromAttributeList(self::ATTRIBUTE_DELETED_VARIABLES, $ident);
+
+            $catalog = $this->ReadAttributeArray(self::ATTRIBUTE_VARIABLE_CATALOG);
+            if (isset($catalog[$ident]) && $this->GetObjectIDByIdent($ident) === false) {
+                $catalog[$ident]['created'] = false;
+                unset($catalog[$ident]['deleted']);
+                $this->WriteAttributeArray(self::ATTRIBUTE_VARIABLE_CATALOG, $catalog);
+            }
+
+            $this->CreateVariableFromCatalog($ident);
+        } else {
+            $this->AddVariableToAttributeList(self::ATTRIBUTE_DISABLED_VARIABLES, $ident);
+            $this->RemoveVariableFromAttributeList(self::ATTRIBUTE_DELETED_VARIABLES, $ident);
+        }
+
+        $this->ReloadForm();
+        return true;
+    }
+
+    /**
+     * Schaltet die automatische Anlage einer Variable fuer die Formularaktion um.
+     */
+    protected function ToggleVariableCreation(string $ident): bool
+    {
+        if ($this->GetObjectIDByIdent($this->NormalizeVariableIdent($ident)) === false) {
+            return $this->SetVariableCreationEnabled($ident, true);
+        }
+
+        return $this->SetVariableCreationEnabled($ident, !$this->IsVariableCreationEnabled($ident));
+    }
+
+    /**
+     * Liefert true, wenn eine Variable aktuell automatisch angelegt werden darf.
+     */
+    private function IsVariableCreationEnabled(string $ident): bool
+    {
+        return !$this->IsVariableCreationSuppressed($ident);
+    }
+
+    /**
+     * Versucht, eine wieder aktivierte Variable sofort aus Katalog oder letztem Payload anzulegen.
+     */
+    private function CreateVariableFromCatalog(string $ident): bool
+    {
+        $ident = $this->NormalizeVariableIdent($ident);
+        $catalog = $this->ReadAttributeArray(self::ATTRIBUTE_VARIABLE_CATALOG);
+        $entry = $catalog[$ident] ?? null;
+        if (!\is_array($entry)) {
+            return false;
+        }
+
+        if (isset($entry['feature']) && \is_array($entry['feature'])) {
+            $this->registerVariable($entry['feature']);
+            if ($this->GetObjectIDByIdent($ident) !== false && isset($entry['lastValue'])) {
+                $this->SetValue($ident, $entry['lastValue']);
+            }
+            return $this->GetObjectIDByIdent($ident) !== false;
+        }
+
+        $payload = $this->lastPayload;
+        $property = (string) ($entry['property'] ?? $ident);
+        if (\array_key_exists($property, $payload)) {
+            $this->processPayloadEntry($property, $payload[$property]);
+            return $this->GetObjectIDByIdent($ident) !== false;
+        }
+        if (\array_key_exists($ident, $payload)) {
+            $this->processPayloadEntry($ident, $payload[$ident]);
+            return $this->GetObjectIDByIdent($ident) !== false;
+        }
+
+        if (isset($entry['lastValue'])) {
+            $this->RegisterPayloadOnlyVariable($ident, $entry['lastValue']);
+            return $this->GetObjectIDByIdent($ident) !== false;
+        }
+
+        return false;
+    }
+
+    /**
+     * Legt eine reine Payload-Variable mit dem zuletzt bekannten Wert an.
+     */
+    private function RegisterPayloadOnlyVariable(string $ident, mixed $value): void
+    {
+        if (!$this->CanCreateVariable($ident, null, 'payload', $value)) {
+            return;
+        }
+
+        $varType = $this->getPayloadVariableTypeDefinition($value);
+        $registerFunc = $varType['registerFunc'];
+        $this->$registerFunc(
+            $ident,
+            $this->Translate($this->convertLabelToName($ident)),
+            $varType['profile']
+        );
+        $this->MarkVariableCreated($ident);
+        $this->SetValue($ident, $value);
+    }
+
+    /**
+     * Aktualisiert den Katalog aus Exposes und bereits vorhandenen Kindvariablen.
+     */
+    private function RefreshVariableCatalog(): void
+    {
+        foreach ($this->ReadAttributeArray(self::ATTRIBUTE_EXPOSES) as $expose) {
+            $this->RememberExposeFeatureRecursive($expose);
+        }
+
+        foreach (IPS_GetChildrenIDs($this->InstanceID) as $childID) {
+            $object = IPS_GetObject($childID);
+            if (($object['ObjectType'] ?? -1) !== OBJECTTYPE_VARIABLE) {
+                continue;
+            }
+
+            $ident = (string) ($object['ObjectIdent'] ?? '');
+            if ($ident === '') {
+                continue;
+            }
+
+            $catalog = $this->ReadAttributeArray(self::ATTRIBUTE_VARIABLE_CATALOG);
+            if (!isset($catalog[$ident])) {
+                $this->RememberVariableDefinition($ident, ['property' => $ident], 'existing');
+            }
+            $this->MarkVariableCreated($ident);
+        }
+
+        $this->RefreshDeletedVariableCatalogState();
+    }
+
+    /**
+     * Markiert bekannte, frueher angelegte und nun fehlende Variablen als geloescht.
+     */
+    private function RefreshDeletedVariableCatalogState(): void
+    {
+        foreach ($this->ReadAttributeArray(self::ATTRIBUTE_VARIABLE_CATALOG) as $ident => $entry) {
+            if (!\is_array($entry) || !(bool) ($entry['created'] ?? false)) {
+                continue;
+            }
+
+            if ($this->GetObjectIDByIdent((string) $ident) !== false || $this->IsVariableCreationSuppressed((string) $ident)) {
+                continue;
+            }
+
+            $this->MarkVariableAsDeleted((string) $ident);
+        }
+    }
+
+    /**
+     * Uebernimmt Expose-Features rekursiv in den lokalen Variablenkatalog.
+     */
+    private function RememberExposeFeatureRecursive(array $feature): void
+    {
+        $property = (string) ($feature['property'] ?? '');
+        if ($property !== '' && !isset($feature['color_mode'])) {
+            $this->RememberVariableDefinition($property, $feature, 'expose');
+        }
+
+        if (!isset($feature['features']) || !\is_array($feature['features'])) {
+            return;
+        }
+
+        foreach ($feature['features'] as $subFeature) {
+            if (\is_array($subFeature)) {
+                $this->RememberExposeFeatureRecursive($subFeature);
+            }
+        }
+    }
+
+    /**
+     * Baut die Zeilen fuer die Variablenverwaltung im Instanzformular.
+     */
+    protected function BuildVariableSelectionFormValues(): array
+    {
+        $this->RefreshVariableCatalog();
+
+        $catalog = $this->ReadAttributeArray(self::ATTRIBUTE_VARIABLE_CATALOG);
+        ksort($catalog);
+
+        $rows = [];
+        foreach ($catalog as $ident => $entry) {
+            if (!\is_array($entry)) {
+                continue;
+            }
+
+            $rows[] = $this->BuildVariableSelectionFormRow((string) $ident, $entry);
+        }
+
+        return $rows;
+    }
+
+    /**
+     * Baut eine einzelne Zeile fuer die Variablenverwaltung.
+     */
+    private function BuildVariableSelectionFormRow(string $ident, array $entry): array
+    {
+        $exists = $this->GetObjectIDByIdent($ident) !== false;
+        $filtered = \in_array($ident, $this->ReadAttributeArray(self::ATTRIBUTE_FILTERED), true);
+        $disabled = \in_array($ident, $this->ReadAttributeArray(self::ATTRIBUTE_DISABLED_VARIABLES), true);
+        $deleted = \in_array($ident, $this->ReadAttributeArray(self::ATTRIBUTE_DELETED_VARIABLES), true);
+
+        $state = $exists ? 'Created' : 'Not created';
+        $action = $exists ? 'Disable' : 'Create';
+        $rowColor = '';
+
+        if ($filtered) {
+            $state = 'Filtered by Zigbee2MQTT';
+            $action = '';
+            $rowColor = '#DFDFDF';
+        } elseif ($deleted) {
+            $state = 'Deleted';
+            $action = 'Create';
+            $rowColor = '#FFFFC0';
+        } elseif ($disabled) {
+            $state = $exists ? 'Disabled, exists' : 'Disabled';
+            $action = 'Enable';
+            $rowColor = '#DFDFDF';
+        }
+
+        return [
+            'ident'    => $ident,
+            'label'    => (string) ($entry['label'] ?? $this->FormatVariableCatalogLabel($ident)),
+            'source'   => (string) ($entry['source'] ?? 'payload'),
+            'type'     => (string) ($entry['type'] ?? ''),
+            'state'    => $state,
+            'action'   => $action,
+            'rowColor' => $rowColor
+        ];
+    }
+
     // Feature & Expose Handling
 
     /**
@@ -1425,6 +1873,9 @@ abstract class ModulBase extends \IPSModuleStrict
                     foreach ($expose['features'] as $feature) {
                         // Gefilterte Attribute gemaess Z2M-Konfiguration ueberspringen
                         $sProperty = $feature['property'] ?? '';
+                        if ($sProperty !== '') {
+                            $this->RememberVariableDefinition($sProperty, $feature, 'expose');
+                        }
                         if ($sProperty !== '' && \in_array($sProperty, $aFiltered, true)) {
                             $this->SendDebug(__FUNCTION__, 'Skipping filtered attribute: ' . $sProperty, 0);
                             continue;
@@ -1452,6 +1903,9 @@ abstract class ModulBase extends \IPSModuleStrict
             } else {
                 // Gefilterte Attribute gemaess Z2M-Konfiguration ueberspringen
                 $sProperty = $expose['property'] ?? '';
+                if ($sProperty !== '') {
+                    $this->RememberVariableDefinition($sProperty, $expose, 'expose');
+                }
                 if ($sProperty !== '' && \in_array($sProperty, $aFiltered, true)) {
                     $this->SendDebug(__FUNCTION__, 'Skipping filtered attribute: ' . $sProperty, 0);
                     continue;
@@ -1739,7 +2193,12 @@ abstract class ModulBase extends \IPSModuleStrict
         if (end($topics) !== self::AVAILABILITY_TOPIC) {
             return false;
         }
+        $this->RememberVariableDefinition('device_status', ['property' => 'device_status', 'type' => 'binary', 'label' => 'Availability'], 'system');
+        if (!$this->CanCreateVariable('device_status', ['property' => 'device_status', 'type' => 'binary', 'label' => 'Availability'], 'system')) {
+            return true;
+        }
         $this->RegisterVariableBoolean('device_status', $this->Translate('Availability'), 'Z2M.DeviceStatus');
+        $this->MarkVariableCreated('device_status');
         if (isset($payload['state'])) {
             $this->SetValueDirect('device_status', $payload['state'] == 'online');
         } else { // leeren Payload, wenn z.B. Gerät gelöscht oder umbenannt wurde
@@ -1902,6 +2361,9 @@ abstract class ModulBase extends \IPSModuleStrict
 
         $variableID = $this->GetObjectIDByIdent($ident);
         if (!$variableID && $variableProps !== null) {
+            if (!$this->CanCreateVariable($ident, $variableProps, 'payload')) {
+                return null;
+            }
             $this->SendDebug(__FUNCTION__, 'Variable nicht gefunden, Registrierung: ' . $ident, 0);
             $this->registerVariable($variableProps, $formattedLabel);
             $variableID = $this->GetObjectIDByIdent($ident);
@@ -1959,11 +2421,14 @@ abstract class ModulBase extends \IPSModuleStrict
         $lowerKey = strtolower($key);
         $knownVariables = $this->getKnownVariables();
         if (!isset($knownVariables[$lowerKey])) {
+            $this->RememberVariableDefinition($ident, ['property' => $ident, 'type' => $this->GetPayloadValueTypeName($value)], 'payload', $value);
+            $this->CanCreateVariable($ident, ['property' => $ident, 'type' => $this->GetPayloadValueTypeName($value)], 'payload', $value);
             $this->SendDebug(__FUNCTION__, 'Variable nicht bekannt: ' . $key, 0);
             return;
         }
 
         $variableProps = $knownVariables[$lowerKey];
+        $this->RememberVariableDefinition($ident, $variableProps, 'payload', $value);
 
         // Array-Werte verarbeiten
         if (\is_array($value)) {
@@ -1991,12 +2456,16 @@ abstract class ModulBase extends \IPSModuleStrict
 
         $varType = $this->getPayloadVariableTypeDefinition($value);
         if (!$this->GetObjectIDByIdent($key)) {
+            if (!$this->CanCreateVariable($key, ['property' => $key, 'type' => $this->GetPayloadValueTypeName($value)], 'payload', $value)) {
+                return true;
+            }
             $registerFunc = $varType['registerFunc'];
             $this->$registerFunc(
                 $key,
                 $this->Translate($this->convertLabelToName($key)),
                 $varType['profile']
             );
+            $this->MarkVariableCreated($key);
             $this->checkAndEnableAction($key);
         }
 
@@ -4085,12 +4554,18 @@ abstract class ModulBase extends \IPSModuleStrict
             return;
         }
 
-        $featureProperty = \is_array($feature) ? $feature['property'] : $feature;
+        $featureProperty = \is_array($feature) ? (string) ($feature['property'] ?? '') : (string) $feature;
 
         // Frühe Validierung der Property
         if (empty($featureProperty)) {
             $this->SendDebug(__FUNCTION__, 'Error: Empty property/identifier provided', 0);
             return;
+        }
+
+        if (!\is_array($feature) || !isset($feature['color_mode'])) {
+            if (!$this->CanCreateVariable($featureProperty, \is_array($feature) ? $feature : null, 'expose')) {
+                return;
+            }
         }
 
         $this->SendDebug(__FUNCTION__ . ' Registriere Variable für Property: ', $featureProperty, 0);
@@ -4173,6 +4648,7 @@ abstract class ModulBase extends \IPSModuleStrict
 
         $ident = str_replace('&', '_and_', $featureProperty);
         $this->RegisterVariableBoolean($ident, $this->Translate($this->convertLabelToName($featureProperty)), '~Switch');
+        $this->MarkVariableCreated($ident);
         $this->checkAndEnableAction($ident, $feature, true);
         return true;
     }
@@ -4200,6 +4676,7 @@ abstract class ModulBase extends \IPSModuleStrict
                     $this->Translate($formattedLabel),
                     $stateConfig['profile']
                 );
+                $this->MarkVariableCreated($stateConfig['ident']);
                 break;
             case VARIABLETYPE_STRING:
                 $this->RegisterVariableString(
@@ -4207,6 +4684,7 @@ abstract class ModulBase extends \IPSModuleStrict
                     $this->Translate($formattedLabel),
                     $stateConfig['profile']
                 );
+                $this->MarkVariableCreated($stateConfig['ident']);
                 break;
             default:
                 $this->SendDebug(__FUNCTION__, 'Unsupported state dataType: ' . $stateConfig['dataType'], 0);
@@ -4279,22 +4757,27 @@ abstract class ModulBase extends \IPSModuleStrict
             case 'bool':
                 $this->SendDebug(__FUNCTION__, 'Registering Boolean Variable: ' . $property, 0);
                 $this->RegisterVariableBoolean($ident, $this->Translate($this->convertLabelToName($property)), $profileName);
+                $this->MarkVariableCreated($ident);
                 return true;
             case 'int':
                 $this->SendDebug(__FUNCTION__, 'Registering Integer Variable: ' . $property, 0);
                 $this->RegisterVariableInteger($ident, $this->Translate($this->convertLabelToName($property)), $profileName);
+                $this->MarkVariableCreated($ident);
                 return true;
             case 'float':
                 $this->SendDebug(__FUNCTION__, 'Registering Float Variable: ' . $property, 0);
                 $this->RegisterVariableFloat($ident, $this->Translate($this->convertLabelToName($property)), $profileName);
+                $this->MarkVariableCreated($ident);
                 return true;
             case 'string':
                 $this->SendDebug(__FUNCTION__, 'Registering String Variable: ' . $property, 0);
                 $this->RegisterVariableString($ident, $this->Translate($this->convertLabelToName($property)), $profileName);
+                $this->MarkVariableCreated($ident);
                 return true;
             case 'text':
                 $this->SendDebug(__FUNCTION__, 'Registering Text Variable: ' . $property, 0);
                 $this->RegisterVariableString($ident, $this->Translate($this->convertLabelToName($property)));
+                $this->MarkVariableCreated($ident);
                 return true;
             case 'composite':
                 return !$this->registerCompositeFeatureVariable($feature, $ident, $exposeType);
@@ -4351,9 +4834,9 @@ abstract class ModulBase extends \IPSModuleStrict
             return;
         }
 
-        $aFiltered = $this->ReadAttributeArray(self::ATTRIBUTE_FILTERED);
         $subPresetIdent = $subFeature['property'] . '_presets';
-        if (\in_array($subPresetIdent, $aFiltered, true)) {
+        $this->RememberVariableDefinition($subPresetIdent, ['property' => $subPresetIdent, 'type' => $subFeature['type'] ?? 'numeric'], 'expose');
+        if (!$this->CanCreateVariable($subPresetIdent, ['property' => $subPresetIdent, 'type' => $subFeature['type'] ?? 'numeric'], 'expose')) {
             return;
         }
 
@@ -4380,10 +4863,15 @@ abstract class ModulBase extends \IPSModuleStrict
      */
     private function registerListFeatureVariable(array $feature, string $ident, string $property): void
     {
+        if (!$this->CanCreateVariable($ident, $feature, 'expose')) {
+            return;
+        }
+
         $this->RegisterVariableString(
             $ident,
             $this->Translate($this->convertLabelToName($property))
         );
+        $this->MarkVariableCreated($ident);
 
         if (isset($feature['item_type'])) {
             $itemFeature = $feature['item_type'];
@@ -4408,12 +4896,13 @@ abstract class ModulBase extends \IPSModuleStrict
         }
 
         $kelvinIdent = $property . '_kelvin';
-        $aFiltered = $this->ReadAttributeArray(self::ATTRIBUTE_FILTERED);
-        if (\in_array($kelvinIdent, $aFiltered, true)) {
+        $kelvinFeature = ['property' => $kelvinIdent, 'type' => 'numeric', 'label' => 'Color Temperature Kelvin'];
+        if (!$this->CanCreateVariable($kelvinIdent, $kelvinFeature, 'derived')) {
             return;
         }
 
         $this->RegisterVariableInteger($kelvinIdent, $this->Translate('Color Temperature Kelvin'), '~TWColor');
+        $this->MarkVariableCreated($kelvinIdent);
         $this->ApplyColorTemperaturePresentation($kelvinIdent, $feature);
         $this->checkAndEnableAction($kelvinIdent, null, true);
     }
@@ -4435,8 +4924,8 @@ abstract class ModulBase extends \IPSModuleStrict
         }
 
         $presetIdent = $property . '_presets';
-        $aFiltered = $this->ReadAttributeArray(self::ATTRIBUTE_FILTERED);
-        if (\in_array($presetIdent, $aFiltered, true)) {
+        $presetFeature = ['property' => $presetIdent, 'type' => $type, 'label' => $this->FormatVariableCatalogLabel($property) . ' Presets'];
+        if (!$this->CanCreateVariable($presetIdent, $presetFeature, 'expose')) {
             return;
         }
 
@@ -4475,34 +4964,36 @@ abstract class ModulBase extends \IPSModuleStrict
             return;
         }
 
-        $aFiltered = $this->ReadAttributeArray(self::ATTRIBUTE_FILTERED);
         switch ($feature['name']) {
             case 'color_xy':
-                if (\in_array('color', $aFiltered, true)) {
+                if (!$this->CanCreateVariable('color', ['property' => 'color', 'type' => 'composite', 'label' => 'Color'], 'derived')) {
                     $this->SendDebug(__FUNCTION__, 'Skipping filtered color variable: color', 0);
                     break;
                 }
                 $this->RegisterVariableInteger('color', $this->Translate($this->convertLabelToName('color')), '~HexColor');
+                $this->MarkVariableCreated('color');
                 // Farbvariablen erhalten IMMER EnableAction, unabhängig von Access-Prüfung
                 $this->checkAndEnableAction('color', null, true);
                 $this->SendDebug(__FUNCTION__ . ' :: Line ' . __LINE__ . ' :: Creating composite color_xy', 'color', 0);
                 break;
             case 'color_hs':
-                if (\in_array('color_hs', $aFiltered, true)) {
+                if (!$this->CanCreateVariable('color_hs', ['property' => 'color_hs', 'type' => 'composite', 'label' => 'Color HS'], 'derived')) {
                     $this->SendDebug(__FUNCTION__, 'Skipping filtered color variable: color_hs', 0);
                     break;
                 }
                 $this->RegisterVariableInteger('color_hs', $this->Translate($this->convertLabelToName('color_hs')), '~HexColor');
+                $this->MarkVariableCreated('color_hs');
                 // Farbvariablen erhalten IMMER EnableAction, unabhängig von Access-Prüfung
                 $this->checkAndEnableAction('color_hs', null, true);
                 $this->SendDebug(__FUNCTION__ . ' :: Line ' . __LINE__ . ' :: Creating composite color_hs', 'color_hs', 0);
                 break;
             case 'color_rgb':
-                if (\in_array('color_rgb', $aFiltered, true)) {
+                if (!$this->CanCreateVariable('color_rgb', ['property' => 'color_rgb', 'type' => 'composite', 'label' => 'Color RGB'], 'derived')) {
                     $this->SendDebug(__FUNCTION__, 'Skipping filtered color variable: color_rgb', 0);
                     break;
                 }
                 $this->RegisterVariableInteger('color_rgb', $this->Translate($this->convertLabelToName('color_rgb')), '~HexColor');
+                $this->MarkVariableCreated('color_rgb');
                 // Farbvariablen erhalten IMMER EnableAction, unabhängig von Access-Prüfung
                 $this->checkAndEnableAction('color_rgb', null, true);
                 $this->SendDebug(__FUNCTION__ . ' :: Line ' . __LINE__ . ' :: Creating composite color_rgb', 'color_rgb', 0);
@@ -4560,6 +5051,9 @@ abstract class ModulBase extends \IPSModuleStrict
 
         // Hole ident für Preset-Variable
         $presetIdent = $property . '_presets';
+        if (!$this->CanCreateVariable($presetIdent, ['property' => $presetIdent, 'type' => $feature['type'] ?? 'numeric'], 'expose')) {
+            return;
+        }
 
         // Name formatieren
         $formattedLabel = $this->convertLabelToName($property);
@@ -4573,6 +5067,7 @@ abstract class ModulBase extends \IPSModuleStrict
         } else {
             $this->RegisterVariableInteger($presetIdent, $this->Translate($formattedLabel . ' Presets'), $profileName);
         }
+        $this->MarkVariableCreated($presetIdent);
 
         // Zentrale EnableAction-Prüfung für Preset-Variable
         $this->checkAndEnableAction($presetIdent, $feature);
@@ -4614,6 +5109,9 @@ abstract class ModulBase extends \IPSModuleStrict
         if (!isset(self::$specialVariables[$ident])) {
             return;
         }
+        if (!$this->CanCreateVariable($ident, $feature, 'special')) {
+            return;
+        }
 
         $varDef = self::$specialVariables[$ident];
         $formattedLabel = $this->convertLabelToName($ident);
@@ -4637,6 +5135,7 @@ abstract class ModulBase extends \IPSModuleStrict
                 $this->RegisterVariableBoolean($ident, $this->Translate($formattedLabel), $varDef['profile']);
                 break;
         }
+        $this->MarkVariableCreated($ident);
 
         // Zentrale EnableAction-Prüfung für spezielle Variable
         $this->checkAndEnableAction($ident, $feature);
