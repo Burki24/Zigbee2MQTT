@@ -76,7 +76,7 @@ Es werden nur Optionen angezeigt, die für das jeweilige Gerät fachlich passen.
 | Kachel | Typische Exposes | Darstellung |
 | ------ | ---------------- | ----------- |
 | Heizungs-Kachel | `occupied_heating_setpoint`, `local_temperature`, optional Ventil- und Betriebswerte | Ist- und Solltemperatur als Hauptansicht mit Plus-/Minus-Tasten und Presets, Detailseiten für weitere Heizungswerte und Einstellungen |
-| Schalter-/Leistungsmessungs-Kachel | `state`, optional `power`, `energy`, `voltage`, `current` | Schalten auf der Hauptseite, Messwertseite mit optionalem Archiv-Graphen bei archivierten Variablen |
+| Schalter-/Leistungsmessungs-Kachel | `state`, optional `power`, `energy`, `voltage`, `current`, `ac_frequency`, `power_factor`, `power_apparent`, `power_reactive`, `produced_energy`, `consumption` | Schalten auf der Hauptseite, Messwertseite mit optionalem Archiv-Graphen bei archivierten Variablen |
 | Fenstergriff-Kachel | `position`, `alarm`, optional `action`, `action_left`, `action_right` | Griffzustand Geschlossen/Offen/Gekippt, Alarmstatus und Tasten |
 | Sicherheits-Kachel | z.B. `contact`, `occupancy`, `presence`, `tamper`, `smoke`, `battery_low` | Status-/Alarmdarstellung mit Priorität auf Kontakt- bzw. Bewegungszustand |
 | Aktions-Kachel | Taster-, Fernbedienungs- oder Szenen-Exposes | Letzte Aktion und verfügbare Aktionswerte |

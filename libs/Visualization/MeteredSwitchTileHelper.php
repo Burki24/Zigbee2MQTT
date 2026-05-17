@@ -247,7 +247,7 @@ trait MeteredSwitchTileHelper
     {
         $idents = [];
         $suffixes = $this->GetMeteredSwitchTileChannelSuffixes();
-        $metricIdents = ['energy', 'power', 'voltage', 'current'];
+        $metricIdents = $this->GetMeteredSwitchTileMetricIdents();
 
         foreach ($suffixes as $suffix) {
             foreach ($metricIdents as $metricIdent) {
@@ -265,6 +265,37 @@ trait MeteredSwitchTileHelper
         }
 
         return $idents;
+    }
+
+    /**
+     * Liefert die bekannten elektrischen Messwerte in der gewuenschten Anzeige-Reihenfolge.
+     *
+     * @return array<string, array{label: string, unit: string, decimals: int}>
+     */
+    private function GetMeteredSwitchTileMetricDefinitions(): array
+    {
+        return [
+            'energy'          => ['label' => 'Energie', 'unit' => 'kWh', 'decimals' => 2],
+            'produced_energy' => ['label' => 'Erzeugte Energie', 'unit' => 'kWh', 'decimals' => 2],
+            'consumption'     => ['label' => 'Verbrauch', 'unit' => 'kWh', 'decimals' => 2],
+            'power'           => ['label' => 'Leistung', 'unit' => 'W', 'decimals' => 1],
+            'power_apparent'  => ['label' => 'Scheinleistung', 'unit' => 'VA', 'decimals' => 1],
+            'power_reactive'  => ['label' => 'Blindleistung', 'unit' => 'var', 'decimals' => 1],
+            'power_factor'    => ['label' => 'Leistungsfaktor', 'unit' => '', 'decimals' => 2],
+            'voltage'         => ['label' => 'Spannung', 'unit' => 'V', 'decimals' => 1],
+            'current'         => ['label' => 'Strom', 'unit' => 'A', 'decimals' => 2],
+            'ac_frequency'    => ['label' => 'Frequenz', 'unit' => 'Hz', 'decimals' => 2]
+        ];
+    }
+
+    /**
+     * Liefert die bekannten elektrischen Messwert-Idents.
+     *
+     * @return array<int, string>
+     */
+    private function GetMeteredSwitchTileMetricIdents(): array
+    {
+        return array_keys($this->GetMeteredSwitchTileMetricDefinitions());
     }
 
     /**
@@ -483,13 +514,8 @@ trait MeteredSwitchTileHelper
      */
     private function GetMeteredSwitchTileUnit(string $ident): string
     {
-        return match ($this->GetMeteredSwitchTileBaseIdent($ident)) {
-            'power'   => 'W',
-            'energy'  => 'kWh',
-            'voltage' => 'V',
-            'current' => 'A',
-            default   => ''
-        };
+        $definition = $this->GetMeteredSwitchTileMetricDefinitions()[$this->GetMeteredSwitchTileBaseIdent($ident)] ?? null;
+        return $definition['unit'] ?? '';
     }
 
     /**
@@ -501,12 +527,8 @@ trait MeteredSwitchTileHelper
         $suffix = $this->GetMeteredSwitchTileLabelSuffix($ident, $baseIdent);
 
         $label = match ($baseIdent) {
-            'state'   => 'Status',
-            'power'   => 'Leistung',
-            'energy'  => 'Energie',
-            'voltage' => 'Spannung',
-            'current' => 'Strom',
-            default   => $ident
+            'state' => 'Status',
+            default => $this->GetMeteredSwitchTileMetricDefinitions()[$baseIdent]['label'] ?? $ident
         };
 
         return $label . $suffix;
@@ -517,17 +539,15 @@ trait MeteredSwitchTileHelper
      */
     private function FormatMeteredSwitchTileValue(string $ident, mixed $value): string
     {
-        switch ($this->GetMeteredSwitchTileBaseIdent($ident)) {
-            case 'state':
-                return $value ? $this->Translate('On') : $this->Translate('Off');
-            case 'power':
-                return \sprintf('%.1f W', (float) $value);
-            case 'energy':
-                return \sprintf('%.2f kWh', (float) $value);
-            case 'voltage':
-                return \sprintf('%.1f V', (float) $value);
-            case 'current':
-                return \sprintf('%.2f A', (float) $value);
+        $baseIdent = $this->GetMeteredSwitchTileBaseIdent($ident);
+        if ($baseIdent === 'state') {
+            return $value ? $this->Translate('On') : $this->Translate('Off');
+        }
+
+        $definition = $this->GetMeteredSwitchTileMetricDefinitions()[$baseIdent] ?? null;
+        if ($definition !== null && \is_numeric($value)) {
+            $unit = $definition['unit'] === '' ? '' : ' ' . $definition['unit'];
+            return \sprintf('%.' . $definition['decimals'] . 'f%s', (float) $value, $unit);
         }
 
         return (string) $value;
@@ -538,7 +558,10 @@ trait MeteredSwitchTileHelper
      */
     private function GetMeteredSwitchTileBaseIdent(string $ident): string
     {
-        foreach (['state', 'energy', 'power', 'voltage', 'current'] as $baseIdent) {
+        $baseIdents = array_merge(['state'], $this->GetMeteredSwitchTileMetricIdents());
+        usort($baseIdents, static fn (string $left, string $right): int => \strlen($right) <=> \strlen($left));
+
+        foreach ($baseIdents as $baseIdent) {
             if ($ident === $baseIdent || str_starts_with($ident, $baseIdent . '_')) {
                 return $baseIdent;
             }

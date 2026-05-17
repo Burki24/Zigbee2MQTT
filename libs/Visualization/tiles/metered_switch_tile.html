@@ -251,7 +251,10 @@
             display: grid;
             align-content: start;
             gap: 0;
-            overflow: hidden;
+            overflow-x: hidden;
+            overflow-y: auto;
+            padding-right: 2px;
+            scrollbar-width: thin;
         }
 
         .list.channel-filtered {
@@ -546,12 +549,30 @@
     <script>
         const labels = {
             state: "Status",
-            power: "Leistung",
             energy: "Energie",
+            produced_energy: "Erzeugte Energie",
+            consumption: "Verbrauch",
+            power: "Leistung",
+            power_apparent: "Scheinleistung",
+            power_reactive: "Blindleistung",
+            power_factor: "Leistungsfaktor",
             voltage: "Spannung",
-            current: "Strom"
+            current: "Strom",
+            ac_frequency: "Frequenz"
         };
-        const metricOrder = ["energy", "power", "voltage", "current"];
+        const metricOrder = [
+            "energy",
+            "produced_energy",
+            "consumption",
+            "power",
+            "power_apparent",
+            "power_reactive",
+            "power_factor",
+            "voltage",
+            "current",
+            "ac_frequency"
+        ];
+        const baseIdentOrder = ["state", ...metricOrder].slice().sort((left, right) => right.length - left.length);
         const rangeLabels = {
             day: "Letzte 24 Stunden",
             week: "Letzte 7 Tage",
@@ -559,9 +580,15 @@
         };
         const iconPaths = {
             power: '<path d="m13 2-7 12h6l-1 8 7-12h-6l1-8z" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linejoin="round"></path>',
+            power_apparent: '<path d="m13 2-7 12h6l-1 8 7-12h-6l1-8z" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linejoin="round"></path><path d="M4 20h16" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round"></path>',
+            power_reactive: '<path d="m13 2-7 12h6l-1 8 7-12h-6l1-8z" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linejoin="round"></path><path d="M5 20c2-3 4-3 6 0s4 3 6 0" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round"></path>',
+            power_factor: '<path d="M4 15a8 8 0 1 1 16 0" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round"></path><path d="M12 15l4-5" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round"></path><path d="M8 20h8" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round"></path>',
             energy: '<path d="m13 2-7 12h6l-1 8 7-12h-6l1-8z" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linejoin="round"></path><path d="M5 22h14" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round"></path>',
+            produced_energy: '<path d="m13 2-7 12h6l-1 8 7-12h-6l1-8z" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linejoin="round"></path><path d="M12 22V10" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round"></path><path d="M8 14l4-4 4 4" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round"></path>',
+            consumption: '<path d="m13 2-7 12h6l-1 8 7-12h-6l1-8z" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linejoin="round"></path><path d="M12 10v12" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round"></path><path d="M8 18l4 4 4-4" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round"></path>',
             voltage: '<path d="M5 12h4l2-7 2 14 2-7h4" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round"></path>',
-            current: '<path d="M4 14a8 8 0 1 1 16 0" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round"></path><path d="M12 14v-4" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round"></path><path d="M8 20h8" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round"></path>'
+            current: '<path d="M4 14a8 8 0 1 1 16 0" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round"></path><path d="M12 14v-4" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round"></path><path d="M8 20h8" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round"></path>',
+            ac_frequency: '<path d="M3 12c2.5-6 5.5-6 8 0s5.5 6 8 0" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round"></path><path d="M4 20h16" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round"></path>'
         };
 
         let data = __INITIAL_DATA__;
@@ -702,7 +729,7 @@
                 const row = document.createElement("div");
                 row.className = "row";
                 row.innerHTML = [
-                    `<div class="row-icon"><svg viewBox="0 0 24 24" aria-hidden="true">${iconPaths[baseIdent]}</svg></div>`,
+                    `<div class="row-icon"><svg viewBox="0 0 24 24" aria-hidden="true">${getMetricIconPath(baseIdent)}</svg></div>`,
                     `<div class="row-label">${escapeHtml(getMetricRowLabel(ident, item, useChannelFilter))}</div>`,
                     `<div class="row-value">${escapeHtml(item.formatted || "")}</div>`,
                     `<button class="archive-button${item.archived ? "" : " placeholder"}" type="button" title="Verlauf" aria-label="Verlauf" data-ident="${ident}">
@@ -973,13 +1000,17 @@
         }
 
         function getBaseIdent(ident) {
-            for (const baseIdent of ["state", ...metricOrder]) {
+            for (const baseIdent of baseIdentOrder) {
                 if (ident === baseIdent || ident.startsWith(`${baseIdent}_`)) {
                     return baseIdent;
                 }
             }
 
             return ident;
+        }
+
+        function getMetricIconPath(baseIdent) {
+            return iconPaths[baseIdent] || iconPaths.power;
         }
 
         function getMetricLabel(ident, item = null) {

@@ -369,6 +369,28 @@ class DevicesTest extends DumpInclude
         $this->assertFormItemHidden($form, 'DisableWindowHandleTile');
     }
 
+    public function testS4SW001P8EUMeteredSwitchShowsExtendedMeasurements()
+    {
+        [$iid] = $this->createTestInstance('S4SW-001P8EU.json');
+
+        $powerFactorID = IPS_CreateVariable(VARIABLETYPE_FLOAT);
+        IPS_SetParent($powerFactorID, $iid);
+        IPS_SetIdent($powerFactorID, 'power_factor');
+        IPS_SetName($powerFactorID, 'Power Factor');
+        SetValue($powerFactorID, 0.97);
+
+        $html = IPS\InstanceManager::getInstanceInterface($iid)->GetVisualizationTile();
+        $this->assertStringContainsString('"type":"meteredSwitch"', $html);
+        $this->assertStringContainsString('"ac_frequency":{"available":true', $html);
+        $this->assertStringContainsString('"label":"Frequenz"', $html);
+        $this->assertStringContainsString('"unit":"Hz"', $html);
+        $this->assertStringContainsString('"produced_energy":{"available":true', $html);
+        $this->assertStringContainsString('"label":"Erzeugte Energie"', $html);
+        $this->assertStringContainsString('"power_factor":{"available":true,"label":"Leistungsfaktor"', $html);
+        $this->assertStringContainsString('"formatted":"0.97"', $html);
+        $this->assertStringContainsString('power_factor: "Leistungsfaktor"', $html);
+    }
+
     public function testWT_A03E()
     {
         [$iid,$Debug] = $this->createTestInstance('WT-A03E.json');
