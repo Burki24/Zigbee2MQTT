@@ -194,6 +194,17 @@ class DevicesTest extends DumpInclude
         $this->assertSame(count($Debug['Childs']) + $OffsetDebugChild, count(IPS_GetChildrenIDs($iid)), 'Anzahl Variablen aus dem Debug (' . count($Debug['Childs']) . ') und Erzeugte Variablen (' . count(IPS_GetChildrenIDs($iid)) . ') vom Test unterscheiden sich');
         $this->assertSame(self::count_recursive($Debug['LastPayload']) + $OffestLastPayload, count(IPS_GetChildrenIDs($iid)) + $OffsetChildrenIDs, 'Anzahl LastPayload (' . self::count_recursive($Debug['LastPayload']) + $OffestLastPayload . ') und Erzeugte Variablen (' . count(IPS_GetChildrenIDs($iid)) + $OffsetChildrenIDs . ') unterscheiden sich');
         $this->assertCount(0, self::getExportDebugData($iid)['missingTranslations'], 'Fehlende übersetzungen gefunden:' . var_export(self::getExportDebugData($iid)['missingTranslations'], true));
+
+        $form = json_decode(IPS_GetConfigurationForm($iid), true);
+        $list = $this->findFormItemByName($form, 'VariableSelectionList');
+        $this->assertNotNull($list);
+        $this->assertNull($this->findVariableSelectionRow($list['values'], 'detection_range_composite'));
+        $this->assertNull($this->findVariableSelectionRow($list['values'], 'detection_range_0'));
+
+        $row = $this->findVariableSelectionRow($list['values'], 'detection_range_composite__detection_range_0');
+        $this->assertNotNull($row);
+        $this->assertSame('Created', $row['state']);
+        $this->assertSame('Disable', $row['action']);
     }
 
     public function test501_40()

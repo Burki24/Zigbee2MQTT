@@ -1402,6 +1402,37 @@ abstract class ModulBase extends \IPSModuleStrict
     }
 
     /**
+     * Ermittelt, ob ein Expose nur als Composite-Container fuer Sub-Features dient.
+     */
+    private function IsExposeCompositeContainer(array $feature): bool
+    {
+        return ($feature['type'] ?? '') === 'composite'
+            && isset($feature['features'])
+            && \is_array($feature['features'])
+            && !isset($feature['color_mode']);
+    }
+
+    /**
+     * Baut ein Sub-Feature so um, wie es spaeter als Symcon-Variable angelegt wird.
+     */
+    private function BuildCompositeSubFeature(array $subFeature, string $parentIdent, string $parentLabel): array
+    {
+        $subProperty = $this->NormalizeVariableIdent((string) ($subFeature['property'] ?? ''));
+        $parentIdent = $this->NormalizeVariableIdent($parentIdent);
+        if ($subProperty === '' || $parentIdent === '') {
+            return $subFeature;
+        }
+
+        $subFeature['property'] = $parentIdent . '__' . $subProperty;
+
+        if ($parentLabel !== '') {
+            $subFeature['label'] = $parentLabel . ': ' . (string) ($subFeature['label'] ?? $this->FormatVariableCatalogLabel($subProperty));
+        }
+
+        return $subFeature;
+    }
+
+    /**
      * Formatiert einen Ident fuer den Katalog, ohne die Uebersetzungspruefung anzustossen.
      */
     private function FormatVariableCatalogLabel(string $ident): string
@@ -1708,9 +1739,11 @@ abstract class ModulBase extends \IPSModuleStrict
      */
     private function RefreshVariableCatalog(): void
     {
+        $validExposeIdents = [];
         foreach ($this->ReadAttributeArray(self::ATTRIBUTE_EXPOSES) as $expose) {
-            $this->RememberExposeFeatureRecursive($expose);
+            $validExposeIdents = array_merge($validExposeIdents, $this->RememberExposeFeatureRecursive($expose));
         }
+        $this->RemoveStaleExposeCatalogEntries($validExposeIdents);
 
         foreach (IPS_GetChildrenIDs($this->InstanceID) as $childID) {
             $object = IPS_GetObject($childID);
@@ -1753,22 +1786,83 @@ abstract class ModulBase extends \IPSModuleStrict
 
     /**
      * Uebernimmt Expose-Features rekursiv in den lokalen Variablenkatalog.
+     *
+     * @return array<int,string> Gueltige Variablen-Idents aus den Exposes.
      */
-    private function RememberExposeFeatureRecursive(array $feature): void
+    private function RememberExposeFeatureRecursive(array $feature): array
     {
+        if (isset($feature['color_mode'])) {
+            return [];
+        }
+
+        if ($this->IsExposeCompositeContainer($feature)) {
+            $parentIdent = $this->NormalizeVariableIdent((string) ($feature['property'] ?? ''));
+            $parentLabel = (string) ($feature['label'] ?? $this->FormatVariableCatalogLabel($parentIdent));
+            $idents = [];
+
+            foreach ($feature['features'] as $subFeature) {
+                if (!\is_array($subFeature)) {
+                    continue;
+                }
+
+                $idents = array_merge($idents, $this->RememberExposeFeatureRecursive(
+                    $this->BuildCompositeSubFeature($subFeature, $parentIdent, $parentLabel)
+                ));
+            }
+
+            return $idents;
+        }
+
+        $idents = [];
         $property = (string) ($feature['property'] ?? '');
         if ($property !== '' && !isset($feature['color_mode'])) {
             $this->RememberVariableDefinition($property, $feature, 'expose');
+            $idents[] = $this->NormalizeVariableIdent($property);
         }
 
         if (!isset($feature['features']) || !\is_array($feature['features'])) {
-            return;
+            return $idents;
         }
 
         foreach ($feature['features'] as $subFeature) {
             if (\is_array($subFeature)) {
-                $this->RememberExposeFeatureRecursive($subFeature);
+                $idents = array_merge($idents, $this->RememberExposeFeatureRecursive($subFeature));
             }
+        }
+
+        return $idents;
+    }
+
+    /**
+     * Entfernt alte Katalogeintraege fuer Composite-Container oder unpraefixte Sub-Features.
+     *
+     * Payload-only Eintraege und bereits vorhandene Variablen bleiben erhalten.
+     */
+    private function RemoveStaleExposeCatalogEntries(array $validExposeIdents): void
+    {
+        $validExposeIdents = array_unique($validExposeIdents);
+        $catalog = $this->ReadAttributeArray(self::ATTRIBUTE_VARIABLE_CATALOG);
+        $changed = false;
+
+        foreach ($catalog as $ident => $entry) {
+            if (!\is_array($entry) || ($entry['source'] ?? '') !== 'expose') {
+                continue;
+            }
+
+            if (\in_array((string) $ident, $validExposeIdents, true) || $this->GetObjectIDByIdent((string) $ident) !== false) {
+                continue;
+            }
+
+            if ((bool) ($entry['created'] ?? false) || isset($entry['lastValue'])) {
+                continue;
+            }
+
+            unset($catalog[$ident]);
+            $changed = true;
+        }
+
+        if ($changed) {
+            $this->WriteAttributeArray(self::ATTRIBUTE_VARIABLE_CATALOG, $catalog);
         }
     }
 
@@ -1873,7 +1967,7 @@ abstract class ModulBase extends \IPSModuleStrict
                     foreach ($expose['features'] as $feature) {
                         // Gefilterte Attribute gemaess Z2M-Konfiguration ueberspringen
                         $sProperty = $feature['property'] ?? '';
-                        if ($sProperty !== '') {
+                        if ($sProperty !== '' && !$this->IsExposeCompositeContainer($feature) && !isset($feature['color_mode'])) {
                             $this->RememberVariableDefinition($sProperty, $feature, 'expose');
                         }
                         if ($sProperty !== '' && \in_array($sProperty, $aFiltered, true)) {
@@ -1903,7 +1997,7 @@ abstract class ModulBase extends \IPSModuleStrict
             } else {
                 // Gefilterte Attribute gemaess Z2M-Konfiguration ueberspringen
                 $sProperty = $expose['property'] ?? '';
-                if ($sProperty !== '') {
+                if ($sProperty !== '' && !$this->IsExposeCompositeContainer($expose) && !isset($expose['color_mode'])) {
                     $this->RememberVariableDefinition($sProperty, $expose, 'expose');
                 }
                 if ($sProperty !== '' && \in_array($sProperty, $aFiltered, true)) {
@@ -4441,30 +4535,12 @@ abstract class ModulBase extends \IPSModuleStrict
             return [];
         }
 
-        $features = array_map(function ($expose)
-        {
-            return isset($expose['features']) ? $expose['features'] : [$expose];
-        }, $data);
-
-        $features = array_merge(...$features);
-
-        // Icons und unerwünschte Properties filtern
-        $filteredFeatures = array_filter($features, function ($feature)
-        {
-            // Icon Properties und andere unerwünschte Einträge ignorieren
-            if (isset($feature['property'])) {
-                if ($feature['property'] === 'icon') {
-                    $this->SendDebug(__FUNCTION__, 'Icon-Property übersprungen: ' . json_encode($feature), 0);
-                    return false;
-                }
-                if (strpos($feature['property'], 'Icon') !== false) {
-                    $this->SendDebug(__FUNCTION__, 'Icon im Namen gefunden - übersprungen: ' . json_encode($feature), 0);
-                    return false;
-                }
-                return true;
+        $filteredFeatures = [];
+        foreach ($data as $expose) {
+            if (\is_array($expose)) {
+                $this->CollectKnownVariableFeatures($expose, $filteredFeatures);
             }
-            return false;
-        });
+        }
 
         $knownVariables = [];
         foreach ($filteredFeatures as $feature) {
@@ -4480,6 +4556,54 @@ abstract class ModulBase extends \IPSModuleStrict
         $this->SendDebug(__FUNCTION__ . ' Known Variables Array:', json_encode($knownVariables), 0);
 
         return $knownVariables;
+    }
+
+    /**
+     * Sammelt bekannte Expose-Features mit demselben Ident, der spaeter fuer Variablen genutzt wird.
+     */
+    private function CollectKnownVariableFeatures(array $feature, array &$features): void
+    {
+        if (isset($feature['color_mode'])) {
+            return;
+        }
+
+        if ($this->IsExposeCompositeContainer($feature)) {
+            $parentIdent = $this->NormalizeVariableIdent((string) ($feature['property'] ?? ''));
+            $parentLabel = (string) ($feature['label'] ?? $this->FormatVariableCatalogLabel($parentIdent));
+
+            foreach ($feature['features'] as $subFeature) {
+                if (\is_array($subFeature)) {
+                    $this->CollectKnownVariableFeatures(
+                        $this->BuildCompositeSubFeature($subFeature, $parentIdent, $parentLabel),
+                        $features
+                    );
+                }
+            }
+
+            return;
+        }
+
+        if (isset($feature['property'])) {
+            if ($feature['property'] === 'icon') {
+                $this->SendDebug(__FUNCTION__, 'Icon-Property übersprungen: ' . json_encode($feature), 0);
+                return;
+            }
+            if (strpos($feature['property'], 'Icon') !== false) {
+                $this->SendDebug(__FUNCTION__, 'Icon im Namen gefunden - übersprungen: ' . json_encode($feature), 0);
+                return;
+            }
+            $features[] = $feature;
+        }
+
+        if (!isset($feature['features']) || !\is_array($feature['features'])) {
+            return;
+        }
+
+        foreach ($feature['features'] as $subFeature) {
+            if (\is_array($subFeature)) {
+                $this->CollectKnownVariableFeatures($subFeature, $features);
+            }
+        }
     }
 
     /**
@@ -4562,7 +4686,9 @@ abstract class ModulBase extends \IPSModuleStrict
             return;
         }
 
-        if (!\is_array($feature) || !isset($feature['color_mode'])) {
+        $shouldCheckVariableCreation = !\is_array($feature)
+            || (!isset($feature['color_mode']) && !$this->IsExposeCompositeContainer($feature));
+        if ($shouldCheckVariableCreation) {
             if (!$this->CanCreateVariable($featureProperty, \is_array($feature) ? $feature : null, 'expose')) {
                 return;
             }
@@ -4813,9 +4939,13 @@ abstract class ModulBase extends \IPSModuleStrict
             return false;
         }
 
+        $parentLabel = (string) ($feature['label'] ?? $this->FormatVariableCatalogLabel($ident));
         foreach ($feature['features'] as $subFeature) {
-            $subProperty = str_replace('&', '_and_', $subFeature['property']);
-            $subFeature['property'] = $ident . '__' . $subProperty;
+            if (!\is_array($subFeature)) {
+                continue;
+            }
+
+            $subFeature = $this->BuildCompositeSubFeature($subFeature, $ident, $parentLabel);
             $this->registerSubFeaturePresetVariables($subFeature);
             $this->registerVariable($subFeature, $exposeType);
         }
