@@ -132,7 +132,7 @@ trait DeviceFormHelper
             $form,
             'VisualizationStatus',
             'caption',
-            $this->Translate('Active visualization: ') . $this->GetDeviceFormActiveVisualizationLabel($tiles)
+            $this->Translate('Active visualization:') . ' ' . $this->GetDeviceFormActiveVisualizationLabel($tiles)
         );
         $this->SetDeviceFormField(
             $form,

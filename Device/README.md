@@ -126,9 +126,9 @@ Falls kein Wertebereich vorhanden ist, verwendet das Modul den Standardbereich `
 
 ### 4.4 Variablenverwaltung
 
-Die Instanz merkt sich alle aus Exposes, Payloads und Systemmeldungen bekannten Variablen in einem lokalen Variablenkatalog. In der Konfiguration erscheint dazu der Bereich **Variables**. Dort kann pro Variable gesteuert werden, ob das Modul sie automatisch anlegen darf.
+Die Instanz merkt sich alle aus Exposes, Payloads und Systemmeldungen bekannten Variablen in einem lokalen Variablenkatalog. In der Konfiguration erscheint dazu der Bereich **Variablen**. Dort kann pro Variable gesteuert werden, ob das Modul sie automatisch anlegen darf.
 
-Wird eine vom Modul bekannte Variable im Objektbaum gelöscht, wird sie bei der nächsten Geräteinformation oder beim nächsten passenden Payload nicht automatisch wieder angelegt. Sie erscheint stattdessen in der Variablenverwaltung mit dem Status `Deleted` und kann dort über `Create` bewusst wieder angelegt werden.
+Wird eine vom Modul bekannte Variable im Objektbaum gelöscht, wird sie bei der nächsten Geräteinformation oder beim nächsten passenden Payload nicht automatisch wieder angelegt. Sie erscheint stattdessen in der Variablenverwaltung mit dem Status `Gelöscht` und kann dort über `Anlegen` bewusst wieder angelegt werden.
 
 Deaktivierte Variablen werden nicht automatisch gelöscht. Bestehende Variablen bleiben erhalten, werden aber nach einer manuellen Löschung nicht wieder neu erzeugt, solange sie deaktiviert sind.
 

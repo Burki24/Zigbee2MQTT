@@ -14,7 +14,7 @@ trait TranslationHelper
      */
     public function Translate(string $Text): string
     {
-        $translation = array_merge_recursive(
+        $translation = array_replace_recursive(
             json_decode(file_get_contents($this->getTranslationFilePath('locale.json')), true),
             json_decode(file_get_contents($this->getTranslationFilePath('locale_z2m.json')), true)
         );

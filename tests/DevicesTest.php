@@ -38,6 +38,10 @@ class DevicesTest extends DumpInclude
 
         $form = json_decode(IPS_GetConfigurationForm($iid), true);
         $this->assertFormItemVisible($form, 'VisualizationSettings');
+        $status = $this->findFormItemByName($form, 'VisualizationStatus');
+        $this->assertNotNull($status);
+        $this->assertStringContainsString('Aktive Visualisierung:', $status['caption']);
+        $this->assertStringContainsString('Heizungs-Kachel', $status['caption']);
         $this->assertFormItemVisible($form, 'DisableHeatingTile');
         $this->assertFormItemVisible($form, 'HeatingTilePresetSettings');
         $this->assertFormItemVisible($form, 'HeatingTilePreset1');
@@ -100,8 +104,8 @@ class DevicesTest extends DumpInclude
         $this->assertNotNull($list);
         $row = $this->findVariableSelectionRow($list['values'], 'power');
         $this->assertNotNull($row);
-        $this->assertSame('Deleted', $row['state']);
-        $this->assertSame('Create', $row['action']);
+        $this->assertSame('Gelöscht', $row['state']);
+        $this->assertSame('Anlegen', $row['action']);
 
         IPS_RequestAction($iid, 'ToggleVariableCreation', 'power');
         $this->assertNotFalse(@IPS_GetObjectIDByIdent('power', $iid), 'Re-enabled variable should be created again.');
@@ -203,8 +207,8 @@ class DevicesTest extends DumpInclude
 
         $row = $this->findVariableSelectionRow($list['values'], 'detection_range_composite__detection_range_0');
         $this->assertNotNull($row);
-        $this->assertSame('Created', $row['state']);
-        $this->assertSame('Disable', $row['action']);
+        $this->assertSame('Angelegt', $row['state']);
+        $this->assertSame('Deaktivieren', $row['action']);
     }
 
     public function test501_40()

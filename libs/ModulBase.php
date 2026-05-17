@@ -1919,10 +1919,10 @@ abstract class ModulBase extends \IPSModuleStrict
         return [
             'ident'    => $ident,
             'label'    => (string) ($entry['label'] ?? $this->FormatVariableCatalogLabel($ident)),
-            'source'   => (string) ($entry['source'] ?? 'payload'),
-            'type'     => (string) ($entry['type'] ?? ''),
-            'state'    => $state,
-            'action'   => $action,
+            'source'   => $this->Translate((string) ($entry['source'] ?? 'payload')),
+            'type'     => $this->Translate((string) ($entry['type'] ?? '')),
+            'state'    => $this->Translate($state),
+            'action'   => $action === '' ? '' : $this->Translate($action),
             'rowColor' => $rowColor
         ];
     }
