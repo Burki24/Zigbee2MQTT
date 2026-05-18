@@ -1,6 +1,6 @@
 [![SDK](https://img.shields.io/badge/Symcon-PHPModul-red.svg)](https://www.symcon.de/service/dokumentation/entwicklerbereich/sdk-tools/sdk-php/)
 [![Module Version](https://img.shields.io/badge/dynamic/json?url=https%3A%2F%2Fraw.githubusercontent.com%2FNall-chan%2FZigbee2MQTT%2Frefs%2Fheads%2Fmain%2Flibrary.json&query=%24.version&label=Modul%20Version&color=blue)](https://community.symcon.de/t/modul-zigbee2mqtt-version-5-x/139819)
-[![Symcon Version](https://img.shields.io/badge/Symcon%20Version-8.1%3E-green)](https://www.symcon.de/de/service/dokumentation/installation/migrationen/v80-v81-q3-2025/)
+[![Symcon Version](https://img.shields.io/badge/Symcon%20Version-9.0%3E-green)](https://www.symcon.de/de/service/dokumentation/einfuehrung/systemvoraussetzungen/versionenuebersicht/#version-90)
 [![License](https://img.shields.io/badge/License-CC%20BY--NC--SA%204.0-green.svg)](https://creativecommons.org/licenses/by-nc-sa/4.0/)
 [![Check Style](https://github.com/Nall-chan/Zigbee2MQTT/workflows/Check%20Style/badge.svg)](https://github.com/Nall-chan/Zigbee2MQTT/actions)
 [![Run Tests](https://github.com/Nall-chan/Zigbee2MQTT/workflows/Run%20Tests/badge.svg)](https://github.com/Nall-chan/Zigbee2MQTT/actions)  
@@ -26,7 +26,7 @@ Anbindung von [zigbee2mqtt](https://www.zigbee2mqtt.io) an IP-Symcon.
 
 ## 1. Voraussetzungen
 
-- mindestens IP-Symcon Version 8.1
+- mindestens IP-Symcon Version 9.0
 - MQTT-Broker (interner MQTT-Server von Symcon oder externer z.B. Mosquitto)
 - installiertes und lauffähiges [zigbee2mqtt](https://www.zigbee2mqtt.io)
 
@@ -236,6 +236,7 @@ Details stehen in der [Dokumentation des Geräte-Moduls](Device/README.md#44-var
 - Die Geräte-Konfiguration zeigt Visualisierungsoptionen nur noch an, wenn sie für die Instanz fachlich verfügbar sind.
 - Geräte-Instanzen erhalten eine Variablenverwaltung, mit der automatisch angelegte, nachgelieferte und gelöschte Variablen kontrolliert werden können.
 - Temperatur-Visualisierungen können einen konfigurierbaren Fallback-Bereich nutzen, wenn Zigbee2MQTT keine `value_min`/`value_max` Werte liefert.
+- Mindestversion auf IP-Symcon 9.0 angehoben, da das Modul auf `IPSModuleStrict` basiert.
 - Interne Struktur der Visualisierungs- und Variablenregistrierung refaktoriert, ohne die öffentlichen Modul-Funktionen zu ändern.
 
 **Version 5.42:**  

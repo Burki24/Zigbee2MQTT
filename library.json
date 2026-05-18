@@ -4,9 +4,9 @@
     "name": "Zigbee2MQTT",
     "url": "https://github.com/Nall-chan/Zigbee2MQTT",
     "compatibility": {
-        "version": "8.1"
+        "version": "9.0"
     },
     "version": "6.0",
-    "build": 1676,
-    "date": 1779033905
+    "build": 1677,
+    "date": 1779073118
 }
