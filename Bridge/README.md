@@ -222,6 +222,36 @@ Prüft, ob für das angegebene Gerät ein OTA-Update verfügbar ist.
 
 ---
 
+### Z2M_CheckOTAUpdateWithUrl <!-- omit in toc -->
+
+```php
+bool Z2M_CheckOTAUpdateWithUrl(int $InstanzID, string $DeviceName, string $Url);
+```
+
+Prüft ein OTA-Update gegen einen eigenen OTA-Index. `Url` kann eine erreichbare URL oder ein lokaler Pfad aus Sicht der Zigbee2MQTT-Installation sein.
+
+---
+
+### Z2M_CheckOTADowngrade <!-- omit in toc -->
+
+```php
+bool Z2M_CheckOTADowngrade(int $InstanzID, string $DeviceName);
+```
+
+Prüft, ob für das angegebene Gerät ein OTA-Downgrade verfügbar ist.
+
+---
+
+### Z2M_CheckOTADowngradeWithUrl <!-- omit in toc -->
+
+```php
+bool Z2M_CheckOTADowngradeWithUrl(int $InstanzID, string $DeviceName, string $Url);
+```
+
+Prüft ein OTA-Downgrade gegen einen eigenen OTA-Index. `Url` kann eine erreichbare URL oder ein lokaler Pfad aus Sicht der Zigbee2MQTT-Installation sein.
+
+---
+
 ### Z2M_PerformOTAUpdate <!-- omit in toc -->
 
 ```php
@@ -230,6 +260,86 @@ bool Z2M_PerformOTAUpdate(int $InstanzID, string $DeviceName);
 
 Startet ein OTA-Update für das angegebene Gerät. Die Anfrage wird asynchron gesendet, da der Updatevorgang in Zigbee2MQTT länger dauern kann.
 `true` bedeutet, dass der Update-Request an Zigbee2MQTT übergeben wurde.
+
+---
+
+### Z2M_PerformOTAUpdateWithUrl <!-- omit in toc -->
+
+```php
+bool Z2M_PerformOTAUpdateWithUrl(int $InstanzID, string $DeviceName, string $Url);
+```
+
+Startet ein OTA-Update mit einer eigenen Firmware-Datei oder einem eigenen OTA-Index. Die Anfrage wird asynchron gesendet.
+
+---
+
+### Z2M_PerformOTADowngrade <!-- omit in toc -->
+
+```php
+bool Z2M_PerformOTADowngrade(int $InstanzID, string $DeviceName);
+```
+
+Startet ein OTA-Downgrade für das angegebene Gerät. Die Anfrage wird asynchron gesendet.
+
+---
+
+### Z2M_PerformOTADowngradeWithUrl <!-- omit in toc -->
+
+```php
+bool Z2M_PerformOTADowngradeWithUrl(int $InstanzID, string $DeviceName, string $Url);
+```
+
+Startet ein OTA-Downgrade mit einer eigenen Firmware-Datei oder einem eigenen OTA-Index. Die Anfrage wird asynchron gesendet.
+
+---
+
+### Z2M_ScheduleOTAUpdate <!-- omit in toc -->
+
+```php
+bool Z2M_ScheduleOTAUpdate(int $InstanzID, string $DeviceName);
+```
+
+Plant ein OTA-Update für die nächste OTA-Anfrage des Geräts. Das ist besonders für batteriebetriebene Geräte hilfreich.
+
+---
+
+### Z2M_ScheduleOTAUpdateWithUrl <!-- omit in toc -->
+
+```php
+bool Z2M_ScheduleOTAUpdateWithUrl(int $InstanzID, string $DeviceName, string $Url);
+```
+
+Plant ein OTA-Update mit eigener Firmware-Datei oder eigenem OTA-Index für die nächste OTA-Anfrage des Geräts.
+
+---
+
+### Z2M_ScheduleOTADowngrade <!-- omit in toc -->
+
+```php
+bool Z2M_ScheduleOTADowngrade(int $InstanzID, string $DeviceName);
+```
+
+Plant ein OTA-Downgrade für die nächste OTA-Anfrage des Geräts.
+
+---
+
+### Z2M_ScheduleOTADowngradeWithUrl <!-- omit in toc -->
+
+```php
+bool Z2M_ScheduleOTADowngradeWithUrl(int $InstanzID, string $DeviceName, string $Url);
+```
+
+Plant ein OTA-Downgrade mit eigener Firmware-Datei oder eigenem OTA-Index für die nächste OTA-Anfrage des Geräts.
+
+---
+
+### Z2M_UnscheduleOTAUpdate <!-- omit in toc -->
+
+```php
+bool Z2M_UnscheduleOTAUpdate(int $InstanzID, string $DeviceName);
+```
+
+Hebt eine geplante OTA-Aktualisierung oder ein geplantes OTA-Downgrade für das angegebene Gerät wieder auf.
 
 ## 7. Aktionen
 

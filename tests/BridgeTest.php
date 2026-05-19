@@ -34,6 +34,22 @@ class BridgeTest extends TestCase
         $this->assertSame(10000, $bridge->lastTimeout);
     }
 
+    public function testCheckOTADowngradeWithUrlUsesDowngradeTopicAndUrlPayload(): void
+    {
+        $bridge = $this->createBridgeTestDouble([
+            'status' => 'ok',
+            'data'   => [
+                'id'               => 'test_device',
+                'update_available' => true
+            ]
+        ]);
+
+        $this->assertTrue($bridge->CheckOTADowngradeWithUrl('test_device', 'ota/index.json'));
+        $this->assertSame('/bridge/request/device/ota_update/check/downgrade', $bridge->lastTopic);
+        $this->assertSame(['id' => 'test_device', 'url' => 'ota/index.json'], $bridge->lastPayload);
+        $this->assertSame(10000, $bridge->lastTimeout);
+    }
+
     public function testCheckOTAUpdateKeepsLegacyResponseFieldCompatible(): void
     {
         $bridge = $this->createBridgeTestDouble([
@@ -55,6 +71,55 @@ class BridgeTest extends TestCase
         $this->assertSame('/bridge/request/device/ota_update/update', $bridge->lastTopic);
         $this->assertSame(['id' => 'test_device'], $bridge->lastPayload);
         $this->assertSame(0, $bridge->lastTimeout);
+    }
+
+    public function testPerformOTADowngradeWithUrlIsSentAsAsyncBridgeCommand(): void
+    {
+        $bridge = $this->createBridgeTestDouble(true);
+
+        $this->assertTrue($bridge->PerformOTADowngradeWithUrl('test_device', 'firmware.ota'));
+        $this->assertSame('/bridge/request/device/ota_update/update/downgrade', $bridge->lastTopic);
+        $this->assertSame(['id' => 'test_device', 'url' => 'firmware.ota'], $bridge->lastPayload);
+        $this->assertSame(0, $bridge->lastTimeout);
+    }
+
+    public function testScheduleOTAUpdateWithUrlWaitsForBridgeResponse(): void
+    {
+        $bridge = $this->createBridgeTestDouble([
+            'status' => 'ok',
+            'data'   => ['id' => 'test_device']
+        ]);
+
+        $this->assertTrue($bridge->ScheduleOTAUpdateWithUrl('test_device', 'ota/index.json'));
+        $this->assertSame('/bridge/request/device/ota_update/schedule', $bridge->lastTopic);
+        $this->assertSame(['id' => 'test_device', 'url' => 'ota/index.json'], $bridge->lastPayload);
+        $this->assertSame(5000, $bridge->lastTimeout);
+    }
+
+    public function testScheduleOTADowngradeUsesDowngradeTopic(): void
+    {
+        $bridge = $this->createBridgeTestDouble([
+            'status' => 'ok',
+            'data'   => ['id' => 'test_device']
+        ]);
+
+        $this->assertTrue($bridge->ScheduleOTADowngrade('test_device'));
+        $this->assertSame('/bridge/request/device/ota_update/schedule/downgrade', $bridge->lastTopic);
+        $this->assertSame(['id' => 'test_device'], $bridge->lastPayload);
+        $this->assertSame(5000, $bridge->lastTimeout);
+    }
+
+    public function testUnscheduleOTAUpdateUsesUnscheduleTopic(): void
+    {
+        $bridge = $this->createBridgeTestDouble([
+            'status' => 'ok',
+            'data'   => ['id' => 'test_device']
+        ]);
+
+        $this->assertTrue($bridge->UnscheduleOTAUpdate('test_device'));
+        $this->assertSame('/bridge/request/device/ota_update/unschedule', $bridge->lastTopic);
+        $this->assertSame(['id' => 'test_device'], $bridge->lastPayload);
+        $this->assertSame(5000, $bridge->lastTimeout);
     }
 
     private function createBridgeTestDouble(array|bool $result): Zigbee2MQTTBridge
