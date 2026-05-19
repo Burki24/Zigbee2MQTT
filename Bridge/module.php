@@ -420,14 +420,7 @@ class Zigbee2MQTTBridge extends IPSModuleStrict
         $ExtensionFilename = $this->ExtensionFilename == '' ? 'IPSymconExtension.js' : $this->ExtensionFilename;
         $Topic = '/bridge/request/extension/save';
         $Payload = ['name'=>$ExtensionFilename, 'code'=>file_get_contents(dirname(__DIR__) . '/libs/' . self::EXTENSION_ZH_VERSION[(int) $this->installedZhVersion])];
-        $Result = $this->SendData($Topic, $Payload);
-        if (isset($Result['error'])) {
-            trigger_error($Result['error'], E_USER_NOTICE);
-        }
-        if (isset($Result['status'])) {
-            return $Result['status'] == 'ok';
-        }
-        return false;
+        return $this->SendCheckedBridgeRequest($Topic, $Payload) !== false;
     }
 
     /**
@@ -445,14 +438,7 @@ class Zigbee2MQTTBridge extends IPSModuleStrict
         $Payload = [
             'options'=> []
         ];
-        $Result = $this->SendData($Topic, $Payload);
-        if (isset($Result['error'])) {
-            trigger_error($Result['error'], E_USER_NOTICE);
-        }
-        if (isset($Result['status'])) {
-            return $Result['status'] == 'ok';
-        }
-        return false;
+        return $this->SendCheckedBridgeRequest($Topic, $Payload) !== false;
     }
 
     /**
@@ -474,14 +460,7 @@ class Zigbee2MQTTBridge extends IPSModuleStrict
                 ]
             ]
         ];
-        $Result = $this->SendData($Topic, $Payload);
-        if (isset($Result['error'])) {
-            trigger_error($Result['error'], E_USER_NOTICE);
-        }
-        if (isset($Result['status'])) {
-            return $Result['status'] == 'ok';
-        }
-        return false;
+        return $this->SendCheckedBridgeRequest($Topic, $Payload) !== false;
     }
 
     /**
@@ -499,14 +478,7 @@ class Zigbee2MQTTBridge extends IPSModuleStrict
     {
         $Topic = '/bridge/request/options';
         $Payload = ['options'=> ['permit_join' => $PermitJoin]];
-        $Result = $this->SendData($Topic, $Payload);
-        if (isset($Result['error'])) {
-            trigger_error($Result['error'], E_USER_NOTICE);
-        }
-        if (isset($Result['status'])) {
-            return $Result['status'] == 'ok';
-        }
-        return false;
+        return $this->SendCheckedBridgeRequest($Topic, $Payload) !== false;
     }
 
     /**
@@ -524,14 +496,7 @@ class Zigbee2MQTTBridge extends IPSModuleStrict
     {
         $Topic = '/bridge/request/permit_join';
         $Payload = ['time'=> ($PermitJoin ? 254 : 0)];
-        $Result = $this->SendData($Topic, $Payload);
-        if (isset($Result['error'])) {
-            trigger_error($Result['error'], E_USER_NOTICE);
-        }
-        if (isset($Result['status'])) {
-            return $Result['status'] == 'ok';
-        }
-        return false;
+        return $this->SendCheckedBridgeRequest($Topic, $Payload) !== false;
     }
 
     /**
@@ -549,15 +514,7 @@ class Zigbee2MQTTBridge extends IPSModuleStrict
     {
         $Topic = '/bridge/request/options';
         $Payload = ['options' =>['advanced' => ['log_level'=> $LogLevel]]];
-        $Result = $this->SendData($Topic, $Payload);
-        if (isset($Result['error'])) {
-            trigger_error($Result['error'], E_USER_NOTICE);
-        }
-        if (isset($Result['status'])) {
-            return $Result['status'] == 'ok';
-        }
-
-        return false;
+        return $this->SendCheckedBridgeRequest($Topic, $Payload) !== false;
     }
 
     /**
@@ -572,20 +529,12 @@ class Zigbee2MQTTBridge extends IPSModuleStrict
     public function Restart(): bool
     {
         $Topic = '/bridge/request/restart';
-        $Result = $this->SendData($Topic);
-        if (isset($Result['error'])) {
-            trigger_error($Result['error'], E_USER_NOTICE);
-        }
-        if (isset($Result['status'])) {
-            return $Result['status'] == 'ok';
-        }
-        return false;
+        return $this->SendCheckedBridgeRequest($Topic) !== false;
     }
 
     /**
      * CreateGroup
      *
-     * @todo todo check the Response
      * @param  string $GroupName
      *
      * @return bool
@@ -596,17 +545,12 @@ class Zigbee2MQTTBridge extends IPSModuleStrict
     {
         $Topic = '/bridge/request/group/add';
         $Payload = ['friendly_name' => $GroupName];
-        $Result = $this->SendData($Topic, $Payload);
-        if ($Result) { //todo check the Response
-            return true;
-        }
-        return false;
+        return $this->SendCheckedBridgeRequest($Topic, $Payload) !== false;
     }
 
     /**
      * DeleteGroup
      *
-     * @todo todo check the Response
      * @param  string $GroupName
      *
      * @return bool
@@ -617,17 +561,12 @@ class Zigbee2MQTTBridge extends IPSModuleStrict
     {
         $Topic = '/bridge/request/group/remove';
         $Payload = ['id' => $GroupName];
-        $Result = $this->SendData($Topic, $Payload);
-        if ($Result) { //todo check the Response
-            return true;
-        }
-        return false;
+        return $this->SendCheckedBridgeRequest($Topic, $Payload) !== false;
     }
 
     /**
      * RenameGroup
      *
-     * @todo todo check the Response
      * @param  string $OldName
      * @param  string $NewName
      *
@@ -639,17 +578,12 @@ class Zigbee2MQTTBridge extends IPSModuleStrict
     {
         $Topic = '/bridge/request/group/rename';
         $Payload = ['from' => $OldName, 'to' => $NewName];
-        $Result = $this->SendData($Topic, $Payload);
-        if ($Result) { //todo check the Response
-            return true;
-        }
-        return false;
+        return $this->SendCheckedBridgeRequest($Topic, $Payload) !== false;
     }
 
     /**
      * AddDeviceToGroup
      *
-     * @todo todo check the Response
      * @param  string $GroupName
      * @param  string $DeviceName
      *
@@ -661,17 +595,12 @@ class Zigbee2MQTTBridge extends IPSModuleStrict
     {
         $Topic = '/bridge/request/group/members/add';
         $Payload = ['group'=>$GroupName, 'device' => $DeviceName];
-        $Result = $this->SendData($Topic, $Payload);
-        if ($Result) { //todo check the Response
-            return true;
-        }
-        return false;
+        return $this->SendCheckedBridgeRequest($Topic, $Payload) !== false;
     }
 
     /**
      * RemoveDeviceFromGroup
      *
-     * @todo todo check the Response
      * @param  string $GroupName
      * @param  string $DeviceName
      *
@@ -683,17 +612,12 @@ class Zigbee2MQTTBridge extends IPSModuleStrict
     {
         $Topic = '/bridge/request/group/members/remove';
         $Payload = ['group'=>$GroupName, 'device' => $DeviceName, 'skip_disable_reporting'=>true];
-        $Result = $this->SendData($Topic, $Payload);
-        if ($Result) { //todo check the Response
-            return true;
-        }
-        return false;
+        return $this->SendCheckedBridgeRequest($Topic, $Payload) !== false;
     }
 
     /**
      * RemoveAllDevicesFromGroup
      *
-     * @todo todo check the Response
      * @param  string $GroupName
      *
      * @return bool
@@ -704,17 +628,12 @@ class Zigbee2MQTTBridge extends IPSModuleStrict
     {
         $Topic = '/bridge/request/group/members/remove_all';
         $Payload = ['group'=>$GroupName];
-        $Result = $this->SendData($Topic, $Payload);
-        if ($Result) { //todo check the Response
-            return true;
-        }
-        return false;
+        return $this->SendCheckedBridgeRequest($Topic, $Payload) !== false;
     }
 
     /**
      * Bind
      *
-     * @todo todo check the Response
      * @param  string $SourceDevice
      * @param  string $TargetDevice
      *
@@ -726,17 +645,12 @@ class Zigbee2MQTTBridge extends IPSModuleStrict
     {
         $Topic = '/bridge/request/device/bind';
         $Payload = ['from' => $SourceDevice, 'to' => $TargetDevice];
-        $Result = $this->SendData($Topic, $Payload);
-        if ($Result) { //todo check the Response
-            return true;
-        }
-        return false;
+        return $this->SendCheckedBridgeRequest($Topic, $Payload) !== false;
     }
 
     /**
      * Unbind
      *
-     * @todo todo check the Response
      * @param  string $SourceDevice
      * @param  string $TargetDevice
      *
@@ -748,17 +662,12 @@ class Zigbee2MQTTBridge extends IPSModuleStrict
     {
         $Topic = '/bridge/request/device/unbind';
         $Payload = ['from' => $SourceDevice, 'to' => $TargetDevice];
-        $Result = $this->SendData($Topic, $Payload);
-        if ($Result) { //todo check the Response
-            return true;
-        }
-        return false;
+        return $this->SendCheckedBridgeRequest($Topic, $Payload) !== false;
     }
 
     /**
      * RequestNetworkmap
      *
-     * @todo todo check the Response
      * @return bool
      *
      * @uses Zigbee2MQTTBridge::SendData()
@@ -767,7 +676,7 @@ class Zigbee2MQTTBridge extends IPSModuleStrict
     {
         $Topic = '/bridge/request/networkmap';
         $Payload = ['type' => 'graphviz', 'routes' => true];
-        return $this->SendData($Topic, $Payload, 0);
+        return $this->SendBridgeCommand($Topic, $Payload);
     }
 
     /**
@@ -786,14 +695,7 @@ class Zigbee2MQTTBridge extends IPSModuleStrict
     {
         $Topic = '/bridge/request/device/rename';
         $Payload = ['from' => $OldDeviceName, 'to' => $NewDeviceName];
-        $Result = $this->SendData($Topic, $Payload);
-        if (isset($Result['error'])) {
-            trigger_error($Result['error'], E_USER_NOTICE);
-        }
-        if (isset($Result['status'])) {
-            return $Result['status'] == 'ok';
-        }
-        return false;
+        return $this->SendCheckedBridgeRequest($Topic, $Payload) !== false;
     }
 
     /**
@@ -811,14 +713,7 @@ class Zigbee2MQTTBridge extends IPSModuleStrict
     {
         $Topic = '/bridge/request/device/remove';
         $Payload = ['id'=>$DeviceName];
-        $Result = $this->SendData($Topic, $Payload, 11000);
-        if (isset($Result['error'])) {
-            trigger_error($Result['error'], E_USER_NOTICE);
-        }
-        if (isset($Result['status'])) {
-            return $Result['status'] == 'ok';
-        }
-        return false;
+        return $this->SendCheckedBridgeRequest($Topic, $Payload, 11000) !== false;
     }
 
     /**
@@ -836,22 +731,17 @@ class Zigbee2MQTTBridge extends IPSModuleStrict
     {
         $Topic = '/bridge/request/device/ota_update/check';
         $Payload = ['id'=>$DeviceName];
-        $Result = $this->SendData($Topic, $Payload, 10000);
-        if (isset($Result['error'])) {
-            trigger_error($Result['error'], E_USER_NOTICE);
+        $Data = $this->SendCheckedBridgeRequest($Topic, $Payload, 10000);
+        if ($Data === false) {
             return false;
         }
-        if (!isset($Result['status']) || ($Result['status'] != 'ok')) {
-            trigger_error('unknown error', E_USER_NOTICE);
-            return false;
-        }
-        return $Result['data']['updateAvailable'];
+
+        return (bool) ($Data['update_available'] ?? $Data['updateAvailable'] ?? false);
     }
 
     /**
      * PerformOTAUpdate
      *
-     * @todo todo check the Response
      * @param  string $DeviceName
      *
      * @return bool
@@ -864,14 +754,55 @@ class Zigbee2MQTTBridge extends IPSModuleStrict
     {
         $Topic = '/bridge/request/device/ota_update/update';
         $Payload = ['id'=>$DeviceName];
-        $Result = $this->SendData($Topic, $Payload);
+        return $this->SendBridgeCommand($Topic, $Payload);
+    }
+
+    /**
+     * Sendet einen Bridge-Request und gibt bei erfolgreicher Antwort das data-Array zurueck.
+     *
+     * @param string $Topic MQTT-Request-Topic relativ zum Base Topic.
+     * @param array  $Payload MQTT-Payload.
+     * @param int    $Timeout Wartezeit auf die Bridge-Antwort in Millisekunden.
+     *
+     * @return array|false Antwortdaten oder false bei Fehler/Timeout.
+     */
+    private function SendCheckedBridgeRequest(string $Topic, array $Payload = [], int $Timeout = 5000): array|false
+    {
+        $Result = $this->SendData($Topic, $Payload, $Timeout);
+        if ($Result === false) {
+            return false;
+        }
+        if (!is_array($Result)) {
+            return [];
+        }
         if (isset($Result['error'])) {
-            trigger_error($Result['error'], E_USER_NOTICE);
+            trigger_error((string) $Result['error'], E_USER_NOTICE);
+            return false;
         }
-        if (isset($Result['status'])) {
-            return $Result['status'] == 'ok';
+        if (($Result['status'] ?? '') !== 'ok') {
+            trigger_error(sprintf($this->Translate('Zigbee2MQTT request failed on Topic %s'), $Topic), E_USER_NOTICE);
+            return false;
         }
-        return false;
+        if (isset($Result['data']) && is_array($Result['data'])) {
+            return $Result['data'];
+        }
+        return [];
+    }
+
+    /**
+     * Sendet einen Bridge-Befehl ohne auf eine Antwort zu warten.
+     *
+     * Lange laufende Requests wie OTA-Updates oder Netzwerkkarten werden asynchron
+     * angestossen, damit die Symcon-Ausfuehrung nicht blockiert.
+     *
+     * @param string $Topic MQTT-Request-Topic relativ zum Base Topic.
+     * @param array  $Payload MQTT-Payload.
+     *
+     * @return bool true, wenn der Request an den MQTT-Parent uebergeben wurde.
+     */
+    private function SendBridgeCommand(string $Topic, array $Payload = []): bool
+    {
+        return $this->SendData($Topic, $Payload, 0) === true;
     }
 
 }
