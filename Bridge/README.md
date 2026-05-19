@@ -71,6 +71,11 @@
 
 ## 6. PHP-Funktionsreferenz
 
+Die Bridge-Funktionen senden Zigbee2MQTT-Requests an das `bridge/request/...` Topic und werten die Antwort von Zigbee2MQTT aus.
+Bei einer erfolgreichen Antwort wird `true` zurückgegeben, bei einem Fehler oder Timeout `false`.
+
+Lange laufende Requests wie Netzwerkkarte und OTA-Aktualisierung werden nur angestoßen und laufen anschließend in Zigbee2MQTT weiter. In diesem Fall bedeutet `true`, dass der Request erfolgreich an Zigbee2MQTT übergeben wurde.
+
 ### Z2M_InstallSymconExtension <!-- omit in toc -->
 
 ```php
@@ -185,6 +190,9 @@ bool Z2M_Unbind(int $InstanzID, string $SourceDevice, string $TargetDevice);
 bool Z2M_RequestNetworkmap(int $InstanzID);
 ```
 
+Fordert die Zigbee-Netzwerkkarte in Zigbee2MQTT an. Die Anfrage wird asynchron gesendet, da die Erstellung der Netzwerkkarte länger dauern kann.
+Das Ergebnis wird nach Eingang der Zigbee2MQTT-Antwort in der Bridge-Instanz als Variable `Netzwerkkarte` abgelegt.
+
 ---
 
 ### Z2M_RenameDevice <!-- omit in toc -->
@@ -209,6 +217,9 @@ bool Z2M_RemoveDevice(int $InstanzID, string $DeviceName);
 bool Z2M_CheckOTAUpdate(int $InstanzID, string $DeviceName);
 ```
 
+Prüft, ob für das angegebene Gerät ein OTA-Update verfügbar ist.
+`true` bedeutet, dass Zigbee2MQTT ein verfügbares Update meldet. `false` bedeutet entweder kein verfügbares Update oder einen Fehler bei der Anfrage.
+
 ---
 
 ### Z2M_PerformOTAUpdate <!-- omit in toc -->
@@ -216,6 +227,9 @@ bool Z2M_CheckOTAUpdate(int $InstanzID, string $DeviceName);
 ```php
 bool Z2M_PerformOTAUpdate(int $InstanzID, string $DeviceName);
 ```
+
+Startet ein OTA-Update für das angegebene Gerät. Die Anfrage wird asynchron gesendet, da der Updatevorgang in Zigbee2MQTT länger dauern kann.
+`true` bedeutet, dass der Update-Request an Zigbee2MQTT übergeben wurde.
 
 ## 7. Aktionen
 
