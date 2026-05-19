@@ -609,92 +609,6 @@ abstract class ModulBase extends \IPSModuleStrict
     }
 
     /**
-     * Leitet eine Aktion an den passenden internen Handler weiter.
-     */
-    private function handleRequestAction(string $ident, mixed $value): bool
-    {
-        $tileResult = $this->handleTileRequestAction($ident, $value);
-        if ($tileResult !== null) {
-            return $tileResult;
-        }
-
-        if ($ident == 'UpdateInfo') {
-            $this->SendDebug(__FUNCTION__, 'Verarbeite UpdateInfo', 0);
-            return $this->UpdateDeviceInfo();
-        }
-
-        if ($ident == 'ShowMissingTranslations') {
-            $this->SendDebug(__FUNCTION__, 'Verarbeite ShowMissingTranslations', 0);
-            return $this->ShowMissingTranslations();
-        }
-
-        if ($ident == 'ToggleVariableCreation') {
-            $this->SendDebug(__FUNCTION__, 'Verarbeite ToggleVariableCreation: ' . (string) $value, 0);
-            return $this->ToggleVariableCreation((string) $value);
-        }
-
-        return $this->handleVariableRequestAction($ident, $value);
-    }
-
-    /**
-     * Leitet HTML-SDK-Kachelaktionen an die jeweilige Kachel-Logik weiter.
-     */
-    private function handleTileRequestAction(string $ident, mixed $value): ?bool
-    {
-        return match (true) {
-            str_starts_with($ident, 'HeatingTile.')       => $this->HandleHeatingTileAction($ident, $value),
-            str_starts_with($ident, 'SensorTile.')        => $this->HandleSensorTileAction($ident, $value),
-            str_starts_with($ident, 'SecurityTile.')      => $this->HandleSecurityTileAction($ident, $value),
-            str_starts_with($ident, 'WindowHandleTile.')  => $this->HandleWindowHandleTileAction($ident, $value),
-            str_starts_with($ident, 'ActionTile.')        => $this->HandleActionTileAction($ident, $value),
-            str_starts_with($ident, 'MeteredSwitchTile.') => $this->HandleMeteredSwitchTileAction($ident, $value),
-            default                                      => null
-        };
-    }
-
-    /**
-     * Verarbeitet Variablenaktionen, die als MQTT-Set-Befehl enden.
-     */
-    private function handleVariableRequestAction(string $ident, mixed $value): bool
-    {
-        // Presets muessen vor Composite Keys verarbeitet werden.
-        if (strpos($ident, 'presets') !== false) {
-            $this->SendDebug(__FUNCTION__, 'Verarbeite Preset: ' . $ident, 0);
-            return $this->handlePresetVariable($ident, $value);
-        }
-
-        if (strpos($ident, '_and_') !== false) {
-            $ident = str_replace('_and_', '&', $ident);
-            $this->SendDebug(__FUNCTION__, 'recall action: ' . $ident, 0);
-            $this->RequestAction($ident, $value);
-            return true;
-        }
-
-        if (strpos($ident, '__') !== false) {
-            $this->SendDebug(__FUNCTION__, 'Verarbeite Composite Key: ' . $ident, 0);
-            return $this->SendSetCommand($this->buildNestedPayload($ident, $value));
-        }
-
-        if (\in_array($ident, self::$stringVariablesNoResponse, true)) {
-            $this->SendDebug(__FUNCTION__, 'Verarbeite String ohne Rückmeldung: ' . $ident, 0);
-            return $this->handleStringVariableNoResponse($ident, (string) $value);
-        }
-
-        if (\in_array($ident, ['color', 'color_hs', 'color_rgb', 'color_temp_kelvin'], true)) {
-            $this->SendDebug(__FUNCTION__, 'Verarbeite Farbvariable: ' . $ident, 0);
-            return $this->handleColorVariable($ident, $value);
-        }
-
-        if (preg_match(self::STATE_PATTERN['SYMCON'], $ident)) {
-            $this->SendDebug(__FUNCTION__, 'Verarbeite Status-Variable: ' . $ident, 0);
-            return $this->handleStateVariable($ident, $value);
-        }
-
-        $this->SendDebug(__FUNCTION__, 'Verarbeite Standard-Variable: ' . $ident, 0);
-        return $this->handleStandardVariable($ident, $value);
-    }
-
-    /**
      * ReceiveData
      *
      * Verarbeitet eingehende MQTT-Nachrichten
@@ -1330,46 +1244,12 @@ abstract class ModulBase extends \IPSModuleStrict
     }
 
     /**
-     * Aktualisiert alle eigenen HTML-SDK-Kacheln, die den geaenderten Ident verwenden.
-     */
-    private function UpdateCustomTileValuesIfRelevant(string $ident): void
-    {
-        $this->UpdateHeatingTileValueIfRelevant($ident);
-        $this->UpdateSensorTileValueIfRelevant($ident);
-        $this->UpdateSecurityTileValueIfRelevant($ident);
-        $this->UpdateWindowHandleTileValueIfRelevant($ident);
-        $this->UpdateActionTileValueIfRelevant($ident);
-        $this->UpdateMeteredSwitchTileValueIfRelevant($ident);
-    }
-
-    /**
-     * Setzt einen Variablenwert module-strict-konform.
-     */
-    private function SetModuleValue(string $ident, int $variableID, mixed $value): bool
-    {
-        if (\defined('PHPUNIT_TESTSUITE') && PHPUNIT_TESTSUITE) {
-            \SetValue($variableID, $value);
-            return true;
-        }
-
-        set_error_handler(static function (): bool {
-            return true;
-        });
-        try {
-            return parent::SetValue($ident, $value);
-        } catch (\Throwable) {
-            return false;
-        } finally {
-            restore_error_handler();
-        }
-    }
-
-    /**
      * Sendet HTML-SDK-Kachelwerte und ignoriert temporaere Symcon-Reload-Fenster.
      */
     protected function UpdateCustomTileVisualizationValue(string $value): void
     {
-        set_error_handler(static function (): bool {
+        set_error_handler(static function (): bool
+        {
             return true;
         });
         try {
@@ -1394,6 +1274,411 @@ abstract class ModulBase extends \IPSModuleStrict
             'brightnessConfig'            => [],
             default                       => false
         };
+    }
+
+    /**
+     * Aktiviert oder deaktiviert die automatische Anlage einer Variable.
+     */
+    protected function SetVariableCreationEnabled(string $ident, bool $enabled): bool
+    {
+        $ident = $this->NormalizeVariableIdent($ident);
+        if ($ident === '') {
+            return false;
+        }
+
+        if ($enabled) {
+            $this->RemoveVariableFromAttributeList(self::ATTRIBUTE_DISABLED_VARIABLES, $ident);
+            $this->RemoveVariableFromAttributeList(self::ATTRIBUTE_DELETED_VARIABLES, $ident);
+
+            $catalog = $this->ReadAttributeArray(self::ATTRIBUTE_VARIABLE_CATALOG);
+            if (isset($catalog[$ident]) && $this->GetObjectIDByIdent($ident) === false) {
+                $catalog[$ident]['created'] = false;
+                unset($catalog[$ident]['deleted']);
+                $this->WriteAttributeArray(self::ATTRIBUTE_VARIABLE_CATALOG, $catalog);
+            }
+
+            $this->CreateVariableFromCatalog($ident);
+        } else {
+            $this->AddVariableToAttributeList(self::ATTRIBUTE_DISABLED_VARIABLES, $ident);
+            $this->RemoveVariableFromAttributeList(self::ATTRIBUTE_DELETED_VARIABLES, $ident);
+        }
+
+        $this->ReloadForm();
+        return true;
+    }
+
+    /**
+     * Schaltet die automatische Anlage einer Variable fuer die Formularaktion um.
+     */
+    protected function ToggleVariableCreation(string $ident): bool
+    {
+        if ($this->GetObjectIDByIdent($this->NormalizeVariableIdent($ident)) === false) {
+            return $this->SetVariableCreationEnabled($ident, true);
+        }
+
+        return $this->SetVariableCreationEnabled($ident, !$this->IsVariableCreationEnabled($ident));
+    }
+
+    /**
+     * Baut die Zeilen fuer die Variablenverwaltung im Instanzformular.
+     */
+    protected function BuildVariableSelectionFormValues(): array
+    {
+        $this->RefreshVariableCatalog();
+
+        $catalog = $this->ReadAttributeArray(self::ATTRIBUTE_VARIABLE_CATALOG);
+        ksort($catalog);
+
+        $rows = [];
+        foreach ($catalog as $ident => $entry) {
+            if (!\is_array($entry)) {
+                continue;
+            }
+
+            $rows[] = $this->BuildVariableSelectionFormRow((string) $ident, $entry);
+        }
+
+        return $rows;
+    }
+
+    // Feature & Expose Handling
+
+    /**
+     * mapExposesToVariables
+     *
+     * Mappt die übergebenen Exposes auf Variablen und registriert diese.
+     * Diese Funktion verarbeitet die übergebenen Exposes (z.B. Sensoreigenschaften) und registriert sie als Variablen.
+     * Wenn ein Expose mehrere Features enthält, werden diese ebenfalls einzeln registriert.
+     *
+     * @param array $exposes Ein Array von Exposes, das die Geräteeigenschaften oder Sensoren beschreibt.
+     *
+     * @return void
+     *
+     * @see \Zigbee2MQTT\ModulBase::registerVariable()
+     * @see \Zigbee2MQTT\ModulBase::convertLabelToName()
+     * @see \Zigbee2MQTT\ModulBase::getVariableTypeFromProfile()
+     * @see \Zigbee2MQTT\ModulBase::registerPresetVariables()
+     * @see \IPSModule::SetBuffer()
+     * @see \IPSModule::SendDebug()
+     * @see is_array()
+     * @see json_encode()
+     */
+    protected function mapExposesToVariables(array $exposes): void
+    {
+        $this->SendDebug(__FUNCTION__ . ' :: Line ' . __LINE__ . ' :: All Exposes', json_encode($exposes), 0);
+
+        // Geraetespezifische filtered_attributes aus Z2M laden
+        $aFiltered = $this->ReadAttributeArray(self::ATTRIBUTE_FILTERED);
+
+        // Durchlaufe alle Exposes
+        foreach ($exposes as $expose) {
+            // Prüfen, ob es sich um eine Gruppe handelt
+            if (isset($expose['type']) && \in_array($expose['type'], ['light', 'switch', 'lock', 'cover', 'climate', 'fan', 'text'])) {
+                $this->SendDebug(__FUNCTION__ . ' :: Line ' . __LINE__ . ' :: Found group: ', $expose['type'], 0);
+
+                // Features in der Gruppe verarbeiten
+                if (isset($expose['features']) && \is_array($expose['features'])) {
+                    foreach ($expose['features'] as $feature) {
+                        // Gefilterte Attribute gemaess Z2M-Konfiguration ueberspringen
+                        $sProperty = $feature['property'] ?? '';
+                        if ($sProperty !== '' && !$this->IsExposeCompositeContainer($feature) && !isset($feature['color_mode'])) {
+                            $this->RememberVariableDefinition($sProperty, $feature, 'expose');
+                        }
+                        if ($sProperty !== '' && \in_array($sProperty, $aFiltered, true)) {
+                            $this->SendDebug(__FUNCTION__, 'Skipping filtered attribute: ' . $sProperty, 0);
+                            continue;
+                        }
+
+                        $this->SendDebug(__FUNCTION__ . ' :: Line ' . __LINE__ . ' :: Processing feature in group: ', json_encode($feature), 0);
+                        // Setze den Gruppentyp als zusätzlichen Wert
+                        $feature['group_type'] = $expose['type'];
+                        // Variablen für die einzelnen Features registrieren
+                        $this->registerVariable($feature);
+
+                        // Wenn es sich um brightness handelt, speichere die Min/Max Werte
+                        if ($feature['property'] === 'brightness') {
+                            $brightnessConfig = [
+                                'min' => $feature['value_min'] ?? 0,
+                                'max' => $feature['value_max'] ?? 255
+                            ];
+                            $this->brightnessConfig = $brightnessConfig;
+                            $this->SendDebug(__FUNCTION__, 'Brightness Config: ' . json_encode($brightnessConfig), 0);
+                        }
+                    }
+                } else {
+                    $this->registerVariable($expose);
+                }
+            } else {
+                // Gefilterte Attribute gemaess Z2M-Konfiguration ueberspringen
+                $sProperty = $expose['property'] ?? '';
+                if ($sProperty !== '' && !$this->IsExposeCompositeContainer($expose) && !isset($expose['color_mode'])) {
+                    $this->RememberVariableDefinition($sProperty, $expose, 'expose');
+                }
+                if ($sProperty !== '' && \in_array($sProperty, $aFiltered, true)) {
+                    $this->SendDebug(__FUNCTION__, 'Skipping filtered attribute: ' . $sProperty, 0);
+                    continue;
+                }
+
+                $this->registerVariable($expose);
+                if (isset($expose['presets'])) {
+                    $variableType = $this->getVariableTypeFromProfile($expose['type'], $expose['property'], $expose['unit'] ?? '', $expose['value_step'] ?? 1.0, null);
+                    $this->registerPresetVariables($expose['presets'], $expose['property'], $variableType, $expose);
+                }
+            }
+        }
+        $this->RefreshExposeVariableCatalog($exposes);
+        $this->UpdateCustomTileVisualizationType();
+    }
+
+    /**
+     * LoadDeviceInfo
+     *
+     * Lädt die Geräte oder Gruppen Infos über die SymconExtension von Zigbee2MQTT
+     *
+     * @return array|false Enthält die Antwort als Array, oder false im Fehlerfall.
+     *
+     * @see \Zigbee2MQTT\SendData::SendData()
+     * @see \IPSModule::ReadPropertyString()
+     * @see \IPSModule::LogMessage()
+     */
+    protected function LoadDeviceInfo()
+    {
+        if (!$this->HasActiveParent()) {
+            return false;
+        }
+        $mqttTopic = $this->ReadPropertyString(self::MQTT_TOPIC);
+        if (empty($mqttTopic)) {
+            $this->LogMessage($this->Translate('MQTTTopic not configured.'), KL_WARNING);
+            return false;
+        }
+        $Result = $this->SendData(self::SYMCON_EXTENSION_REQUEST . static::$ExtensionTopic . $mqttTopic, [], 2500);
+        return $Result;
+    }
+
+    /**
+     * UpdateDeviceInfo
+     *
+     * Muss überschrieben werden
+     * Muss die Exposes per LoadDeviceInfo laden und verarbeiten.
+     *
+     * @return bool
+     */
+    abstract protected function UpdateDeviceInfo(): bool;
+
+    /**
+     * Wandelt ein verschachteltes Array in ein eindimensionales Array mit zusammengesetzten Schlüsseln um
+     *
+     * @param array  $payload Das zu verarbeitende Array mit verschachtelter Struktur
+     * @param string $prefix  Optional, Prefix für die zusammengesetzten Schlüssel
+     *
+     * @return array Ein eindimensionales Array mit Schlüsseln in der Form 'parent__child'
+     *
+     * Beispiele:
+     * ```php
+     * // Verschachteltes Array
+     * $input = [
+     *     'weekly_schedule' => [
+     *         'monday' => '00:00/7'
+     *     ]
+     * ];
+     * $result = $this->flattenPayload($input);
+     * // Ergebnis: ['weekly_schedule__monday' => '00:00/7']
+     * ```
+     *
+     * @internal Wird von processPayload verwendet um verschachtelte Strukturen zu verarbeiten
+     *
+     * @see \Zigbee2MQTT\ModulBase::processPayload()
+     */
+    protected function flattenPayload(array $payload, string $prefix = ''): array
+    {
+        $result = [];
+
+        foreach ($payload as $key => $value) {
+
+            // Composite-Keys überspringen, die in SKIP_COMPOSITES definiert sind und auf oberster Ebene gesetzt sind
+            if ($prefix === '' && \in_array($key, self::SKIP_COMPOSITES) && \is_array($value)) {
+                $this->SendDebug(__FUNCTION__, "Überspringe Composite-Key auf oberster Ebene: $key", 0);
+                continue;
+            }
+
+            // Spezialbehandlung für color-Properties, da zur Farbberechnung nicht als flatten benötigt
+            if ($key === 'color' && \is_array($value)) {
+                // Übernehme die color-Properties direkt ins color-Array
+                $result['color'] = $value;
+                continue;
+            }
+
+            $newKey = $prefix ? $prefix . '__' . $key : $key;
+            if (\is_array($value)) {
+                $result = array_merge($result, $this->flattenPayload($value, $newKey));
+            } else {
+                $result[$newKey] = $value;
+            }
+        }
+
+        return $result;
+    }
+
+    /**
+     * Wandelt einen zusammengesetzten Identifikator in eine verschachtelte Array-Struktur um
+     *
+     * @param string $ident Der zusammengesetzte Identifikator (z.B. 'weekly_schedule__friday')
+     * @param mixed $value Der Wert, der gesetzt werden soll
+     *
+     * @return array Das verschachtelte Array
+     *
+     * Beispiel:
+     * ```php
+     * $ident = 'weekly_schedule__friday';
+     * $value = '00:00/7';
+     * $result = $this->buildNestedPayload($ident, $value);
+     * // Ergebnis: ['weekly_schedule' => ['friday' => '00:00/7']]
+     * ```
+     *
+     * @internal Diese Methode wird von handleStandardVariable, handlePresetVariable und RequestAction verwendet
+     *
+     * @see \Zigbee2MQTT\ModulBase::handleStandardVariable()
+     * @see \Zigbee2MQTT\ModulBase::handlePresetVariable()
+     * @see \Zigbee2MQTT\ModulBase::RequestAction()
+     */
+    protected function buildNestedPayload(string $ident, mixed $value): array
+    {
+        $parts = explode('__', $ident);
+        $result = [];
+        $current = &$result;
+
+        // Alle Teile außer dem letzten durchgehen
+        for ($i = 0; $i < \count($parts) - 1; $i++) {
+            $current[$parts[$i]] = [];
+            $current = &$current[$parts[$i]];
+        }
+
+        // Letzten Wert setzen
+        $current[$parts[\count($parts) - 1]] = $value;
+
+        return $result;
+    }
+
+    /**
+     * Leitet eine Aktion an den passenden internen Handler weiter.
+     */
+    private function handleRequestAction(string $ident, mixed $value): bool
+    {
+        $tileResult = $this->handleTileRequestAction($ident, $value);
+        if ($tileResult !== null) {
+            return $tileResult;
+        }
+
+        if ($ident == 'UpdateInfo') {
+            $this->SendDebug(__FUNCTION__, 'Verarbeite UpdateInfo', 0);
+            return $this->UpdateDeviceInfo();
+        }
+
+        if ($ident == 'ShowMissingTranslations') {
+            $this->SendDebug(__FUNCTION__, 'Verarbeite ShowMissingTranslations', 0);
+            return $this->ShowMissingTranslations();
+        }
+
+        if ($ident == 'ToggleVariableCreation') {
+            $this->SendDebug(__FUNCTION__, 'Verarbeite ToggleVariableCreation: ' . (string) $value, 0);
+            return $this->ToggleVariableCreation((string) $value);
+        }
+
+        return $this->handleVariableRequestAction($ident, $value);
+    }
+
+    /**
+     * Leitet HTML-SDK-Kachelaktionen an die jeweilige Kachel-Logik weiter.
+     */
+    private function handleTileRequestAction(string $ident, mixed $value): ?bool
+    {
+        return match (true) {
+            str_starts_with($ident, 'HeatingTile.')       => $this->HandleHeatingTileAction($ident, $value),
+            str_starts_with($ident, 'SensorTile.')        => $this->HandleSensorTileAction($ident, $value),
+            str_starts_with($ident, 'SecurityTile.')      => $this->HandleSecurityTileAction($ident, $value),
+            str_starts_with($ident, 'WindowHandleTile.')  => $this->HandleWindowHandleTileAction($ident, $value),
+            str_starts_with($ident, 'ActionTile.')        => $this->HandleActionTileAction($ident, $value),
+            str_starts_with($ident, 'MeteredSwitchTile.') => $this->HandleMeteredSwitchTileAction($ident, $value),
+            default                                       => null
+        };
+    }
+
+    /**
+     * Verarbeitet Variablenaktionen, die als MQTT-Set-Befehl enden.
+     */
+    private function handleVariableRequestAction(string $ident, mixed $value): bool
+    {
+        // Presets muessen vor Composite Keys verarbeitet werden.
+        if (strpos($ident, 'presets') !== false) {
+            $this->SendDebug(__FUNCTION__, 'Verarbeite Preset: ' . $ident, 0);
+            return $this->handlePresetVariable($ident, $value);
+        }
+
+        if (strpos($ident, '_and_') !== false) {
+            $ident = str_replace('_and_', '&', $ident);
+            $this->SendDebug(__FUNCTION__, 'recall action: ' . $ident, 0);
+            $this->RequestAction($ident, $value);
+            return true;
+        }
+
+        if (strpos($ident, '__') !== false) {
+            $this->SendDebug(__FUNCTION__, 'Verarbeite Composite Key: ' . $ident, 0);
+            return $this->SendSetCommand($this->buildNestedPayload($ident, $value));
+        }
+
+        if (\in_array($ident, self::$stringVariablesNoResponse, true)) {
+            $this->SendDebug(__FUNCTION__, 'Verarbeite String ohne Rückmeldung: ' . $ident, 0);
+            return $this->handleStringVariableNoResponse($ident, (string) $value);
+        }
+
+        if (\in_array($ident, ['color', 'color_hs', 'color_rgb', 'color_temp_kelvin'], true)) {
+            $this->SendDebug(__FUNCTION__, 'Verarbeite Farbvariable: ' . $ident, 0);
+            return $this->handleColorVariable($ident, $value);
+        }
+
+        if (preg_match(self::STATE_PATTERN['SYMCON'], $ident)) {
+            $this->SendDebug(__FUNCTION__, 'Verarbeite Status-Variable: ' . $ident, 0);
+            return $this->handleStateVariable($ident, $value);
+        }
+
+        $this->SendDebug(__FUNCTION__, 'Verarbeite Standard-Variable: ' . $ident, 0);
+        return $this->handleStandardVariable($ident, $value);
+    }
+
+    /**
+     * Aktualisiert alle eigenen HTML-SDK-Kacheln, die den geaenderten Ident verwenden.
+     */
+    private function UpdateCustomTileValuesIfRelevant(string $ident): void
+    {
+        $this->UpdateHeatingTileValueIfRelevant($ident);
+        $this->UpdateSensorTileValueIfRelevant($ident);
+        $this->UpdateSecurityTileValueIfRelevant($ident);
+        $this->UpdateWindowHandleTileValueIfRelevant($ident);
+        $this->UpdateActionTileValueIfRelevant($ident);
+        $this->UpdateMeteredSwitchTileValueIfRelevant($ident);
+    }
+
+    /**
+     * Setzt einen Variablenwert module-strict-konform.
+     */
+    private function SetModuleValue(string $ident, int $variableID, mixed $value): bool
+    {
+        if (\defined('PHPUNIT_TESTSUITE') && PHPUNIT_TESTSUITE) {
+            \SetValue($variableID, $value);
+            return true;
+        }
+
+        set_error_handler(static function (): bool
+        {
+            return true;
+        });
+        try {
+            return parent::SetValue($ident, $value);
+        } catch (\Throwable) {
+            return false;
+        } finally {
+            restore_error_handler();
+        }
     }
 
     /**
@@ -1641,49 +1926,6 @@ abstract class ModulBase extends \IPSModuleStrict
     }
 
     /**
-     * Aktiviert oder deaktiviert die automatische Anlage einer Variable.
-     */
-    protected function SetVariableCreationEnabled(string $ident, bool $enabled): bool
-    {
-        $ident = $this->NormalizeVariableIdent($ident);
-        if ($ident === '') {
-            return false;
-        }
-
-        if ($enabled) {
-            $this->RemoveVariableFromAttributeList(self::ATTRIBUTE_DISABLED_VARIABLES, $ident);
-            $this->RemoveVariableFromAttributeList(self::ATTRIBUTE_DELETED_VARIABLES, $ident);
-
-            $catalog = $this->ReadAttributeArray(self::ATTRIBUTE_VARIABLE_CATALOG);
-            if (isset($catalog[$ident]) && $this->GetObjectIDByIdent($ident) === false) {
-                $catalog[$ident]['created'] = false;
-                unset($catalog[$ident]['deleted']);
-                $this->WriteAttributeArray(self::ATTRIBUTE_VARIABLE_CATALOG, $catalog);
-            }
-
-            $this->CreateVariableFromCatalog($ident);
-        } else {
-            $this->AddVariableToAttributeList(self::ATTRIBUTE_DISABLED_VARIABLES, $ident);
-            $this->RemoveVariableFromAttributeList(self::ATTRIBUTE_DELETED_VARIABLES, $ident);
-        }
-
-        $this->ReloadForm();
-        return true;
-    }
-
-    /**
-     * Schaltet die automatische Anlage einer Variable fuer die Formularaktion um.
-     */
-    protected function ToggleVariableCreation(string $ident): bool
-    {
-        if ($this->GetObjectIDByIdent($this->NormalizeVariableIdent($ident)) === false) {
-            return $this->SetVariableCreationEnabled($ident, true);
-        }
-
-        return $this->SetVariableCreationEnabled($ident, !$this->IsVariableCreationEnabled($ident));
-    }
-
-    /**
      * Liefert true, wenn eine Variable aktuell automatisch angelegt werden darf.
      */
     private function IsVariableCreationEnabled(string $ident): bool
@@ -1917,28 +2159,6 @@ abstract class ModulBase extends \IPSModuleStrict
     }
 
     /**
-     * Baut die Zeilen fuer die Variablenverwaltung im Instanzformular.
-     */
-    protected function BuildVariableSelectionFormValues(): array
-    {
-        $this->RefreshVariableCatalog();
-
-        $catalog = $this->ReadAttributeArray(self::ATTRIBUTE_VARIABLE_CATALOG);
-        ksort($catalog);
-
-        $rows = [];
-        foreach ($catalog as $ident => $entry) {
-            if (!\is_array($entry)) {
-                continue;
-            }
-
-            $rows[] = $this->BuildVariableSelectionFormRow((string) $ident, $entry);
-        }
-
-        return $rows;
-    }
-
-    /**
      * Baut eine einzelne Zeile fuer die Variablenverwaltung.
      */
     private function BuildVariableSelectionFormRow(string $ident, array $entry): array
@@ -1975,224 +2195,6 @@ abstract class ModulBase extends \IPSModuleStrict
             'action'   => $action === '' ? '' : $this->Translate($action),
             'rowColor' => $rowColor
         ];
-    }
-
-    // Feature & Expose Handling
-
-    /**
-     * mapExposesToVariables
-     *
-     * Mappt die übergebenen Exposes auf Variablen und registriert diese.
-     * Diese Funktion verarbeitet die übergebenen Exposes (z.B. Sensoreigenschaften) und registriert sie als Variablen.
-     * Wenn ein Expose mehrere Features enthält, werden diese ebenfalls einzeln registriert.
-     *
-     * @param array $exposes Ein Array von Exposes, das die Geräteeigenschaften oder Sensoren beschreibt.
-     *
-     * @return void
-     *
-     * @see \Zigbee2MQTT\ModulBase::registerVariable()
-     * @see \Zigbee2MQTT\ModulBase::convertLabelToName()
-     * @see \Zigbee2MQTT\ModulBase::getVariableTypeFromProfile()
-     * @see \Zigbee2MQTT\ModulBase::registerPresetVariables()
-     * @see \IPSModule::SetBuffer()
-     * @see \IPSModule::SendDebug()
-     * @see is_array()
-     * @see json_encode()
-     */
-    protected function mapExposesToVariables(array $exposes): void
-    {
-        $this->SendDebug(__FUNCTION__ . ' :: Line ' . __LINE__ . ' :: All Exposes', json_encode($exposes), 0);
-
-        // Geraetespezifische filtered_attributes aus Z2M laden
-        $aFiltered = $this->ReadAttributeArray(self::ATTRIBUTE_FILTERED);
-
-        // Durchlaufe alle Exposes
-        foreach ($exposes as $expose) {
-            // Prüfen, ob es sich um eine Gruppe handelt
-            if (isset($expose['type']) && \in_array($expose['type'], ['light', 'switch', 'lock', 'cover', 'climate', 'fan', 'text'])) {
-                $this->SendDebug(__FUNCTION__ . ' :: Line ' . __LINE__ . ' :: Found group: ', $expose['type'], 0);
-
-                // Features in der Gruppe verarbeiten
-                if (isset($expose['features']) && \is_array($expose['features'])) {
-                    foreach ($expose['features'] as $feature) {
-                        // Gefilterte Attribute gemaess Z2M-Konfiguration ueberspringen
-                        $sProperty = $feature['property'] ?? '';
-                        if ($sProperty !== '' && !$this->IsExposeCompositeContainer($feature) && !isset($feature['color_mode'])) {
-                            $this->RememberVariableDefinition($sProperty, $feature, 'expose');
-                        }
-                        if ($sProperty !== '' && \in_array($sProperty, $aFiltered, true)) {
-                            $this->SendDebug(__FUNCTION__, 'Skipping filtered attribute: ' . $sProperty, 0);
-                            continue;
-                        }
-
-                        $this->SendDebug(__FUNCTION__ . ' :: Line ' . __LINE__ . ' :: Processing feature in group: ', json_encode($feature), 0);
-                        // Setze den Gruppentyp als zusätzlichen Wert
-                        $feature['group_type'] = $expose['type'];
-                        // Variablen für die einzelnen Features registrieren
-                        $this->registerVariable($feature);
-
-                        // Wenn es sich um brightness handelt, speichere die Min/Max Werte
-                        if ($feature['property'] === 'brightness') {
-                            $brightnessConfig = [
-                                'min' => $feature['value_min'] ?? 0,
-                                'max' => $feature['value_max'] ?? 255
-                            ];
-                            $this->brightnessConfig = $brightnessConfig;
-                            $this->SendDebug(__FUNCTION__, 'Brightness Config: ' . json_encode($brightnessConfig), 0);
-                        }
-                    }
-                } else {
-                    $this->registerVariable($expose);
-                }
-            } else {
-                // Gefilterte Attribute gemaess Z2M-Konfiguration ueberspringen
-                $sProperty = $expose['property'] ?? '';
-                if ($sProperty !== '' && !$this->IsExposeCompositeContainer($expose) && !isset($expose['color_mode'])) {
-                    $this->RememberVariableDefinition($sProperty, $expose, 'expose');
-                }
-                if ($sProperty !== '' && \in_array($sProperty, $aFiltered, true)) {
-                    $this->SendDebug(__FUNCTION__, 'Skipping filtered attribute: ' . $sProperty, 0);
-                    continue;
-                }
-
-                $this->registerVariable($expose);
-                if (isset($expose['presets'])) {
-                    $variableType = $this->getVariableTypeFromProfile($expose['type'], $expose['property'], $expose['unit'] ?? '', $expose['value_step'] ?? 1.0, null);
-                    $this->registerPresetVariables($expose['presets'], $expose['property'], $variableType, $expose);
-                }
-            }
-        }
-        $this->RefreshExposeVariableCatalog($exposes);
-        $this->UpdateCustomTileVisualizationType();
-    }
-
-    /**
-     * LoadDeviceInfo
-     *
-     * Lädt die Geräte oder Gruppen Infos über die SymconExtension von Zigbee2MQTT
-     *
-     * @return array|false Enthält die Antwort als Array, oder false im Fehlerfall.
-     *
-     * @see \Zigbee2MQTT\SendData::SendData()
-     * @see \IPSModule::ReadPropertyString()
-     * @see \IPSModule::LogMessage()
-     */
-    protected function LoadDeviceInfo()
-    {
-        if (!$this->HasActiveParent()) {
-            return false;
-        }
-        $mqttTopic = $this->ReadPropertyString(self::MQTT_TOPIC);
-        if (empty($mqttTopic)) {
-            $this->LogMessage($this->Translate('MQTTTopic not configured.'), KL_WARNING);
-            return false;
-        }
-        $Result = $this->SendData(self::SYMCON_EXTENSION_REQUEST . static::$ExtensionTopic . $mqttTopic, [], 2500);
-        return $Result;
-    }
-
-    /**
-     * UpdateDeviceInfo
-     *
-     * Muss überschrieben werden
-     * Muss die Exposes per LoadDeviceInfo laden und verarbeiten.
-     *
-     * @return bool
-     */
-    abstract protected function UpdateDeviceInfo(): bool;
-
-    /**
-     * Wandelt ein verschachteltes Array in ein eindimensionales Array mit zusammengesetzten Schlüsseln um
-     *
-     * @param array  $payload Das zu verarbeitende Array mit verschachtelter Struktur
-     * @param string $prefix  Optional, Prefix für die zusammengesetzten Schlüssel
-     *
-     * @return array Ein eindimensionales Array mit Schlüsseln in der Form 'parent__child'
-     *
-     * Beispiele:
-     * ```php
-     * // Verschachteltes Array
-     * $input = [
-     *     'weekly_schedule' => [
-     *         'monday' => '00:00/7'
-     *     ]
-     * ];
-     * $result = $this->flattenPayload($input);
-     * // Ergebnis: ['weekly_schedule__monday' => '00:00/7']
-     * ```
-     *
-     * @internal Wird von processPayload verwendet um verschachtelte Strukturen zu verarbeiten
-     *
-     * @see \Zigbee2MQTT\ModulBase::processPayload()
-     */
-    protected function flattenPayload(array $payload, string $prefix = ''): array
-    {
-        $result = [];
-
-        foreach ($payload as $key => $value) {
-
-            // Composite-Keys überspringen, die in SKIP_COMPOSITES definiert sind und auf oberster Ebene gesetzt sind
-            if ($prefix === '' && \in_array($key, self::SKIP_COMPOSITES) && \is_array($value)) {
-                $this->SendDebug(__FUNCTION__, "Überspringe Composite-Key auf oberster Ebene: $key", 0);
-                continue;
-            }
-
-            // Spezialbehandlung für color-Properties, da zur Farbberechnung nicht als flatten benötigt
-            if ($key === 'color' && \is_array($value)) {
-                // Übernehme die color-Properties direkt ins color-Array
-                $result['color'] = $value;
-                continue;
-            }
-
-            $newKey = $prefix ? $prefix . '__' . $key : $key;
-            if (\is_array($value)) {
-                $result = array_merge($result, $this->flattenPayload($value, $newKey));
-            } else {
-                $result[$newKey] = $value;
-            }
-        }
-
-        return $result;
-    }
-
-    /**
-     * Wandelt einen zusammengesetzten Identifikator in eine verschachtelte Array-Struktur um
-     *
-     * @param string $ident Der zusammengesetzte Identifikator (z.B. 'weekly_schedule__friday')
-     * @param mixed $value Der Wert, der gesetzt werden soll
-     *
-     * @return array Das verschachtelte Array
-     *
-     * Beispiel:
-     * ```php
-     * $ident = 'weekly_schedule__friday';
-     * $value = '00:00/7';
-     * $result = $this->buildNestedPayload($ident, $value);
-     * // Ergebnis: ['weekly_schedule' => ['friday' => '00:00/7']]
-     * ```
-     *
-     * @internal Diese Methode wird von handleStandardVariable, handlePresetVariable und RequestAction verwendet
-     *
-     * @see \Zigbee2MQTT\ModulBase::handleStandardVariable()
-     * @see \Zigbee2MQTT\ModulBase::handlePresetVariable()
-     * @see \Zigbee2MQTT\ModulBase::RequestAction()
-     */
-    protected function buildNestedPayload(string $ident, mixed $value): array
-    {
-        $parts = explode('__', $ident);
-        $result = [];
-        $current = &$result;
-
-        // Alle Teile außer dem letzten durchgehen
-        for ($i = 0; $i < \count($parts) - 1; $i++) {
-            $current[$parts[$i]] = [];
-            $current = &$current[$parts[$i]];
-        }
-
-        // Letzten Wert setzen
-        $current[$parts[\count($parts) - 1]] = $value;
-
-        return $result;
     }
 
     /**

@@ -108,57 +108,6 @@ class Zigbee2MQTTDevice extends \Zigbee2MQTT\ModulBase
             $html
         );
     }
-
-    /**
-     * Liefert die erste passende Kachel nach der gewuenschten Prioritaet.
-     */
-    private function GetVisualizationTileDefinition(): ?array
-    {
-        if ($this->ShouldForceSensorTile()) {
-            return [
-                'template' => 'sensor_tile.html',
-                'data'     => fn (): array => $this->BuildSensorTileData()
-            ];
-        }
-        if ($this->ShouldUseHeatingTile()) {
-            return [
-                'template' => 'heating_tile.html',
-                'data'     => fn (): array => $this->BuildHeatingTileData()
-            ];
-        }
-        if ($this->ShouldUseMeteredSwitchTile()) {
-            return [
-                'template' => 'metered_switch_tile.html',
-                'data'     => fn (): array => $this->BuildMeteredSwitchTileData()
-            ];
-        }
-        if ($this->ShouldUseWindowHandleTile()) {
-            return [
-                'template' => 'window_handle_tile.html',
-                'data'     => fn (): array => $this->BuildWindowHandleTileData()
-            ];
-        }
-        if ($this->ShouldUseSecurityTile()) {
-            return [
-                'template' => 'security_tile.html',
-                'data'     => fn (): array => $this->BuildSecurityTileData()
-            ];
-        }
-        if ($this->ShouldUseActionTile()) {
-            return [
-                'template' => 'action_tile.html',
-                'data'     => fn (): array => $this->BuildActionTileData()
-            ];
-        }
-        if ($this->ShouldUseSensorTile()) {
-            return [
-                'template' => 'sensor_tile.html',
-                'data'     => fn (): array => $this->BuildSensorTileData()
-            ];
-        }
-
-        return null;
-    }
     /**
      * RequestAction
      *
@@ -229,6 +178,57 @@ class Zigbee2MQTTDevice extends \Zigbee2MQTT\ModulBase
         $this->WriteAttributeArray(parent::ATTRIBUTE_EXPOSES, $Result['exposes']);
         $this->mapExposesToVariables($Result['exposes']);
         return true;
+    }
+
+    /**
+     * Liefert die erste passende Kachel nach der gewuenschten Prioritaet.
+     */
+    private function GetVisualizationTileDefinition(): ?array
+    {
+        if ($this->ShouldForceSensorTile()) {
+            return [
+                'template' => 'sensor_tile.html',
+                'data'     => fn (): array => $this->BuildSensorTileData()
+            ];
+        }
+        if ($this->ShouldUseHeatingTile()) {
+            return [
+                'template' => 'heating_tile.html',
+                'data'     => fn (): array => $this->BuildHeatingTileData()
+            ];
+        }
+        if ($this->ShouldUseMeteredSwitchTile()) {
+            return [
+                'template' => 'metered_switch_tile.html',
+                'data'     => fn (): array => $this->BuildMeteredSwitchTileData()
+            ];
+        }
+        if ($this->ShouldUseWindowHandleTile()) {
+            return [
+                'template' => 'window_handle_tile.html',
+                'data'     => fn (): array => $this->BuildWindowHandleTileData()
+            ];
+        }
+        if ($this->ShouldUseSecurityTile()) {
+            return [
+                'template' => 'security_tile.html',
+                'data'     => fn (): array => $this->BuildSecurityTileData()
+            ];
+        }
+        if ($this->ShouldUseActionTile()) {
+            return [
+                'template' => 'action_tile.html',
+                'data'     => fn (): array => $this->BuildActionTileData()
+            ];
+        }
+        if ($this->ShouldUseSensorTile()) {
+            return [
+                'template' => 'sensor_tile.html',
+                'data'     => fn (): array => $this->BuildSensorTileData()
+            ];
+        }
+
+        return null;
     }
 
     /**

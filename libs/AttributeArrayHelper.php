@@ -42,7 +42,8 @@ trait AttributeArrayHelper
      */
     protected function ReadAttributeArray(string $name): array
     {
-        set_error_handler(static function (): bool {
+        set_error_handler(static function (): bool
+        {
             return true;
         });
         try {

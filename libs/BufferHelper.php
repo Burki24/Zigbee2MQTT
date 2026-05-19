@@ -83,7 +83,8 @@ trait BufferHelper
      */
     private function ReadRawBuffer(string $name): string|false
     {
-        set_error_handler(static function (): bool {
+        set_error_handler(static function (): bool
+        {
             return true;
         });
         try {

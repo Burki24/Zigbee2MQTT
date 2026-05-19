@@ -162,24 +162,6 @@ class Zigbee2MQTTBridge extends IPSModuleStrict
     }
 
     /**
-     * Setzt einen Variablenwert module-strict-konform.
-     */
-    protected function SetValue(string $Ident, mixed $Value): bool
-    {
-        $variableID = @IPS_GetObjectIDByIdent($Ident, $this->InstanceID);
-        if ($variableID === false) {
-            return false;
-        }
-
-        if (\defined('PHPUNIT_TESTSUITE') && PHPUNIT_TESTSUITE) {
-            \SetValue($variableID, $Value);
-            return true;
-        }
-
-        return parent::SetValue($Ident, $Value);
-    }
-
-    /**
      * ReceiveData
      *
      * @param  string $JSONString
@@ -755,6 +737,24 @@ class Zigbee2MQTTBridge extends IPSModuleStrict
         $Topic = '/bridge/request/device/ota_update/update';
         $Payload = ['id'=>$DeviceName];
         return $this->SendBridgeCommand($Topic, $Payload);
+    }
+
+    /**
+     * Setzt einen Variablenwert module-strict-konform.
+     */
+    protected function SetValue(string $Ident, mixed $Value): bool
+    {
+        $variableID = @IPS_GetObjectIDByIdent($Ident, $this->InstanceID);
+        if ($variableID === false) {
+            return false;
+        }
+
+        if (\defined('PHPUNIT_TESTSUITE') && PHPUNIT_TESTSUITE) {
+            \SetValue($variableID, $Value);
+            return true;
+        }
+
+        return parent::SetValue($Ident, $Value);
     }
 
     /**

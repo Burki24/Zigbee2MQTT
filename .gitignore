@@ -1,5 +1,7 @@
 .DS_Store
 .idea/
 .vscode/
+.php-cs-fixer.cache
 libs/composer.*
 libs/phpunit.*
+tests/.phpunit.cache/
