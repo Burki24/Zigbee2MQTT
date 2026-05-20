@@ -167,16 +167,20 @@ bool Z2M_RenameGroup(int $InstanzID, string $OldName, string $NewName);
 ### Z2M_AddDeviceToGroup <!-- omit in toc -->
 
 ```php
-bool Z2M_AddDeviceToGroup(int $InstanzID, string $GroupName, string $DeviceName);
+bool Z2M_AddDeviceToGroup(int $InstanzID, string $GroupName, string $DeviceName, string $Endpoint = '');
 ```
+
+Fügt ein Gerät einer Gruppe hinzu. Bei Geräten mit mehreren Endpoints kann `Endpoint` mit dem Endpoint-Namen oder der Endpoint-ID gefüllt werden.
 
 ---
 
 ### Z2M_RemoveDeviceFromGroup <!-- omit in toc -->
 
 ```php
-bool Z2M_RemoveDeviceFromGroup(int $InstanzID, string $GroupName, string $DeviceName);
+bool Z2M_RemoveDeviceFromGroup(int $InstanzID, string $GroupName, string $DeviceName, string $Endpoint = '', bool $SkipDisableReporting = true);
 ```
+
+Entfernt ein Gerät aus einer Gruppe. `SkipDisableReporting` verhindert, dass Zigbee2MQTT beim Entfernen automatisch Reporting deaktiviert.
 
 ---
 
@@ -185,6 +189,86 @@ bool Z2M_RemoveDeviceFromGroup(int $InstanzID, string $GroupName, string $Device
 ```php
 bool Z2M_RemoveAllDevicesFromGroup(int $InstanzID, string $GroupName);
 ```
+
+---
+
+### Z2M_RemoveDeviceFromAllGroups <!-- omit in toc -->
+
+```php
+bool Z2M_RemoveDeviceFromAllGroups(int $InstanzID, string $DeviceName, bool $SkipDisableReporting = true);
+```
+
+Entfernt ein Gerät aus allen Zigbee2MQTT-Gruppen.
+
+---
+
+### Z2M_SetGroupOptions <!-- omit in toc -->
+
+```php
+bool Z2M_SetGroupOptions(int $InstanzID, string $GroupName, string $OptionsJSON);
+```
+
+Setzt Zigbee2MQTT-Gruppenoptionen. `OptionsJSON` muss ein JSON-Objekt sein, z.B. `{"transition":1}`.
+
+---
+
+### Z2M_StoreScene <!-- omit in toc -->
+
+```php
+bool Z2M_StoreScene(int $InstanzID, string $FriendlyName, int $SceneID, string $SceneName = '', int $GroupID = 0);
+```
+
+Speichert den aktuellen Zustand eines Geräts oder einer Gruppe als Szene. Optional kann ein Name und bei Geräteszenen eine Gruppen-ID mitgegeben werden.
+
+---
+
+### Z2M_AddScene <!-- omit in toc -->
+
+```php
+bool Z2M_AddScene(int $InstanzID, string $FriendlyName, string $SceneJSON);
+```
+
+Legt eine Szene mit vollständiger Szenendefinition an. `SceneJSON` muss ein JSON-Objekt enthalten, z.B. `{"ID":3,"name":"Abend","brightness":180}`.
+
+---
+
+### Z2M_RecallScene <!-- omit in toc -->
+
+```php
+bool Z2M_RecallScene(int $InstanzID, string $FriendlyName, int $SceneID);
+```
+
+Ruft eine gespeicherte Szene auf.
+
+---
+
+### Z2M_RemoveScene <!-- omit in toc -->
+
+```php
+bool Z2M_RemoveScene(int $InstanzID, string $FriendlyName, int $SceneID);
+```
+
+Entfernt eine Szene.
+
+---
+
+### Z2M_RemoveAllScenes <!-- omit in toc -->
+
+```php
+bool Z2M_RemoveAllScenes(int $InstanzID, string $FriendlyName);
+```
+
+Entfernt alle Szenen eines Geräts oder einer Gruppe.
+
+---
+
+### Z2M_RenameScene <!-- omit in toc -->
+
+```php
+bool Z2M_RenameScene(int $InstanzID, string $FriendlyName, int $SceneID, string $SceneName);
+```
+
+Benennt eine Szene um.
 
 ---
 

@@ -215,6 +215,121 @@ class BridgeTest extends TestCase
         $this->assertSame(10000, $bridge->lastTimeout);
     }
 
+    public function testAddDeviceToGroupUsesOptionalEndpoint(): void
+    {
+        $bridge = $this->createBridgeTestDouble([
+            'status' => 'ok',
+            'data'   => ['group' => 'lights']
+        ]);
+
+        $this->assertTrue($bridge->AddDeviceToGroup('lights', 'wall_switch', 'right'));
+        $this->assertSame('/bridge/request/group/members/add', $bridge->lastTopic);
+        $this->assertSame([
+            'group'    => 'lights',
+            'device'   => 'wall_switch',
+            'endpoint' => 'right'
+        ], $bridge->lastPayload);
+    }
+
+    public function testRemoveDeviceFromGroupUsesEndpointAndSkipReportingFlag(): void
+    {
+        $bridge = $this->createBridgeTestDouble([
+            'status' => 'ok',
+            'data'   => ['group' => 'lights']
+        ]);
+
+        $this->assertTrue($bridge->RemoveDeviceFromGroup('lights', 'wall_switch', '2', false));
+        $this->assertSame('/bridge/request/group/members/remove', $bridge->lastTopic);
+        $this->assertSame([
+            'group'                  => 'lights',
+            'device'                 => 'wall_switch',
+            'skip_disable_reporting' => false,
+            'endpoint'               => 2
+        ], $bridge->lastPayload);
+    }
+
+    public function testRemoveDeviceFromAllGroupsUsesDevicePayload(): void
+    {
+        $bridge = $this->createBridgeTestDouble([
+            'status' => 'ok',
+            'data'   => ['device' => 'wall_switch']
+        ]);
+
+        $this->assertTrue($bridge->RemoveDeviceFromAllGroups('wall_switch', false));
+        $this->assertSame('/bridge/request/group/members/remove_all', $bridge->lastTopic);
+        $this->assertSame([
+            'device'                 => 'wall_switch',
+            'skip_disable_reporting' => false
+        ], $bridge->lastPayload);
+    }
+
+    public function testSetGroupOptionsUsesGroupOptionsBridgeRequest(): void
+    {
+        $bridge = $this->createBridgeTestDouble([
+            'status' => 'ok',
+            'data'   => [
+                'id'               => 'lights',
+                'restart_required' => false
+            ]
+        ]);
+
+        $this->assertTrue($bridge->SetGroupOptions('lights', '{"transition":1,"retain":false}'));
+        $this->assertSame('/bridge/request/group/options', $bridge->lastTopic);
+        $this->assertSame([
+            'id'      => 'lights',
+            'options' => [
+                'transition' => 1,
+                'retain'     => false
+            ]
+        ], $bridge->lastPayload);
+    }
+
+    public function testSetGroupOptionsRejectsInvalidJson(): void
+    {
+        $bridge = $this->createBridgeTestDouble(true);
+
+        $this->assertFalse(@$bridge->SetGroupOptions('lights', 'not json'));
+        $this->assertSame('', $bridge->lastTopic);
+    }
+
+    public function testStoreSceneSendsSceneStoreCommand(): void
+    {
+        $bridge = $this->createBridgeTestDouble(true);
+
+        $this->assertTrue($bridge->StoreScene('livingroom/lights', 2, 'Evening'));
+        $this->assertSame('/livingroom/lights/set', $bridge->lastTopic);
+        $this->assertSame([
+            'scene_store' => [
+                'ID'   => 2,
+                'name' => 'Evening'
+            ]
+        ], $bridge->lastPayload);
+        $this->assertSame(0, $bridge->lastTimeout);
+    }
+
+    public function testAddSceneRejectsInvalidJson(): void
+    {
+        $bridge = $this->createBridgeTestDouble(true);
+
+        $this->assertFalse(@$bridge->AddScene('lights', 'not json'));
+        $this->assertSame('', $bridge->lastTopic);
+    }
+
+    public function testRenameSceneSendsSceneRenameCommand(): void
+    {
+        $bridge = $this->createBridgeTestDouble(true);
+
+        $this->assertTrue($bridge->RenameScene('lights', 3, 'Dinner'));
+        $this->assertSame('/lights/set', $bridge->lastTopic);
+        $this->assertSame([
+            'scene_rename' => [
+                'ID'   => 3,
+                'name' => 'Dinner'
+            ]
+        ], $bridge->lastPayload);
+        $this->assertSame(0, $bridge->lastTimeout);
+    }
+
     private function createBridgeTestDouble(array|bool $result): Zigbee2MQTTBridge
     {
         return new class(900001, $result) extends Zigbee2MQTTBridge {

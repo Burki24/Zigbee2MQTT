@@ -29,6 +29,9 @@
 
 - Darstellung aller von Z2M gelieferten Werten der Gruppe in Symcon
 - Automatisches Erstellern der für die Variablen benötigten Variablenprofile gemäß den Daten aus Z2M
+- Verwaltung von Gruppenmitgliedern inklusive Endpoint-Auswahl
+- Pflege von Zigbee2MQTT-Gruppenoptionen
+- Speichern, Abrufen, Umbenennen und Löschen von Szenen
   
 ## 2. Voraussetzungen
 
@@ -63,6 +66,16 @@
    Die Konfiguration entspricht dem der einzelenen [Zigbee2MQTT-Geräte](../Device/README.md#4-konfiguration), mit der Außnahme das die IEEE-Adresse durch die Gruppen-Adresse ersetzt ist und es keine Geräte-Informationen gibt.
 
    ![Konfiguration Device](imgs/config.png)  
+
+   Zusätzlich bietet die Gruppeninstanz eigene Bereiche für Gruppenfunktionen:
+
+| Bereich             | Beschreibung                                                                                                                                 |
+| ------------------- | -------------------------------------------------------------------------------------------------------------------------------------------- |
+| Gruppenmitglieder   | Zeigt die von Zigbee2MQTT gemeldeten Mitglieder der Gruppe. Geräte können mit optionalem Endpoint hinzugefügt oder entfernt werden.          |
+| Gruppenoptionen     | Zeigt die aktuellen Zigbee2MQTT-Gruppenoptionen und erlaubt Änderungen einzelner Optionen als JSON-, Zahlen-, Boolean- oder Textwert.       |
+| Szenen              | Speichert den aktuellen Gruppenstatus als Szene, fügt erweiterte Szenen per JSON hinzu, ruft Szenen ab, benennt sie um oder löscht sie.     |
+
+   Änderungen werden über die Bridge an Zigbee2MQTT gesendet. Wenn Zigbee2MQTT für geänderte Gruppenoptionen einen Neustart verlangt, wird dies in der Bridge protokolliert.
 
 ## 5. Statusvariablen
 

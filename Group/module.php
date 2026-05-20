@@ -169,15 +169,23 @@ class Zigbee2MQTTGroup extends \Zigbee2MQTT\ModulBase
         if (!$Result) {
             return false;
         }
-        if (!isset($Result['foundGroup'])) {
+        if (($Result['foundGroup'] ?? false) !== true) {
             trigger_error($this->Translate('Group not found. Check topic.'), E_USER_NOTICE);
             return false;
-
         }
         $this->WriteAttributeArray(self::ATTRIBUTE_GROUP_OPTIONS, \is_array($Result['options'] ?? null) ? $Result['options'] : []);
         $this->WriteAttributeArray(self::ATTRIBUTE_GROUP_MEMBERS, \is_array($Result['members'] ?? null) ? $Result['members'] : []);
         $this->WriteAttributeArray(self::ATTRIBUTE_GROUP_SCENES, \is_array($Result['scenes'] ?? null) ? $Result['scenes'] : []);
-        unset($Result['foundGroup'], $Result['id'], $Result['options'], $Result['members'], $Result['scenes']);
+        unset(
+            $Result['foundGroup'],
+            $Result['id'],
+            $Result['ID'],
+            $Result['friendly_name'],
+            $Result['devices'],
+            $Result['options'],
+            $Result['members'],
+            $Result['scenes']
+        );
         // Aufruf der Methode aus der ModulBase-Klasse
         $this->WriteAttributeArray(self::ATTRIBUTE_EXPOSES, $Result);
         $this->mapExposesToVariables($Result);
@@ -194,17 +202,17 @@ class Zigbee2MQTTGroup extends \Zigbee2MQTT\ModulBase
         $this->SetGroupFormField($form, 'ShowMissingTranslationsButton', 'visible', count($this->missingTranslations) > 0);
 
         $memberValues = $this->BuildGroupMemberFormValues();
-        $this->SetGroupFormField($form, 'GroupMembersSettings', 'visible', $configured);
+        $this->SetGroupFormField($form, 'GroupMembersSettings', 'visible', $configured || $memberValues !== []);
         $this->SetGroupFormField($form, 'GroupMemberList', 'values', $memberValues);
         $this->SetGroupFormField($form, 'GroupMemberList', 'rowCount', min(10, max(4, \count($memberValues) + 1)));
 
         $optionValues = $this->BuildGroupOptionFormValues();
-        $this->SetGroupFormField($form, 'GroupOptionsSettings', 'visible', $configured);
+        $this->SetGroupFormField($form, 'GroupOptionsSettings', 'visible', $configured || $optionValues !== []);
         $this->SetGroupFormField($form, 'GroupOptionList', 'values', $optionValues);
         $this->SetGroupFormField($form, 'GroupOptionList', 'rowCount', min(8, max(4, \count($optionValues) + 1)));
 
         $sceneValues = $this->BuildGroupSceneFormValues();
-        $this->SetGroupFormField($form, 'GroupScenesSettings', 'visible', $configured);
+        $this->SetGroupFormField($form, 'GroupScenesSettings', 'visible', $configured || $sceneValues !== []);
         $this->SetGroupFormField($form, 'GroupSceneList', 'values', $sceneValues);
         $this->SetGroupFormField($form, 'GroupSceneList', 'rowCount', min(8, max(4, \count($sceneValues) + 1)));
 
@@ -246,7 +254,7 @@ class Zigbee2MQTTGroup extends \Zigbee2MQTT\ModulBase
             ];
         }
 
-        ksort($values);
+        usort($values, static fn (array $left, array $right): int => strcmp($left['name'], $right['name']));
         return $values;
     }
 

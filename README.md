@@ -240,6 +240,7 @@ Details stehen in der [Dokumentation des Geräte-Moduls](Device/README.md#46-var
 - Geräte-Instanzen können Zigbee2MQTT-Geräteoptionen wie `transition`, `debounce`, `filtered_attributes`, `optimistic`, `retain` oder gerätespezifische `definition.options` direkt in der Instanz-Konfiguration anzeigen und setzen.
 - Die Bridge unterstützt `bridge/request/device/options` über `Z2M_SetDeviceOptions()` und aktualisierte OTA-Funktionen für Downgrade, Scheduling, Unschedule und eigene OTA-URLs.
 - Binding und Reporting können in der Geräte-Konfiguration über Endpoint-, Cluster- und Attributdaten gepflegt werden; die Bridge stellt dazu Funktionen für Binding mit Cluster-Auswahl sowie Reporting Configure/Read bereit.
+- Gruppen-Instanzen können Mitglieder inklusive Endpoint verwalten, Zigbee2MQTT-Gruppenoptionen setzen und Szenen speichern, hinzufügen, abrufen, umbenennen oder löschen.
 - Temperatur-Visualisierungen können einen konfigurierbaren Fallback-Bereich nutzen, wenn Zigbee2MQTT keine `value_min`/`value_max` Werte liefert.
 - Mindestversion auf IP-Symcon 9.0 angehoben, da das Modul auf `IPSModuleStrict` basiert.
 - Interne Struktur der Visualisierungs- und Variablenregistrierung refaktoriert, ohne die öffentlichen Modul-Funktionen zu ändern.

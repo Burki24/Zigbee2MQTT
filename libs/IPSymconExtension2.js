@@ -1,6 +1,6 @@
 /*
  IPSymconExtension
- Version: 5.42
+ Version: 6.00
 */
 
 class MyLogger {
@@ -193,9 +193,10 @@ class IPSymconExtension {
 
         return members.map(member => {
             const ieeeAddress = member.deviceIeeeAddress ?? member.device?.ieeeAddr ?? member.ieeeAddr ?? member.ieee_address ?? '';
-            const device = this.zigbee.resolveEntity(ieeeAddress || member.device);
+            const fallbackDevice = typeof member.device === 'string' ? member.device : member.device?.name ?? '';
+            const device = this.zigbee.resolveEntity(ieeeAddress || fallbackDevice);
             return {
-                device: device?.name ?? String(ieeeAddress || member.device ?? ''),
+                device: device?.name ?? String(ieeeAddress || fallbackDevice),
                 ieee_address: String(ieeeAddress || ''),
                 endpoint: this.#groupMemberEndpoint(member)
             };

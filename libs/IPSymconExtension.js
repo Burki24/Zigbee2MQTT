@@ -1,6 +1,6 @@
 /*
  IPSymconExtension
- Version: 4.63
+ Version: 6.00
 */
 
 class IPSymconExtension {
