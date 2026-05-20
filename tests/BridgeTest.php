@@ -122,6 +122,36 @@ class BridgeTest extends TestCase
         $this->assertSame(5000, $bridge->lastTimeout);
     }
 
+    public function testSetDeviceOptionsUsesDeviceOptionsBridgeRequest(): void
+    {
+        $bridge = $this->createBridgeTestDouble([
+            'status' => 'ok',
+            'data'   => [
+                'id'               => 'test_device',
+                'restart_required' => false
+            ]
+        ]);
+
+        $this->assertTrue($bridge->SetDeviceOptions('test_device', '{"transition":1,"filtered_attributes":["battery"]}'));
+        $this->assertSame('/bridge/request/device/options', $bridge->lastTopic);
+        $this->assertSame([
+            'id'      => 'test_device',
+            'options' => [
+                'transition'          => 1,
+                'filtered_attributes' => ['battery']
+            ]
+        ], $bridge->lastPayload);
+        $this->assertSame(5000, $bridge->lastTimeout);
+    }
+
+    public function testSetDeviceOptionsRejectsInvalidJson(): void
+    {
+        $bridge = $this->createBridgeTestDouble(true);
+
+        $this->assertFalse(@$bridge->SetDeviceOptions('test_device', 'not json'));
+        $this->assertSame('', $bridge->lastTopic);
+    }
+
     private function createBridgeTestDouble(array|bool $result): Zigbee2MQTTBridge
     {
         return new class(900001, $result) extends Zigbee2MQTTBridge {

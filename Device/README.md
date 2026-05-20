@@ -18,7 +18,8 @@
   - [4.1 Visualisierung und Kacheln](#41-visualisierung-und-kacheln)
   - [4.2 Temperatur-Visualisierung](#42-temperatur-visualisierung)
   - [4.3 Farbtemperatur in der Beleuchtungs-Kachel](#43-farbtemperatur-in-der-beleuchtungs-kachel)
-  - [4.4 Variablenverwaltung](#44-variablenverwaltung)
+  - [4.4 Geräteoptionen](#44-geräteoptionen)
+  - [4.5 Variablenverwaltung](#45-variablenverwaltung)
 - [5. Statusvariablen](#5-statusvariablen)
 - [6. PHP-Funktionsreferenz](#6-php-funktionsreferenz)
 - [7. Aktionen](#7-aktionen)
@@ -126,7 +127,15 @@ Wenn Zigbee2MQTT `value_min` und `value_max` für `color_temp` liefert, wird dar
 
 Falls kein Wertebereich vorhanden ist, verwendet das Modul den Standardbereich `1000 K` bis `12000 K`. Zusätzlich wird ein Farbverlauf von Warmweiß bis Kaltweiß gesetzt, der zum jeweiligen Kelvin-Bereich passt.
 
-### 4.4 Variablenverwaltung
+### 4.4 Geräteoptionen
+
+Zigbee2MQTT liefert je nach Gerät allgemeine und gerätespezifische Optionen. In der Instanz-Konfiguration erscheint dafür der Bereich **Geräteoptionen**. Dort werden bekannte Optionen mit aktuellem Wert, Typ und Beschreibung angezeigt.
+
+Die Änderung wird über `bridge/request/device/options` an Zigbee2MQTT gesendet. Für Listen und Objekte muss JSON-Schreibweise verwendet werden, z. B. `["battery"]` für `filtered_attributes` oder `{"key":"value"}` für Objektwerte.
+
+Optionen, die Zigbee2MQTT erst nach einem Neustart übernimmt, lösen in der Bridge eine entsprechende Meldung aus.
+
+### 4.5 Variablenverwaltung
 
 Die Instanz merkt sich alle aus Exposes, Payloads und Systemmeldungen bekannten Variablen in einem lokalen Variablenkatalog. In der Konfiguration erscheint dazu der Bereich **Variablen**. Dort kann pro Variable gesteuert werden, ob das Modul sie automatisch anlegen darf.
 

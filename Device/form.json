@@ -177,6 +177,92 @@
         },
         {
             "type": "ExpansionPanel",
+            "name": "DeviceOptionsSettings",
+            "caption": "Device options",
+            "expanded": false,
+            "visible": false,
+            "items": [
+                {
+                    "type": "Label",
+                    "caption": "Configure Zigbee2MQTT device options. Values are sent to Zigbee2MQTT and existing variables are not changed."
+                },
+                {
+                    "type": "List",
+                    "name": "DeviceOptionList",
+                    "add": false,
+                    "delete": false,
+                    "rowCount": 8,
+                    "loadValuesFromConfiguration": false,
+                    "sort": {
+                        "column": "label",
+                        "direction": "ascending"
+                    },
+                    "columns": [
+                        {
+                            "caption": "Option",
+                            "name": "label",
+                            "width": "auto",
+                            "quickFilter": true
+                        },
+                        {
+                            "caption": "Ident",
+                            "name": "name",
+                            "width": "180px",
+                            "quickFilter": true
+                        },
+                        {
+                            "caption": "Type",
+                            "name": "type",
+                            "width": "100px"
+                        },
+                        {
+                            "caption": "Current value",
+                            "name": "current",
+                            "width": "180px"
+                        },
+                        {
+                            "caption": "Description",
+                            "name": "description",
+                            "width": "300px"
+                        },
+                        {
+                            "caption": "Action",
+                            "name": "action",
+                            "width": "100px",
+                            "align": "center",
+                            "onClick": "IPS_RequestAction($id, 'SelectDeviceOption', json_encode(['name' => $DeviceOptionList['name'], 'value' => $DeviceOptionList['current']]));"
+                        }
+                    ],
+                    "values": []
+                },
+                {
+                    "type": "Label",
+                    "caption": "Use JSON notation for arrays and objects, e.g. [\"battery\"] or {\"key\":\"value\"}."
+                },
+                {
+                    "type": "RowLayout",
+                    "items": [
+                        {
+                            "type": "ValidationTextBox",
+                            "name": "DeviceOptionName",
+                            "caption": "Option"
+                        },
+                        {
+                            "type": "ValidationTextBox",
+                            "name": "DeviceOptionValue",
+                            "caption": "Value (JSON or text)"
+                        },
+                        {
+                            "type": "Button",
+                            "caption": "Apply option",
+                            "onClick": "IPS_RequestAction($id, 'ApplyDeviceOption', json_encode(['name' => $DeviceOptionName, 'value' => $DeviceOptionValue]));"
+                        }
+                    ]
+                }
+            ]
+        },
+        {
+            "type": "ExpansionPanel",
             "name": "VariableSelectionSettings",
             "caption": "Variables",
             "expanded": false,

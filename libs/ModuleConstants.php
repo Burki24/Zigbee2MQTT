@@ -49,6 +49,10 @@ trait Constants
     protected const ATTRIBUTE_EXPOSES = 'Exposes';
     /** @var string Attribut fuer geraetespezifische filtered_attributes aus Z2M */
     protected const ATTRIBUTE_FILTERED = 'FilteredAttributes';
+    /** @var string Attribut fuer die aktuellen geraetespezifischen Z2M-Optionen */
+    protected const ATTRIBUTE_DEVICE_OPTIONS = 'DeviceOptions';
+    /** @var string Attribut fuer die von Z2M gemeldeten Optionsdefinitionen */
+    protected const ATTRIBUTE_DEVICE_OPTION_DEFINITIONS = 'DeviceOptionDefinitions';
     /** @var string Attribut fuer den lokal bekannten Variablenkatalog */
     protected const ATTRIBUTE_VARIABLE_CATALOG = 'VariableCatalog';
     /** @var string Attribut fuer vom Anwender deaktivierte Variablen */

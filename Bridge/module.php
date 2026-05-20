@@ -699,6 +699,36 @@ class Zigbee2MQTTBridge extends IPSModuleStrict
     }
 
     /**
+     * SetDeviceOptions
+     *
+     * @param string $DeviceName  Friendly Name oder IEEE-Adresse.
+     * @param string $OptionsJSON JSON-Objekt mit den zu setzenden Geraeteoptionen.
+     *
+     * @return bool
+     */
+    public function SetDeviceOptions(string $DeviceName, string $OptionsJSON): bool
+    {
+        $options = json_decode($OptionsJSON, true);
+        if (!\is_array($options) || !str_starts_with(ltrim($OptionsJSON), '{')) {
+            trigger_error($this->Translate('Device options must be a JSON object.'), E_USER_NOTICE);
+            return false;
+        }
+
+        $data = $this->SendCheckedBridgeRequest('/bridge/request/device/options', [
+            'id'      => $DeviceName,
+            'options' => $options
+        ]);
+        if ($data === false) {
+            return false;
+        }
+        if (($data['restart_required'] ?? false) === true) {
+            $this->LogMessage($this->Translate('Zigbee2MQTT restart is required for the changed device options.'), KL_NOTIFY);
+        }
+
+        return true;
+    }
+
+    /**
      * CheckOTAUpdate
      *
      * @param  string $DeviceName

@@ -189,6 +189,38 @@ class DevicesTest extends DumpInclude
         $this->assertStringContainsString('"type":"sensor"', $html);
     }
 
+    public function testDeviceOptionsAreShownInConfigurationForm(): void
+    {
+        [$iid] = $this->createTestInstance('MixedLightSensor.json');
+        $this->writeStubAttributeArray($iid, 'DeviceOptions', [
+            'transition'          => 1,
+            'filtered_attributes' => ['battery']
+        ]);
+        $this->writeStubAttributeArray($iid, 'DeviceOptionDefinitions', [
+            [
+                'name'        => 'temperature_precision',
+                'label'       => 'Temperature precision',
+                'type'        => 'numeric',
+                'description' => 'Controls the temperature precision.'
+            ]
+        ]);
+
+        $form = json_decode(IPS_GetConfigurationForm($iid), true);
+        $this->assertFormItemVisible($form, 'DeviceOptionsSettings');
+
+        $list = $this->findFormItemByName($form, 'DeviceOptionList');
+        $this->assertNotNull($list);
+
+        $filteredAttributes = $this->findDeviceOptionRow($list['values'], 'filtered_attributes');
+        $this->assertNotNull($filteredAttributes);
+        $this->assertSame('["battery"]', $filteredAttributes['current']);
+        $this->assertSame('Bearbeiten', $filteredAttributes['action']);
+
+        $temperaturePrecision = $this->findDeviceOptionRow($list['values'], 'temperature_precision');
+        $this->assertNotNull($temperaturePrecision);
+        $this->assertSame('Numerisch', $temperaturePrecision['type']);
+    }
+
     public function testColorCompositeCatalogUsesSingleColorVariable()
     {
         if (!IPS_VariableProfileExists('~HexColor')) {
@@ -592,6 +624,17 @@ class DevicesTest extends DumpInclude
     {
         foreach ($rows as $row) {
             if (($row['ident'] ?? null) === $ident) {
+                return $row;
+            }
+        }
+
+        return null;
+    }
+
+    private function findDeviceOptionRow(array $rows, string $name): ?array
+    {
+        foreach ($rows as $row) {
+            if (($row['name'] ?? null) === $name) {
                 return $row;
             }
         }

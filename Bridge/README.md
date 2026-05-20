@@ -211,6 +211,16 @@ bool Z2M_RemoveDevice(int $InstanzID, string $DeviceName);
 
 ---
 
+### Z2M_SetDeviceOptions <!-- omit in toc -->
+
+```php
+bool Z2M_SetDeviceOptions(int $InstanzID, string $DeviceName, string $OptionsJSON);
+```
+
+Setzt Zigbee2MQTT-Geräteoptionen über `bridge/request/device/options`. `OptionsJSON` muss ein JSON-Objekt sein, z. B. `{"transition":1}` oder `{"filtered_attributes":["battery"]}`.
+
+---
+
 ### Z2M_CheckOTAUpdate <!-- omit in toc -->
 
 ```php

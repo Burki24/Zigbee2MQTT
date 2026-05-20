@@ -440,6 +440,8 @@ abstract class ModulBase extends \IPSModuleStrict
         $this->RegisterPropertyFloat(self::PROPERTY_HEATING_TILE_PRESET_3, 22.0);
         $this->RegisterAttributeArray(self::ATTRIBUTE_EXPOSES, []);
         $this->RegisterAttributeArray(self::ATTRIBUTE_FILTERED, []);
+        $this->RegisterAttributeArray(self::ATTRIBUTE_DEVICE_OPTIONS, []);
+        $this->RegisterAttributeArray(self::ATTRIBUTE_DEVICE_OPTION_DEFINITIONS, []);
         $this->RegisterAttributeArray(self::ATTRIBUTE_VARIABLE_CATALOG, []);
         $this->RegisterAttributeArray(self::ATTRIBUTE_DISABLED_VARIABLES, []);
         $this->RegisterAttributeArray(self::ATTRIBUTE_DELETED_VARIABLES, []);

@@ -125,6 +125,14 @@ class Zigbee2MQTTDevice extends \Zigbee2MQTT\ModulBase
             $this->UpdateFormField('IEEE', 'enabled', true);
             return;
         }
+        if ($ident == 'SelectDeviceOption') {
+            $this->SelectDeviceOptionFromForm($value);
+            return;
+        }
+        if ($ident == 'ApplyDeviceOption') {
+            $this->ApplyDeviceOptionFromForm($value);
+            return;
+        }
         parent::RequestAction($ident, $value);
     }
 
@@ -172,8 +180,15 @@ class Zigbee2MQTTDevice extends \Zigbee2MQTT\ModulBase
             return false;
         }
 
-        // filtered_attributes aus Z2M-Konfiguration speichern (leeres Array wenn nicht vorhanden)
-        $this->WriteAttributeArray(parent::ATTRIBUTE_FILTERED, $Result['filtered_attributes'] ?? []);
+        $deviceOptions = \is_array($Result['options'] ?? null) ? $Result['options'] : [];
+        $definitionOptions = \is_array($Result['definition_options'] ?? null) ? $Result['definition_options'] : [];
+        $filteredAttributes = \is_array($deviceOptions['filtered_attributes'] ?? null)
+            ? $deviceOptions['filtered_attributes']
+            : ($Result['filtered_attributes'] ?? []);
+
+        $this->WriteAttributeArray(parent::ATTRIBUTE_DEVICE_OPTIONS, $deviceOptions);
+        $this->WriteAttributeArray(parent::ATTRIBUTE_DEVICE_OPTION_DEFINITIONS, $definitionOptions);
+        $this->WriteAttributeArray(parent::ATTRIBUTE_FILTERED, \is_array($filteredAttributes) ? $filteredAttributes : []);
 
         $this->WriteAttributeArray(parent::ATTRIBUTE_EXPOSES, $Result['exposes']);
         $this->mapExposesToVariables($Result['exposes']);

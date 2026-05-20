@@ -1,6 +1,6 @@
 /*
  IPSymconExtension
- Version: 5.40
+ Version: 5.41
 */
 
 class MyLogger {
@@ -119,6 +119,8 @@ class IPSymconExtension {
     }
 
     #createDevicePayload(device, boolExposes) {
+        const definition = device.definition ?? device._definition ?? {};
+        const options = device.options ?? {};
         let exposes;
         if (boolExposes) {
             exposes = device.exposes();
@@ -127,15 +129,17 @@ class IPSymconExtension {
             ieeeAddr: device.ieeeAddr,
             type: device.zh.type,
             networkAddress: device.zh.networkAddress,
-            model: device.definition?.model ?? 'Unknown Model',
-            vendor: device.definition?.vendor ?? 'Unknown Vendor',
-            description: device.definition?.description ?? 'No description',
+            model: definition.model ?? 'Unknown Model',
+            vendor: definition.vendor ?? 'Unknown Vendor',
+            description: definition.description ?? 'No description',
             friendly_name: device.name,
             manufacturerName: device.zh.manufacturerName,
             powerSource: device.zh.powerSource,
             modelID: device.zh.modelID,
             exposes: exposes,
-            filtered_attributes: device.options?.filtered_attributes ?? [],
+            options: options,
+            definition_options: definition.options ?? [],
+            filtered_attributes: options.filtered_attributes ?? [],
         };
     }
 
