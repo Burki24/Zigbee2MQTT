@@ -86,6 +86,16 @@ Die aktuelle Symcon Erweiterung wird in Z2M installiert.
 
 ---
 
+### Z2M_RequestOptions <!-- omit in toc -->
+
+```php
+bool Z2M_RequestOptions(int $InstanzID);
+```
+
+Fordert die aktuellen Bridge-Optionen von Zigbee2MQTT an und aktualisiert die Bridge-Instanz anhand der Antwort.
+
+---
+
 ### Z2M_SetLastSeen <!-- omit in toc -->
 
 ```php
@@ -93,6 +103,16 @@ bool Z2M_SetLastSeen(int $InstanzID);
 ```
 
 Die Konfiguration der `last_seen` Einstellung in Z2M wird auf `epoch` verändert, damit die Instanzen in Symcon den Wert korrekt darstellen können.  
+
+---
+
+### Z2M_SetPermitJoinOption <!-- omit in toc -->
+
+```php
+bool Z2M_SetPermitJoinOption(int $InstanzID, bool $PermitJoin);
+```
+
+Setzt die globale Zigbee2MQTT-Option `permit_join`. Diese Option sollte aus Sicherheitsgründen normalerweise deaktiviert sein.
 
 ---
 
