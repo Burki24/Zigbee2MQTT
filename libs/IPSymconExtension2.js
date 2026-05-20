@@ -83,11 +83,14 @@ class IPSymconExtension {
                 for (const group of this.zigbee.groupsIterator()) {
                     const listEntry = {
                         devices: [],
-                        friendly_name: group.options.friendly_name,
-                        ID: group.zh.groupID
+                        members: this.#createGroupMemberPayload(group),
+                        scenes: this.#createGroupScenePayload(group),
+                        options: group.options ?? {},
+                        friendly_name: group.options?.friendly_name,
+                        ID: group.zh?.groupID ?? group.ID ?? group.id ?? null
                     }
-                    for (const device of group.zh.members) {
-                        listEntry.devices.push(device.deviceIeeeAddress);
+                    for (const member of listEntry.members) {
+                        listEntry.devices.push(member.ieee_address || member.device);
                     }
                     if (typeof listEntry.friendly_name !== "undefined") {
                         message.list.push(listEntry);
@@ -147,7 +150,12 @@ class IPSymconExtension {
     #createGroupExposes(groupname) {
         const groupSupportedTypes = ['light', 'switch', 'lock', 'cover'];
         const groupExposes = {
-            foundGroup: false
+            foundGroup: false,
+            options: {},
+            members: [],
+            scenes: [],
+            ID: null,
+            friendly_name: groupname
         };
         groupSupportedTypes.forEach(type => groupExposes[type] = {
             type,
@@ -157,17 +165,49 @@ class IPSymconExtension {
         const group = this.zigbee.resolveEntity(groupname);
         if (typeof group !== "undefined") {
             groupExposes.foundGroup = true;
+            groupExposes.options = group.options ?? {};
+            groupExposes.members = this.#createGroupMemberPayload(group);
+            groupExposes.scenes = this.#createGroupScenePayload(group);
+            groupExposes.ID = group.zh?.groupID ?? group.ID ?? group.id ?? null;
+            groupExposes.friendly_name = group.options?.friendly_name ?? groupname;
             this.#processGroupDevices(group, groupExposes);
         }
         return groupExposes;
     }
 
     #processGroupDevices(group, groupExposes) {
-        group.zh.members.forEach(member => {
-            this.logger.info(`Symcon processGroupDevices: ${JSON.stringify(member.deviceIeeeAddress)}`);
-            const device = this.zigbee.resolveEntity(member.deviceIeeeAddress);
-            this.#addDeviceExposesToGroup(device, groupExposes);
+        this.#createGroupMemberPayload(group).forEach(member => {
+            this.logger.info(`Symcon processGroupDevices: ${JSON.stringify(member.ieee_address || member.device)}`);
+            const device = this.zigbee.resolveEntity(member.ieee_address || member.device);
+            if (typeof device !== "undefined") {
+                this.#addDeviceExposesToGroup(device, groupExposes);
+            }
         });
+    }
+
+    #createGroupMemberPayload(group) {
+        const members = group.zh?.members ?? group.members ?? [];
+        if (!Array.isArray(members)) {
+            return [];
+        }
+
+        return members.map(member => {
+            const ieeeAddress = member.deviceIeeeAddress ?? member.device?.ieeeAddr ?? member.ieeeAddr ?? member.ieee_address ?? '';
+            const device = this.zigbee.resolveEntity(ieeeAddress || member.device);
+            return {
+                device: device?.name ?? String(ieeeAddress || member.device ?? ''),
+                ieee_address: String(ieeeAddress || ''),
+                endpoint: this.#groupMemberEndpoint(member)
+            };
+        });
+    }
+
+    #groupMemberEndpoint(member) {
+        return String(member.endpoint?.ID ?? member.endpoint?.id ?? member.ID ?? member.id ?? member.endpointID ?? member.endpoint_id ?? '');
+    }
+
+    #createGroupScenePayload(group) {
+        return this.#plainArray(group.zh?.meta?.scenes ?? group.zh?.scenes ?? group.scenes ?? group.meta?.scenes ?? []);
     }
 
     #addDeviceExposesToGroup(device, groupExposes) {

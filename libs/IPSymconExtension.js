@@ -73,7 +73,7 @@ class IPSymconExtension {
                     list: [],
                     transaction: 0,
                 };
-                groups.list = this.settings.getGroups();
+                groups.list = this.settings.getGroups().map(group => this.#createLegacyGroupPayload(group));
                 groups.transaction = message.transaction;
                 this.logger.info('Symcon: lists/request/getGroups');
                 await this.mqtt.publish('SymconExtension/lists/response/getGroups', JSON.stringify(groups), {
@@ -195,7 +195,12 @@ class IPSymconExtension {
         const groupSupportedTypes = ['light', 'switch', 'lock', 'cover'];
         const groups = this.settings.getGroups();
         const groupExposes = {
-            foundGroup: false
+            foundGroup: false,
+            options: {},
+            members: [],
+            scenes: [],
+            ID: null,
+            friendly_name: groupName
         };
 
         groupSupportedTypes.forEach(type => groupExposes[type] = {
@@ -206,6 +211,11 @@ class IPSymconExtension {
         groups.forEach(group => {
             if (group.friendly_name === groupName) {
                 groupExposes.foundGroup = true;
+                groupExposes.options = group.options ?? {};
+                groupExposes.members = this.#createLegacyGroupMemberPayload(group);
+                groupExposes.scenes = this.#plainArray(group.scenes ?? group.meta?.scenes ?? []);
+                groupExposes.ID = group.ID ?? group.id ?? null;
+                groupExposes.friendly_name = group.friendly_name ?? groupName;
                 this.#processGroupDevices(group, groupExposes);
             }
         });
@@ -214,11 +224,36 @@ class IPSymconExtension {
     }
 
     #processGroupDevices(group, groupExposes) {
-        group.devices.forEach(deviceAddress => {
-            const device = this.zigbee.resolveEntity(deviceAddress.substring(0, deviceAddress.indexOf('/')));
+        this.#createLegacyGroupMemberPayload(group).forEach(member => {
+            const device = this.zigbee.resolveEntity(member.ieee_address || member.device);
             if (typeof device !== "undefined") {
                 this.#addDeviceExposesToGroup(device, groupExposes);
             }
+        });
+    }
+
+    #createLegacyGroupPayload(group) {
+        return {
+            ...group,
+            members: this.#createLegacyGroupMemberPayload(group),
+            scenes: this.#plainArray(group.scenes ?? group.meta?.scenes ?? []),
+            options: group.options ?? {},
+        };
+    }
+
+    #createLegacyGroupMemberPayload(group) {
+        const devices = group.devices ?? [];
+        if (!Array.isArray(devices)) {
+            return [];
+        }
+
+        return devices.map(deviceAddress => {
+            const parts = String(deviceAddress).split('/');
+            return {
+                device: parts[0] ?? '',
+                ieee_address: parts[0] ?? '',
+                endpoint: parts[1] ?? ''
+            };
         });
     }
 
