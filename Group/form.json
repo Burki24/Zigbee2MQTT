@@ -18,9 +18,246 @@
         },
         {
             "type": "Button",
+            "name": "ShowMissingTranslationsButton",
             "visible": false,
             "caption": "Show missing translations",
             "onClick": "IPS_RequestAction($id, 'ShowMissingTranslations', true);"
+        },
+        {
+            "type": "ExpansionPanel",
+            "name": "GroupMembersSettings",
+            "caption": "Group members",
+            "expanded": false,
+            "visible": false,
+            "items": [
+                {
+                    "type": "List",
+                    "name": "GroupMemberList",
+                    "add": false,
+                    "delete": false,
+                    "rowCount": 4,
+                    "loadValuesFromConfiguration": false,
+                    "columns": [
+                        {
+                            "caption": "Device",
+                            "name": "device",
+                            "width": "auto",
+                            "quickFilter": true
+                        },
+                        {
+                            "caption": "Endpoint",
+                            "name": "endpoint",
+                            "width": "120px"
+                        },
+                        {
+                            "caption": "Action",
+                            "name": "action",
+                            "width": "100px",
+                            "align": "center",
+                            "onClick": "IPS_RequestAction($id, 'SelectGroupMember', json_encode(['device' => $GroupMemberList['device'], 'endpoint' => $GroupMemberList['endpoint']]));"
+                        }
+                    ],
+                    "values": []
+                },
+                {
+                    "type": "RowLayout",
+                    "items": [
+                        {
+                            "type": "ValidationTextBox",
+                            "name": "GroupMemberDevice",
+                            "caption": "Device"
+                        },
+                        {
+                            "type": "ValidationTextBox",
+                            "name": "GroupMemberEndpoint",
+                            "caption": "Endpoint"
+                        }
+                    ]
+                },
+                {
+                    "type": "CheckBox",
+                    "name": "GroupMemberSkipDisableReporting",
+                    "caption": "Keep reporting when removing",
+                    "value": true
+                },
+                {
+                    "type": "RowLayout",
+                    "items": [
+                        {
+                            "type": "Button",
+                            "caption": "Add member",
+                            "onClick": "IPS_RequestAction($id, 'AddGroupMember', json_encode(['device' => $GroupMemberDevice, 'endpoint' => $GroupMemberEndpoint]));"
+                        },
+                        {
+                            "type": "Button",
+                            "caption": "Remove member",
+                            "onClick": "IPS_RequestAction($id, 'RemoveGroupMember', json_encode(['device' => $GroupMemberDevice, 'endpoint' => $GroupMemberEndpoint, 'skip_disable_reporting' => $GroupMemberSkipDisableReporting]));"
+                        },
+                        {
+                            "type": "Button",
+                            "caption": "Remove from all groups",
+                            "onClick": "IPS_RequestAction($id, 'RemoveGroupMemberFromAllGroups', json_encode(['device' => $GroupMemberDevice, 'skip_disable_reporting' => $GroupMemberSkipDisableReporting]));"
+                        }
+                    ]
+                }
+            ]
+        },
+        {
+            "type": "ExpansionPanel",
+            "name": "GroupOptionsSettings",
+            "caption": "Group options",
+            "expanded": false,
+            "visible": false,
+            "items": [
+                {
+                    "type": "Label",
+                    "caption": "Configure Zigbee2MQTT group options. Values are sent to Zigbee2MQTT."
+                },
+                {
+                    "type": "List",
+                    "name": "GroupOptionList",
+                    "add": false,
+                    "delete": false,
+                    "rowCount": 4,
+                    "loadValuesFromConfiguration": false,
+                    "columns": [
+                        {
+                            "caption": "Option",
+                            "name": "name",
+                            "width": "180px",
+                            "quickFilter": true
+                        },
+                        {
+                            "caption": "Current value",
+                            "name": "current",
+                            "width": "180px"
+                        },
+                        {
+                            "caption": "Action",
+                            "name": "action",
+                            "width": "100px",
+                            "align": "center",
+                            "onClick": "IPS_RequestAction($id, 'SelectGroupOption', json_encode(['name' => $GroupOptionList['name'], 'value' => $GroupOptionList['current']]));"
+                        }
+                    ],
+                    "values": []
+                },
+                {
+                    "type": "RowLayout",
+                    "items": [
+                        {
+                            "type": "ValidationTextBox",
+                            "name": "GroupOptionName",
+                            "caption": "Option"
+                        },
+                        {
+                            "type": "ValidationTextBox",
+                            "name": "GroupOptionValue",
+                            "caption": "Value (JSON or text)"
+                        },
+                        {
+                            "type": "Button",
+                            "caption": "Apply option",
+                            "onClick": "IPS_RequestAction($id, 'ApplyGroupOption', json_encode(['name' => $GroupOptionName, 'value' => $GroupOptionValue]));"
+                        }
+                    ]
+                }
+            ]
+        },
+        {
+            "type": "ExpansionPanel",
+            "name": "GroupScenesSettings",
+            "caption": "Scenes",
+            "expanded": false,
+            "visible": false,
+            "items": [
+                {
+                    "type": "List",
+                    "name": "GroupSceneList",
+                    "add": false,
+                    "delete": false,
+                    "rowCount": 4,
+                    "loadValuesFromConfiguration": false,
+                    "columns": [
+                        {
+                            "caption": "ID",
+                            "name": "id",
+                            "width": "80px"
+                        },
+                        {
+                            "caption": "Name",
+                            "name": "name",
+                            "width": "auto",
+                            "quickFilter": true
+                        },
+                        {
+                            "caption": "Action",
+                            "name": "action",
+                            "width": "100px",
+                            "align": "center",
+                            "onClick": "IPS_RequestAction($id, 'SelectGroupScene', json_encode(['id' => $GroupSceneList['id'], 'name' => $GroupSceneList['name']]));"
+                        }
+                    ],
+                    "values": []
+                },
+                {
+                    "type": "RowLayout",
+                    "items": [
+                        {
+                            "type": "NumberSpinner",
+                            "name": "GroupSceneID",
+                            "caption": "Scene ID",
+                            "minimum": 0,
+                            "maximum": 255
+                        },
+                        {
+                            "type": "ValidationTextBox",
+                            "name": "GroupSceneName",
+                            "caption": "Scene name"
+                        }
+                    ]
+                },
+                {
+                    "type": "ValidationTextBox",
+                    "name": "GroupSceneJson",
+                    "caption": "Scene JSON"
+                },
+                {
+                    "type": "RowLayout",
+                    "items": [
+                        {
+                            "type": "Button",
+                            "caption": "Store scene",
+                            "onClick": "IPS_RequestAction($id, 'StoreGroupScene', json_encode(['id' => $GroupSceneID, 'name' => $GroupSceneName]));"
+                        },
+                        {
+                            "type": "Button",
+                            "caption": "Add scene",
+                            "onClick": "IPS_RequestAction($id, 'AddGroupScene', $GroupSceneJson);"
+                        },
+                        {
+                            "type": "Button",
+                            "caption": "Recall scene",
+                            "onClick": "IPS_RequestAction($id, 'RecallGroupScene', $GroupSceneID);"
+                        },
+                        {
+                            "type": "Button",
+                            "caption": "Rename scene",
+                            "onClick": "IPS_RequestAction($id, 'RenameGroupScene', json_encode(['id' => $GroupSceneID, 'name' => $GroupSceneName]));"
+                        },
+                        {
+                            "type": "Button",
+                            "caption": "Remove scene",
+                            "onClick": "IPS_RequestAction($id, 'RemoveGroupScene', $GroupSceneID);"
+                        },
+                        {
+                            "type": "Button",
+                            "caption": "Remove all scenes",
+                            "onClick": "IPS_RequestAction($id, 'RemoveAllGroupScenes', true);"
+                        }
+                    ]
+                }
+            ]
         }
     ],
     "actions": [

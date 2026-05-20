@@ -695,7 +695,7 @@ trait DeviceFormHelper
     /**
      * Ruft eine Funktion der passenden Bridge-Instanz auf.
      */
-    private function CallMatchingBridgeFunction(string $function, array $arguments): mixed
+    protected function CallMatchingBridgeFunction(string $function, array $arguments): mixed
     {
         $bridgeID = $this->FindMatchingBridgeInstanceID();
         $functionName = 'Z2M_' . $function;
@@ -710,7 +710,7 @@ trait DeviceFormHelper
     /**
      * Findet die Bridge-Instanz zum gleichen MQTT-Basistopic.
      */
-    private function FindMatchingBridgeInstanceID(): int|false
+    protected function FindMatchingBridgeInstanceID(): int|false
     {
         $baseTopic = $this->ReadPropertyString(self::MQTT_BASE_TOPIC);
         foreach (IPS_GetInstanceListByModuleID(self::GUID_MODULE_BRIDGE) as $bridgeID) {

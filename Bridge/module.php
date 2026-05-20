@@ -573,10 +573,14 @@ class Zigbee2MQTTBridge extends IPSModuleStrict
      *
      * @uses Zigbee2MQTTBridge::SendData()
      */
-    public function AddDeviceToGroup(string $GroupName, string $DeviceName): bool
+    public function AddDeviceToGroup(string $GroupName, string $DeviceName, string $Endpoint = ''): bool
     {
         $Topic = '/bridge/request/group/members/add';
         $Payload = ['group'=>$GroupName, 'device' => $DeviceName];
+        $Endpoint = trim($Endpoint);
+        if ($Endpoint !== '') {
+            $Payload['endpoint'] = is_numeric($Endpoint) ? (int) $Endpoint : $Endpoint;
+        }
         return $this->SendCheckedBridgeRequest($Topic, $Payload) !== false;
     }
 
@@ -590,10 +594,14 @@ class Zigbee2MQTTBridge extends IPSModuleStrict
      *
      * @uses Zigbee2MQTTBridge::SendData()
      */
-    public function RemoveDeviceFromGroup(string $GroupName, string $DeviceName): bool
+    public function RemoveDeviceFromGroup(string $GroupName, string $DeviceName, string $Endpoint = '', bool $SkipDisableReporting = true): bool
     {
         $Topic = '/bridge/request/group/members/remove';
-        $Payload = ['group'=>$GroupName, 'device' => $DeviceName, 'skip_disable_reporting'=>true];
+        $Payload = ['group'=>$GroupName, 'device' => $DeviceName, 'skip_disable_reporting'=>$SkipDisableReporting];
+        $Endpoint = trim($Endpoint);
+        if ($Endpoint !== '') {
+            $Payload['endpoint'] = is_numeric($Endpoint) ? (int) $Endpoint : $Endpoint;
+        }
         return $this->SendCheckedBridgeRequest($Topic, $Payload) !== false;
     }
 
@@ -611,6 +619,153 @@ class Zigbee2MQTTBridge extends IPSModuleStrict
         $Topic = '/bridge/request/group/members/remove_all';
         $Payload = ['group'=>$GroupName];
         return $this->SendCheckedBridgeRequest($Topic, $Payload) !== false;
+    }
+
+    /**
+     * RemoveDeviceFromAllGroups
+     *
+     * @param string $DeviceName            Friendly Name oder IEEE-Adresse.
+     * @param bool   $SkipDisableReporting  Reporting beim Entfernen nicht automatisch deaktivieren.
+     *
+     * @return bool
+     */
+    public function RemoveDeviceFromAllGroups(string $DeviceName, bool $SkipDisableReporting = true): bool
+    {
+        return $this->SendCheckedBridgeRequest('/bridge/request/group/members/remove_all', [
+            'device'                 => $DeviceName,
+            'skip_disable_reporting' => $SkipDisableReporting
+        ]) !== false;
+    }
+
+    /**
+     * SetGroupOptions
+     *
+     * @param string $GroupName   Friendly Name oder ID der Gruppe.
+     * @param string $OptionsJSON JSON-Objekt mit den zu setzenden Gruppenoptionen.
+     *
+     * @return bool
+     */
+    public function SetGroupOptions(string $GroupName, string $OptionsJSON): bool
+    {
+        $options = $this->ParseRequiredJsonObject($OptionsJSON, 'Group options must be a JSON object.');
+        if ($options === null) {
+            return false;
+        }
+
+        $data = $this->SendCheckedBridgeRequest('/bridge/request/group/options', [
+            'id'      => $GroupName,
+            'options' => $options
+        ]);
+        if ($data === false) {
+            return false;
+        }
+        if (($data['restart_required'] ?? false) === true) {
+            $this->LogMessage($this->Translate('Zigbee2MQTT restart is required for the changed group options.'), KL_NOTIFY);
+        }
+
+        return true;
+    }
+
+    /**
+     * StoreScene
+     *
+     * @param string $FriendlyName Friendly Name eines Geraets oder einer Gruppe.
+     * @param int    $SceneID      Szenen-ID.
+     * @param string $SceneName    Optionaler Szenenname.
+     * @param int    $GroupID      Optionale Gruppen-ID beim Speichern einzelner Lampen fuer Gruppenszenen.
+     *
+     * @return bool
+     */
+    public function StoreScene(string $FriendlyName, int $SceneID, string $SceneName = '', int $GroupID = 0): bool
+    {
+        if ($SceneName === '' && $GroupID <= 0) {
+            return $this->SendSceneCommand($FriendlyName, ['scene_store' => $SceneID]);
+        }
+
+        $payload = ['ID' => $SceneID];
+        if ($SceneName !== '') {
+            $payload['name'] = $SceneName;
+        }
+        if ($GroupID > 0) {
+            $payload['group_id'] = $GroupID;
+        }
+
+        return $this->SendSceneCommand($FriendlyName, ['scene_store' => $payload]);
+    }
+
+    /**
+     * AddScene
+     *
+     * @param string $FriendlyName Friendly Name eines Geraets oder einer Gruppe.
+     * @param string $SceneJSON    JSON-Objekt fuer scene_add.
+     *
+     * @return bool
+     */
+    public function AddScene(string $FriendlyName, string $SceneJSON): bool
+    {
+        $scene = $this->ParseRequiredJsonObject($SceneJSON, 'Scene definition must be a JSON object.');
+        if ($scene === null) {
+            return false;
+        }
+
+        return $this->SendSceneCommand($FriendlyName, ['scene_add' => $scene]);
+    }
+
+    /**
+     * RecallScene
+     *
+     * @param string $FriendlyName Friendly Name eines Geraets oder einer Gruppe.
+     * @param int    $SceneID      Szenen-ID.
+     *
+     * @return bool
+     */
+    public function RecallScene(string $FriendlyName, int $SceneID): bool
+    {
+        return $this->SendSceneCommand($FriendlyName, ['scene_recall' => $SceneID]);
+    }
+
+    /**
+     * RemoveScene
+     *
+     * @param string $FriendlyName Friendly Name eines Geraets oder einer Gruppe.
+     * @param int    $SceneID      Szenen-ID.
+     *
+     * @return bool
+     */
+    public function RemoveScene(string $FriendlyName, int $SceneID): bool
+    {
+        return $this->SendSceneCommand($FriendlyName, ['scene_remove' => $SceneID]);
+    }
+
+    /**
+     * RemoveAllScenes
+     *
+     * @param string $FriendlyName Friendly Name eines Geraets oder einer Gruppe.
+     *
+     * @return bool
+     */
+    public function RemoveAllScenes(string $FriendlyName): bool
+    {
+        return $this->SendSceneCommand($FriendlyName, ['scene_remove_all' => '']);
+    }
+
+    /**
+     * RenameScene
+     *
+     * @param string $FriendlyName Friendly Name eines Geraets oder einer Gruppe.
+     * @param int    $SceneID      Szenen-ID.
+     * @param string $SceneName    Neuer Szenenname.
+     *
+     * @return bool
+     */
+    public function RenameScene(string $FriendlyName, int $SceneID, string $SceneName): bool
+    {
+        return $this->SendSceneCommand($FriendlyName, [
+            'scene_rename' => [
+                'ID'   => $SceneID,
+                'name' => $SceneName
+            ]
+        ]);
     }
 
     /**
@@ -1154,6 +1309,21 @@ class Zigbee2MQTTBridge extends IPSModuleStrict
     }
 
     /**
+     * Liest ein verpflichtendes JSON-Objekt.
+     */
+    private function ParseRequiredJsonObject(string $JSON, string $ErrorMessage): ?array
+    {
+        $JSON = trim($JSON);
+        $decoded = json_decode($JSON, true);
+        if (!\is_array($decoded) || !str_starts_with($JSON, '{')) {
+            trigger_error($this->Translate($ErrorMessage), E_USER_NOTICE);
+            return null;
+        }
+
+        return $decoded;
+    }
+
+    /**
      * Wandelt einfache Formularwerte in JSON-, Boolean-, Integer-, Float- oder Stringwerte.
      */
     private function ParseBridgeScalarValue(string $Value): mixed
@@ -1218,6 +1388,20 @@ class Zigbee2MQTTBridge extends IPSModuleStrict
     private function SendBridgeCommand(string $Topic, array $Payload = []): bool
     {
         return $this->SendData($Topic, $Payload, 0) === true;
+    }
+
+    /**
+     * Sendet einen Szenenbefehl an ein Geraet oder eine Gruppe.
+     */
+    private function SendSceneCommand(string $FriendlyName, array $Payload): bool
+    {
+        $FriendlyName = trim($FriendlyName, '/');
+        if ($FriendlyName === '') {
+            trigger_error($this->Translate('Friendly name is required.'), E_USER_NOTICE);
+            return false;
+        }
+
+        return $this->SendBridgeCommand('/' . $FriendlyName . '/set', $Payload);
     }
 
     /**

@@ -61,4 +61,10 @@ trait Constants
     protected const ATTRIBUTE_DISABLED_VARIABLES = 'DisabledVariables';
     /** @var string Attribut fuer vom Anwender geloeschte Variablen */
     protected const ATTRIBUTE_DELETED_VARIABLES = 'DeletedVariables';
+    /** @var string Attribut fuer aktuelle Zigbee2MQTT-Gruppenoptionen */
+    protected const ATTRIBUTE_GROUP_OPTIONS = 'GroupOptions';
+    /** @var string Attribut fuer aktuelle Zigbee2MQTT-Gruppenmitglieder */
+    protected const ATTRIBUTE_GROUP_MEMBERS = 'GroupMembers';
+    /** @var string Attribut fuer aktuelle Zigbee2MQTT-Gruppenszenen */
+    protected const ATTRIBUTE_GROUP_SCENES = 'GroupScenes';
 }
