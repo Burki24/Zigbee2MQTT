@@ -58,6 +58,8 @@ abstract class ModulBase extends \IPSModuleStrict
     private const PROPERTY_USE_SENSOR_TILE = 'UseSensorTile';
     private const PROPERTY_TEMPERATURE_PRESENTATION_FALLBACK_MIN = 'TemperaturePresentationFallbackMin';
     private const PROPERTY_TEMPERATURE_PRESENTATION_FALLBACK_MAX = 'TemperaturePresentationFallbackMax';
+    private const PROPERTY_COLOR_TEMPERATURE_PRESENTATION_MIN = 'ColorTemperaturePresentationMin';
+    private const PROPERTY_COLOR_TEMPERATURE_PRESENTATION_MAX = 'ColorTemperaturePresentationMax';
     private const PROPERTY_HEATING_TILE_PRESET_1 = 'HeatingTilePreset1';
     private const PROPERTY_HEATING_TILE_PRESET_2 = 'HeatingTilePreset2';
     private const PROPERTY_HEATING_TILE_PRESET_3 = 'HeatingTilePreset3';
@@ -435,6 +437,8 @@ abstract class ModulBase extends \IPSModuleStrict
         $this->RegisterPropertyBoolean(self::PROPERTY_USE_SENSOR_TILE, false);
         $this->RegisterPropertyFloat(self::PROPERTY_TEMPERATURE_PRESENTATION_FALLBACK_MIN, -40.0);
         $this->RegisterPropertyFloat(self::PROPERTY_TEMPERATURE_PRESENTATION_FALLBACK_MAX, 80.0);
+        $this->RegisterPropertyInteger(self::PROPERTY_COLOR_TEMPERATURE_PRESENTATION_MIN, 0);
+        $this->RegisterPropertyInteger(self::PROPERTY_COLOR_TEMPERATURE_PRESENTATION_MAX, 0);
         $this->RegisterPropertyFloat(self::PROPERTY_HEATING_TILE_PRESET_1, 18.0);
         $this->RegisterPropertyFloat(self::PROPERTY_HEATING_TILE_PRESET_2, 20.0);
         $this->RegisterPropertyFloat(self::PROPERTY_HEATING_TILE_PRESET_3, 22.0);
@@ -522,6 +526,7 @@ abstract class ModulBase extends \IPSModuleStrict
         $this->SetReceiveDataFilter('.*(' . $Filter1 . '|' . $Filter2 . '|' . $Filter3 . ').*');
         $this->SetStatus(IS_ACTIVE);
         $this->RefreshExposeVariableCatalog();
+        $this->RefreshColorTemperaturePresentation();
         $this->UpdateCustomTileVisualizationType();
     }
 
@@ -3136,16 +3141,17 @@ abstract class ModulBase extends \IPSModuleStrict
      */
     private function handleColorTemperatureKelvinAction(mixed $value): bool
     {
-        $convertedValue = $this->convertKelvinToMired($value);
-        $this->SendDebug('handleColorVariable', \sprintf('Converting %dK to %d Mired', $value, $convertedValue), 0);
+        $kelvinValue = $this->ClampColorTemperatureKelvinToConfiguredRange((int) $value);
+        $convertedValue = $this->convertKelvinToMired($kelvinValue);
+        $this->SendDebug('handleColorVariable', \sprintf('Converting %dK to %d Mired', $kelvinValue, $convertedValue), 0);
 
         if (!$this->SendSetCommand(['color_temp' => $convertedValue])) {
             return false;
         }
 
         $this->SetValueDirect('color_temp', $convertedValue);
-        $this->SetValueDirect('color_temp_kelvin', $value);
-        $this->UpdateColorTemperatureWhiteColorVariable((int) $value);
+        $this->SetValueDirect('color_temp_kelvin', $kelvinValue);
+        $this->UpdateColorTemperatureWhiteColorVariable($kelvinValue);
         return true;
     }
 
@@ -5144,7 +5150,7 @@ abstract class ModulBase extends \IPSModuleStrict
             return;
         }
 
-        $this->SetValueDirect('color', $this->convertKelvinToWhiteColor($kelvin));
+        $this->SetValueDirect('color', $this->convertKelvinToWhiteColor($this->ClampColorTemperatureKelvinToConfiguredRange($kelvin)));
     }
 
     /**

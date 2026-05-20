@@ -35,7 +35,7 @@
                     "property": "color_temp",
                     "unit": "mired",
                     "value_min": 153,
-                    "value_max": 454
+                    "value_max": 555
                 }
             ]
         }

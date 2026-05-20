@@ -19,6 +19,7 @@ trait DeviceFormHelper
         $this->ConfigureDeviceFormHeader($form);
         $this->ConfigureDeviceFormVisualization($form, $tileStates);
         $this->ConfigureDeviceFormTemperatureVisualization($form, $tileStates);
+        $this->ConfigureDeviceFormColorTemperatureVisualization($form);
         $this->ConfigureDeviceFormDeviceOptions($form);
         $this->ConfigureDeviceFormBindingReporting($form);
         $this->ConfigureDeviceFormVariableSelection($form);
@@ -169,6 +170,62 @@ trait DeviceFormHelper
             );
 
         $this->SetDeviceFormField($form, 'TemperatureVisualization', 'visible', $visible);
+    }
+
+    /**
+     * Zeigt den optionalen Kelvin-Bereich fuer Farbtemperatur-Leuchten.
+     */
+    private function ConfigureDeviceFormColorTemperatureVisualization(array &$form): void
+    {
+        $hasColorTemperature = $this->GetObjectIDByIdent('color_temp_kelvin') !== false
+            || $this->DeviceFormHasExposeProperty('color_temp');
+        $hasCustomColorTemperatureRange =
+            $this->ReadPropertyInteger(self::PROPERTY_COLOR_TEMPERATURE_PRESENTATION_MIN) > 0
+            || $this->ReadPropertyInteger(self::PROPERTY_COLOR_TEMPERATURE_PRESENTATION_MAX) > 0;
+
+        $this->SetDeviceFormField(
+            $form,
+            'ColorTemperatureVisualization',
+            'visible',
+            $hasColorTemperature || $hasCustomColorTemperatureRange
+        );
+    }
+
+    /**
+     * Prueft die gespeicherten Exposes rekursiv auf eine Property.
+     */
+    private function DeviceFormHasExposeProperty(string $property): bool
+    {
+        foreach ($this->ReadAttributeArray(self::ATTRIBUTE_EXPOSES) as $expose) {
+            if (\is_array($expose) && $this->DeviceFormFeatureTreeHasProperty($expose, $property)) {
+                return true;
+            }
+        }
+
+        return false;
+    }
+
+    /**
+     * Rekursive Suche in einem Expose-Baum.
+     */
+    private function DeviceFormFeatureTreeHasProperty(array $feature, string $property): bool
+    {
+        if (($feature['property'] ?? null) === $property) {
+            return true;
+        }
+
+        $subFeatures = $feature['features'] ?? [];
+        if (!\is_array($subFeatures)) {
+            return false;
+        }
+
+        foreach ($subFeatures as $subFeature) {
+            if (\is_array($subFeature) && $this->DeviceFormFeatureTreeHasProperty($subFeature, $property)) {
+                return true;
+            }
+        }
+
+        return false;
     }
 
     /**

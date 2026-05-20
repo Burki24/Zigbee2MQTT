@@ -201,6 +201,23 @@ class DevicesTest extends DumpInclude
         $this->assertSame('~HexColor', $variable['VariableProfile']);
         $this->assertSame(0xFF9227, GetValue($colorID));
 
+        $kelvinID = IPS_GetObjectIDByIdent('color_temp_kelvin', $iid);
+        $this->assertNotFalse($kelvinID);
+        $presentation = IPS_GetVariable($kelvinID)['VariableCustomPresentation'];
+        $this->assertSame(1801, $presentation['MIN']);
+        $this->assertSame(6535, $presentation['MAX']);
+
+        $form = json_decode(IPS_GetConfigurationForm($iid), true);
+        $this->assertFormItemVisible($form, 'ColorTemperatureVisualization');
+
+        IPS_SetProperty($iid, 'ColorTemperaturePresentationMin', 2202);
+        IPS_SetProperty($iid, 'ColorTemperaturePresentationMax', 5000);
+        IPS_ApplyChanges($iid);
+
+        $presentation = IPS_GetVariable($kelvinID)['VariableCustomPresentation'];
+        $this->assertSame(2202, $presentation['MIN']);
+        $this->assertSame(5000, $presentation['MAX']);
+
         $interface->ReceiveData(self::buildMqttRequest($topic, ['color_temp' => 153]));
         $this->assertNotSame(0xFF9227, GetValue($colorID));
     }

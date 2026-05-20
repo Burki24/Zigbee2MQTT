@@ -44,17 +44,7 @@ trait VariablePresentationHelper
      */
     protected function ApplyColorTemperaturePresentation(string $ident, array $feature): void
     {
-        $minKelvin = 1000;
-        $maxKelvin = 12000;
-
-        if (isset($feature['value_min'], $feature['value_max']) && (int) $feature['value_min'] > 0 && (int) $feature['value_max'] > 0) {
-            $minKelvin = $this->convertMiredToKelvin((int) $feature['value_max']);
-            $maxKelvin = $this->convertMiredToKelvin((int) $feature['value_min']);
-
-            if ($minKelvin > $maxKelvin) {
-                [$minKelvin, $maxKelvin] = [$maxKelvin, $minKelvin];
-            }
-        }
+        [$minKelvin, $maxKelvin] = $this->GetColorTemperaturePresentationRange($feature);
 
         $this->ApplySliderPresentation($ident, [
             'MIN'                 => $minKelvin,
@@ -67,6 +57,119 @@ trait VariablePresentationHelper
             'DIGITS'              => 0,
             'ICON'                => 'temperature-half',
         ]);
+    }
+
+    /**
+     * Aktualisiert die Farbtemperaturdarstellung anhand gespeicherter Exposes.
+     */
+    protected function RefreshColorTemperaturePresentation(): void
+    {
+        if ($this->GetObjectIDByIdent('color_temp_kelvin') === false) {
+            return;
+        }
+
+        $feature = $this->FindColorTemperatureFeature($this->ReadAttributeArray(self::ATTRIBUTE_EXPOSES));
+        if ($feature === null) {
+            return;
+        }
+
+        $this->ApplyColorTemperaturePresentation('color_temp_kelvin', $feature);
+    }
+
+    /**
+     * Sucht das color_temp-Feature rekursiv in einem Expose-Baum.
+     */
+    private function FindColorTemperatureFeature(array $features): ?array
+    {
+        foreach ($features as $feature) {
+            if (!\is_array($feature)) {
+                continue;
+            }
+
+            if (($feature['property'] ?? null) === 'color_temp') {
+                return $feature;
+            }
+
+            $subFeatures = $feature['features'] ?? [];
+            if (!\is_array($subFeatures)) {
+                continue;
+            }
+
+            $subFeature = $this->FindColorTemperatureFeature($subFeatures);
+            if ($subFeature !== null) {
+                return $subFeature;
+            }
+        }
+
+        return null;
+    }
+
+    /**
+     * Liefert den Kelvin-Bereich fuer die Farbtemperaturdarstellung.
+     */
+    private function GetColorTemperaturePresentationRange(array $feature): array
+    {
+        $overrideRange = $this->ReadColorTemperaturePresentationOverrideRange();
+        if ($overrideRange !== null) {
+            return $overrideRange;
+        }
+
+        $minKelvin = 1000;
+        $maxKelvin = 12000;
+
+        if (isset($feature['value_min'], $feature['value_max']) && (int) $feature['value_min'] > 0 && (int) $feature['value_max'] > 0) {
+            $minKelvin = $this->convertMiredToKelvin((int) $feature['value_max']);
+            $maxKelvin = $this->convertMiredToKelvin((int) $feature['value_min']);
+        }
+
+        return $this->NormalizeColorTemperaturePresentationRange($minKelvin, $maxKelvin);
+    }
+
+    /**
+     * Begrenzt Kelvin-Aktionen auf einen manuell gesetzten Bereich.
+     */
+    protected function ClampColorTemperatureKelvinToConfiguredRange(int $kelvin): int
+    {
+        $range = $this->ReadColorTemperaturePresentationOverrideRange();
+        if ($range === null) {
+            return $kelvin;
+        }
+
+        return max($range[0], min($range[1], $kelvin));
+    }
+
+    /**
+     * Liest den optionalen Kelvin-Override aus der Instanzkonfiguration.
+     */
+    private function ReadColorTemperaturePresentationOverrideRange(): ?array
+    {
+        try {
+            $minKelvin = $this->ReadPropertyInteger(self::PROPERTY_COLOR_TEMPERATURE_PRESENTATION_MIN);
+            $maxKelvin = $this->ReadPropertyInteger(self::PROPERTY_COLOR_TEMPERATURE_PRESENTATION_MAX);
+        } catch (\Throwable) {
+            return null;
+        }
+
+        if ($minKelvin <= 0 || $maxKelvin <= 0) {
+            return null;
+        }
+
+        return $this->NormalizeColorTemperaturePresentationRange($minKelvin, $maxKelvin);
+    }
+
+    /**
+     * Normalisiert Kelvin-Grenzen fuer die Darstellung.
+     */
+    private function NormalizeColorTemperaturePresentationRange(int $minKelvin, int $maxKelvin): array
+    {
+        if ($minKelvin > $maxKelvin) {
+            [$minKelvin, $maxKelvin] = [$maxKelvin, $minKelvin];
+        }
+        if ($minKelvin === $maxKelvin) {
+            $maxKelvin = $minKelvin + 1;
+        }
+
+        return [$minKelvin, $maxKelvin];
     }
 
     /**

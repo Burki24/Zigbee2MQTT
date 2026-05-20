@@ -177,6 +177,40 @@
         },
         {
             "type": "ExpansionPanel",
+            "name": "ColorTemperatureVisualization",
+            "caption": "Color temperature visualization",
+            "expanded": false,
+            "visible": false,
+            "items": [
+                {
+                    "type": "Label",
+                    "caption": "Optional Kelvin range for color temperature. Use 0 to use the Zigbee2MQTT expose range."
+                },
+                {
+                    "type": "RowLayout",
+                    "items": [
+                        {
+                            "type": "NumberSpinner",
+                            "name": "ColorTemperaturePresentationMin",
+                            "caption": "Minimum",
+                            "minimum": 0,
+                            "maximum": 40000,
+                            "suffix": " K"
+                        },
+                        {
+                            "type": "NumberSpinner",
+                            "name": "ColorTemperaturePresentationMax",
+                            "caption": "Maximum",
+                            "minimum": 0,
+                            "maximum": 40000,
+                            "suffix": " K"
+                        }
+                    ]
+                }
+            ]
+        },
+        {
+            "type": "ExpansionPanel",
             "name": "DeviceOptionsSettings",
             "caption": "Device options",
             "expanded": false,

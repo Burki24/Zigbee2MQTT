@@ -39,6 +39,8 @@
             "Preset 3": "Vorgabe 3",
             "Temperature visualization": "Temperatur-Visualisierung",
             "Fallback range for temperature exposes without value_min/value_max.": "Fallback-Bereich für Temperatur-Exposes ohne value_min/value_max.",
+            "Color temperature visualization": "Farbtemperatur-Visualisierung",
+            "Optional Kelvin range for color temperature. Use 0 to use the Zigbee2MQTT expose range.": "Optionaler Kelvin-Bereich für die Farbtemperatur. Mit 0 wird der Zigbee2MQTT-Expose-Bereich verwendet.",
             "Minimum": "Minimum",
             "Maximum": "Maximum",
             "Device options": "Geräteoptionen",
