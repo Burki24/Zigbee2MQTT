@@ -1,6 +1,6 @@
 /*
  IPSymconExtension
- Version: 5.41
+ Version: 5.42
 */
 
 class MyLogger {
@@ -136,6 +136,7 @@ class IPSymconExtension {
             manufacturerName: device.zh.manufacturerName,
             powerSource: device.zh.powerSource,
             modelID: device.zh.modelID,
+            endpoints: this.#createEndpointPayload(device),
             exposes: exposes,
             options: options,
             definition_options: definition.options ?? [],
@@ -196,6 +197,91 @@ class IPSymconExtension {
                 groupExposeType.features.push(feature);
             }
         });
+    }
+
+    #createEndpointPayload(device) {
+        const endpoints = device.endpoints ?? device.zh?.endpoints ?? {};
+        const entries = Array.isArray(endpoints)
+            ? endpoints.map(endpoint => [this.#endpointId(endpoint), endpoint])
+            : Object.entries(endpoints);
+
+        const result = {};
+        for (const [key, endpoint] of entries) {
+            const id = this.#endpointId(endpoint, key);
+            result[id] = {
+                id,
+                name: endpoint.name ?? endpoint.endpoint_name ?? '',
+                bindings: this.#plainArray(endpoint.bindings),
+                configured_reportings: this.#plainArray(endpoint.configured_reportings),
+                clusters: this.#endpointClusters(endpoint),
+            };
+        }
+
+        return result;
+    }
+
+    #endpointId(endpoint, fallback = '') {
+        return String(endpoint.ID ?? endpoint.id ?? endpoint.endpointID ?? endpoint.endpoint_id ?? fallback);
+    }
+
+    #endpointClusters(endpoint) {
+        const clusters = endpoint.clusters ?? {};
+        return {
+            input: this.#clusterNames(clusters.input ?? endpoint.inputClusters ?? []),
+            output: this.#clusterNames(clusters.output ?? endpoint.outputClusters ?? []),
+            scenes: this.#plainArray(clusters.scenes ?? endpoint.scenes ?? []),
+        };
+    }
+
+    #clusterNames(clusters) {
+        if (!Array.isArray(clusters)) {
+            return [];
+        }
+
+        return clusters.map(cluster => {
+            if (typeof cluster === 'string') {
+                return cluster;
+            }
+            return String(cluster.name ?? cluster.ID ?? cluster.id ?? cluster.clusterID ?? cluster);
+        });
+    }
+
+    #plainArray(value) {
+        if (!Array.isArray(value)) {
+            return [];
+        }
+
+        return value.map(entry => this.#plainValue(entry, new WeakSet(), 0));
+    }
+
+    #plainValue(value, seen, depth) {
+        if (value === null || typeof value !== 'object') {
+            return value;
+        }
+        if (seen.has(value)) {
+            return undefined;
+        }
+        if (depth > 3) {
+            return String(value);
+        }
+
+        seen.add(value);
+        if (Array.isArray(value)) {
+            return value.map(entry => this.#plainValue(entry, seen, depth + 1));
+        }
+
+        const result = {};
+        for (const [key, entry] of Object.entries(value)) {
+            if (typeof entry === 'function') {
+                continue;
+            }
+            const normalized = this.#plainValue(entry, seen, depth + 1);
+            if (typeof normalized !== 'undefined') {
+                result[key] = normalized;
+            }
+        }
+
+        return result;
     }
 }
 

@@ -221,6 +221,42 @@ class DevicesTest extends DumpInclude
         $this->assertSame('Numerisch', $temperaturePrecision['type']);
     }
 
+    public function testBindingAndReportingEndpointsAreShownInConfigurationForm(): void
+    {
+        [$iid] = $this->createTestInstance('MixedLightSensor.json');
+        $this->writeStubAttributeArray($iid, 'DeviceEndpoints', [
+            '1' => [
+                'id'                    => '1',
+                'name'                  => 'left',
+                'bindings'              => [
+                    ['cluster' => 'genOnOff', 'target' => ['type' => 'group', 'id' => 1]]
+                ],
+                'configured_reportings' => [
+                    ['cluster' => 'genOnOff', 'attribute' => 'onOff']
+                ],
+                'clusters'              => [
+                    'input'  => ['genOnOff', 'genBasic'],
+                    'output' => ['genLevelCtrl'],
+                    'scenes' => []
+                ]
+            ]
+        ]);
+
+        $form = json_decode(IPS_GetConfigurationForm($iid), true);
+        $this->assertFormItemVisible($form, 'BindingReportingSettings');
+
+        $list = $this->findFormItemByName($form, 'EndpointList');
+        $this->assertNotNull($list);
+
+        $endpoint = $this->findEndpointRow($list['values'], '1');
+        $this->assertNotNull($endpoint);
+        $this->assertSame('left', $endpoint['name']);
+        $this->assertSame('genOnOff, genBasic', $endpoint['input']);
+        $this->assertSame('genLevelCtrl', $endpoint['output']);
+        $this->assertSame('1', $endpoint['bindings']);
+        $this->assertSame('1', $endpoint['reportings']);
+    }
+
     public function testColorCompositeCatalogUsesSingleColorVariable()
     {
         if (!IPS_VariableProfileExists('~HexColor')) {
@@ -635,6 +671,17 @@ class DevicesTest extends DumpInclude
     {
         foreach ($rows as $row) {
             if (($row['name'] ?? null) === $name) {
+                return $row;
+            }
+        }
+
+        return null;
+    }
+
+    private function findEndpointRow(array $rows, string $endpoint): ?array
+    {
+        foreach ($rows as $row) {
+            if (($row['endpoint'] ?? null) === $endpoint) {
                 return $row;
             }
         }

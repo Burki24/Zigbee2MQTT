@@ -19,7 +19,8 @@
   - [4.2 Temperatur-Visualisierung](#42-temperatur-visualisierung)
   - [4.3 Farbtemperatur in der Beleuchtungs-Kachel](#43-farbtemperatur-in-der-beleuchtungs-kachel)
   - [4.4 Geräteoptionen](#44-geräteoptionen)
-  - [4.5 Variablenverwaltung](#45-variablenverwaltung)
+  - [4.5 Binding und Reporting](#45-binding-und-reporting)
+  - [4.6 Variablenverwaltung](#46-variablenverwaltung)
 - [5. Statusvariablen](#5-statusvariablen)
 - [6. PHP-Funktionsreferenz](#6-php-funktionsreferenz)
 - [7. Aktionen](#7-aktionen)
@@ -135,7 +136,15 @@ Die Änderung wird über `bridge/request/device/options` an Zigbee2MQTT gesendet
 
 Optionen, die Zigbee2MQTT erst nach einem Neustart übernimmt, lösen in der Bridge eine entsprechende Meldung aus.
 
-### 4.5 Variablenverwaltung
+### 4.5 Binding und Reporting
+
+Wenn Zigbee2MQTT Endpoint-Daten liefert, zeigt die Instanz-Konfiguration den Bereich **Binding und Reporting**. Dort sind Endpoints, Eingangs-/Ausgangscluster sowie vorhandene Bindings und konfigurierte Reportings sichtbar.
+
+Über den Binding-Bereich können Geräte oder Gruppen direkt gebunden oder wieder gelöst werden. Der Quell-Endpoint ist optional; bleibt er leer, wird das Gerät ohne Endpoint-Suffix verwendet. Cluster können als kommaseparierte Liste oder JSON-Array angegeben werden.
+
+Über den Reporting-Bereich kann Attribute Reporting gelesen oder konfiguriert werden. Batteriebetriebene Geräte müssen dafür unter Umständen direkt vor dem Ausführen geweckt werden. Nicht jedes Gerät und nicht jedes Attribut unterstützt Reporting.
+
+### 4.6 Variablenverwaltung
 
 Die Instanz merkt sich alle aus Exposes, Payloads und Systemmeldungen bekannten Variablen in einem lokalen Variablenkatalog. In der Konfiguration erscheint dazu der Bereich **Variablen**. Dort kann pro Variable gesteuert werden, ob das Modul sie automatisch anlegen darf.
 

@@ -221,7 +221,7 @@ Details stehen in der [Dokumentation des Geräte-Moduls](Device/README.md#41-vis
 
 Geräte-Instanzen führen einen lokalen Variablenkatalog. Dadurch kann in der Instanz-Konfiguration gesteuert werden, welche bekannten Variablen automatisch angelegt werden dürfen. Vom Anwender gelöschte Variablen werden nicht automatisch wieder erzeugt und können später gezielt wieder angelegt werden.
 
-Details stehen in der [Dokumentation des Geräte-Moduls](Device/README.md#44-variablenverwaltung).
+Details stehen in der [Dokumentation des Geräte-Moduls](Device/README.md#46-variablenverwaltung).
 
 ## 5. Changelog  
 
@@ -237,6 +237,7 @@ Details stehen in der [Dokumentation des Geräte-Moduls](Device/README.md#44-var
 - Geräte-Instanzen erhalten eine Variablenverwaltung, mit der automatisch angelegte, nachgelieferte und gelöschte Variablen kontrolliert werden können.
 - Geräte-Instanzen können Zigbee2MQTT-Geräteoptionen wie `transition`, `debounce`, `filtered_attributes`, `optimistic`, `retain` oder gerätespezifische `definition.options` direkt in der Instanz-Konfiguration anzeigen und setzen.
 - Die Bridge unterstützt `bridge/request/device/options` über `Z2M_SetDeviceOptions()` und aktualisierte OTA-Funktionen für Downgrade, Scheduling, Unschedule und eigene OTA-URLs.
+- Binding und Reporting können in der Geräte-Konfiguration über Endpoint-, Cluster- und Attributdaten gepflegt werden; die Bridge stellt dazu Funktionen für Binding mit Cluster-Auswahl sowie Reporting Configure/Read bereit.
 - Temperatur-Visualisierungen können einen konfigurierbaren Fallback-Bereich nutzen, wenn Zigbee2MQTT keine `value_min`/`value_max` Werte liefert.
 - Mindestversion auf IP-Symcon 9.0 angehoben, da das Modul auf `IPSModuleStrict` basiert.
 - Interne Struktur der Visualisierungs- und Variablenregistrierung refaktoriert, ohne die öffentlichen Modul-Funktionen zu ändern.

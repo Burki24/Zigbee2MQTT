@@ -196,11 +196,61 @@ bool Z2M_Bind(int $InstanzID, string $SourceDevice, string $TargetDevice);
 
 ---
 
+### Z2M_BindWithOptions <!-- omit in toc -->
+
+```php
+bool Z2M_BindWithOptions(int $InstanzID, string $SourceDevice, string $TargetDevice, string $ClustersJSON, bool $SkipDisableReporting);
+```
+
+Erstellt ein Binding mit optionaler Cluster-Auswahl. `ClustersJSON` kann ein JSON-Array wie `["genOnOff"]` oder eine kommaseparierte Liste sein.
+
+---
+
 ### Z2M_Unbind <!-- omit in toc -->
 
 ```php
 bool Z2M_Unbind(int $InstanzID, string $SourceDevice, string $TargetDevice);
 ```
+
+---
+
+### Z2M_UnbindWithOptions <!-- omit in toc -->
+
+```php
+bool Z2M_UnbindWithOptions(int $InstanzID, string $SourceDevice, string $TargetDevice, string $ClustersJSON, bool $SkipDisableReporting);
+```
+
+Entfernt ein Binding mit optionaler Cluster-Auswahl. Mit `SkipDisableReporting` kann verhindert werden, dass Zigbee2MQTT automatisch zugehöriges Reporting entfernt.
+
+---
+
+### Z2M_ClearBinds <!-- omit in toc -->
+
+```php
+bool Z2M_ClearBinds(int $InstanzID, string $DeviceName);
+```
+
+Entfernt alle Bindings eines Geräts über `bridge/request/device/binds/clear`.
+
+---
+
+### Z2M_ConfigureReporting <!-- omit in toc -->
+
+```php
+bool Z2M_ConfigureReporting(int $InstanzID, string $DeviceName, string $Endpoint, string $Cluster, string $Attribute, int $MinimumReportInterval, int $MaximumReportInterval, string $ReportableChange, string $OptionsJSON);
+```
+
+Konfiguriert Zigbee Attribute Reporting. `ReportableChange` kann leer bleiben, wenn das Attribut keinen Change-Wert unterstützt. `OptionsJSON` ist optional und muss bei Nutzung ein JSON-Objekt sein.
+
+---
+
+### Z2M_ReadReporting <!-- omit in toc -->
+
+```php
+string Z2M_ReadReporting(int $InstanzID, string $DeviceName, string $Endpoint, string $Cluster, string $AttributesJSON, string $ManufacturerCode);
+```
+
+Liest die Reporting-Konfiguration eines oder mehrerer Attribute. `AttributesJSON` kann ein JSON-Array oder eine kommaseparierte Attributliste sein. Rückgabe ist ein JSON-String mit den Antwortdaten oder leer bei Fehler.
 
 ---
 

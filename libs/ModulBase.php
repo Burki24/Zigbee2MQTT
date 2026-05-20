@@ -442,6 +442,7 @@ abstract class ModulBase extends \IPSModuleStrict
         $this->RegisterAttributeArray(self::ATTRIBUTE_FILTERED, []);
         $this->RegisterAttributeArray(self::ATTRIBUTE_DEVICE_OPTIONS, []);
         $this->RegisterAttributeArray(self::ATTRIBUTE_DEVICE_OPTION_DEFINITIONS, []);
+        $this->RegisterAttributeArray(self::ATTRIBUTE_DEVICE_ENDPOINTS, []);
         $this->RegisterAttributeArray(self::ATTRIBUTE_VARIABLE_CATALOG, []);
         $this->RegisterAttributeArray(self::ATTRIBUTE_DISABLED_VARIABLES, []);
         $this->RegisterAttributeArray(self::ATTRIBUTE_DELETED_VARIABLES, []);

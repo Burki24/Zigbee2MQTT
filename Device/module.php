@@ -133,6 +133,26 @@ class Zigbee2MQTTDevice extends \Zigbee2MQTT\ModulBase
             $this->ApplyDeviceOptionFromForm($value);
             return;
         }
+        if ($ident == 'ApplyBinding') {
+            $this->ApplyBindingFromForm($value);
+            return;
+        }
+        if ($ident == 'ApplyUnbinding') {
+            $this->ApplyUnbindingFromForm($value);
+            return;
+        }
+        if ($ident == 'ClearBindings') {
+            $this->ClearBindingsFromForm();
+            return;
+        }
+        if ($ident == 'ConfigureReporting') {
+            $this->ConfigureReportingFromForm($value);
+            return;
+        }
+        if ($ident == 'ReadReporting') {
+            $this->ReadReportingFromForm($value);
+            return;
+        }
         parent::RequestAction($ident, $value);
     }
 
@@ -188,6 +208,7 @@ class Zigbee2MQTTDevice extends \Zigbee2MQTT\ModulBase
 
         $this->WriteAttributeArray(parent::ATTRIBUTE_DEVICE_OPTIONS, $deviceOptions);
         $this->WriteAttributeArray(parent::ATTRIBUTE_DEVICE_OPTION_DEFINITIONS, $definitionOptions);
+        $this->WriteAttributeArray(parent::ATTRIBUTE_DEVICE_ENDPOINTS, \is_array($Result['endpoints'] ?? null) ? $Result['endpoints'] : []);
         $this->WriteAttributeArray(parent::ATTRIBUTE_FILTERED, \is_array($filteredAttributes) ? $filteredAttributes : []);
 
         $this->WriteAttributeArray(parent::ATTRIBUTE_EXPOSES, $Result['exposes']);

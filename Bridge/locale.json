@@ -27,6 +27,7 @@
             "Zigbee2MQTT request failed on Topic %s": "Zigbee2MQTT-Anfrage auf Topic %s fehlgeschlagen",
             "Device options must be a JSON object.": "Geräteoptionen müssen ein JSON-Objekt sein.",
             "Zigbee2MQTT restart is required for the changed device options.": "Für die geänderten Geräteoptionen ist ein Neustart von Zigbee2MQTT erforderlich.",
+            "Options must be a JSON object.": "Optionen müssen ein JSON-Objekt sein.",
             "Donations": "Spenden / Schenkung",
             "This module is free for non-commercial use,\r\nDonations in support of the author are accepted here:": "Dieses Modul ist für die nicht kommerzielle Nutzung kostenlos, Schenkungen als Unterstützung für den Autor werden hier akzeptiert:",
             "Transaction Data is locked": "Transaktionen Daten sind gesperrt"

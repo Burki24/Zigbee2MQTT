@@ -152,6 +152,69 @@ class BridgeTest extends TestCase
         $this->assertSame('', $bridge->lastTopic);
     }
 
+    public function testBindWithOptionsUsesClustersAndSkipDisableReporting(): void
+    {
+        $bridge = $this->createBridgeTestDouble([
+            'status' => 'ok',
+            'data'   => ['from' => 'remote/1', 'to' => 'lamp']
+        ]);
+
+        $this->assertTrue($bridge->BindWithOptions('remote/1', 'lamp', 'genOnOff, genLevelCtrl', true));
+        $this->assertSame('/bridge/request/device/bind', $bridge->lastTopic);
+        $this->assertSame([
+            'from'                   => 'remote/1',
+            'to'                     => 'lamp',
+            'clusters'               => ['genOnOff', 'genLevelCtrl'],
+            'skip_disable_reporting' => true
+        ], $bridge->lastPayload);
+    }
+
+    public function testConfigureReportingUsesReportingConfigureTopic(): void
+    {
+        $bridge = $this->createBridgeTestDouble([
+            'status' => 'ok',
+            'data'   => ['id' => 'lamp']
+        ]);
+
+        $this->assertTrue($bridge->ConfigureReporting('lamp', '1', 'genLevelCtrl', 'currentLevel', 5, 600, '10', '{"manufacturerCode":1234}'));
+        $this->assertSame('/bridge/request/device/reporting/configure', $bridge->lastTopic);
+        $this->assertSame([
+            'id'                      => 'lamp',
+            'cluster'                 => 'genLevelCtrl',
+            'endpoint'                => 1,
+            'attribute'               => 'currentLevel',
+            'minimum_report_interval' => 5,
+            'maximum_report_interval' => 600,
+            'reportable_change'       => 10,
+            'options'                 => ['manufacturerCode' => 1234]
+        ], $bridge->lastPayload);
+        $this->assertSame(10000, $bridge->lastTimeout);
+    }
+
+    public function testReadReportingReturnsJsonData(): void
+    {
+        $bridge = $this->createBridgeTestDouble([
+            'status' => 'ok',
+            'data'   => [
+                'id'      => 'lamp',
+                'cluster' => 'genLevelCtrl'
+            ]
+        ]);
+
+        $this->assertSame('{"id":"lamp","cluster":"genLevelCtrl"}', $bridge->ReadReporting('lamp', 'left', 'genLevelCtrl', 'currentLevel,currentFrequency', ''));
+        $this->assertSame('/bridge/request/device/reporting/read', $bridge->lastTopic);
+        $this->assertSame([
+            'id'       => 'lamp',
+            'cluster'  => 'genLevelCtrl',
+            'endpoint' => 'left',
+            'configs'  => [
+                ['attribute' => 'currentLevel'],
+                ['attribute' => 'currentFrequency']
+            ]
+        ], $bridge->lastPayload);
+        $this->assertSame(10000, $bridge->lastTimeout);
+    }
+
     private function createBridgeTestDouble(array|bool $result): Zigbee2MQTTBridge
     {
         return new class(900001, $result) extends Zigbee2MQTTBridge {

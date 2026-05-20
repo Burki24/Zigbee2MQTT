@@ -263,6 +263,191 @@
         },
         {
             "type": "ExpansionPanel",
+            "name": "BindingReportingSettings",
+            "caption": "Binding and reporting",
+            "expanded": false,
+            "visible": false,
+            "items": [
+                {
+                    "type": "Label",
+                    "caption": "Configure Zigbee binding and attribute reporting for this device. Battery devices may need to be woken up before applying changes."
+                },
+                {
+                    "type": "List",
+                    "name": "EndpointList",
+                    "add": false,
+                    "delete": false,
+                    "rowCount": 6,
+                    "loadValuesFromConfiguration": false,
+                    "columns": [
+                        {
+                            "caption": "Endpoint",
+                            "name": "endpoint",
+                            "width": "90px"
+                        },
+                        {
+                            "caption": "Name",
+                            "name": "name",
+                            "width": "120px"
+                        },
+                        {
+                            "caption": "Input clusters",
+                            "name": "input",
+                            "width": "220px"
+                        },
+                        {
+                            "caption": "Output clusters",
+                            "name": "output",
+                            "width": "220px"
+                        },
+                        {
+                            "caption": "Bindings",
+                            "name": "bindings",
+                            "width": "120px"
+                        },
+                        {
+                            "caption": "Reportings",
+                            "name": "reportings",
+                            "width": "120px"
+                        }
+                    ],
+                    "values": []
+                },
+                {
+                    "type": "ExpansionPanel",
+                    "caption": "Binding",
+                    "expanded": false,
+                    "items": [
+                        {
+                            "type": "RowLayout",
+                            "items": [
+                                {
+                                    "type": "ValidationTextBox",
+                                    "name": "BindingSourceEndpoint",
+                                    "caption": "Source endpoint"
+                                },
+                                {
+                                    "type": "ValidationTextBox",
+                                    "name": "BindingTarget",
+                                    "caption": "Target device or group"
+                                },
+                                {
+                                    "type": "ValidationTextBox",
+                                    "name": "BindingClusters",
+                                    "caption": "Clusters"
+                                }
+                            ]
+                        },
+                        {
+                            "type": "CheckBox",
+                            "name": "BindingSkipDisableReporting",
+                            "caption": "Keep reporting when unbinding"
+                        },
+                        {
+                            "type": "RowLayout",
+                            "items": [
+                                {
+                                    "type": "Button",
+                                    "caption": "Bind",
+                                    "onClick": "IPS_RequestAction($id, 'ApplyBinding', json_encode(['endpoint' => $BindingSourceEndpoint, 'target' => $BindingTarget, 'clusters' => $BindingClusters, 'skip_disable_reporting' => $BindingSkipDisableReporting]));"
+                                },
+                                {
+                                    "type": "Button",
+                                    "caption": "Unbind",
+                                    "onClick": "IPS_RequestAction($id, 'ApplyUnbinding', json_encode(['endpoint' => $BindingSourceEndpoint, 'target' => $BindingTarget, 'clusters' => $BindingClusters, 'skip_disable_reporting' => $BindingSkipDisableReporting]));"
+                                },
+                                {
+                                    "type": "Button",
+                                    "caption": "Clear bindings",
+                                    "onClick": "IPS_RequestAction($id, 'ClearBindings', true);"
+                                }
+                            ]
+                        }
+                    ]
+                },
+                {
+                    "type": "ExpansionPanel",
+                    "caption": "Reporting",
+                    "expanded": false,
+                    "items": [
+                        {
+                            "type": "RowLayout",
+                            "items": [
+                                {
+                                    "type": "ValidationTextBox",
+                                    "name": "ReportingEndpoint",
+                                    "caption": "Endpoint"
+                                },
+                                {
+                                    "type": "ValidationTextBox",
+                                    "name": "ReportingCluster",
+                                    "caption": "Cluster"
+                                },
+                                {
+                                    "type": "ValidationTextBox",
+                                    "name": "ReportingAttribute",
+                                    "caption": "Attribute"
+                                }
+                            ]
+                        },
+                        {
+                            "type": "RowLayout",
+                            "items": [
+                                {
+                                    "type": "NumberSpinner",
+                                    "name": "ReportingMinimumInterval",
+                                    "caption": "Minimum interval",
+                                    "minimum": 0,
+                                    "maximum": 65535,
+                                    "suffix": " s"
+                                },
+                                {
+                                    "type": "NumberSpinner",
+                                    "name": "ReportingMaximumInterval",
+                                    "caption": "Maximum interval",
+                                    "minimum": 0,
+                                    "maximum": 65535,
+                                    "suffix": " s"
+                                },
+                                {
+                                    "type": "ValidationTextBox",
+                                    "name": "ReportingReportableChange",
+                                    "caption": "Reportable change"
+                                }
+                            ]
+                        },
+                        {
+                            "type": "ValidationTextBox",
+                            "name": "ReportingOptions",
+                            "caption": "Options JSON"
+                        },
+                        {
+                            "type": "Label",
+                            "name": "ReportingResult",
+                            "visible": false,
+                            "caption": ""
+                        },
+                        {
+                            "type": "RowLayout",
+                            "items": [
+                                {
+                                    "type": "Button",
+                                    "caption": "Configure reporting",
+                                    "onClick": "IPS_RequestAction($id, 'ConfigureReporting', json_encode(['endpoint' => $ReportingEndpoint, 'cluster' => $ReportingCluster, 'attribute' => $ReportingAttribute, 'minimum' => $ReportingMinimumInterval, 'maximum' => $ReportingMaximumInterval, 'change' => $ReportingReportableChange, 'options' => $ReportingOptions]));"
+                                },
+                                {
+                                    "type": "Button",
+                                    "caption": "Read reporting",
+                                    "onClick": "IPS_RequestAction($id, 'ReadReporting', json_encode(['endpoint' => $ReportingEndpoint, 'cluster' => $ReportingCluster, 'attribute' => $ReportingAttribute]));"
+                                }
+                            ]
+                        }
+                    ]
+                }
+            ]
+        },
+        {
+            "type": "ExpansionPanel",
             "name": "VariableSelectionSettings",
             "caption": "Variables",
             "expanded": false,

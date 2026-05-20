@@ -53,6 +53,8 @@ trait Constants
     protected const ATTRIBUTE_DEVICE_OPTIONS = 'DeviceOptions';
     /** @var string Attribut fuer die von Z2M gemeldeten Optionsdefinitionen */
     protected const ATTRIBUTE_DEVICE_OPTION_DEFINITIONS = 'DeviceOptionDefinitions';
+    /** @var string Attribut fuer Endpoints, Bindings, Cluster und Reporting-Daten */
+    protected const ATTRIBUTE_DEVICE_ENDPOINTS = 'DeviceEndpoints';
     /** @var string Attribut fuer den lokal bekannten Variablenkatalog */
     protected const ATTRIBUTE_VARIABLE_CATALOG = 'VariableCatalog';
     /** @var string Attribut fuer vom Anwender deaktivierte Variablen */

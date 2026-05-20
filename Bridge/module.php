@@ -631,6 +631,24 @@ class Zigbee2MQTTBridge extends IPSModuleStrict
     }
 
     /**
+     * BindWithOptions
+     *
+     * @param string $SourceDevice          Friendly Name oder IEEE-Adresse, optional mit Endpoint.
+     * @param string $TargetDevice          Friendly Name, Gruppenname oder IEEE-Adresse, optional mit Endpoint.
+     * @param string $ClustersJSON          JSON-Array oder kommaseparierte Clusterliste.
+     * @param bool   $SkipDisableReporting  Reporting beim Unbind nicht automatisch entfernen.
+     *
+     * @return bool
+     */
+    public function BindWithOptions(string $SourceDevice, string $TargetDevice, string $ClustersJSON, bool $SkipDisableReporting): bool
+    {
+        return $this->SendCheckedBridgeRequest(
+            '/bridge/request/device/bind',
+            $this->BuildBindingPayload($SourceDevice, $TargetDevice, $ClustersJSON, $SkipDisableReporting)
+        ) !== false;
+    }
+
+    /**
      * Unbind
      *
      * @param  string $SourceDevice
@@ -645,6 +663,107 @@ class Zigbee2MQTTBridge extends IPSModuleStrict
         $Topic = '/bridge/request/device/unbind';
         $Payload = ['from' => $SourceDevice, 'to' => $TargetDevice];
         return $this->SendCheckedBridgeRequest($Topic, $Payload) !== false;
+    }
+
+    /**
+     * UnbindWithOptions
+     *
+     * @param string $SourceDevice          Friendly Name oder IEEE-Adresse, optional mit Endpoint.
+     * @param string $TargetDevice          Friendly Name, Gruppenname oder IEEE-Adresse, optional mit Endpoint.
+     * @param string $ClustersJSON          JSON-Array oder kommaseparierte Clusterliste.
+     * @param bool   $SkipDisableReporting  Reporting beim Unbind nicht automatisch entfernen.
+     *
+     * @return bool
+     */
+    public function UnbindWithOptions(string $SourceDevice, string $TargetDevice, string $ClustersJSON, bool $SkipDisableReporting): bool
+    {
+        return $this->SendCheckedBridgeRequest(
+            '/bridge/request/device/unbind',
+            $this->BuildBindingPayload($SourceDevice, $TargetDevice, $ClustersJSON, $SkipDisableReporting)
+        ) !== false;
+    }
+
+    /**
+     * ClearBinds
+     *
+     * @param string $DeviceName Friendly Name oder IEEE-Adresse.
+     *
+     * @return bool
+     */
+    public function ClearBinds(string $DeviceName): bool
+    {
+        return $this->SendCheckedBridgeRequest('/bridge/request/device/binds/clear', ['id' => $DeviceName]) !== false;
+    }
+
+    /**
+     * ConfigureReporting
+     *
+     * @param string $DeviceName            Friendly Name oder IEEE-Adresse.
+     * @param string $Endpoint              Endpoint-ID oder Endpoint-Name.
+     * @param string $Cluster               Zigbee-Cluster, z.B. genOnOff.
+     * @param string $Attribute             Cluster-Attribut, z.B. onOff.
+     * @param int    $MinimumReportInterval Minimales Reporting-Intervall in Sekunden.
+     * @param int    $MaximumReportInterval Maximales Reporting-Intervall in Sekunden.
+     * @param string $ReportableChange      Optionaler reportable_change-Wert.
+     * @param string $OptionsJSON           Optionales JSON-Objekt fuer ZCL-Optionen.
+     *
+     * @return bool
+     */
+    public function ConfigureReporting(
+        string $DeviceName,
+        string $Endpoint,
+        string $Cluster,
+        string $Attribute,
+        int $MinimumReportInterval,
+        int $MaximumReportInterval,
+        string $ReportableChange,
+        string $OptionsJSON
+    ): bool {
+        $payload = $this->BuildReportingPayload($DeviceName, $Endpoint, $Cluster);
+        $payload['attribute'] = $Attribute;
+        $payload['minimum_report_interval'] = $MinimumReportInterval;
+        $payload['maximum_report_interval'] = $MaximumReportInterval;
+
+        $ReportableChange = trim($ReportableChange);
+        if ($ReportableChange !== '') {
+            $payload['reportable_change'] = $this->ParseBridgeScalarValue($ReportableChange);
+        }
+
+        $options = $this->ParseOptionalJsonObject($OptionsJSON);
+        if ($options !== []) {
+            $payload['options'] = $options;
+        }
+
+        return $this->SendCheckedBridgeRequest('/bridge/request/device/reporting/configure', $payload, 10000) !== false;
+    }
+
+    /**
+     * ReadReporting
+     *
+     * @param string $DeviceName       Friendly Name oder IEEE-Adresse.
+     * @param string $Endpoint         Endpoint-ID oder Endpoint-Name.
+     * @param string $Cluster          Zigbee-Cluster, z.B. genOnOff.
+     * @param string $AttributesJSON   JSON-Array oder kommaseparierte Attributliste.
+     * @param string $ManufacturerCode Optionaler Hersteller-Code.
+     *
+     * @return string JSON-kodierte Antwortdaten oder leer bei Fehler.
+     */
+    public function ReadReporting(string $DeviceName, string $Endpoint, string $Cluster, string $AttributesJSON, string $ManufacturerCode): string
+    {
+        $payload = $this->BuildReportingPayload($DeviceName, $Endpoint, $Cluster);
+        $payload['configs'] = $this->BuildReportingConfigList($AttributesJSON);
+
+        $ManufacturerCode = trim($ManufacturerCode);
+        if ($ManufacturerCode !== '') {
+            $payload['manufacturer_code'] = $this->ParseBridgeScalarValue($ManufacturerCode);
+        }
+
+        $data = $this->SendCheckedBridgeRequest('/bridge/request/device/reporting/read', $payload, 10000);
+        if ($data === false) {
+            return '';
+        }
+
+        return json_encode($data, JSON_UNESCAPED_SLASHES | JSON_UNESCAPED_UNICODE);
     }
 
     /**
@@ -916,6 +1035,141 @@ class Zigbee2MQTTBridge extends IPSModuleStrict
         }
 
         return parent::SetValue($Ident, $Value);
+    }
+
+    /**
+     * Baut den Payload fuer Binding- und Unbinding-Requests.
+     */
+    private function BuildBindingPayload(string $SourceDevice, string $TargetDevice, string $ClustersJSON, bool $SkipDisableReporting): array
+    {
+        $payload = [
+            'from' => $SourceDevice,
+            'to'   => $TargetDevice
+        ];
+
+        $clusters = $this->ParseStringList($ClustersJSON);
+        if ($clusters !== []) {
+            $payload['clusters'] = $clusters;
+        }
+        if ($SkipDisableReporting) {
+            $payload['skip_disable_reporting'] = true;
+        }
+
+        return $payload;
+    }
+
+    /**
+     * Baut die gemeinsamen Reporting-Payload-Felder.
+     */
+    private function BuildReportingPayload(string $DeviceName, string $Endpoint, string $Cluster): array
+    {
+        $payload = [
+            'id'      => $DeviceName,
+            'cluster' => $Cluster
+        ];
+
+        $Endpoint = trim($Endpoint);
+        if ($Endpoint !== '') {
+            $payload['endpoint'] = is_numeric($Endpoint) ? (int) $Endpoint : $Endpoint;
+        }
+
+        return $payload;
+    }
+
+    /**
+     * Baut die configs-Liste fuer Reporting-Read-Requests.
+     */
+    private function BuildReportingConfigList(string $AttributesJSON): array
+    {
+        $decoded = json_decode(trim($AttributesJSON), true);
+        if (\is_array($decoded) && array_is_list($decoded)) {
+            $configs = [];
+            foreach ($decoded as $entry) {
+                if (\is_array($entry)) {
+                    $configs[] = $entry;
+                    continue;
+                }
+                $attribute = trim((string) $entry);
+                if ($attribute !== '') {
+                    $configs[] = ['attribute' => $attribute];
+                }
+            }
+
+            return $configs;
+        }
+
+        $attributes = $this->ParseStringList($AttributesJSON);
+        if ($attributes === []) {
+            return [];
+        }
+
+        $configs = [];
+        foreach ($attributes as $attribute) {
+            $configs[] = ['attribute' => $attribute];
+        }
+
+        return $configs;
+    }
+
+    /**
+     * Liest ein JSON-Array oder eine kommaseparierte Liste.
+     *
+     * @return string[]
+     */
+    private function ParseStringList(string $Value): array
+    {
+        $Value = trim($Value);
+        if ($Value === '') {
+            return [];
+        }
+
+        $decoded = json_decode($Value, true);
+        if (\is_array($decoded) && array_is_list($decoded)) {
+            return array_values(array_filter(array_map(
+                static fn (mixed $entry): string => trim((string) $entry),
+                $decoded
+            ), static fn (string $entry): bool => $entry !== ''));
+        }
+
+        return array_values(array_filter(array_map('trim', explode(',', $Value)), static fn (string $entry): bool => $entry !== ''));
+    }
+
+    /**
+     * Liest ein optionales JSON-Objekt.
+     */
+    private function ParseOptionalJsonObject(string $OptionsJSON): array
+    {
+        $OptionsJSON = trim($OptionsJSON);
+        if ($OptionsJSON === '') {
+            return [];
+        }
+
+        $decoded = json_decode($OptionsJSON, true);
+        if (!\is_array($decoded) || !str_starts_with($OptionsJSON, '{')) {
+            trigger_error($this->Translate('Options must be a JSON object.'), E_USER_NOTICE);
+            return [];
+        }
+
+        return $decoded;
+    }
+
+    /**
+     * Wandelt einfache Formularwerte in JSON-, Boolean-, Integer-, Float- oder Stringwerte.
+     */
+    private function ParseBridgeScalarValue(string $Value): mixed
+    {
+        $Value = trim($Value);
+        $decoded = json_decode($Value, true);
+        if (json_last_error() === JSON_ERROR_NONE && !\is_array($decoded)) {
+            return $decoded;
+        }
+
+        $normalized = str_replace(',', '.', $Value);
+        if (is_numeric($normalized)) {
+            return str_contains($normalized, '.') ? (float) $normalized : (int) $normalized;
+        }
+
+        return $Value;
     }
 
     /**
