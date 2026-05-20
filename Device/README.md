@@ -128,6 +128,8 @@ Wenn Zigbee2MQTT `value_min` und `value_max` für `color_temp` liefert, wird dar
 
 Falls kein Wertebereich vorhanden ist, verwendet das Modul den Standardbereich `1000 K` bis `12000 K`. Zusätzlich wird ein Farbverlauf von Warmweiß bis Kaltweiß gesetzt, der zum jeweiligen Kelvin-Bereich passt.
 
+Bei reinen Tunable-White-Leuchtmitteln ohne RGB/HS/XY-Farb-Expose legt das Modul zusätzlich eine abgeleitete Variable `color` mit dem Profil `~HexColor` an. Diese Variable zeigt den aktuellen Weißton als Farbe an, bleibt aber eine reine Darstellung und ersetzt keine echte RGB-Steuerung.
+
 ### 4.4 Geräteoptionen
 
 Zigbee2MQTT liefert je nach Gerät allgemeine und gerätespezifische Optionen. In der Instanz-Konfiguration erscheint dafür der Bereich **Geräteoptionen**. Dort werden bekannte Optionen mit aktuellem Wert, Typ und Beschreibung angezeigt.

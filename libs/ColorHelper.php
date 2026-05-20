@@ -333,6 +333,30 @@ trait ColorHelper
     }
 
     /**
+     * Naehert einen Kelvin-Weisswert als RGB-Farbwert fuer Symcons HexColor-Darstellung an.
+     */
+    protected function convertKelvinToWhiteColor(int $kelvin): int
+    {
+        $temperature = max(1000, min(40000, $kelvin)) / 100;
+
+        if ($temperature <= 66) {
+            $red = 255;
+            $green = 99.4708025861 * log($temperature) - 161.1195681661;
+            $blue = $temperature <= 19 ? 0 : 138.5177312231 * log($temperature - 10) - 305.0447927307;
+        } else {
+            $red = 329.698727446 * (($temperature - 60) ** -0.1332047592);
+            $green = 288.1221695283 * (($temperature - 60) ** -0.0755148492);
+            $blue = 255;
+        }
+
+        $r = max(0, min(255, (int) round($red)));
+        $g = max(0, min(255, (int) round($green)));
+        $b = max(0, min(255, (int) round($blue)));
+
+        return ($r << 16) | ($g << 8) | $b;
+    }
+
+    /**
      * normalizeValueToRange
      *
      * Rechnet die Helligkeit zwischen dem absoluten Gerätewert und relativem Prozentwert um.

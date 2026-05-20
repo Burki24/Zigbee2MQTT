@@ -189,6 +189,22 @@ class DevicesTest extends DumpInclude
         $this->assertStringContainsString('"type":"sensor"', $html);
     }
 
+    public function testTunableWhiteLightGetsDerivedWhiteColorVariable(): void
+    {
+        [$iid, $Debug] = $this->createTestInstance('TunableWhiteLight.json');
+        $interface = IPS\InstanceManager::getInstanceInterface($iid);
+        $topic = $Debug['Config']['MQTTBaseTopic'] . '/' . $Debug['Config']['MQTTTopic'];
+
+        $colorID = IPS_GetObjectIDByIdent('color', $iid);
+        $this->assertNotFalse($colorID);
+        $variable = IPS_GetVariable($colorID);
+        $this->assertSame('~HexColor', $variable['VariableProfile']);
+        $this->assertSame(0xFF9227, GetValue($colorID));
+
+        $interface->ReceiveData(self::buildMqttRequest($topic, ['color_temp' => 153]));
+        $this->assertNotSame(0xFF9227, GetValue($colorID));
+    }
+
     public function testDeviceOptionsAreShownInConfigurationForm(): void
     {
         [$iid] = $this->createTestInstance('MixedLightSensor.json');

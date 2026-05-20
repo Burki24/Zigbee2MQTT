@@ -1,0 +1,49 @@
+{
+    "Config": {
+        "MQTTBaseTopic": "zigbee2mqtt",
+        "MQTTTopic": "Test/TunableWhiteLight",
+        "IEEE": "0x0000000000000002"
+    },
+    "Exposes": [
+        {
+            "type": "light",
+            "features": [
+                {
+                    "name": "state",
+                    "label": "State",
+                    "access": 7,
+                    "type": "binary",
+                    "property": "state",
+                    "value_on": "ON",
+                    "value_off": "OFF",
+                    "value_toggle": "TOGGLE"
+                },
+                {
+                    "name": "brightness",
+                    "label": "Brightness",
+                    "access": 7,
+                    "type": "numeric",
+                    "property": "brightness",
+                    "value_min": 0,
+                    "value_max": 254
+                },
+                {
+                    "name": "color_temp",
+                    "label": "Color temp",
+                    "access": 7,
+                    "type": "numeric",
+                    "property": "color_temp",
+                    "unit": "mired",
+                    "value_min": 153,
+                    "value_max": 454
+                }
+            ]
+        }
+    ],
+    "LastPayload": {
+        "state": "ON",
+        "brightness": 254,
+        "color_temp": 454
+    },
+    "Childs": []
+}

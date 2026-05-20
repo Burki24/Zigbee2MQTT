@@ -1155,6 +1155,7 @@ abstract class ModulBase extends \IPSModuleStrict
             $kelvinIdent = 'color_temp_kelvin';
             $kelvinValue = $this->convertMiredToKelvin($value);
             $this->SetValueDirect($kelvinIdent, $kelvinValue);
+            $this->UpdateColorTemperatureWhiteColorVariable($kelvinValue);
         }
         $this->UpdateCustomTileValuesIfRelevant($ident);
         return $result;
@@ -3143,6 +3144,8 @@ abstract class ModulBase extends \IPSModuleStrict
         }
 
         $this->SetValueDirect('color_temp', $convertedValue);
+        $this->SetValueDirect('color_temp_kelvin', $value);
+        $this->UpdateColorTemperatureWhiteColorVariable((int) $value);
         return true;
     }
 
@@ -3154,7 +3157,16 @@ abstract class ModulBase extends \IPSModuleStrict
         $convertedValue = $this->convertKelvinToMired($value);
         $this->SendDebug('handleColorVariable', 'Converted Color Temp: ' . $convertedValue, 0);
 
-        return $this->SendSetCommand(['color_temp' => $convertedValue]);
+        if (!$this->SendSetCommand(['color_temp' => $convertedValue])) {
+            return false;
+        }
+
+        $kelvinValue = $this->convertMiredToKelvin($convertedValue);
+        $this->SetValueDirect('color_temp', $convertedValue);
+        $this->SetValueDirect('color_temp_kelvin', $kelvinValue);
+        $this->UpdateColorTemperatureWhiteColorVariable($kelvinValue);
+
+        return true;
     }
 
     /**
@@ -5099,6 +5111,79 @@ abstract class ModulBase extends \IPSModuleStrict
         $this->MarkVariableCreated($kelvinIdent);
         $this->ApplyColorTemperaturePresentation($kelvinIdent, $feature);
         $this->checkAndEnableAction($kelvinIdent, null, true);
+
+        $this->registerColorTemperatureWhiteColorVariable();
+    }
+
+    /**
+     * Registriert fuer reine Tunable-White-Leuchten eine abgeleitete Farbe.
+     */
+    private function registerColorTemperatureWhiteColorVariable(): void
+    {
+        if ($this->HasNativeColorExpose()) {
+            return;
+        }
+        if (!$this->CanCreateVariable('color', ['property' => 'color', 'type' => 'numeric', 'label' => 'Color'], 'derived')) {
+            $this->SendDebug(__FUNCTION__, 'Skipping derived tunable-white color variable: color', 0);
+            return;
+        }
+
+        $this->RegisterVariableInteger('color', $this->Translate($this->convertLabelToName('color')), '~HexColor');
+        $this->MarkVariableCreated('color');
+    }
+
+    /**
+     * Aktualisiert die abgeleitete Weissfarb-Variable, sofern sie fuer Tunable White genutzt wird.
+     */
+    private function UpdateColorTemperatureWhiteColorVariable(int $kelvin): void
+    {
+        if ($this->HasNativeColorExpose()) {
+            return;
+        }
+        if ($this->GetObjectIDByIdent('color') === false) {
+            return;
+        }
+
+        $this->SetValueDirect('color', $this->convertKelvinToWhiteColor($kelvin));
+    }
+
+    /**
+     * Prueft, ob das Geraet eine echte RGB/HS/XY-Farbsteuerung liefert.
+     */
+    private function HasNativeColorExpose(): bool
+    {
+        foreach ($this->ReadAttributeArray(self::ATTRIBUTE_EXPOSES) as $expose) {
+            if ($this->FeatureTreeContainsNativeColorExpose($expose)) {
+                return true;
+            }
+        }
+
+        return false;
+    }
+
+    /**
+     * Durchsucht ein Expose rekursiv nach nativen Farbfeatures.
+     */
+    private function FeatureTreeContainsNativeColorExpose(array $feature): bool
+    {
+        $property = strtolower((string) ($feature['property'] ?? ''));
+        $name = strtolower((string) ($feature['name'] ?? ''));
+
+        if (
+            $property === 'color'
+            || \in_array($property, ['color_hs', 'color_rgb', 'color_xy'], true)
+            || \in_array($name, ['color_hs', 'color_rgb', 'color_xy'], true)
+        ) {
+            return true;
+        }
+
+        foreach ($feature['features'] ?? [] as $subFeature) {
+            if (\is_array($subFeature) && $this->FeatureTreeContainsNativeColorExpose($subFeature)) {
+                return true;
+            }
+        }
+
+        return false;
     }
 
     /**
