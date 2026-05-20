@@ -124,11 +124,20 @@ Zigbee2MQTT liefert den Bereich für `color_temp` normalerweise in Mired. Das Mo
 | `color_temp` | `color_temp` | Mired-Wert für Zigbee2MQTT |
 | `color_temp` | `color_temp_kelvin` | Kelvin-Bedienung für die Beleuchtungs-Kachel |
 
-Wenn Zigbee2MQTT `value_min` und `value_max` für `color_temp` liefert, wird daraus der Kelvin-Bereich berechnet. Beispiel: Aus `value_min: 200` und `value_max: 454` wird ungefähr `2202 K` bis `5000 K`.
+Wenn Zigbee2MQTT `value_min` und `value_max` für `color_temp` liefert, wird daraus der Kelvin-Bereich berechnet. Mired und Kelvin laufen dabei entgegengesetzt: ein kleiner Mired-Wert bedeutet eine hohe Kelvin-Zahl, ein großer Mired-Wert eine niedrige Kelvin-Zahl. Beispiel: Aus `value_min: 200` und `value_max: 454` wird ungefähr `2202 K` bis `5000 K`.
 
 Falls kein Wertebereich vorhanden ist, verwendet das Modul den Standardbereich `1000 K` bis `12000 K`. Zusätzlich wird ein Farbverlauf von Warmweiß bis Kaltweiß gesetzt, der zum jeweiligen Kelvin-Bereich passt.
 
-Falls Zigbee2MQTT einen zu großen oder falschen Bereich meldet, kann der Kelvin-Bereich in der Instanz-Konfiguration unter **Farbtemperatur-Visualisierung** überschrieben werden. `0` bedeutet dabei: Bereich automatisch aus dem Expose verwenden.
+Einige Zigbee2MQTT-Device-Definitionen melden für `color_temp` jedoch einen zu großen oder nicht zum konkreten Leuchtmittel passenden Bereich. Das ist kein Fehler der Symcon-Visualisierung und kein Fehler dieses Moduls: Das Modul kann zunächst nur die Werte verwenden, die Zigbee2MQTT über das Expose liefert. Wenn die Zigbee2MQTT-Definition z. B. `153..555 mired` meldet, ergibt das rechnerisch ungefähr `1801 K` bis `6535 K`, auch wenn das reale Leuchtmittel nur etwa `2202 K` bis `5000 K` unterstützt.
+
+Für solche Fälle kann der Kelvin-Bereich in der Instanz-Konfiguration unter **Farbtemperatur-Visualisierung** überschrieben werden:
+
+| Einstellung | Bedeutung |
+| ----------- | --------- |
+| `Minimum = 0` und `Maximum = 0` | Bereich automatisch aus dem Zigbee2MQTT-Expose berechnen |
+| `Minimum > 0` und `Maximum > 0` | diesen Kelvin-Bereich für die Symcon-Darstellung verwenden |
+
+Der Override korrigiert die Symcon-Darstellung der `color_temp_kelvin`-Variable, begrenzt Kelvin-Aktionen auf diesen Bereich und passt die abgeleitete Weiß-Farbe entsprechend an. Er ändert keine Zigbee2MQTT-Device-Definition und keine technischen Fähigkeiten des Leuchtmittels.
 
 Bei reinen Tunable-White-Leuchtmitteln ohne RGB/HS/XY-Farb-Expose legt das Modul zusätzlich eine abgeleitete Variable `color` mit dem Profil `~HexColor` an. Diese Variable zeigt den aktuellen Weißton als Farbe an, bleibt aber eine reine Darstellung und ersetzt keine echte RGB-Steuerung.
 
