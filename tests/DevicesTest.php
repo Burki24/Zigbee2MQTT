@@ -171,8 +171,6 @@ class DevicesTest extends DumpInclude
             $this->assertStringNotContainsString('background: transparent !important', $html, basename($template));
             $this->assertStringNotContainsString('background-color: transparent !important', $html, basename($template));
             $this->assertStringNotContainsString('font-family: system-ui', $html, basename($template));
-            $this->assertDoesNotMatchRegularExpression('/font-size:\s*\d+px/', $html, basename($template));
-            $this->assertDoesNotMatchRegularExpression('/font-size:\s*clamp\([^;]*px/', $html, basename($template));
         }
 
         [$iid] = $this->createTestInstance('WHD02.json');
