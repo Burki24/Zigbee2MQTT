@@ -157,19 +157,25 @@ class DevicesTest extends DumpInclude
         $this->assertIsArray(json_decode(IPS_GetConfigurationForm($iid), true));
     }
 
-    public function testCustomTileTemplatesIncludeThemeSupport(): void
+    public function testCustomTileTemplatesUseInheritedThemeColors(): void
     {
         $templates = glob(dirname(__DIR__) . '/libs/Visualization/tiles/*_tile.html');
         $this->assertIsArray($templates);
         $this->assertNotSame([], $templates);
 
         foreach ($templates as $template) {
-            $this->assertStringContainsString('__THEME_SUPPORT__', file_get_contents($template), basename($template));
+            $html = file_get_contents($template);
+            $this->assertStringContainsString('__THEME_SUPPORT__', $html, basename($template));
+            $this->assertStringNotContainsString('--text: #111111', $html, basename($template));
+            $this->assertStringNotContainsString('--muted: #667085', $html, basename($template));
+            $this->assertStringNotContainsString('background: transparent !important', $html, basename($template));
+            $this->assertStringNotContainsString('background-color: transparent !important', $html, basename($template));
+            $this->assertStringNotContainsString('font-family: system-ui', $html, basename($template));
         }
 
         [$iid] = $this->createTestInstance('WHD02.json');
         $html = IPS\InstanceManager::getInstanceInterface($iid)->GetVisualizationTile();
-        $this->assertStringContainsString('data-z2m-theme', $html);
+        $this->assertStringContainsString('--text: currentColor', $html);
         $this->assertStringNotContainsString('__THEME_SUPPORT__', $html);
     }
 
