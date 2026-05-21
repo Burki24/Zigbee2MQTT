@@ -133,7 +133,7 @@
 
         .alert-label {
             color: var(--state-color);
-            font-size: 25px;
+            font-size: 1.55em;
             font-weight: 500;
             line-height: 1.05;
             white-space: nowrap;
@@ -142,7 +142,7 @@
         .alert-caption,
         .metric-caption {
             color: var(--muted);
-            font-size: 11px;
+            font-size: 0.75em;
             letter-spacing: 0;
             text-transform: uppercase;
         }
@@ -181,12 +181,12 @@
             align-items: baseline;
             gap: 4px;
             color: var(--muted);
-            font-size: 18px;
+            font-size: 1.125em;
         }
 
         .metric-item.primary .metric-main {
             color: var(--text);
-            font-size: 52px;
+            font-size: clamp(2.5em, 12vw, 3.25em);
             font-weight: 400;
             line-height: 1.05;
         }
@@ -203,7 +203,7 @@
 
         .sensor-values.has-alert .metric-item.primary .metric-main {
             color: var(--muted);
-            font-size: 18px;
+            font-size: 1.125em;
         }
 
         .metric-icon {
@@ -245,13 +245,13 @@
 
         .setting-label {
             overflow: hidden;
-            font-size: 14px;
+            font-size: 1em;
             text-overflow: ellipsis;
             white-space: nowrap;
         }
 
         .setting-value {
-            font-size: 14px;
+            font-size: 1em;
             white-space: nowrap;
         }
 
@@ -272,7 +272,7 @@
             color: var(--accent);
             background: transparent;
             cursor: pointer;
-            font-size: 22px;
+            font-size: 1.35em;
             line-height: 1;
         }
 
@@ -295,7 +295,7 @@
             color: var(--accent);
             background: transparent;
             cursor: pointer;
-            font-size: 13px;
+            font-size: 0.9em;
         }
 
         .segment-button.active {
@@ -349,7 +349,7 @@
             }
 
             .metric-item.primary .metric-main {
-                font-size: 38px;
+                font-size: clamp(1.9em, 8vw, 2.375em);
             }
 
             .metric-item.primary .metric-icon {
@@ -358,11 +358,11 @@
             }
 
             .sensor-values.has-alert .metric-item.primary .metric-main {
-                font-size: 16px;
+                font-size: 1em;
             }
 
             .alert-label {
-                font-size: 21px;
+                font-size: 1.3em;
             }
 
             .alert-icon-button {
@@ -382,13 +382,13 @@
 
             .setting-label,
             .setting-value {
-                font-size: 13px;
+                font-size: 0.9em;
             }
 
             .segment-button {
                 min-width: 54px;
                 padding: 0 8px;
-                font-size: 12px;
+                font-size: 0.8em;
             }
         }
     </style>

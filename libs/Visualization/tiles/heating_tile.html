@@ -122,11 +122,11 @@
         }
 
         .temperature-display.primary .temperature-value {
-            font-size: 68px;
+            font-size: clamp(3.25em, 13vw, 4.25em);
         }
 
         .temperature-display.secondary .temperature-value {
-            font-size: 38px;
+            font-size: clamp(1.9em, 8vw, 2.375em);
         }
 
         .temperature-value {
@@ -141,7 +141,7 @@
 
         .temperature-label {
             color: var(--muted);
-            font-size: 11px;
+            font-size: 0.75em;
             font-weight: 500;
             letter-spacing: 0;
             text-transform: uppercase;
@@ -170,7 +170,7 @@
             color: var(--accent);
             background: rgba(16, 200, 178, 0.12);
             cursor: pointer;
-            font-size: 13px;
+            font-size: 0.9em;
             font-weight: 500;
             letter-spacing: 0;
             white-space: nowrap;
@@ -219,7 +219,7 @@
             min-height: 28px;
             margin-top: 4px;
             color: var(--muted);
-            font-size: 13px;
+            font-size: 0.9em;
             letter-spacing: 0;
         }
 
@@ -260,14 +260,14 @@
         .setting-label {
             overflow: hidden;
             color: var(--text);
-            font-size: 14px;
+            font-size: 1em;
             text-overflow: ellipsis;
             white-space: nowrap;
         }
 
         .setting-value {
             color: var(--text);
-            font-size: 14px;
+            font-size: 1em;
             white-space: nowrap;
         }
 
@@ -338,7 +338,7 @@
             color: var(--accent);
             background: transparent;
             cursor: pointer;
-            font-size: 13px;
+            font-size: 0.9em;
             white-space: nowrap;
         }
 
@@ -356,7 +356,7 @@
             color: #ffffff;
             background: var(--accent);
             cursor: pointer;
-            font-size: 13px;
+            font-size: 0.9em;
         }
 
         @media (max-width: 360px), (max-height: 310px) {
@@ -398,11 +398,11 @@
             }
 
             .temperature-display.primary .temperature-value {
-                font-size: 50px;
+                font-size: clamp(2.5em, 12vw, 3.125em);
             }
 
             .temperature-display.secondary .temperature-value {
-                font-size: 30px;
+                font-size: clamp(1.5em, 7vw, 1.875em);
             }
 
             .settings-list {
@@ -416,13 +416,13 @@
 
             .setting-label,
             .setting-value {
-                font-size: 13px;
+                font-size: 0.9em;
             }
 
             .segment-button {
                 min-width: 38px;
                 padding: 0 7px;
-                font-size: 12px;
+                font-size: 0.8em;
             }
         }
     </style>
