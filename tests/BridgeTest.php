@@ -304,6 +304,102 @@ class BridgeTest extends TestCase
         $this->assertSame('interviewing', $bridge->readDiagnosticAttribute('DiagnosticInterviewDevices')[0]['friendly_name']);
     }
 
+    public function testCreateBackupReturnsBase64Zip(): void
+    {
+        $bridge = $this->createBridgeTestDouble([
+            'status' => 'ok',
+            'data'   => [
+                'zip' => 'WklHQkVFMk1RVFQuUk9DS1M='
+            ]
+        ]);
+
+        $this->assertSame('WklHQkVFMk1RVFQuUk9DS1M=', $bridge->CreateBackup());
+        $this->assertSame('/bridge/request/backup', $bridge->lastTopic);
+        $this->assertSame([], $bridge->lastPayload);
+        $this->assertSame(30000, $bridge->lastTimeout);
+    }
+
+    public function testAddInstallCodeUsesInstallCodeRequest(): void
+    {
+        $bridge = $this->createBridgeTestDouble([
+            'status' => 'ok',
+            'data'   => [
+                'value' => 'INSTALLCODE'
+            ]
+        ]);
+
+        $this->assertTrue($bridge->AddInstallCode(' INSTALLCODE '));
+        $this->assertSame('/bridge/request/install_code/add', $bridge->lastTopic);
+        $this->assertSame(['value' => 'INSTALLCODE'], $bridge->lastPayload);
+        $this->assertSame(5000, $bridge->lastTimeout);
+    }
+
+    public function testAddInstallCodeRejectsEmptyCode(): void
+    {
+        $bridge = $this->createBridgeTestDouble(true);
+
+        $this->assertFalse(@$bridge->AddInstallCode(''));
+        $this->assertSame('', $bridge->lastTopic);
+    }
+
+    public function testTouchlinkScanStoresFoundDevices(): void
+    {
+        $bridge = $this->createBridgeTestDouble([
+            'status' => 'ok',
+            'data'   => [
+                'found' => [
+                    [
+                        'ieee_address' => '0x1234',
+                        'channel'      => 15
+                    ]
+                ]
+            ]
+        ]);
+
+        $this->assertSame('{"found":[{"ieee_address":"0x1234","channel":15}]}', $bridge->TouchlinkScan());
+        $this->assertSame('/bridge/request/touchlink/scan', $bridge->lastTopic);
+        $this->assertSame([], $bridge->lastPayload);
+        $this->assertSame(70000, $bridge->lastTimeout);
+        $this->assertSame('0x1234', $bridge->readDiagnosticAttribute('TouchlinkDevices')[0]['ieee_address']);
+    }
+
+    public function testTouchlinkIdentifyUsesTargetPayload(): void
+    {
+        $bridge = $this->createBridgeTestDouble([
+            'status' => 'ok',
+            'data'   => []
+        ]);
+
+        $this->assertTrue($bridge->TouchlinkIdentify('0x1234', 15));
+        $this->assertSame('/bridge/request/touchlink/identify', $bridge->lastTopic);
+        $this->assertSame([
+            'ieee_address' => '0x1234',
+            'channel'      => 15
+        ], $bridge->lastPayload);
+        $this->assertSame(10000, $bridge->lastTimeout);
+    }
+
+    public function testTouchlinkFactoryResetSupportsTargetAndEmptyPayload(): void
+    {
+        $bridge = $this->createBridgeTestDouble([
+            'status' => 'ok',
+            'data'   => []
+        ]);
+
+        $this->assertTrue($bridge->TouchlinkFactoryReset('0x1234', 15));
+        $this->assertSame('/bridge/request/touchlink/factory_reset', $bridge->lastTopic);
+        $this->assertSame([
+            'ieee_address' => '0x1234',
+            'channel'      => 15
+        ], $bridge->lastPayload);
+        $this->assertSame(70000, $bridge->lastTimeout);
+
+        $this->assertTrue($bridge->TouchlinkFactoryReset());
+        $this->assertSame('/bridge/request/touchlink/factory_reset', $bridge->lastTopic);
+        $this->assertSame([], $bridge->lastPayload);
+        $this->assertSame(70000, $bridge->lastTimeout);
+    }
+
     public function testAddDeviceToGroupUsesOptionalEndpoint(): void
     {
         $bridge = $this->createBridgeTestDouble([

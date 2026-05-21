@@ -30,6 +30,7 @@
 - Systemweite Einstellungen in Zigbee2MQTT aus Symcon anpassen
 - Netzwerkbeitritt aus Symcon steuern und darstellen
 - Diagnosebereich für Health Check, Coordinator Check, Bridge-Events, Warnungen/Fehler und auffällige Geräte
+- Wartungsbereich für Zigbee2MQTT-Backup, Install-Code und Touchlink-Scan/Identify/Factory-Reset
 - Viele PHP-Funktionen um interne Zigbee2MQTT Funktionen auszuführen (Gruppen verwalten, Geräte umbenennen usw...)
   
 ## 2. Voraussetzungen
@@ -377,6 +378,56 @@ bool Z2M_ClearBridgeDiagnostics(int $InstanzID);
 ```
 
 Leert die gesammelten Bridge-Events, Warnungen/Fehler und Gerätediagnosen. Die letzten Health- und Coordinator-Check-Ergebnisse bleiben erhalten.
+
+---
+
+### Z2M_CreateBackup <!-- omit in toc -->
+
+```php
+string Z2M_CreateBackup(int $InstanzID);
+```
+
+Erstellt über `bridge/request/backup` ein Zigbee2MQTT-Backup und gibt das von Zigbee2MQTT gelieferte Base64-kodierte ZIP zurück. Im Bridge-Wartungsbereich wird dieser Rückgabewert für den Download als ZIP dekodiert.
+
+---
+
+### Z2M_AddInstallCode <!-- omit in toc -->
+
+```php
+bool Z2M_AddInstallCode(int $InstanzID, string $Code);
+```
+
+Sendet einen Zigbee-3.0-Install-Code an Zigbee2MQTT. Der Code wird nicht in Symcon gespeichert.
+
+---
+
+### Z2M_TouchlinkScan <!-- omit in toc -->
+
+```php
+string Z2M_TouchlinkScan(int $InstanzID);
+```
+
+Startet einen Touchlink-Scan über Zigbee2MQTT. Der Scan kann bis zu etwa eine Minute dauern und die Zigbee-Kommunikation währenddessen stören. Die gefundenen Geräte werden im Bridge-Wartungsbereich angezeigt. Rückgabe ist ein JSON-String mit der Zigbee2MQTT-Antwort oder leer bei Fehler.
+
+---
+
+### Z2M_TouchlinkIdentify <!-- omit in toc -->
+
+```php
+bool Z2M_TouchlinkIdentify(int $InstanzID, string $IeeeAddress, int $Channel);
+```
+
+Lässt ein per Touchlink-Scan gefundenes Gerät identifizieren.
+
+---
+
+### Z2M_TouchlinkFactoryReset <!-- omit in toc -->
+
+```php
+bool Z2M_TouchlinkFactoryReset(int $InstanzID, string $IeeeAddress = '', int $Channel = 0);
+```
+
+Startet einen Touchlink-Factory-Reset. Mit IEEE-Adresse und Kanal wird ein konkretes Scan-Ergebnis adressiert. Ohne Ziel setzt Zigbee2MQTT das nächstgelegene gefundene Touchlink-Gerät zurück; diese Funktion sollte nur bewusst genutzt werden.
 
 ---
 

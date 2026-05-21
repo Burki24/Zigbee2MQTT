@@ -51,6 +51,7 @@ class Zigbee2MQTTBridge extends IPSModuleStrict
     private const ATTRIBUTE_DIAGNOSTIC_LOGS = 'DiagnosticLogs';
     private const ATTRIBUTE_DIAGNOSTIC_UNSUPPORTED_DEVICES = 'DiagnosticUnsupportedDevices';
     private const ATTRIBUTE_DIAGNOSTIC_INTERVIEW_DEVICES = 'DiagnosticInterviewDevices';
+    private const ATTRIBUTE_TOUCHLINK_DEVICES = 'TouchlinkDevices';
     private const MAX_DIAGNOSTIC_ENTRIES = 50;
 
     /**
@@ -81,6 +82,7 @@ class Zigbee2MQTTBridge extends IPSModuleStrict
         $this->RegisterAttributeArray(self::ATTRIBUTE_DIAGNOSTIC_LOGS, []);
         $this->RegisterAttributeArray(self::ATTRIBUTE_DIAGNOSTIC_UNSUPPORTED_DEVICES, []);
         $this->RegisterAttributeArray(self::ATTRIBUTE_DIAGNOSTIC_INTERVIEW_DEVICES, []);
+        $this->RegisterAttributeArray(self::ATTRIBUTE_TOUCHLINK_DEVICES, []);
     }
 
     /**
@@ -385,6 +387,25 @@ class Zigbee2MQTTBridge extends IPSModuleStrict
                 break;
             case 'ClearBridgeDiagnostics':
                 $this->ClearBridgeDiagnostics();
+                break;
+            case 'TouchlinkScan':
+                $this->TouchlinkScan();
+                $this->UpdateFormField('TouchlinkDeviceList', 'values', json_encode($this->BuildTouchlinkDeviceFormValues()));
+                break;
+            case 'SelectTouchlinkDevice':
+                $this->SelectTouchlinkDeviceFromForm($value);
+                break;
+            case 'TouchlinkIdentify':
+                $target = $this->DecodeBridgeFormPayload($value);
+                if ($target !== null) {
+                    $this->TouchlinkIdentify((string) ($target['ieee_address'] ?? ''), (int) ($target['channel'] ?? 0));
+                }
+                break;
+            case 'TouchlinkFactoryReset':
+                $target = $this->DecodeBridgeFormPayload($value);
+                if ($target !== null) {
+                    $this->TouchlinkFactoryReset((string) ($target['ieee_address'] ?? ''), (int) ($target['channel'] ?? 0));
+                }
                 break;
         }
     }
@@ -1023,6 +1044,91 @@ class Zigbee2MQTTBridge extends IPSModuleStrict
     }
 
     /**
+     * CreateBackup
+     *
+     * @return string Base64-kodiertes ZIP-Backup oder leer bei Fehler.
+     */
+    public function CreateBackup(): string
+    {
+        $data = $this->SendCheckedBridgeRequest('/bridge/request/backup', [], 30000);
+        if ($data === false) {
+            return '';
+        }
+
+        return (string) ($data['zip'] ?? '');
+    }
+
+    /**
+     * AddInstallCode
+     *
+     * @param string $Code Install-Code aus QR-Code oder Geraeteaufdruck.
+     *
+     * @return bool
+     */
+    public function AddInstallCode(string $Code): bool
+    {
+        $Code = trim($Code);
+        if ($Code === '') {
+            trigger_error($this->Translate('Install code is required.'), E_USER_NOTICE);
+            return false;
+        }
+
+        return $this->SendCheckedBridgeRequest('/bridge/request/install_code/add', ['value' => $Code]) !== false;
+    }
+
+    /**
+     * TouchlinkScan
+     *
+     * @return string JSON-kodierte Scan-Antwort oder leer bei Fehler.
+     */
+    public function TouchlinkScan(): string
+    {
+        $data = $this->SendCheckedBridgeRequest('/bridge/request/touchlink/scan', [], 70000);
+        if ($data === false) {
+            return '';
+        }
+
+        $this->WriteAttributeArray(self::ATTRIBUTE_TOUCHLINK_DEVICES, \is_array($data['found'] ?? null) ? $data['found'] : []);
+        return json_encode($data, JSON_UNESCAPED_SLASHES | JSON_UNESCAPED_UNICODE);
+    }
+
+    /**
+     * TouchlinkIdentify
+     *
+     * @param string $IeeeAddress IEEE-Adresse aus dem Touchlink-Scan.
+     * @param int    $Channel     Zigbee-Kanal aus dem Touchlink-Scan.
+     *
+     * @return bool
+     */
+    public function TouchlinkIdentify(string $IeeeAddress, int $Channel): bool
+    {
+        $payload = $this->BuildTouchlinkTargetPayload($IeeeAddress, $Channel, true);
+        if ($payload === null) {
+            return false;
+        }
+
+        return $this->SendCheckedBridgeRequest('/bridge/request/touchlink/identify', $payload, 10000) !== false;
+    }
+
+    /**
+     * TouchlinkFactoryReset
+     *
+     * @param string $IeeeAddress Optionale IEEE-Adresse aus dem Touchlink-Scan.
+     * @param int    $Channel     Optionaler Zigbee-Kanal aus dem Touchlink-Scan.
+     *
+     * @return bool
+     */
+    public function TouchlinkFactoryReset(string $IeeeAddress = '', int $Channel = 0): bool
+    {
+        $payload = $this->BuildTouchlinkTargetPayload($IeeeAddress, $Channel, false);
+        if ($payload === null) {
+            return false;
+        }
+
+        return $this->SendCheckedBridgeRequest('/bridge/request/touchlink/factory_reset', $payload, 70000) !== false;
+    }
+
+    /**
      * RenameDevice
      *
      * @param  string $OldDeviceName
@@ -1441,6 +1547,7 @@ class Zigbee2MQTTBridge extends IPSModuleStrict
         $this->SetBridgeFormField($form, 'DiagnosticInterviewDevicesList', 'values', $this->BuildDeviceDiagnosticFormValues(self::ATTRIBUTE_DIAGNOSTIC_INTERVIEW_DEVICES));
         $this->SetBridgeFormField($form, 'DiagnosticEventList', 'values', $this->BuildEventFormValues());
         $this->SetBridgeFormField($form, 'DiagnosticLogList', 'values', $this->BuildLogFormValues());
+        $this->SetBridgeFormField($form, 'TouchlinkDeviceList', 'values', $this->BuildTouchlinkDeviceFormValues());
 
         return $form;
     }
@@ -1718,6 +1825,78 @@ class Zigbee2MQTTBridge extends IPSModuleStrict
 
         $text = (string) $value;
         return \strlen($text) > 240 ? \substr($text, 0, 237) . '...' : $text;
+    }
+
+    /**
+     * Baut die Formwerte fuer Touchlink-Scan-Ergebnisse.
+     */
+    private function BuildTouchlinkDeviceFormValues(): array
+    {
+        $values = [];
+        foreach ($this->ReadAttributeArray(self::ATTRIBUTE_TOUCHLINK_DEVICES) as $device) {
+            if (!\is_array($device)) {
+                continue;
+            }
+
+            $values[] = [
+                'ieee_address' => (string) ($device['ieee_address'] ?? $device['ieeeAddr'] ?? ''),
+                'channel'      => (string) ($device['channel'] ?? ''),
+                'action'       => $this->Translate('Select')
+            ];
+        }
+
+        return $values;
+    }
+
+    /**
+     * Uebernimmt ein Touchlink-Geraet in die Eingabefelder.
+     */
+    private function SelectTouchlinkDeviceFromForm(mixed $value): bool
+    {
+        $target = $this->DecodeBridgeFormPayload($value);
+        if ($target === null) {
+            return false;
+        }
+
+        $this->UpdateFormField('TouchlinkIeeeAddress', 'value', (string) ($target['ieee_address'] ?? ''));
+        $this->UpdateFormField('TouchlinkChannel', 'value', (int) ($target['channel'] ?? 0));
+        return true;
+    }
+
+    /**
+     * Dekodiert JSON-Payloads aus Bridge-Formularaktionen.
+     */
+    private function DecodeBridgeFormPayload(mixed $value): ?array
+    {
+        if (\is_array($value)) {
+            return $value;
+        }
+        if (!\is_string($value)) {
+            return null;
+        }
+
+        $decoded = json_decode($value, true);
+        return \is_array($decoded) ? $decoded : null;
+    }
+
+    /**
+     * Baut und validiert einen Touchlink-Zielpayload.
+     */
+    private function BuildTouchlinkTargetPayload(string $IeeeAddress, int $Channel, bool $required): ?array
+    {
+        $IeeeAddress = trim($IeeeAddress);
+        if ($IeeeAddress === '' && !$required) {
+            return [];
+        }
+        if ($IeeeAddress === '' || $Channel <= 0) {
+            trigger_error($this->Translate('Touchlink IEEE address and channel are required.'), E_USER_NOTICE);
+            return null;
+        }
+
+        return [
+            'ieee_address' => $IeeeAddress,
+            'channel'      => $Channel
+        ];
     }
 
     /**

@@ -231,6 +231,114 @@
             ]
         },
         {
+            "type": "ExpansionPanel",
+            "name": "BridgeMaintenance",
+            "caption": "Maintenance",
+            "expanded": false,
+            "items": [
+                {
+                    "type": "Label",
+                    "caption": "Create a Zigbee2MQTT data folder backup. The downloaded file contains the Base64 ZIP returned by Zigbee2MQTT decoded as ZIP."
+                },
+                {
+                    "type": "Button",
+                    "caption": "Download backup",
+                    "download": "zigbee2mqtt-backup.zip",
+                    "onClick": "echo base64_decode(Z2M_CreateBackup($id));"
+                },
+                {
+                    "type": "Label",
+                    "caption": "Add an install code for Zigbee 3.0 devices. The code is sent once and not stored in Symcon."
+                },
+                {
+                    "type": "RowLayout",
+                    "items": [
+                        {
+                            "type": "ValidationTextBox",
+                            "name": "InstallCode",
+                            "caption": "Install code"
+                        },
+                        {
+                            "type": "Button",
+                            "caption": "Add install code",
+                            "onClick": "echo Z2M_AddInstallCode($id, $InstallCode) ? 'OK' : 'ERROR';"
+                        }
+                    ]
+                },
+                {
+                    "type": "Label",
+                    "bold": true,
+                    "caption": "Touchlink scan and factory reset can temporarily disturb Zigbee communication. Factory reset may reset the nearest Touchlink device when no target is selected."
+                },
+                {
+                    "type": "RowLayout",
+                    "items": [
+                        {
+                            "type": "Button",
+                            "caption": "Touchlink scan",
+                            "onClick": "IPS_RequestAction($id, 'TouchlinkScan', true);"
+                        },
+                        {
+                            "type": "Button",
+                            "caption": "Touchlink identify",
+                            "onClick": "IPS_RequestAction($id, 'TouchlinkIdentify', json_encode(['ieee_address' => $TouchlinkIeeeAddress, 'channel' => $TouchlinkChannel]));"
+                        },
+                        {
+                            "type": "Button",
+                            "caption": "Touchlink factory reset",
+                            "onClick": "IPS_RequestAction($id, 'TouchlinkFactoryReset', json_encode(['ieee_address' => $TouchlinkIeeeAddress, 'channel' => $TouchlinkChannel]));"
+                        }
+                    ]
+                },
+                {
+                    "type": "List",
+                    "name": "TouchlinkDeviceList",
+                    "caption": "Touchlink scan results",
+                    "add": false,
+                    "delete": false,
+                    "rowCount": 4,
+                    "loadValuesFromConfiguration": false,
+                    "columns": [
+                        {
+                            "caption": "IEEE address",
+                            "name": "ieee_address",
+                            "width": "220px"
+                        },
+                        {
+                            "caption": "Channel",
+                            "name": "channel",
+                            "width": "100px"
+                        },
+                        {
+                            "caption": "Action",
+                            "name": "action",
+                            "width": "100px",
+                            "align": "center",
+                            "onClick": "IPS_RequestAction($id, 'SelectTouchlinkDevice', json_encode(['ieee_address' => $TouchlinkDeviceList['ieee_address'], 'channel' => $TouchlinkDeviceList['channel']]));"
+                        }
+                    ],
+                    "values": []
+                },
+                {
+                    "type": "RowLayout",
+                    "items": [
+                        {
+                            "type": "ValidationTextBox",
+                            "name": "TouchlinkIeeeAddress",
+                            "caption": "IEEE address"
+                        },
+                        {
+                            "type": "NumberSpinner",
+                            "name": "TouchlinkChannel",
+                            "caption": "Channel",
+                            "minimum": 0,
+                            "maximum": 26
+                        }
+                    ]
+                }
+            ]
+        },
+        {
             "caption": "Testcenter",
             "type": "TestCenter"
         },
