@@ -99,12 +99,20 @@ class Zigbee2MQTTDevice extends \Zigbee2MQTT\ModulBase
             return '';
         }
 
-        $html = file_get_contents(dirname(__DIR__) . '/libs/Visualization/tiles/' . $tile['template']);
+        $tilePath = dirname(__DIR__) . '/libs/Visualization/tiles/';
+        $html = file_get_contents($tilePath . $tile['template']);
+        $themeSupport = is_file($tilePath . 'theme_support.html') ? file_get_contents($tilePath . 'theme_support.html') : '';
+        if (!\is_string($themeSupport)) {
+            $themeSupport = '';
+        }
         $data = $tile['data']();
 
         return str_replace(
-            '__INITIAL_DATA__',
-            json_encode($data, JSON_HEX_TAG | JSON_HEX_APOS | JSON_HEX_AMP | JSON_HEX_QUOT),
+            ['__THEME_SUPPORT__', '__INITIAL_DATA__'],
+            [
+                $themeSupport,
+                json_encode($data, JSON_HEX_TAG | JSON_HEX_APOS | JSON_HEX_AMP | JSON_HEX_QUOT)
+            ],
             $html
         );
     }

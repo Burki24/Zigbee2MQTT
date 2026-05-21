@@ -157,6 +157,22 @@ class DevicesTest extends DumpInclude
         $this->assertIsArray(json_decode(IPS_GetConfigurationForm($iid), true));
     }
 
+    public function testCustomTileTemplatesIncludeThemeSupport(): void
+    {
+        $templates = glob(dirname(__DIR__) . '/libs/Visualization/tiles/*_tile.html');
+        $this->assertIsArray($templates);
+        $this->assertNotSame([], $templates);
+
+        foreach ($templates as $template) {
+            $this->assertStringContainsString('__THEME_SUPPORT__', file_get_contents($template), basename($template));
+        }
+
+        [$iid] = $this->createTestInstance('WHD02.json');
+        $html = IPS\InstanceManager::getInstanceInterface($iid)->GetVisualizationTile();
+        $this->assertStringContainsString('data-z2m-theme', $html);
+        $this->assertStringNotContainsString('__THEME_SUPPORT__', $html);
+    }
+
     public function testTS0203ContactTile()
     {
         [$iid] = $this->createTestInstance('TS0203_contact.json');
