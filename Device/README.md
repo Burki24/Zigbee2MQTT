@@ -80,7 +80,7 @@ Es werden nur Optionen angezeigt, die für das jeweilige Gerät fachlich passen.
 | Heizungs-Kachel | `occupied_heating_setpoint`, `local_temperature`, optional Ventil- und Betriebswerte | Ist- und Solltemperatur als Hauptansicht mit Plus-/Minus-Tasten und Presets, Detailseiten für weitere Heizungswerte und Einstellungen |
 | Schalter-/Leistungsmessungs-Kachel | `state`, optional `power`, `energy`, `voltage`, `current`, `ac_frequency`, `power_factor`, `power_apparent`, `power_reactive`, `produced_energy`, `consumption` | Schalten auf der Hauptseite, Messwertseite mit optionalem Archiv-Graphen bei archivierten Variablen |
 | Fenstergriff-Kachel | `position`, `alarm`, optional `action`, `action_left`, `action_right` | Griffzustand Geschlossen/Offen/Gekippt, Alarmstatus und Tasten |
-| Sicherheits-Kachel | z.B. `contact`, `occupancy`, `presence`, `tamper`, `smoke`, `battery_low` | Status-/Alarmdarstellung mit Priorität auf Kontakt- bzw. Bewegungszustand |
+| Sicherheits-Kachel | z.B. `contact`, `window_open`, `opening_state`, `alarm_state`, `tamper`, `smoke`, `gas`, `water_leak`, `battery_low` | Status-/Alarmdarstellung mit Priorität auf Kontakt- bzw. Öffnungszustand, Detailseite für Alarm-, Batterie- und Sirenenwerte |
 | Aktions-Kachel | Taster-, Fernbedienungs- oder Szenen-Exposes | Letzte Aktion und verfügbare Aktionswerte |
 | Sensor-Kachel | z.B. `temperature`, `humidity`, `soil_moisture`, `illuminance`, `presence`, `target_distance` | Messwertdarstellung für reine Sensoren und Radar-/Präsenzmelder, inklusive Detail-/Einstellseite wenn passende Einstellwerte vorhanden sind |
 
@@ -99,6 +99,8 @@ Wenn mehrere Kacheln fachlich passen, gilt folgende Priorität:
 7. Standard-Visualisierung von Symcon
 
 Die höher priorisierte Kachel kann in der Instanz-Konfiguration deaktiviert werden, wenn stattdessen die nächste passende Kachel oder die Standard-Visualisierung verwendet werden soll.
+
+Für Gerätetypen, die Symcon bereits nativ gut darstellen kann, erstellt das Modul bewusst keine eigene HTML-Kachel. Rollladen/Jalousien mit `type: "cover"` und `position` werden über die Symcon-Shutter-Darstellung bzw. das Standardprofil `~Shutter.Reversed` abgebildet. Einfache Türschlösser, Lüfter oder Sirenen bleiben bei den passenden Standarddarstellungen wie Schalter, Slider oder Aufzählung, solange die Exposes keine eigenständige zusammengefasste Kachel nötig machen.
 
 ### 4.2 Temperatur-Visualisierung
 

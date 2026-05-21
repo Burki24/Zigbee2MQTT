@@ -302,6 +302,7 @@
         const detailOrder = [
             "contact",
             "window_open",
+            "opening_state",
             "smoke",
             "carbon_monoxide",
             "gas",
@@ -309,7 +310,15 @@
             "tamper",
             "vibration",
             "alarm",
+            "alarm_state",
             "alarm_status",
+            "alarm_siren",
+            "alarm_siren_duration",
+            "vibration_limit",
+            "vibration_siren",
+            "vibration_siren_duration",
+            "magnetic_status",
+            "close_signal",
             "battery",
             "battery_low",
             "device_status",
@@ -448,13 +457,13 @@
             if (item && item.primary && data.primary && data.primary.ident === ident && data.primary.icon) {
                 return data.primary.icon;
             }
-            if (ident === "contact" || ident === "window_open") {
+            if (ident === "contact" || ident === "window_open" || ident === "opening_state" || ident === "magnetic_status" || ident === "close_signal") {
                 return "door";
             }
             if (ident === "water_leak" || ident === "humidity") {
                 return "drop";
             }
-            if (ident === "smoke" || ident === "carbon_monoxide" || ident === "gas") {
+            if (ident === "smoke" || ident === "carbon_monoxide" || ident === "gas" || ident === "alarm_siren" || ident === "vibration_siren") {
                 return "alert";
             }
             if (ident === "battery" || ident === "battery_low") {

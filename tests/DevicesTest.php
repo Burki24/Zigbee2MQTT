@@ -67,6 +67,17 @@ class DevicesTest extends DumpInclude
         $this->assertSame(count($Debug['Childs']) + $OffsetDebugChild, count(IPS_GetChildrenIDs($iid)), 'Anzahl Variablen aus dem Debug (' . count($Debug['Childs']) . ') und Erzeugte Variablen (' . count(IPS_GetChildrenIDs($iid)) . ') vom Test unterscheiden sich');
         $this->assertSame(self::count_recursive($Debug['LastPayload']) + $OffestLastPayload, count(IPS_GetChildrenIDs($iid)) + $OffsetChildrenIDs, 'Anzahl LastPayload (' . self::count_recursive($Debug['LastPayload']) + $OffestLastPayload . ') und Erzeugte Variablen (' . count(IPS_GetChildrenIDs($iid)) + $OffsetChildrenIDs . ') unterscheiden sich');
         $this->assertCount(0, self::getExportDebugData($iid)['missingTranslations'], 'Fehlende übersetzungen gefunden:' . var_export(self::getExportDebugData($iid)['missingTranslations'], true));
+
+        $html = IPS\InstanceManager::getInstanceInterface($iid)->GetVisualizationTile();
+        $this->assertSame('', $html);
+
+        $positionID = IPS_GetObjectIDByIdent('position', $iid);
+        $this->assertNotFalse($positionID);
+        $variable = IPS_GetVariable($positionID);
+        $this->assertSame('~Shutter.Reversed', $variable['VariableProfile']);
+        $this->assertSame(VARIABLE_PRESENTATION_SHUTTER, $variable['VariableCustomPresentation']['PRESENTATION'] ?? null);
+        $this->assertSame(100.0, $variable['VariableCustomPresentation']['OPEN_OUTSIDE_VALUE'] ?? null);
+        $this->assertSame(0.0, $variable['VariableCustomPresentation']['CLOSE_INSIDE_VALUE'] ?? null);
     }
 
     public function testWHD02()
@@ -543,6 +554,13 @@ class DevicesTest extends DumpInclude
         $this->assertSame(count($Debug['Childs']) + $OffsetDebugChild, count(IPS_GetChildrenIDs($iid)), 'Anzahl Variablen aus dem Debug (' . count($Debug['Childs']) . ') und Erzeugte Variablen (' . count(IPS_GetChildrenIDs($iid)) . ') vom Test unterscheiden sich');
         $this->assertSame(self::count_recursive($Debug['LastPayload']) + $OffestLastPayload, count(IPS_GetChildrenIDs($iid)) + $OffsetChildrenIDs, 'Anzahl LastPayload (' . self::count_recursive($Debug['LastPayload']) + $OffestLastPayload . ') und Erzeugte Variablen (' . count(IPS_GetChildrenIDs($iid)) + $OffsetChildrenIDs . ') unterscheiden sich');
         $this->assertCount(0, self::getExportDebugData($iid)['missingTranslations'], 'Fehlende übersetzungen gefunden:' . var_export(self::getExportDebugData($iid)['missingTranslations'], true));
+
+        $html = IPS\InstanceManager::getInstanceInterface($iid)->GetVisualizationTile();
+        $this->assertStringContainsString('"type":"security"', $html);
+        $this->assertStringContainsString('"primary":{"ident":"opening_state"', $html);
+        $this->assertStringContainsString('Geschlossen', $html);
+        $this->assertStringContainsString('"alarm_state":{"available":true', $html);
+        $this->assertStringContainsString('"alarm_siren":{"available":true', $html);
     }
     public function testS4PL00416EU()
     {

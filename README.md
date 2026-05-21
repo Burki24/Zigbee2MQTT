@@ -209,7 +209,7 @@ Unterstützt werden derzeit eigene Kacheln für:
 - Heizungen und Heizventile
 - Schaltaktoren mit Leistungsmessung, auch mit mehreren Schaltausgängen
 - Sensoren wie Temperatur, Luftfeuchtigkeit, Bodenfeuchtigkeit, Helligkeit und Batterie
-- Sicherheits- und Präsenzsensoren
+- Sicherheits-, Kontakt- und Präsenzsensoren inklusive Öffnungszustand, Alarm und Leck-/Gas-/Rauchmeldern
 - Fenstergriffe
 - Taster, Fernbedienungen und Szenen-Auslöser
 
@@ -228,6 +228,8 @@ Details stehen in der [Dokumentation des Geräte-Moduls](Device/README.md#46-var
 **Version 6.00:**
 
 - Moderne HTML-SDK-Kacheln für Heizungen, Schaltaktoren mit Messwerten, Sensoren, Sicherheitsgeräte, Fenstergriffe und Aktionsgeräte ergänzt.
+- Rollladen/Jalousien verwenden die native Symcon-Shutter-Darstellung; neue Spezialkacheln werden nur dort ergänzt, wo die Exposes eine zusammengefasste Ansicht wirklich benötigen.
+- Die Sicherheits-Kachel unterstützt zusätzliche Kontakt-/Alarm-Exposes wie `opening_state`, `alarm_state` und Sirenenwerte.
 - Heizungs-Kacheln zeigen Ist- und Solltemperatur ohne Ringslider und bedienen die Solltemperatur per Plus-/Minus-Tasten sowie pro Instanz konfigurierbare Presets.
 - Schaltaktoren mit Messwerten unterstützen archivierte Messwerte direkt in der Kachel als Graphen, inklusive erweiterter Werte wie Frequenz, Leistungsfaktor, Schein-/Blindleistung und erzeugter Energie.
 - Mehrkanal-Schaltaktoren können mehrere Schaltausgänge in einer Kachel darstellen.

@@ -129,6 +129,7 @@ trait SecurityTileHelper
         return [
             'contact',
             'window_open',
+            'opening_state',
             'smoke',
             'carbon_monoxide',
             'gas',
@@ -136,6 +137,7 @@ trait SecurityTileHelper
             'tamper',
             'vibration',
             'alarm',
+            'alarm_state',
             'alarm_status'
         ];
     }
@@ -155,7 +157,14 @@ trait SecurityTileHelper
             'illuminance',
             'illuminance_lux',
             'temperature',
-            'humidity'
+            'humidity',
+            'magnetic_status',
+            'close_signal',
+            'alarm_siren',
+            'alarm_siren_duration',
+            'vibration_limit',
+            'vibration_siren',
+            'vibration_siren_duration'
         ];
     }
 
@@ -191,7 +200,7 @@ trait SecurityTileHelper
      */
     private function BuildSecurityTilePrimaryState(array $values): array
     {
-        foreach (['contact', 'window_open'] as $ident) {
+        foreach (['contact', 'window_open', 'opening_state'] as $ident) {
             if (!isset($values[$ident])) {
                 continue;
             }
@@ -282,12 +291,14 @@ trait SecurityTileHelper
         return match ($ident) {
             'contact'         => $value ? 'Geschlossen' : 'Geoeffnet',
             'window_open'     => $value ? 'Geoeffnet' : 'Geschlossen',
+            'opening_state'   => $value ? 'Geoeffnet' : 'Geschlossen',
             'smoke'           => $value ? 'Rauch erkannt' : 'OK',
             'carbon_monoxide' => $value ? 'CO erkannt' : 'OK',
             'gas'             => $value ? 'Gas erkannt' : 'OK',
             'water_leak'      => $value ? 'Wasser erkannt' : 'OK',
             'tamper'          => $value ? 'Manipulation' : 'OK',
             'vibration'       => $value ? 'Erschuetterung' : 'OK',
+            'alarm_state'     => $value ? 'Alarm' : 'OK',
             'alarm'           => $value ? 'Alarm' : 'OK',
             'battery_low'     => $value ? 'Batterie niedrig' : 'OK',
             'device_status'   => $value ? 'Online' : 'Offline',
@@ -316,7 +327,11 @@ trait SecurityTileHelper
             return $this->IsSecurityTileTruthy($value) ? 'alert' : 'safe';
         }
 
-        if (\in_array($ident, ['smoke', 'carbon_monoxide', 'gas', 'water_leak', 'tamper', 'vibration', 'alarm'], true)) {
+        if ($ident === 'opening_state') {
+            return $this->IsSecurityTileSafeString((string) $value) ? 'safe' : 'alert';
+        }
+
+        if (\in_array($ident, ['smoke', 'carbon_monoxide', 'gas', 'water_leak', 'tamper', 'vibration', 'alarm', 'alarm_state'], true)) {
             return $this->IsSecurityTileTruthy($value) ? 'alert' : 'safe';
         }
 
@@ -335,6 +350,7 @@ trait SecurityTileHelper
         return match ($ident) {
             'contact'         => 'Kontakt',
             'window_open'     => 'Fenster',
+            'opening_state'   => 'Oeffnungszustand',
             'smoke'           => 'Rauch',
             'carbon_monoxide' => 'Kohlenmonoxid',
             'gas'             => 'Gas',
@@ -342,6 +358,7 @@ trait SecurityTileHelper
             'tamper'          => 'Manipulation',
             'vibration'       => 'Erschuetterung',
             'alarm'           => 'Alarm',
+            'alarm_state'     => 'Alarmzustand',
             'alarm_status'    => 'Alarmstatus',
             'battery'         => 'Batterie',
             'battery_low'     => 'Batterie niedrig',
@@ -353,6 +370,13 @@ trait SecurityTileHelper
             'illuminance_lux' => 'Helligkeit',
             'temperature'     => 'Temperatur',
             'humidity'        => 'Luftfeuchtigkeit',
+            'magnetic_status' => 'Magnetkontakt',
+            'close_signal'    => 'Schliesssignal',
+            'alarm_siren'     => 'Alarmsirene',
+            'alarm_siren_duration' => 'Dauer Alarmsirene',
+            'vibration_limit' => 'Erschuetterungsgrenze',
+            'vibration_siren' => 'Vibrationssirene',
+            'vibration_siren_duration' => 'Dauer Vibrationssirene',
             default           => $ident
         };
     }
@@ -364,6 +388,7 @@ trait SecurityTileHelper
     {
         return match ($ident) {
             'contact',
+            'opening_state',
             'window_open'     => 'door',
             'smoke',
             'carbon_monoxide',
@@ -372,6 +397,7 @@ trait SecurityTileHelper
             'tamper',
             'vibration',
             'alarm',
+            'alarm_state',
             'alarm_status'    => 'shield',
             'battery',
             'battery_low'     => 'battery',
@@ -379,6 +405,10 @@ trait SecurityTileHelper
             'last_seen'       => 'clock',
             'device_status'   => 'plug',
             'voltage'         => 'bolt',
+            'alarm_siren',
+            'vibration_siren' => 'alert',
+            'magnetic_status',
+            'close_signal'    => 'door',
             'illuminance',
             'illuminance_lux' => 'sun',
             'temperature'     => 'thermo',
@@ -448,7 +478,7 @@ trait SecurityTileHelper
             return ((float) $value) !== 0.0;
         }
         if (\is_string($value)) {
-            return \in_array(strtolower($value), ['1', 'true', 'on', 'yes', 'open', 'opened', 'alarm', 'alert', 'detected', 'tamper', 'vibration', 'leak', 'smoke', 'gas', 'offline'], true);
+            return \in_array(strtolower($value), ['1', 'true', 'on', 'yes', 'open', 'opened', 'tilted', 'alarm', 'alert', 'detected', 'tamper', 'vibration', 'leak', 'smoke', 'gas', 'offline'], true);
         }
 
         return (bool) $value;
@@ -460,7 +490,7 @@ trait SecurityTileHelper
     private function IsSecurityTileAlarmString(string $value): bool
     {
         $value = strtolower($value);
-        return \in_array($value, ['ok', 'clear', 'cleared', 'normal', 'idle', 'safe', 'closed', 'close', 'off', 'alarm', 'alert', 'detected', 'open', 'opened', 'leak', 'smoke', 'gas', 'tamper', 'vibration'], true);
+        return \in_array($value, ['ok', 'clear', 'cleared', 'normal', 'idle', 'safe', 'closed', 'close', 'off', 'alarm', 'alert', 'detected', 'open', 'opened', 'tilted', 'leak', 'smoke', 'gas', 'tamper', 'vibration'], true);
     }
 
     /**
@@ -481,13 +511,30 @@ trait SecurityTileHelper
         return match ($ident) {
             'contact'         => $isSafe ? 'Geschlossen' : 'Geoeffnet',
             'window_open'     => $isSafe ? 'Geschlossen' : 'Geoeffnet',
+            'opening_state'   => $this->FormatSecurityTileOpeningState($value),
             'smoke'           => $isSafe ? 'OK' : 'Rauch erkannt',
             'carbon_monoxide' => $isSafe ? 'OK' : 'CO erkannt',
             'gas'             => $isSafe ? 'OK' : 'Gas erkannt',
             'water_leak'      => $isSafe ? 'OK' : 'Wasser erkannt',
             'tamper'          => $isSafe ? 'OK' : 'Manipulation',
             'vibration'       => $isSafe ? 'OK' : 'Erschuetterung',
+            'alarm_state'     => $isSafe ? 'OK' : 'Alarm',
             default           => $isSafe ? 'OK' : 'Alarm'
+        };
+    }
+
+    /**
+     * Formatiert mehrstufige Oeffnungszustaende.
+     */
+    private function FormatSecurityTileOpeningState(string $value): string
+    {
+        return match (strtolower($value)) {
+            'closed',
+            'close'  => 'Geschlossen',
+            'tilted' => 'Gekippt',
+            'open',
+            'opened' => 'Geoeffnet',
+            default  => $value
         };
     }
 }
