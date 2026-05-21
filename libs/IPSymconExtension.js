@@ -54,7 +54,7 @@ class IPSymconExtension {
                 const message = JSON.parse(data.message);
                 const groupExposes = this.#createGroupExposes(groupname);
                 groupExposes.transaction = message.transaction;
-                this.logger.info('Symcon: request/getGroupe');
+                this.logger.info('Symcon: request/getGroup');
                 await this.mqtt.publish(`SymconExtension/response/getGroupInfo/${groupname}`, JSON.stringify(groupExposes), {
                     retain: false,
                     qos: 0

@@ -1075,7 +1075,7 @@ abstract class ModulBase extends \IPSModuleStrict
      *                    Int/Float: Numerischer Wert
      *                    String: Textwert
      *                    Array: Spezielle Behandlung für Farben und Presets
-     *                    Array: Rest Wird ignoriert (Todo: Warum? Was ist mit UpdateStatus?)
+     *                    Array: Andere Payloads werden nur von expliziten Sonderpfaden verarbeitet
      *
      * @return void
      *

@@ -443,7 +443,7 @@ trait ColorHelper
     private function getBrightnessValue(string $type = 'max'): int
     {
         $config = $this->brightnessConfig;
-        $this->SendDebug(__FUNCTION__, 'Gelesene Brightness-Config: ' . print_r($config, true), 0);
+        $this->SendDebug(__FUNCTION__, 'Gelesene Brightness-Config: ' . (json_encode($config) ?: '[]'), 0);
 
         $defaults = [
             'min' => 0,

@@ -14,8 +14,8 @@ class MyLogger {
             // Logger von Z2M nutzen
             this.logger.info(...args);
         } else {
-            // Fallback: auf console.log
-            console.log('[MyExtension][info]', ...args);
+            // Fallback: auf die Zigbee2MQTT-Konsole
+            console.log('[IPSymconExtension][info]', ...args);
         }
     }
 
@@ -23,7 +23,7 @@ class MyLogger {
         if (typeof this.logger.error === 'function') {
             this.logger.error(...args);
         } else {
-            console.error('[MyExtension][error]', ...args);
+            console.error('[IPSymconExtension][error]', ...args);
         }
     }
 
@@ -31,7 +31,7 @@ class MyLogger {
         if (typeof this.logger.debug === 'function') {
             this.logger.debug(...args);
         } else {
-            console.log('[MyExtension][debug]', ...args);
+            console.log('[IPSymconExtension][debug]', ...args);
         }
     }
 }
