@@ -1030,6 +1030,30 @@ abstract class ModulBase extends \IPSModuleStrict
     }
 
     /**
+     * Liest eine boolesche Property mit Defaultwert fuer Update-/Migrationsfenster.
+     */
+    protected function ReadPropertyBooleanSafe(string $name, bool $default): bool
+    {
+        return (bool) $this->ReadPropertySafe(fn (): bool => $this->ReadPropertyBoolean($name), $default);
+    }
+
+    /**
+     * Liest eine Integer-Property mit Defaultwert fuer Update-/Migrationsfenster.
+     */
+    protected function ReadPropertyIntegerSafe(string $name, int $default): int
+    {
+        return (int) $this->ReadPropertySafe(fn (): int => $this->ReadPropertyInteger($name), $default);
+    }
+
+    /**
+     * Liest eine Float-Property mit Defaultwert fuer Update-/Migrationsfenster.
+     */
+    protected function ReadPropertyFloatSafe(string $name, float $default): float
+    {
+        return (float) $this->ReadPropertySafe(fn (): float => $this->ReadPropertyFloat($name), $default);
+    }
+
+    /**
      * Aktiviert die HTML-SDK-Kachel, wenn eine passende Spezialkachel verfuegbar ist.
      */
     protected function UpdateCustomTileVisualizationType(): void
@@ -1566,6 +1590,24 @@ abstract class ModulBase extends \IPSModuleStrict
         $current[$parts[\count($parts) - 1]] = $value;
 
         return $result;
+    }
+
+    /**
+     * Fuehrt Property-Lesezugriffe aus, ohne fehlende neue Properties als Warning weiterzugeben.
+     */
+    private function ReadPropertySafe(\Closure $reader, bool|int|float|string $default): bool|int|float|string
+    {
+        set_error_handler(static function (): bool
+        {
+            return true;
+        });
+        try {
+            return $reader();
+        } catch (\Throwable) {
+            return $default;
+        } finally {
+            restore_error_handler();
+        }
     }
 
     /**

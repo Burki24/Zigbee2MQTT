@@ -14,7 +14,7 @@ trait MeteredSwitchTileHelper
      */
     protected function ShouldUseMeteredSwitchTile(): bool
     {
-        return !$this->ReadPropertyBoolean(self::PROPERTY_DISABLE_METERED_SWITCH_TILE) && $this->HasMeteredSwitchTileCapabilities();
+        return !$this->ReadPropertyBooleanSafe(self::PROPERTY_DISABLE_METERED_SWITCH_TILE, false) && $this->HasMeteredSwitchTileCapabilities();
     }
 
     /**

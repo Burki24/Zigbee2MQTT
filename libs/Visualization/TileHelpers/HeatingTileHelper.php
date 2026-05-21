@@ -14,7 +14,7 @@ trait HeatingTileHelper
      */
     protected function ShouldUseHeatingTile(): bool
     {
-        return !$this->ReadPropertyBoolean(self::PROPERTY_DISABLE_HEATING_TILE) && $this->HasHeatingTileCapabilities();
+        return !$this->ReadPropertyBooleanSafe(self::PROPERTY_DISABLE_HEATING_TILE, false) && $this->HasHeatingTileCapabilities();
     }
 
     /**
@@ -201,9 +201,9 @@ trait HeatingTileHelper
     private function GetHeatingTilePresetValues(): array
     {
         return [
-            $this->ReadPropertyFloat(self::PROPERTY_HEATING_TILE_PRESET_1),
-            $this->ReadPropertyFloat(self::PROPERTY_HEATING_TILE_PRESET_2),
-            $this->ReadPropertyFloat(self::PROPERTY_HEATING_TILE_PRESET_3)
+            $this->ReadPropertyFloatSafe(self::PROPERTY_HEATING_TILE_PRESET_1, 18.0),
+            $this->ReadPropertyFloatSafe(self::PROPERTY_HEATING_TILE_PRESET_2, 20.0),
+            $this->ReadPropertyFloatSafe(self::PROPERTY_HEATING_TILE_PRESET_3, 22.0)
         ];
     }
 

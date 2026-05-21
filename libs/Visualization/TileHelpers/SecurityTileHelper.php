@@ -14,7 +14,7 @@ trait SecurityTileHelper
      */
     protected function ShouldUseSecurityTile(): bool
     {
-        return !$this->ReadPropertyBoolean(self::PROPERTY_DISABLE_SECURITY_TILE) && $this->HasSecurityTileCapabilities();
+        return !$this->ReadPropertyBooleanSafe(self::PROPERTY_DISABLE_SECURITY_TILE, false) && $this->HasSecurityTileCapabilities();
     }
 
     /**

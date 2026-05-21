@@ -70,6 +70,16 @@ trait AttributeArrayHelper
     protected function WriteAttributeArray(string $name, array $value): void
     {
         $Data = json_encode($value);
-        $this->WriteAttributeString($name, $Data);
+        set_error_handler(static function (): bool
+        {
+            return true;
+        });
+        try {
+            $this->WriteAttributeString($name, \is_string($Data) ? $Data : '[]');
+        } catch (\Throwable) {
+            return;
+        } finally {
+            restore_error_handler();
+        }
     }
 }

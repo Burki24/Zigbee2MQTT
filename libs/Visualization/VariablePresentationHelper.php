@@ -144,8 +144,8 @@ trait VariablePresentationHelper
     private function ReadColorTemperaturePresentationOverrideRange(): ?array
     {
         try {
-            $minKelvin = $this->ReadPropertyInteger(self::PROPERTY_COLOR_TEMPERATURE_PRESENTATION_MIN);
-            $maxKelvin = $this->ReadPropertyInteger(self::PROPERTY_COLOR_TEMPERATURE_PRESENTATION_MAX);
+            $minKelvin = $this->ReadPropertyIntegerSafe(self::PROPERTY_COLOR_TEMPERATURE_PRESENTATION_MIN, 0);
+            $maxKelvin = $this->ReadPropertyIntegerSafe(self::PROPERTY_COLOR_TEMPERATURE_PRESENTATION_MAX, 0);
         } catch (\Throwable) {
             return null;
         }
@@ -458,7 +458,7 @@ trait VariablePresentationHelper
     private function ReadTemperaturePresentationFallback(string $property, float $default): float
     {
         try {
-            return $this->ReadPropertyFloat($property);
+            return $this->ReadPropertyFloatSafe($property, $default);
         } catch (\Throwable) {
             return $default;
         }

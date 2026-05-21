@@ -14,7 +14,7 @@ trait ActionTileHelper
      */
     protected function ShouldUseActionTile(): bool
     {
-        return !$this->ReadPropertyBoolean(self::PROPERTY_DISABLE_ACTION_TILE) && $this->HasActionTileCapabilities();
+        return !$this->ReadPropertyBooleanSafe(self::PROPERTY_DISABLE_ACTION_TILE, false) && $this->HasActionTileCapabilities();
     }
 
     /**

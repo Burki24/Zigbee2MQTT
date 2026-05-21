@@ -122,6 +122,41 @@ class DevicesTest extends DumpInclude
         $this->assertNotFalse(@IPS_GetObjectIDByIdent('power', $iid), 'Re-enabled variable should be created again.');
     }
 
+    public function testMissingNewSchemaValuesAreIgnoredDuringModuleUpdateWindow(): void
+    {
+        [$iid, $Debug] = $this->createTestInstance('RTCGQ01LM.json');
+        $interface = IPS\InstanceManager::getInstanceInterface($iid);
+        $topic = $Debug['Config']['MQTTBaseTopic'] . '/' . $Debug['Config']['MQTTTopic'];
+
+        $this->removeStubProperties($iid, [
+            'DisableMeteredSwitchTile',
+            'DisableHeatingTile',
+            'DisableSecurityTile',
+            'DisableWindowHandleTile',
+            'DisableActionTile',
+            'UseSensorTile',
+            'TemperaturePresentationFallbackMin',
+            'TemperaturePresentationFallbackMax',
+            'ColorTemperaturePresentationMin',
+            'ColorTemperaturePresentationMax',
+            'HeatingTilePreset1',
+            'HeatingTilePreset2',
+            'HeatingTilePreset3'
+        ]);
+        $this->removeStubAttributes($iid, [
+            'VariableCatalog',
+            'DisabledVariables',
+            'DeletedVariables'
+        ]);
+
+        $payload = $Debug['LastPayload'];
+        $payload['exposes'] = $Debug['Exposes'];
+        $interface->ReceiveData(self::buildMqttRequest($topic, $payload));
+
+        $this->assertIsString(IPS\InstanceManager::getInstanceInterface($iid)->GetVisualizationTile());
+        $this->assertIsArray(json_decode(IPS_GetConfigurationForm($iid), true));
+    }
+
     public function testTS0203ContactTile()
     {
         [$iid] = $this->createTestInstance('TS0203_contact.json');
@@ -686,6 +721,34 @@ class DevicesTest extends DumpInclude
         $this->assertArrayHasKey($name, $attributes, 'Attribute not found: ' . $name);
         $attributes[$name]['Current'] = json_encode($value);
         $attributeProperty->setValue($module, $attributes);
+    }
+
+    private function removeStubProperties(int $iid, array $names): void
+    {
+        $module = $this->getStubModule($iid);
+        $reflection = new \ReflectionClass(IPSModule::class);
+        $property = $reflection->getProperty('properties');
+        $property->setAccessible(true);
+
+        $properties = $property->getValue($module);
+        foreach ($names as $name) {
+            unset($properties[$name]);
+        }
+        $property->setValue($module, $properties);
+    }
+
+    private function removeStubAttributes(int $iid, array $names): void
+    {
+        $module = $this->getStubModule($iid);
+        $reflection = new \ReflectionClass(IPSModule::class);
+        $property = $reflection->getProperty('attributes');
+        $property->setAccessible(true);
+
+        $attributes = $property->getValue($module);
+        foreach ($names as $name) {
+            unset($attributes[$name]);
+        }
+        $property->setValue($module, $attributes);
     }
 
     private function readStubAttributes(int $iid): array

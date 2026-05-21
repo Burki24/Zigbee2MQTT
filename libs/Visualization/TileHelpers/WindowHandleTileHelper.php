@@ -14,7 +14,7 @@ trait WindowHandleTileHelper
      */
     protected function ShouldUseWindowHandleTile(): bool
     {
-        return !$this->ReadPropertyBoolean(self::PROPERTY_DISABLE_WINDOW_HANDLE_TILE) && $this->HasWindowHandleTileCapabilities();
+        return !$this->ReadPropertyBooleanSafe(self::PROPERTY_DISABLE_WINDOW_HANDLE_TILE, false) && $this->HasWindowHandleTileCapabilities();
     }
 
     /**

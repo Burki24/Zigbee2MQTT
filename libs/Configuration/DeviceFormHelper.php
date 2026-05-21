@@ -96,7 +96,7 @@ trait DeviceFormHelper
         $sensorSelectable = $sensorAvailable && $this->HasSensorTileActuatorExposeGroup();
         $tiles[self::PROPERTY_USE_SENSOR_TILE] = [
             'available' => $sensorSelectable,
-            'enabled'   => $sensorSelectable && $this->ReadPropertyBoolean(self::PROPERTY_USE_SENSOR_TILE),
+            'enabled'   => $sensorSelectable && $this->ReadPropertyBooleanSafe(self::PROPERTY_USE_SENSOR_TILE, false),
             'label'     => $this->Translate('Sensor tile')
         ];
         $tiles['SensorTile'] = [
@@ -115,7 +115,7 @@ trait DeviceFormHelper
     {
         return [
             'available' => $available,
-            'enabled'   => $available && !$this->ReadPropertyBoolean($disableProperty),
+            'enabled'   => $available && !$this->ReadPropertyBooleanSafe($disableProperty, false),
             'label'     => $label
         ];
     }
@@ -158,8 +158,8 @@ trait DeviceFormHelper
     {
         $hasTemperature = $this->GetObjectIDByIdent('temperature') !== false;
         $hasCustomTemperatureRange =
-            $this->ReadPropertyFloat(self::PROPERTY_TEMPERATURE_PRESENTATION_FALLBACK_MIN) !== -40.0
-            || $this->ReadPropertyFloat(self::PROPERTY_TEMPERATURE_PRESENTATION_FALLBACK_MAX) !== 80.0;
+            $this->ReadPropertyFloatSafe(self::PROPERTY_TEMPERATURE_PRESENTATION_FALLBACK_MIN, -40.0) !== -40.0
+            || $this->ReadPropertyFloatSafe(self::PROPERTY_TEMPERATURE_PRESENTATION_FALLBACK_MAX, 80.0) !== 80.0;
 
         $visible = $hasTemperature
             && (
@@ -180,8 +180,8 @@ trait DeviceFormHelper
         $hasColorTemperature = $this->GetObjectIDByIdent('color_temp_kelvin') !== false
             || $this->DeviceFormHasExposeProperty('color_temp');
         $hasCustomColorTemperatureRange =
-            $this->ReadPropertyInteger(self::PROPERTY_COLOR_TEMPERATURE_PRESENTATION_MIN) > 0
-            || $this->ReadPropertyInteger(self::PROPERTY_COLOR_TEMPERATURE_PRESENTATION_MAX) > 0;
+            $this->ReadPropertyIntegerSafe(self::PROPERTY_COLOR_TEMPERATURE_PRESENTATION_MIN, 0) > 0
+            || $this->ReadPropertyIntegerSafe(self::PROPERTY_COLOR_TEMPERATURE_PRESENTATION_MAX, 0) > 0;
 
         $this->SetDeviceFormField(
             $form,

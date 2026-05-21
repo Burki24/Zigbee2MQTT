@@ -44,7 +44,7 @@ trait SensorTileHelper
      */
     protected function ShouldForceSensorTile(): bool
     {
-        return $this->ReadPropertyBoolean(self::PROPERTY_USE_SENSOR_TILE) && $this->HasSensorTileCapabilities();
+        return $this->ReadPropertyBooleanSafe(self::PROPERTY_USE_SENSOR_TILE, false) && $this->HasSensorTileCapabilities();
     }
 
     /**
@@ -377,7 +377,7 @@ trait SensorTileHelper
     private function ReadSensorTileFallbackRange(string $property, float $default): float
     {
         try {
-            return (float) $this->ReadPropertyFloat($property);
+            return $this->ReadPropertyFloatSafe($property, $default);
         } catch (\Throwable) {
             return $default;
         }
