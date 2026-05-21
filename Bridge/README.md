@@ -29,6 +29,7 @@
 - Verwaltung der für das Modul benötigten Extension in Zigbee2MQTT
 - Systemweite Einstellungen in Zigbee2MQTT aus Symcon anpassen
 - Netzwerkbeitritt aus Symcon steuern und darstellen
+- Diagnosebereich für Health Check, Coordinator Check, Bridge-Events, Warnungen/Fehler und auffällige Geräte
 - Viele PHP-Funktionen um interne Zigbee2MQTT Funktionen auszuführen (Gruppen verwalten, Geräte umbenennen usw...)
   
 ## 2. Voraussetzungen
@@ -346,6 +347,36 @@ bool Z2M_RequestNetworkmap(int $InstanzID);
 
 Fordert die Zigbee-Netzwerkkarte in Zigbee2MQTT an. Die Anfrage wird asynchron gesendet, da die Erstellung der Netzwerkkarte länger dauern kann.
 Das Ergebnis wird nach Eingang der Zigbee2MQTT-Antwort in der Bridge-Instanz als Variable `Netzwerkkarte` abgelegt.
+
+---
+
+### Z2M_HealthCheck <!-- omit in toc -->
+
+```php
+bool Z2M_HealthCheck(int $InstanzID);
+```
+
+Führt `bridge/request/health_check` aus und speichert das Ergebnis im Diagnosebereich der Bridge. `true` bedeutet, dass Zigbee2MQTT `healthy: true` gemeldet hat.
+
+---
+
+### Z2M_CoordinatorCheck <!-- omit in toc -->
+
+```php
+bool Z2M_CoordinatorCheck(int $InstanzID);
+```
+
+Führt `bridge/request/coordinator_check` aus und zeigt fehlende Router im Diagnosebereich der Bridge an. `true` bedeutet, dass keine fehlenden Router gemeldet wurden.
+
+---
+
+### Z2M_ClearBridgeDiagnostics <!-- omit in toc -->
+
+```php
+bool Z2M_ClearBridgeDiagnostics(int $InstanzID);
+```
+
+Leert die gesammelten Bridge-Events, Warnungen/Fehler und Gerätediagnosen. Die letzten Health- und Coordinator-Check-Ergebnisse bleiben erhalten.
 
 ---
 

@@ -31,6 +31,206 @@
             "visible": false
         },
         {
+            "type": "ExpansionPanel",
+            "name": "BridgeDiagnostics",
+            "caption": "Diagnostics",
+            "expanded": false,
+            "items": [
+                {
+                    "type": "Label",
+                    "name": "DiagnosticHealthStatus",
+                    "caption": "Health status: not checked"
+                },
+                {
+                    "type": "Label",
+                    "name": "DiagnosticCoordinatorStatus",
+                    "caption": "Coordinator status: not checked"
+                },
+                {
+                    "type": "RowLayout",
+                    "items": [
+                        {
+                            "type": "Button",
+                            "caption": "Run health check",
+                            "onClick": "echo Z2M_HealthCheck($id) ? 'OK' : 'ERROR';"
+                        },
+                        {
+                            "type": "Button",
+                            "caption": "Run coordinator check",
+                            "onClick": "echo Z2M_CoordinatorCheck($id) ? 'OK' : 'CHECK';"
+                        },
+                        {
+                            "type": "Button",
+                            "caption": "Request network map",
+                            "onClick": "Z2M_RequestNetworkmap($id);"
+                        },
+                        {
+                            "type": "Button",
+                            "caption": "Clear diagnostic history",
+                            "onClick": "IPS_RequestAction($id, 'ClearBridgeDiagnostics', true);"
+                        }
+                    ]
+                },
+                {
+                    "type": "List",
+                    "name": "DiagnosticMissingRoutersList",
+                    "caption": "Missing routers",
+                    "add": false,
+                    "delete": false,
+                    "rowCount": 4,
+                    "loadValuesFromConfiguration": false,
+                    "columns": [
+                        {
+                            "caption": "Device",
+                            "name": "friendly_name",
+                            "width": "auto",
+                            "quickFilter": true
+                        },
+                        {
+                            "caption": "IEEE address",
+                            "name": "ieee_address",
+                            "width": "180px"
+                        }
+                    ],
+                    "values": []
+                },
+                {
+                    "type": "List",
+                    "name": "DiagnosticUnsupportedDevicesList",
+                    "caption": "Unsupported devices",
+                    "add": false,
+                    "delete": false,
+                    "rowCount": 4,
+                    "loadValuesFromConfiguration": false,
+                    "columns": [
+                        {
+                            "caption": "Device",
+                            "name": "friendly_name",
+                            "width": "auto",
+                            "quickFilter": true
+                        },
+                        {
+                            "caption": "IEEE address",
+                            "name": "ieee_address",
+                            "width": "180px"
+                        },
+                        {
+                            "caption": "Model",
+                            "name": "model",
+                            "width": "140px"
+                        },
+                        {
+                            "caption": "Vendor",
+                            "name": "vendor",
+                            "width": "140px"
+                        }
+                    ],
+                    "values": []
+                },
+                {
+                    "type": "List",
+                    "name": "DiagnosticInterviewDevicesList",
+                    "caption": "Interview issues",
+                    "add": false,
+                    "delete": false,
+                    "rowCount": 4,
+                    "loadValuesFromConfiguration": false,
+                    "columns": [
+                        {
+                            "caption": "Device",
+                            "name": "friendly_name",
+                            "width": "auto",
+                            "quickFilter": true
+                        },
+                        {
+                            "caption": "IEEE address",
+                            "name": "ieee_address",
+                            "width": "180px"
+                        },
+                        {
+                            "caption": "Model",
+                            "name": "model",
+                            "width": "140px"
+                        },
+                        {
+                            "caption": "Status",
+                            "name": "status",
+                            "width": "140px"
+                        }
+                    ],
+                    "values": []
+                },
+                {
+                    "type": "List",
+                    "name": "DiagnosticEventList",
+                    "caption": "Last bridge events",
+                    "add": false,
+                    "delete": false,
+                    "rowCount": 8,
+                    "loadValuesFromConfiguration": false,
+                    "columns": [
+                        {
+                            "caption": "Time",
+                            "name": "time",
+                            "width": "150px"
+                        },
+                        {
+                            "caption": "Type",
+                            "name": "type",
+                            "width": "150px",
+                            "quickFilter": true
+                        },
+                        {
+                            "caption": "Device",
+                            "name": "device",
+                            "width": "180px",
+                            "quickFilter": true
+                        },
+                        {
+                            "caption": "Message",
+                            "name": "message",
+                            "width": "auto"
+                        }
+                    ],
+                    "values": []
+                },
+                {
+                    "type": "List",
+                    "name": "DiagnosticLogList",
+                    "caption": "Last warnings and errors",
+                    "add": false,
+                    "delete": false,
+                    "rowCount": 8,
+                    "loadValuesFromConfiguration": false,
+                    "columns": [
+                        {
+                            "caption": "Time",
+                            "name": "time",
+                            "width": "150px"
+                        },
+                        {
+                            "caption": "Level",
+                            "name": "level",
+                            "width": "100px",
+                            "quickFilter": true
+                        },
+                        {
+                            "caption": "Namespace",
+                            "name": "namespace",
+                            "width": "140px",
+                            "quickFilter": true
+                        },
+                        {
+                            "caption": "Message",
+                            "name": "message",
+                            "width": "auto"
+                        }
+                    ],
+                    "values": []
+                }
+            ]
+        },
+        {
             "caption": "Testcenter",
             "type": "TestCenter"
         },

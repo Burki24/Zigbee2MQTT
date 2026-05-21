@@ -5,6 +5,7 @@ require_once dirname(__DIR__) . '/libs/BufferHelper.php';
 require_once dirname(__DIR__) . '/libs/SemaphoreHelper.php';
 require_once dirname(__DIR__) . '/libs/VariableProfileHelper.php';
 require_once dirname(__DIR__) . '/libs/MQTTHelper.php';
+require_once dirname(__DIR__) . '/libs/AttributeArrayHelper.php';
 
 /**
  * Zigbee2MQTTBridge
@@ -21,6 +22,7 @@ class Zigbee2MQTTBridge extends IPSModuleStrict
     use \Zigbee2MQTT\Semaphore;
     use \Zigbee2MQTT\VariableProfileHelper;
     use \Zigbee2MQTT\SendData;
+    use \Zigbee2MQTT\AttributeArrayHelper;
 
     /** @var array ZH Version zu Erweiterung  */
     private const EXTENSION_ZH_VERSION = [
@@ -42,6 +44,15 @@ class Zigbee2MQTTBridge extends IPSModuleStrict
         17 => 'IPSymconExtension2.js',
         18 => 'IPSymconExtension2.js'
     ];
+
+    private const ATTRIBUTE_DIAGNOSTIC_HEALTH = 'DiagnosticHealth';
+    private const ATTRIBUTE_DIAGNOSTIC_COORDINATOR = 'DiagnosticCoordinator';
+    private const ATTRIBUTE_DIAGNOSTIC_EVENTS = 'DiagnosticEvents';
+    private const ATTRIBUTE_DIAGNOSTIC_LOGS = 'DiagnosticLogs';
+    private const ATTRIBUTE_DIAGNOSTIC_UNSUPPORTED_DEVICES = 'DiagnosticUnsupportedDevices';
+    private const ATTRIBUTE_DIAGNOSTIC_INTERVIEW_DEVICES = 'DiagnosticInterviewDevices';
+    private const MAX_DIAGNOSTIC_ENTRIES = 50;
+
     /**
      * Create
      *
@@ -63,6 +74,13 @@ class Zigbee2MQTTBridge extends IPSModuleStrict
         $this->ConfigLastSeen = 'epoch';
         $this->TransactionData = [];
         $this->ConfigPermitJoin = false;
+
+        $this->RegisterAttributeArray(self::ATTRIBUTE_DIAGNOSTIC_HEALTH, []);
+        $this->RegisterAttributeArray(self::ATTRIBUTE_DIAGNOSTIC_COORDINATOR, []);
+        $this->RegisterAttributeArray(self::ATTRIBUTE_DIAGNOSTIC_EVENTS, []);
+        $this->RegisterAttributeArray(self::ATTRIBUTE_DIAGNOSTIC_LOGS, []);
+        $this->RegisterAttributeArray(self::ATTRIBUTE_DIAGNOSTIC_UNSUPPORTED_DEVICES, []);
+        $this->RegisterAttributeArray(self::ATTRIBUTE_DIAGNOSTIC_INTERVIEW_DEVICES, []);
     }
 
     /**
@@ -212,6 +230,26 @@ class Zigbee2MQTTBridge extends IPSModuleStrict
         $this->SendDebug('MQTT Payload', $payloadJson, 0);
         $Payload = json_decode($payloadJson, true);
         switch ($Topic) {
+            case 'logging':
+                if (\is_array($Payload)) {
+                    $this->AppendBridgeLog($Payload);
+                }
+                break;
+            case 'event':
+                if (\is_array($Payload)) {
+                    $this->AppendBridgeEvent($Payload);
+                }
+                break;
+            case 'devices':
+                if (\is_array($Payload)) {
+                    $this->UpdateDeviceDiagnostics($Payload);
+                }
+                break;
+            case 'health':
+                if (\is_array($Payload)) {
+                    $this->StoreHealthCheckResult($Payload);
+                }
+                break;
             case 'request': //nothing
                 break;
             case 'response': //response from request
@@ -219,7 +257,7 @@ class Zigbee2MQTTBridge extends IPSModuleStrict
                     $this->UpdateTransaction($Payload);
                     break;
                 }
-                if (is_array($Topics)) {
+                if (is_array($Topics) && isset($Topics[0])) {
                     if ($Topics[0] == 'networkmap') {
                         if ($Payload['status'] == 'ok') {
                             $this->RegisterVariableString($Payload['data']['type'], $this->Translate('Network Map'));
@@ -345,6 +383,9 @@ class Zigbee2MQTTBridge extends IPSModuleStrict
             case 'restart_request':
                 $this->Restart();
                 break;
+            case 'ClearBridgeDiagnostics':
+                $this->ClearBridgeDiagnostics();
+                break;
         }
     }
 
@@ -373,7 +414,7 @@ class Zigbee2MQTTBridge extends IPSModuleStrict
         if ($this->ConfigPermitJoin) {
             $Form['actions'][2]['visible'] = true;
         }
-        return json_encode($Form);
+        return json_encode($this->BuildBridgeConfigurationForm($Form));
     }
 
     /**
@@ -936,6 +977,52 @@ class Zigbee2MQTTBridge extends IPSModuleStrict
     }
 
     /**
+     * HealthCheck
+     *
+     * @return bool true, wenn Zigbee2MQTT eine gesunde Bridge meldet.
+     */
+    public function HealthCheck(): bool
+    {
+        $data = $this->SendCheckedBridgeRequest('/bridge/request/health_check', [], 10000);
+        if ($data === false) {
+            return false;
+        }
+
+        $this->StoreHealthCheckResult($data);
+        return (bool) ($data['healthy'] ?? false);
+    }
+
+    /**
+     * CoordinatorCheck
+     *
+     * @return bool true, wenn keine fehlenden Router gemeldet wurden.
+     */
+    public function CoordinatorCheck(): bool
+    {
+        $data = $this->SendCheckedBridgeRequest('/bridge/request/coordinator_check', [], 10000);
+        if ($data === false) {
+            return false;
+        }
+
+        $this->StoreCoordinatorCheckResult($data);
+        return \count($this->ReadDiagnosticMissingRouters()) === 0;
+    }
+
+    /**
+     * ClearBridgeDiagnostics
+     *
+     * @return bool
+     */
+    public function ClearBridgeDiagnostics(): bool
+    {
+        $this->WriteAttributeArray(self::ATTRIBUTE_DIAGNOSTIC_EVENTS, []);
+        $this->WriteAttributeArray(self::ATTRIBUTE_DIAGNOSTIC_LOGS, []);
+        $this->WriteAttributeArray(self::ATTRIBUTE_DIAGNOSTIC_UNSUPPORTED_DEVICES, []);
+        $this->WriteAttributeArray(self::ATTRIBUTE_DIAGNOSTIC_INTERVIEW_DEVICES, []);
+        return true;
+    }
+
+    /**
      * RenameDevice
      *
      * @param  string $OldDeviceName
@@ -1340,6 +1427,319 @@ class Zigbee2MQTTBridge extends IPSModuleStrict
         }
 
         return $Value;
+    }
+
+    /**
+     * Ergaenzt die statische Bridge-Form um aktuelle Diagnosewerte.
+     */
+    private function BuildBridgeConfigurationForm(array $form): array
+    {
+        $this->SetBridgeFormField($form, 'DiagnosticHealthStatus', 'caption', $this->BuildHealthStatusCaption());
+        $this->SetBridgeFormField($form, 'DiagnosticCoordinatorStatus', 'caption', $this->BuildCoordinatorStatusCaption());
+        $this->SetBridgeFormField($form, 'DiagnosticMissingRoutersList', 'values', $this->BuildMissingRouterFormValues());
+        $this->SetBridgeFormField($form, 'DiagnosticUnsupportedDevicesList', 'values', $this->BuildDeviceDiagnosticFormValues(self::ATTRIBUTE_DIAGNOSTIC_UNSUPPORTED_DEVICES));
+        $this->SetBridgeFormField($form, 'DiagnosticInterviewDevicesList', 'values', $this->BuildDeviceDiagnosticFormValues(self::ATTRIBUTE_DIAGNOSTIC_INTERVIEW_DEVICES));
+        $this->SetBridgeFormField($form, 'DiagnosticEventList', 'values', $this->BuildEventFormValues());
+        $this->SetBridgeFormField($form, 'DiagnosticLogList', 'values', $this->BuildLogFormValues());
+
+        return $form;
+    }
+
+    /**
+     * Speichert das Ergebnis eines Health-Checks oder des bridge/health Topics.
+     */
+    private function StoreHealthCheckResult(array $data): void
+    {
+        $previous = $this->ReadAttributeArray(self::ATTRIBUTE_DIAGNOSTIC_HEALTH);
+        if (!\array_key_exists('healthy', $data) && \array_key_exists('healthy', $previous)) {
+            $data['healthy'] = $previous['healthy'];
+        }
+        $data['checked_at'] = time();
+        $this->WriteAttributeArray(self::ATTRIBUTE_DIAGNOSTIC_HEALTH, $data);
+    }
+
+    /**
+     * Speichert das Ergebnis des Coordinator-Checks.
+     */
+    private function StoreCoordinatorCheckResult(array $data): void
+    {
+        $data['checked_at'] = time();
+        $this->WriteAttributeArray(self::ATTRIBUTE_DIAGNOSTIC_COORDINATOR, $data);
+    }
+
+    /**
+     * Sammelt warnende und fehlerhafte Bridge-Logmeldungen.
+     */
+    private function AppendBridgeLog(array $payload): void
+    {
+        $level = strtolower((string) ($payload['level'] ?? ''));
+        if (!\in_array($level, ['warning', 'warn', 'error'], true)) {
+            return;
+        }
+
+        $this->AppendDiagnosticEntry(self::ATTRIBUTE_DIAGNOSTIC_LOGS, [
+            'time'      => time(),
+            'level'     => $level === 'warn' ? 'warning' : $level,
+            'namespace' => (string) ($payload['namespace'] ?? ''),
+            'message'   => $this->FormatDiagnosticValue($payload['message'] ?? $payload)
+        ]);
+    }
+
+    /**
+     * Sammelt Bridge-Events als Ringpuffer.
+     */
+    private function AppendBridgeEvent(array $payload): void
+    {
+        $data = \is_array($payload['data'] ?? null) ? $payload['data'] : [];
+        $this->AppendDiagnosticEntry(self::ATTRIBUTE_DIAGNOSTIC_EVENTS, [
+            'time'    => time(),
+            'type'    => (string) ($payload['type'] ?? ''),
+            'device'  => (string) ($data['friendly_name'] ?? $data['device'] ?? $data['id'] ?? ''),
+            'message' => $this->FormatDiagnosticValue($data === [] ? $payload : $data)
+        ]);
+    }
+
+    /**
+     * Aktualisiert Diagnose-Listen aus bridge/devices.
+     */
+    private function UpdateDeviceDiagnostics(array $devices): void
+    {
+        $unsupported = [];
+        $interviewIssues = [];
+        foreach ($devices as $device) {
+            if (!\is_array($device)) {
+                continue;
+            }
+
+            $row = $this->BuildDeviceDiagnosticRow($device);
+            if (($device['supported'] ?? true) === false || (\array_key_exists('definition', $device) && $device['definition'] === null)) {
+                $unsupported[] = $row;
+            }
+
+            $interviewCompleted = $device['interview_completed'] ?? $device['interviewCompleted'] ?? null;
+            $interviewing = (bool) ($device['interviewing'] ?? false);
+            if ($interviewCompleted === false || $interviewing) {
+                $row['status'] = $interviewing ? $this->Translate('Interview running') : $this->Translate('Interview incomplete');
+                $interviewIssues[] = $row;
+            }
+        }
+
+        $this->WriteAttributeArray(self::ATTRIBUTE_DIAGNOSTIC_UNSUPPORTED_DEVICES, $unsupported);
+        $this->WriteAttributeArray(self::ATTRIBUTE_DIAGNOSTIC_INTERVIEW_DEVICES, $interviewIssues);
+    }
+
+    /**
+     * Fuegt einen Eintrag an den Anfang eines Diagnose-Ringpuffers.
+     */
+    private function AppendDiagnosticEntry(string $attribute, array $entry): void
+    {
+        $entries = $this->ReadAttributeArray($attribute);
+        array_unshift($entries, $entry);
+        $this->WriteAttributeArray($attribute, \array_slice($entries, 0, self::MAX_DIAGNOSTIC_ENTRIES));
+    }
+
+    /**
+     * Erstellt eine Diagnose-Zeile fuer ein Geraet.
+     */
+    private function BuildDeviceDiagnosticRow(array $device): array
+    {
+        $definition = \is_array($device['definition'] ?? null) ? $device['definition'] : [];
+        return [
+            'friendly_name' => (string) ($device['friendly_name'] ?? $device['friendlyName'] ?? ''),
+            'ieee_address'  => (string) ($device['ieee_address'] ?? $device['ieeeAddr'] ?? ''),
+            'model'         => (string) ($definition['model'] ?? $device['model'] ?? ''),
+            'vendor'        => (string) ($definition['vendor'] ?? $device['vendor'] ?? ''),
+            'status'        => (string) ($device['type'] ?? '')
+        ];
+    }
+
+    /**
+     * Formatiert den Health-Status fuer die Form.
+     */
+    private function BuildHealthStatusCaption(): string
+    {
+        $health = $this->ReadAttributeArray(self::ATTRIBUTE_DIAGNOSTIC_HEALTH);
+        if ($health === []) {
+            return $this->Translate('Health status: not checked');
+        }
+
+        $status = \array_key_exists('healthy', $health)
+            ? ((bool) $health['healthy'] ? $this->Translate('healthy') : $this->Translate('unhealthy'))
+            : $this->Translate('health data received');
+
+        return $this->Translate('Health status') . ': ' . $status . $this->FormatDiagnosticSuffix($health);
+    }
+
+    /**
+     * Formatiert den Coordinator-Status fuer die Form.
+     */
+    private function BuildCoordinatorStatusCaption(): string
+    {
+        $coordinator = $this->ReadAttributeArray(self::ATTRIBUTE_DIAGNOSTIC_COORDINATOR);
+        if ($coordinator === []) {
+            return $this->Translate('Coordinator status: not checked');
+        }
+
+        $missingRouters = $this->ReadDiagnosticMissingRouters();
+        $status = \count($missingRouters) === 0
+            ? $this->Translate('no missing routers')
+            : \sprintf($this->Translate('%d missing routers'), \count($missingRouters));
+
+        return $this->Translate('Coordinator status') . ': ' . $status . $this->FormatDiagnosticSuffix($coordinator);
+    }
+
+    /**
+     * Gibt die fehlenden Router aus dem letzten Coordinator-Check zurueck.
+     */
+    private function ReadDiagnosticMissingRouters(): array
+    {
+        $coordinator = $this->ReadAttributeArray(self::ATTRIBUTE_DIAGNOSTIC_COORDINATOR);
+        $missingRouters = $coordinator['missing_routers'] ?? $coordinator['missingRouters'] ?? [];
+        return \is_array($missingRouters) ? $missingRouters : [];
+    }
+
+    /**
+     * Baut die Formwerte fuer fehlende Router.
+     */
+    private function BuildMissingRouterFormValues(): array
+    {
+        $values = [];
+        foreach ($this->ReadDiagnosticMissingRouters() as $router) {
+            if (!\is_array($router)) {
+                continue;
+            }
+
+            $values[] = [
+                'friendly_name' => (string) ($router['friendly_name'] ?? ''),
+                'ieee_address'  => (string) ($router['ieee_address'] ?? $router['ieeeAddr'] ?? '')
+            ];
+        }
+
+        return $values;
+    }
+
+    /**
+     * Baut die Formwerte fuer Geraete-Diagnoselisten.
+     */
+    private function BuildDeviceDiagnosticFormValues(string $attribute): array
+    {
+        $values = [];
+        foreach ($this->ReadAttributeArray($attribute) as $entry) {
+            if (!\is_array($entry)) {
+                continue;
+            }
+
+            $values[] = [
+                'friendly_name' => (string) ($entry['friendly_name'] ?? ''),
+                'ieee_address'  => (string) ($entry['ieee_address'] ?? ''),
+                'model'         => (string) ($entry['model'] ?? ''),
+                'vendor'        => (string) ($entry['vendor'] ?? ''),
+                'status'        => (string) ($entry['status'] ?? '')
+            ];
+        }
+
+        return $values;
+    }
+
+    /**
+     * Baut die Formwerte fuer Bridge-Events.
+     */
+    private function BuildEventFormValues(): array
+    {
+        $values = [];
+        foreach ($this->ReadAttributeArray(self::ATTRIBUTE_DIAGNOSTIC_EVENTS) as $entry) {
+            if (!\is_array($entry)) {
+                continue;
+            }
+
+            $values[] = [
+                'time'    => $this->FormatDiagnosticTimestamp($entry['time'] ?? 0),
+                'type'    => (string) ($entry['type'] ?? ''),
+                'device'  => (string) ($entry['device'] ?? ''),
+                'message' => (string) ($entry['message'] ?? '')
+            ];
+        }
+
+        return $values;
+    }
+
+    /**
+     * Baut die Formwerte fuer Bridge-Warnungen und Fehler.
+     */
+    private function BuildLogFormValues(): array
+    {
+        $values = [];
+        foreach ($this->ReadAttributeArray(self::ATTRIBUTE_DIAGNOSTIC_LOGS) as $entry) {
+            if (!\is_array($entry)) {
+                continue;
+            }
+
+            $values[] = [
+                'time'      => $this->FormatDiagnosticTimestamp($entry['time'] ?? 0),
+                'level'     => (string) ($entry['level'] ?? ''),
+                'namespace' => (string) ($entry['namespace'] ?? ''),
+                'message'   => (string) ($entry['message'] ?? '')
+            ];
+        }
+
+        return $values;
+    }
+
+    /**
+     * Formatiert einen Diagnose-Zeitstempel.
+     */
+    private function FormatDiagnosticTimestamp(mixed $timestamp): string
+    {
+        $timestamp = (int) $timestamp;
+        return $timestamp > 0 ? date('d.m.Y H:i:s', $timestamp) : '';
+    }
+
+    /**
+     * Liefert einen optionalen Zeitstempel-Suffix fuer Statuszeilen.
+     */
+    private function FormatDiagnosticSuffix(array $entry): string
+    {
+        $timestamp = $this->FormatDiagnosticTimestamp($entry['checked_at'] ?? 0);
+        return $timestamp === '' ? '' : ' (' . $timestamp . ')';
+    }
+
+    /**
+     * Formatiert Diagnosewerte kompakt fuer Formularlisten.
+     */
+    private function FormatDiagnosticValue(mixed $value): string
+    {
+        if (\is_bool($value)) {
+            return $value ? 'true' : 'false';
+        }
+        if (\is_array($value)) {
+            $encoded = json_encode($value, JSON_UNESCAPED_SLASHES | JSON_UNESCAPED_UNICODE);
+            $value = \is_string($encoded) ? $encoded : '';
+        }
+
+        $text = (string) $value;
+        return \strlen($text) > 240 ? \substr($text, 0, 237) . '...' : $text;
+    }
+
+    /**
+     * Setzt ein Feld in der verschachtelten Form.
+     */
+    private function SetBridgeFormField(array &$node, string $name, string $field, mixed $value): bool
+    {
+        if (($node['name'] ?? null) === $name) {
+            $node[$field] = $value;
+            return true;
+        }
+
+        foreach ($node as &$child) {
+            if (!\is_array($child)) {
+                continue;
+            }
+            if ($this->SetBridgeFormField($child, $name, $field, $value)) {
+                return true;
+            }
+        }
+
+        return false;
     }
 
     /**

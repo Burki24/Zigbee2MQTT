@@ -215,6 +215,95 @@ class BridgeTest extends TestCase
         $this->assertSame(10000, $bridge->lastTimeout);
     }
 
+    public function testHealthCheckStoresDiagnosticResult(): void
+    {
+        $bridge = $this->createBridgeTestDouble([
+            'status' => 'ok',
+            'data'   => [
+                'healthy' => true
+            ]
+        ]);
+
+        $this->assertTrue($bridge->HealthCheck());
+        $this->assertSame('/bridge/request/health_check', $bridge->lastTopic);
+        $this->assertSame([], $bridge->lastPayload);
+        $this->assertSame(10000, $bridge->lastTimeout);
+        $this->assertTrue($bridge->readDiagnosticAttribute('DiagnosticHealth')['healthy']);
+        $this->assertArrayHasKey('checked_at', $bridge->readDiagnosticAttribute('DiagnosticHealth'));
+    }
+
+    public function testCoordinatorCheckStoresMissingRouters(): void
+    {
+        $bridge = $this->createBridgeTestDouble([
+            'status' => 'ok',
+            'data'   => [
+                'missing_routers' => [
+                    [
+                        'friendly_name' => 'router',
+                        'ieee_address'  => '0x1234'
+                    ]
+                ]
+            ]
+        ]);
+
+        $this->assertFalse($bridge->CoordinatorCheck());
+        $this->assertSame('/bridge/request/coordinator_check', $bridge->lastTopic);
+        $this->assertSame([], $bridge->lastPayload);
+        $this->assertSame(10000, $bridge->lastTimeout);
+        $this->assertSame('router', $bridge->readDiagnosticAttribute('DiagnosticCoordinator')['missing_routers'][0]['friendly_name']);
+    }
+
+    public function testReceiveDataCollectsBridgeDiagnostics(): void
+    {
+        $bridge = $this->createBridgeTestDouble(true);
+        $bridge->setBaseTopicForTest('zigbee2mqtt');
+
+        $bridge->ReceiveData(json_encode([
+            'Topic'   => 'zigbee2mqtt/bridge/logging',
+            'Payload' => bin2hex(json_encode([
+                'level'     => 'warning',
+                'message'   => 'Something needs attention',
+                'namespace' => 'z2m'
+            ]))
+        ]));
+        $bridge->ReceiveData(json_encode([
+            'Topic'   => 'zigbee2mqtt/bridge/event',
+            'Payload' => bin2hex(json_encode([
+                'type' => 'device_joined',
+                'data' => [
+                    'friendly_name' => 'new_device'
+                ]
+            ]))
+        ]));
+        $bridge->ReceiveData(json_encode([
+            'Topic'   => 'zigbee2mqtt/bridge/devices',
+            'Payload' => bin2hex(json_encode([
+                [
+                    'friendly_name'       => 'unsupported',
+                    'ieee_address'        => '0x1111',
+                    'supported'           => false,
+                    'interview_completed' => true,
+                    'definition'          => null
+                ],
+                [
+                    'friendly_name'       => 'interviewing',
+                    'ieee_address'        => '0x2222',
+                    'supported'           => true,
+                    'interview_completed' => false,
+                    'definition'          => [
+                        'model'  => 'SENSOR',
+                        'vendor' => 'Vendor'
+                    ]
+                ]
+            ]))
+        ]));
+
+        $this->assertSame('Something needs attention', $bridge->readDiagnosticAttribute('DiagnosticLogs')[0]['message']);
+        $this->assertSame('device_joined', $bridge->readDiagnosticAttribute('DiagnosticEvents')[0]['type']);
+        $this->assertSame('unsupported', $bridge->readDiagnosticAttribute('DiagnosticUnsupportedDevices')[0]['friendly_name']);
+        $this->assertSame('interviewing', $bridge->readDiagnosticAttribute('DiagnosticInterviewDevices')[0]['friendly_name']);
+    }
+
     public function testAddDeviceToGroupUsesOptionalEndpoint(): void
     {
         $bridge = $this->createBridgeTestDouble([
@@ -332,10 +421,11 @@ class BridgeTest extends TestCase
 
     private function createBridgeTestDouble(array|bool $result): Zigbee2MQTTBridge
     {
-        return new class(900001, $result) extends Zigbee2MQTTBridge {
+        $bridge = new class(900001, $result) extends Zigbee2MQTTBridge {
             public string $lastTopic = '';
             public array $lastPayload = [];
             public int $lastTimeout = -1;
+            private string $testBaseTopic = '';
 
             public function __construct(int $InstanceID, private array|bool $result)
             {
@@ -350,6 +440,37 @@ class BridgeTest extends TestCase
 
                 return $this->result;
             }
+
+            public function readDiagnosticAttribute(string $name): array
+            {
+                return $this->ReadAttributeArray($name);
+            }
+
+            public function setBaseTopicForTest(string $baseTopic): void
+            {
+                $this->testBaseTopic = $baseTopic;
+            }
+
+            protected function ReadPropertyString(string $Name): string
+            {
+                if ($Name === self::MQTT_BASE_TOPIC && $this->testBaseTopic !== '') {
+                    return $this->testBaseTopic;
+                }
+
+                return parent::ReadPropertyString($Name);
+            }
+
+            protected function GetStatus(): int
+            {
+                return IS_ACTIVE;
+            }
+
+            protected function SendDebug(string $Message, string $Data, int $Format): bool
+            {
+                return true;
+            }
         };
+        $bridge->Create();
+        return $bridge;
     }
 }
