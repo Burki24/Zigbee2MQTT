@@ -142,7 +142,7 @@
         .alert-caption,
         .metric-caption {
             color: var(--muted);
-            font-size: 0.75em;
+            font-size: var(--z2m-font-caption);
             letter-spacing: 0;
             text-transform: uppercase;
         }
@@ -245,13 +245,13 @@
 
         .setting-label {
             overflow: hidden;
-            font-size: 1em;
+            font-size: var(--z2m-font-normal);
             text-overflow: ellipsis;
             white-space: nowrap;
         }
 
         .setting-value {
-            font-size: 1em;
+            font-size: var(--z2m-font-normal);
             white-space: nowrap;
         }
 
@@ -295,7 +295,7 @@
             color: var(--accent);
             background: transparent;
             cursor: pointer;
-            font-size: 0.9em;
+            font-size: var(--z2m-font-compact);
         }
 
         .segment-button.active {
@@ -358,7 +358,7 @@
             }
 
             .sensor-values.has-alert .metric-item.primary .metric-main {
-                font-size: 1em;
+                font-size: var(--z2m-font-normal);
             }
 
             .alert-label {
@@ -382,13 +382,13 @@
 
             .setting-label,
             .setting-value {
-                font-size: 0.9em;
+                font-size: var(--z2m-font-compact);
             }
 
             .segment-button {
                 min-width: 54px;
                 padding: 0 8px;
-                font-size: 0.8em;
+                font-size: var(--z2m-font-small);
             }
         }
     </style>

@@ -176,6 +176,8 @@ class DevicesTest extends DumpInclude
         [$iid] = $this->createTestInstance('WHD02.json');
         $html = IPS\InstanceManager::getInstanceInterface($iid)->GetVisualizationTile();
         $this->assertStringContainsString('--text: currentColor', $html);
+        $this->assertStringContainsString('--z2m-font-normal', $html);
+        $this->assertStringContainsString('font-size: var(--z2m-font-normal)', $html);
         $this->assertStringNotContainsString('__THEME_SUPPORT__', $html);
     }
 
