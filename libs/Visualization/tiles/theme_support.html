@@ -1,5 +1,26 @@
 <style>
+    @font-face {
+        font-family: "Roboto";
+        src:
+            local("Roboto"),
+            url("/fonts/roboto/Roboto-Regular.ttf") format("truetype"),
+            url("fonts/roboto/Roboto-Regular.ttf") format("truetype");
+        font-weight: 400;
+        font-style: normal;
+    }
+
+    @font-face {
+        font-family: "Roboto";
+        src:
+            local("Roboto Medium"),
+            url("/fonts/roboto/Roboto-Medium.ttf") format("truetype"),
+            url("fonts/roboto/Roboto-Medium.ttf") format("truetype");
+        font-weight: 500;
+        font-style: normal;
+    }
+
     :root {
+        --z2m-font-family: "Roboto", "Noto", sans-serif;
         --text: currentColor;
         --muted: color-mix(in srgb, currentColor 66%, transparent);
         --line: color-mix(in srgb, currentColor 16%, transparent);
@@ -10,5 +31,14 @@
         --z2m-font-caption: 0.78em;
         --z2m-font-axis: 0.72em;
         --z2m-font-title: 1.16em;
+    }
+
+    html,
+    body,
+    button,
+    input,
+    select,
+    textarea {
+        font-family: var(--z2m-font-family);
     }
 </style>

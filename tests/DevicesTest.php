@@ -171,10 +171,14 @@ class DevicesTest extends DumpInclude
             $this->assertStringNotContainsString('background: transparent !important', $html, basename($template));
             $this->assertStringNotContainsString('background-color: transparent !important', $html, basename($template));
             $this->assertStringNotContainsString('font-family: system-ui', $html, basename($template));
+            $this->assertDoesNotMatchRegularExpression('/font-family\s*:/', $html, basename($template));
+            $this->assertDoesNotMatchRegularExpression('/font\s*:(?!\s*inherit\s*;)/', $html, basename($template));
         }
 
         [$iid] = $this->createTestInstance('WHD02.json');
         $html = IPS\InstanceManager::getInstanceInterface($iid)->GetVisualizationTile();
+        $this->assertStringContainsString('--z2m-font-family: "Roboto", "Noto", sans-serif', $html);
+        $this->assertStringContainsString('font-family: var(--z2m-font-family)', $html);
         $this->assertStringContainsString('--text: currentColor', $html);
         $this->assertStringContainsString('--z2m-font-normal', $html);
         $this->assertStringContainsString('font-size: var(--z2m-font-normal)', $html);
