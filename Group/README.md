@@ -72,10 +72,40 @@
 | Bereich             | Beschreibung                                                                                                                                 |
 | ------------------- | -------------------------------------------------------------------------------------------------------------------------------------------- |
 | Gruppenmitglieder   | Zeigt die von Zigbee2MQTT gemeldeten Mitglieder der Gruppe. Geräte können mit optionalem Endpoint hinzugefügt oder entfernt werden.          |
-| Gruppenoptionen     | Zeigt die aktuellen Zigbee2MQTT-Gruppenoptionen und erlaubt Änderungen einzelner Optionen als JSON-, Zahlen-, Boolean- oder Textwert.       |
+| Gruppenoptionen     | Zeigt die aktuellen Zigbee2MQTT-Gruppenoptionen und erlaubt Änderungen einzelner Optionen als Auswahlliste, Schalter, JSON-, Zahlen- oder Textwert. |
 | Szenen              | Speichert den aktuellen Gruppenstatus als Szene, fügt erweiterte Szenen per JSON hinzu, ruft Szenen ab, benennt sie um oder löscht sie.     |
 
    Änderungen werden über die Bridge an Zigbee2MQTT gesendet. Wenn Zigbee2MQTT für geänderte Gruppenoptionen einen Neustart verlangt, wird dies in der Bridge protokolliert.
+
+**Gruppenmitglieder**
+
+Die Gruppeninstanz zeigt zwei Listen: die aktuellen Mitglieder und die verfügbaren Geräte zum Hinzufügen. Die verfügbaren Geräte werden aus vorhandenen Symcon-Geräteinstanzen und, wenn möglich, direkt aus der Zigbee2MQTT-Erweiterung geladen. Dadurch können auch Geräte ausgewählt werden, für die noch keine eigene Symcon-Geräteinstanz angelegt wurde.
+
+Wenn Zigbee2MQTT Endpoints für ein Gerät liefert, werden diese in der Geräteliste angezeigt und nach Auswahl des Geräts als Endpoint-Auswahl angeboten. Bei mehrkanaligen oder mehrfach endpointfähigen Geräten muss der passende Endpoint ausgewählt werden, damit Zigbee2MQTT das Gerät korrekt zur Gruppe hinzufügt.
+
+Beim Entfernen kann **Reporting beim Entfernen behalten** aktiviert bleiben. Dann wird `skip_disable_reporting` an Zigbee2MQTT übergeben, damit vorhandene Reporting-Konfigurationen nicht automatisch entfernt werden.
+
+Antwortet ein Gerät bei einem Gruppenbefehl nicht, zeigt die Gruppeninstanz eine verständliche Meldung **Gerät offline** im Formular. Die technische Zigbee2MQTT-Fehlermeldung wird weiter im Debug protokolliert.
+
+**Gruppenoptionen**
+
+Das Modul kennt die wichtigsten Zigbee2MQTT-Gruppenoptionen:
+
+| Option | Typ | Bedeutung |
+| ------ | --- | --------- |
+| `retain` | Boolean | MQTT-Nachrichten der Gruppe mit Retain-Flag veröffentlichen |
+| `transition` | Numeric | Standard-Übergangszeit für Gruppenbefehle in Sekunden |
+| `optimistic` | Boolean | Gruppenstatus optimistisch aktualisieren, wenn Mitglieder ihren Status ändern |
+| `qos` | Enum | MQTT QoS für Nachrichten der Gruppe (`-`, `0`, `1`, `2`) |
+| `off_state` | Enum | Legt fest, wann `OFF`/`CLOSE` für die Gruppe veröffentlicht wird |
+| `filtered_attributes` | Array | Attribute, die Zigbee2MQTT für diese Gruppe nicht veröffentlichen soll |
+| `homeassistant` | Object | Home-Assistant-Discovery-Eigenschaften der Gruppe überschreiben |
+
+Für Boolean- und Enum-Optionen werden Schalter bzw. Auswahllisten angezeigt. Für `filtered_attributes` gibt es eine Attributauswahl aus bekannten Exposes, vorhandenen Variablen und bereits gesetzten Werten. Objektwerte wie `homeassistant` müssen als JSON-Objekt eingetragen werden.
+
+**Szenen**
+
+Szenen können aus dem aktuellen Gruppenstatus gespeichert, als vollständige JSON-Definition hinzugefügt, abgerufen, umbenannt und gelöscht werden. `Scene ID` entspricht der Zigbee2MQTT-Szenen-ID. `Scene JSON` wird für erweiterte Szenendefinitionen verwendet, z. B. wenn zusätzliche Werte wie Helligkeit oder Farbe direkt mitgegeben werden sollen.
 
 ## 5. Statusvariablen
 
@@ -261,6 +291,26 @@
    ```
 
    Dieses Beispiel ruft `state` von `{BaseTopic}Keller/Lampe1` ab.
+
+---
+
+### Z2M_SetColorExt <!-- omit in toc -->
+
+   ```php
+   bool Z2M_SetColorExt(int $InstanzId, int $Color, int $TransitionTime);
+   ```
+
+   Setzt eine Farbe mit Übergangszeit. Das ist auch für Gruppen nutzbar, wenn die Gruppe Farbwerte unterstützt.
+
+---
+
+### Z2M_UIExportDebugData <!-- omit in toc -->
+
+   ```php
+   string Z2M_UIExportDebugData(int $InstanzId);
+   ```
+
+   Exportiert die für Support und Fehlersuche relevanten Instanzdaten als JSON-Download. Die Funktion wird vom Button **Download Debug Data** in der Instanz-Konfiguration genutzt.
 
 ## 7. Aktionen
 

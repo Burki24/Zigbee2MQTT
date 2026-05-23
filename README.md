@@ -215,6 +215,8 @@ Unterstützt werden derzeit eigene Kacheln für:
 
 Die Instanz-Konfiguration zeigt nur die Visualisierungsoptionen an, die für das jeweilige Gerät verfügbar sind. Dort kann eine automatisch gewählte Spezialkachel auch deaktiviert werden, wenn stattdessen die Standard-Visualisierung von Symcon genutzt werden soll.
 
+Die eigenen HTML-SDK-Kacheln übernehmen Schrift- und Grundfarben vom aktiven Symcon Tile-Theme. Eigene Farben werden nur für Zustände wie Alarm, OK, Aktiv/Inaktiv oder Messwertverläufe verwendet.
+
 Details stehen in der [Dokumentation des Geräte-Moduls](Device/README.md#41-visualisierung-und-kacheln).
 
 ### 4.2 Variablenverwaltung
@@ -222,6 +224,8 @@ Details stehen in der [Dokumentation des Geräte-Moduls](Device/README.md#41-vis
 Geräte-Instanzen führen einen lokalen Variablenkatalog. Dadurch kann in der Instanz-Konfiguration gesteuert werden, welche bekannten Variablen automatisch angelegt werden dürfen. Vom Anwender gelöschte Variablen werden nicht automatisch wieder erzeugt und können später gezielt wieder angelegt werden.
 
 Details stehen in der [Dokumentation des Geräte-Moduls](Device/README.md#46-variablenverwaltung).
+
+Geräte- und Gruppenoptionen aus Zigbee2MQTT können ebenfalls direkt in Symcon gepflegt werden. Soweit Zigbee2MQTT Typinformationen liefert oder das Modul die Option kennt, werden passende Editoren für Schalter, Auswahllisten, Zahlen, Text, JSON-Objekte und Attributlisten angezeigt.
 
 ## 5. Changelog  
 
@@ -233,16 +237,21 @@ Details stehen in der [Dokumentation des Geräte-Moduls](Device/README.md#46-var
 - Heizungs-Kacheln zeigen Ist- und Solltemperatur ohne Ringslider und bedienen die Solltemperatur per Plus-/Minus-Tasten sowie pro Instanz konfigurierbare Presets.
 - Schaltaktoren mit Messwerten unterstützen archivierte Messwerte direkt in der Kachel als Graphen, inklusive erweiterter Werte wie Frequenz, Leistungsfaktor, Schein-/Blindleistung und erzeugter Energie.
 - Mehrkanal-Schaltaktoren können mehrere Schaltausgänge in einer Kachel darstellen.
+- Eigene Kacheln übernehmen Grundfarben und Schrift aus dem aktiven Symcon Tile-Theme, damit Hell-/Dunkelmodus einheitlich dargestellt werden.
 - Temperatur-, Farbtemperatur-, Enum- und Numeric-Exposes erhalten passendere moderne Tile-Darstellungen, soweit die Exposes die nötigen Werte liefern.
 - Die Kelvin-Farbtemperaturvariable `color_temp_kelvin` nutzt den aus dem Zigbee2MQTT-Mired-Bereich berechneten Kelvin-Bereich für die Symcon-Standardkachel Beleuchtung.
 - Der Kelvin-Bereich der Farbtemperatur kann je Device überschrieben werden, falls Zigbee2MQTT bzw. dessen Device-Definitionen zu große oder ungenaue Mired-Grenzen melden.
 - Reine Tunable-White-Leuchtmittel erhalten eine abgeleitete `color`-Variable, die den aktuellen Weißton als `~HexColor`-Farbwert darstellt.
 - Die Geräte-Konfiguration zeigt Visualisierungsoptionen nur noch an, wenn sie für die Instanz fachlich verfügbar sind.
 - Geräte-Instanzen erhalten eine Variablenverwaltung, mit der automatisch angelegte, nachgelieferte und gelöschte Variablen kontrolliert werden können.
+- Composite-Exposes werden in der Variablenverwaltung nur mit den tatsächlich anlegbaren Untervariablen geführt, damit nicht bedienbare Composite-Eltern nicht als eigene Variable angeboten werden.
 - Geräte-Instanzen können Zigbee2MQTT-Geräteoptionen wie `transition`, `debounce`, `filtered_attributes`, `optimistic`, `retain` oder gerätespezifische `definition.options` direkt in der Instanz-Konfiguration anzeigen und setzen.
+- Geräte- und Gruppenoptionen nutzen typisierte Editoren für Boolean-, Enum-, Numeric-, Text-, Array- und Objektwerte; Attributfilter wie `filtered_attributes`, `filtered_cache` oder `debounce_ignore` bieten eine Auswahl bekannter Payload-Attribute.
+- Enum-basierte `state`-Variablen wie Rollladenbefehle senden wieder die originalen Zigbee2MQTT-Werte wie `OPEN`, `CLOSE` oder `STOP`; binäre Schalter bleiben bei `ON`/`OFF`.
 - Die Bridge unterstützt `bridge/request/device/options` über `Z2M_SetDeviceOptions()` und aktualisierte OTA-Funktionen für Downgrade, Scheduling, Unschedule und eigene OTA-URLs.
 - Binding und Reporting können in der Geräte-Konfiguration über Endpoint-, Cluster- und Attributdaten gepflegt werden; die Bridge stellt dazu Funktionen für Binding mit Cluster-Auswahl sowie Reporting Configure/Read bereit.
-- Gruppen-Instanzen können Mitglieder inklusive Endpoint verwalten, Zigbee2MQTT-Gruppenoptionen setzen und Szenen speichern, hinzufügen, abrufen, umbenennen oder löschen.
+- Gruppen-Instanzen können Mitglieder inklusive automatisch gelisteter Endpoints verwalten, Zigbee2MQTT-Gruppenoptionen setzen und Szenen speichern, hinzufügen, abrufen, umbenennen oder löschen.
+- Gruppenbefehle zeigen bei nicht erreichbaren Geräten eine verständliche Meldung in der Konfiguration, statt nur die Zigbee2MQTT-Fehlermeldung durchzureichen.
 - Die Bridge enthält einen Diagnosebereich für Health Check, Coordinator Check, Bridge-Events, Warnungen/Fehler sowie nicht unterstützte oder unvollständig interviewte Geräte.
 - Die Bridge bietet Wartungsfunktionen für Zigbee2MQTT-Backups, Zigbee-3.0-Install-Codes und Touchlink-Scan/Identify/Factory-Reset.
 - Temperatur-Visualisierungen können einen konfigurierbaren Fallback-Bereich nutzen, wenn Zigbee2MQTT keine `value_min`/`value_max` Werte liefert.

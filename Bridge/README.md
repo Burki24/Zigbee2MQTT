@@ -54,6 +54,15 @@
 | **3**      | **last_seen**       | In Z2M muss die Einstellung `last_seen` auf den Wert `epoch` eingerichtet sein, da es sonst zu Fehlermeldungen bei den Variablen `Zuletzt gesehen` kommt.       |
 | **4**      | **Testcenter**      | Hier sind die Schaltbaren Statusvariablen aufgeführt, so kann z.B. der Netzwerkbeitritt aktiviert werden.                                                       |
 
+Zusätzlich enthält die Bridge-Konfiguration folgende Verwaltungsbereiche:
+
+| Bereich | Beschreibung |
+| ------- | ------------ |
+| Diagnose | Führt Health Check und Coordinator Check aus, fordert die Netzwerkkarte an und zeigt fehlende Router, nicht unterstützte Geräte, Interview-Probleme, Bridge-Events sowie Warnungen und Fehler an. |
+| Wartung | Erstellt ein Zigbee2MQTT-Backup, sendet Zigbee-3.0-Install-Codes und bietet Touchlink-Scan, Identify und Factory-Reset an. |
+
+Touchlink-Scan und Touchlink-Factory-Reset können die Zigbee-Kommunikation kurzfristig stören. Ein Factory-Reset ohne ausgewähltes Ziel kann das nächste per Touchlink erreichbare Gerät zurücksetzen und sollte daher nur bewusst genutzt werden.
+
 ## 5. Statusvariablen
 
 | Name                               | Typ     | Profil              | Beschreibung                                 |
@@ -77,6 +86,8 @@ Die Bridge-Funktionen senden Zigbee2MQTT-Requests an das `bridge/request/...` To
 Bei einer erfolgreichen Antwort wird `true` zurückgegeben, bei einem Fehler oder Timeout `false`.
 
 Lange laufende Requests wie Netzwerkkarte und OTA-Aktualisierung werden nur angestoßen und laufen anschließend in Zigbee2MQTT weiter. In diesem Fall bedeutet `true`, dass der Request erfolgreich an Zigbee2MQTT übergeben wurde.
+
+Viele Geräte- und Gruppenfunktionen werden auch von den Device- und Group-Konfigurationsformularen genutzt. In der Regel ist die Bedienung dort komfortabler, während die Bridge-Funktionen vor allem für Skripte, Abläufe und eigene Automationen gedacht sind.
 
 ### Z2M_InstallSymconExtension <!-- omit in toc -->
 
@@ -124,6 +135,8 @@ Setzt die globale Zigbee2MQTT-Option `permit_join`. Diese Option sollte aus Sich
 bool Z2M_SetPermitJoin(int $InstanzID, bool $PermitJoin);
 ```
 
+Aktiviert oder deaktiviert den Netzwerkbeitritt zur Laufzeit. Bei `true` wird Zigbee2MQTT angewiesen, neue Geräte temporär beitreten zu lassen; bei `false` wird der Beitritt beendet.
+
 ---
 
 ### Z2M_SetLogLevel <!-- omit in toc -->
@@ -131,6 +144,8 @@ bool Z2M_SetPermitJoin(int $InstanzID, bool $PermitJoin);
 ```php
 bool Z2M_SetLogLevel(int $InstanzID, string $LogLevel);
 ```
+
+Setzt den Zigbee2MQTT-Loglevel. Übliche Werte sind `error`, `warning`, `info` und `debug`.
 
 ---
 
@@ -140,6 +155,8 @@ bool Z2M_SetLogLevel(int $InstanzID, string $LogLevel);
 bool Z2M_Restart(int $InstanzID);
 ```
 
+Fordert einen Neustart von Zigbee2MQTT an.
+
 ---
 
 ### Z2M_CreateGroup <!-- omit in toc -->
@@ -147,6 +164,8 @@ bool Z2M_Restart(int $InstanzID);
 ```php
 bool Z2M_CreateGroup(int $InstanzID, string $GroupName);
 ```
+
+Legt eine neue Zigbee2MQTT-Gruppe mit dem angegebenen Namen an.
 
 ---
 
@@ -156,6 +175,8 @@ bool Z2M_CreateGroup(int $InstanzID, string $GroupName);
 bool Z2M_DeleteGroup(int $InstanzID, string $GroupName);
 ```
 
+Löscht eine Zigbee2MQTT-Gruppe.
+
 ---
 
 ### Z2M_RenameGroup <!-- omit in toc -->
@@ -163,6 +184,8 @@ bool Z2M_DeleteGroup(int $InstanzID, string $GroupName);
 ```php
 bool Z2M_RenameGroup(int $InstanzID, string $OldName, string $NewName);
 ```
+
+Benennt eine Zigbee2MQTT-Gruppe um.
 
 ---
 
@@ -211,6 +234,8 @@ bool Z2M_SetGroupOptions(int $InstanzID, string $GroupName, string $OptionsJSON)
 ```
 
 Setzt Zigbee2MQTT-Gruppenoptionen. `OptionsJSON` muss ein JSON-Objekt sein, z.B. `{"transition":1}`.
+
+Typische Optionen sind `retain`, `transition`, `optimistic`, `qos`, `off_state`, `filtered_attributes` und `homeassistant`. Die Gruppeninstanz bietet dafür, soweit möglich, passende Editoren und eine Auswahl bekannter Payload-Attribute an.
 
 ---
 
@@ -280,6 +305,8 @@ Benennt eine Szene um.
 bool Z2M_Bind(int $InstanzID, string $SourceDevice, string $TargetDevice);
 ```
 
+Erstellt ein Binding zwischen Quelle und Ziel ohne zusätzliche Cluster-Auswahl. Für neue Automationen ist `Z2M_BindWithOptions()` meistens flexibler.
+
 ---
 
 ### Z2M_BindWithOptions <!-- omit in toc -->
@@ -297,6 +324,8 @@ Erstellt ein Binding mit optionaler Cluster-Auswahl. `ClustersJSON` kann ein JSO
 ```php
 bool Z2M_Unbind(int $InstanzID, string $SourceDevice, string $TargetDevice);
 ```
+
+Entfernt ein Binding zwischen Quelle und Ziel ohne zusätzliche Cluster-Auswahl.
 
 ---
 
@@ -437,6 +466,8 @@ Startet einen Touchlink-Factory-Reset. Mit IEEE-Adresse und Kanal wird ein konkr
 bool Z2M_RenameDevice(int $InstanzID, string $OldDeviceName, string $NewDeviceName);
 ```
 
+Benennt ein Zigbee2MQTT-Gerät um. Danach ändert sich auch das MQTT-Topic des Geräts.
+
 ---
 
 ### Z2M_RemoveDevice <!-- omit in toc -->
@@ -444,6 +475,8 @@ bool Z2M_RenameDevice(int $InstanzID, string $OldDeviceName, string $NewDeviceNa
 ```php
 bool Z2M_RemoveDevice(int $InstanzID, string $DeviceName);
 ```
+
+Entfernt ein Gerät aus Zigbee2MQTT.
 
 ---
 
@@ -454,6 +487,8 @@ bool Z2M_SetDeviceOptions(int $InstanzID, string $DeviceName, string $OptionsJSO
 ```
 
 Setzt Zigbee2MQTT-Geräteoptionen über `bridge/request/device/options`. `OptionsJSON` muss ein JSON-Objekt sein, z. B. `{"transition":1}` oder `{"filtered_attributes":["battery"]}`.
+
+Typische Optionen sind `transition`, `debounce`, `debounce_ignore`, `disable_automatic_update_check`, `disabled`, `filtered_attributes`, `filtered_cache`, `filtered_optimistic`, `icon`, `optimistic`, `qos`, `retain`, `retention`, `throttle`, `homeassistant` sowie gerätespezifische `definition.options`. Die Geräteinstanz zeigt hierfür passende Editoren an.
 
 ---
 

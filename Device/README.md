@@ -36,6 +36,9 @@
 - Automatisches Erstellern der für die Variablen benötigten Variablenprofile gemäß den Daten aus Z2M
 - Automatische Zuordnung moderner Tile-Darstellungen und passender Standardprofile, soweit die Exposes dies zulassen
 - Eigene HTML-SDK-Kacheln für häufige Gerätetypen wie Schaltaktoren mit Messwerten, Heizungen, Sensoren, Sicherheitskontakte, Fenstergriffe und Aktionsgeräte
+- Komfortable Pflege von Zigbee2MQTT-Geräteoptionen inklusive typisierter Editoren und Attributauswahl
+- Binding- und Reporting-Verwaltung anhand der von Zigbee2MQTT gelieferten Endpoint- und Cluster-Daten
+- Variablenverwaltung für automatisch erkannte, nachgelieferte, deaktivierte oder vom Anwender gelöschte Variablen
 - Erstellen von Variablen für reine Aktionen wie Voreinstellungen wählen, Effekte aufrufen oder Identifizieren starten
   
 ## 2. Voraussetzungen
@@ -78,15 +81,17 @@ Es werden nur Optionen angezeigt, die für das jeweilige Gerät fachlich passen.
 | Kachel | Typische Exposes | Darstellung |
 | ------ | ---------------- | ----------- |
 | Heizungs-Kachel | `occupied_heating_setpoint`, `local_temperature`, optional Ventil- und Betriebswerte | Ist- und Solltemperatur als Hauptansicht mit Plus-/Minus-Tasten und Presets, Detailseiten für weitere Heizungswerte und Einstellungen |
-| Schalter-/Leistungsmessungs-Kachel | `state`, optional `power`, `energy`, `voltage`, `current`, `ac_frequency`, `power_factor`, `power_apparent`, `power_reactive`, `produced_energy`, `consumption` | Schalten auf der Hauptseite, Messwertseite mit optionalem Archiv-Graphen bei archivierten Variablen |
-| Fenstergriff-Kachel | `position`, `alarm`, optional `action`, `action_left`, `action_right` | Griffzustand Geschlossen/Offen/Gekippt, Alarmstatus und Tasten |
+| Schalter-/Leistungsmessungs-Kachel | `state`, optional `state_1` bis `state_4`, `power`, `energy`, `voltage`, `current`, `ac_frequency`, `power_factor`, `power_apparent`, `power_reactive`, `produced_energy`, `consumption` | Schalten auf der Hauptseite, mehrere Schaltausgänge in einer Kachel, Messwertseite mit optionalem Archiv-Graphen bei archivierten Variablen |
+| Fenstergriff-Kachel | `position`, `alarm`, optional `action`, `action_left`, `action_right`, `button_left`, `button_right` | Griffzustand Geschlossen/Offen/Gekippt, Alarmstatus und Tasten |
 | Sicherheits-Kachel | z.B. `contact`, `window_open`, `opening_state`, `alarm_state`, `tamper`, `smoke`, `gas`, `water_leak`, `battery_low` | Status-/Alarmdarstellung mit Priorität auf Kontakt- bzw. Öffnungszustand, Detailseite für Alarm-, Batterie- und Sirenenwerte |
-| Aktions-Kachel | Taster-, Fernbedienungs- oder Szenen-Exposes | Letzte Aktion und verfügbare Aktionswerte |
-| Sensor-Kachel | z.B. `temperature`, `humidity`, `soil_moisture`, `illuminance`, `presence`, `target_distance` | Messwertdarstellung für reine Sensoren und Radar-/Präsenzmelder, inklusive Detail-/Einstellseite wenn passende Einstellwerte vorhanden sind |
+| Aktions-Kachel | Taster-, Fernbedienungs-, Button- oder Szenen-Exposes | Letzte Aktion und verfügbare Aktionswerte |
+| Sensor-Kachel | z.B. `temperature`, `humidity`, `soil_moisture`, `illuminance`, `occupancy`, `motion`, `presence`, `target_distance` | Messwertdarstellung für reine Sensoren und Radar-/Präsenzmelder, inklusive Detail-/Einstellseite wenn passende Einstellwerte vorhanden sind |
 
 Bei kombinierten Aktor-/Sensorgeräten bleibt die automatische Auswahl zunächst bei der Aktor- bzw. Standarddarstellung. Sobald passende Sensorwerte vorhanden sind, kann in der Instanzkonfiguration bewusst **Sensor-Kachel verwenden** aktiviert werden.
 
 Die drei Solltemperatur-Presets der Heizungs-Kachel sind pro Instanz im Bereich **Visualisierung** konfigurierbar. Standardwerte sind `18,0 °C`, `20,0 °C` und `22,0 °C`.
+
+Die eigenen Kacheln geben keine festen Schriftarten oder Grundfarben vor. Dadurch übernehmen sie Hell-/Dunkelmodus, Schrift und Basisfarben der Symcon Tile-Visualisierung. Eigene Farben werden nur für fachliche Zustände verwendet, z. B. Alarm, OK, aktiv, inaktiv oder den Farbverlauf eines Messwerts.
 
 Wenn mehrere Kacheln fachlich passen, gilt folgende Priorität:
 
@@ -147,7 +152,22 @@ Bei reinen Tunable-White-Leuchtmitteln ohne RGB/HS/XY-Farb-Expose legt das Modul
 
 Zigbee2MQTT liefert je nach Gerät allgemeine und gerätespezifische Optionen. In der Instanz-Konfiguration erscheint dafür der Bereich **Geräteoptionen**. Dort werden bekannte Optionen mit aktuellem Wert, Typ und Beschreibung angezeigt.
 
-Die Änderung wird über `bridge/request/device/options` an Zigbee2MQTT gesendet. Für Listen und Objekte muss JSON-Schreibweise verwendet werden, z. B. `["battery"]` für `filtered_attributes` oder `{"key":"value"}` für Objektwerte.
+Die Änderung wird über `bridge/request/device/options` an Zigbee2MQTT gesendet. Wenn eine passende Bridge-Instanz mit gleichem MQTT-Basistopic vorhanden ist, wird diese für die Anfrage genutzt und die Zigbee2MQTT-Antwort geprüft.
+
+Soweit der Typ bekannt ist, zeigt das Formular passende Editoren:
+
+| Optionstyp | Darstellung |
+| ---------- | ----------- |
+| Boolean/Binary | Schalter |
+| Enum/Select | Auswahlliste mit bekannten Werten |
+| Numeric | Zahlen-/Textfeld mit Typkonvertierung |
+| Text | Textfeld |
+| Array | JSON-Array oder, bei Attributoptionen, eine auswählbare Attributliste |
+| Object | JSON-Objekt |
+
+Das Modul kennt die häufigsten allgemeinen Zigbee2MQTT-Geräteoptionen wie `debounce`, `debounce_ignore`, `disable_automatic_update_check`, `disabled`, `filtered_attributes`, `filtered_cache`, `filtered_optimistic`, `homeassistant`, `icon`, `optimistic`, `qos`, `retain`, `retention`, `throttle` und `transition`. Zusätzlich werden gerätespezifische Optionen aus `definition.options` angezeigt, wenn Zigbee2MQTT sie für das Gerät liefert.
+
+Für Listen und Objekte muss JSON-Schreibweise verwendet werden, z. B. `["battery"]` für `filtered_attributes` oder `{"key":"value"}` für Objektwerte. Bei Attributoptionen schlägt das Formular bekannte Payload-Attribute aus Exposes, Variablenkatalog und vorhandenen Variablen vor.
 
 Optionen, die Zigbee2MQTT erst nach einem Neustart übernimmt, lösen in der Bridge eine entsprechende Meldung aus.
 
@@ -159,6 +179,8 @@ Wenn Zigbee2MQTT Endpoint-Daten liefert, zeigt die Instanz-Konfiguration den Ber
 
 Über den Reporting-Bereich kann Attribute Reporting gelesen oder konfiguriert werden. Batteriebetriebene Geräte müssen dafür unter Umständen direkt vor dem Ausführen geweckt werden. Nicht jedes Gerät und nicht jedes Attribut unterstützt Reporting.
 
+Die Endpoint-Liste wird aus den von Zigbee2MQTT gelieferten Geräteinformationen aufgebaut. Sie zeigt Endpoint, Name, Eingangscluster, Ausgangscluster sowie die Anzahl bekannter Bindings und konfigurierter Reportings.
+
 ### 4.6 Variablenverwaltung
 
 Die Instanz merkt sich alle aus Exposes, Payloads und Systemmeldungen bekannten Variablen in einem lokalen Variablenkatalog. In der Konfiguration erscheint dazu der Bereich **Variablen**. Dort kann pro Variable gesteuert werden, ob das Modul sie automatisch anlegen darf.
@@ -166,6 +188,8 @@ Die Instanz merkt sich alle aus Exposes, Payloads und Systemmeldungen bekannten 
 Wird eine vom Modul bekannte Variable im Objektbaum gelöscht, wird sie bei der nächsten Geräteinformation oder beim nächsten passenden Payload nicht automatisch wieder angelegt. Sie erscheint stattdessen in der Variablenverwaltung mit dem Status `Gelöscht` und kann dort über `Anlegen` bewusst wieder angelegt werden.
 
 Deaktivierte Variablen werden nicht automatisch gelöscht. Bestehende Variablen bleiben erhalten, werden aber nach einer manuellen Löschung nicht wieder neu erzeugt, solange sie deaktiviert sind.
+
+Composite-Exposes werden dabei auf die tatsächlich anlegbaren Untervariablen reduziert. Ein nicht selbst nutzbarer Composite-Elternknoten wird nicht als eigene Variable angeboten, während Unterwerte wie `options__motor_speed` sauber im Variablenkatalog erscheinen.
 
 ## 5. Statusvariablen
 
@@ -191,6 +215,14 @@ Die Statusvariablen werden je nach Funktion und Fähigkeiten der Geräte dynamis
    ```php
    RequestAction(12345, true); //Einschalten
    RequestAction(12345, false); //Ausschalten
+   ```
+
+   Bei enum-basierten `state`-Variablen werden die Originalwerte von Zigbee2MQTT gesendet. Das ist z. B. für Rollladen wichtig, deren `state` nicht `ON`/`OFF`, sondern `OPEN`, `CLOSE` und `STOP` erwartet.
+
+   ```php
+   RequestAction(12345, 'OPEN');  // Rollladen öffnen
+   RequestAction(12345, 'STOP');  // Rollladen stoppen
+   RequestAction(12345, 'CLOSE'); // Rollladen schließen
    ```
 
 ---
@@ -357,6 +389,26 @@ Die Statusvariablen werden je nach Funktion und Fähigkeiten der Geräte dynamis
    ```
 
    Dieses Beispiel ruft `state` von `{BaseTopic}Keller/Lampe1` ab.
+
+---
+
+### Z2M_SetColorExt <!-- omit in toc -->
+
+   ```php
+   bool Z2M_SetColorExt(int $InstanzId, int $Color, int $TransitionTime);
+   ```
+
+   Setzt eine Farbe mit Übergangszeit. `Color` ist ein Symcon-Farbwert als Integer, `TransitionTime` die Übergangszeit in Sekunden.
+
+---
+
+### Z2M_UIExportDebugData <!-- omit in toc -->
+
+   ```php
+   string Z2M_UIExportDebugData(int $InstanzId);
+   ```
+
+   Exportiert die für Support und Fehlersuche relevanten Instanzdaten als JSON-Download. Die Funktion wird vom Button **Download Debug Data** in der Instanz-Konfiguration genutzt.
 
 ## 7. Aktionen
 
