@@ -253,7 +253,7 @@ Geräte- und Gruppenoptionen aus Zigbee2MQTT können ebenfalls direkt in Symcon 
 - Gruppen-Instanzen können Mitglieder inklusive automatisch gelisteter Endpoints verwalten, Zigbee2MQTT-Gruppenoptionen setzen und Szenen speichern, hinzufügen, abrufen, umbenennen oder löschen.
 - Gruppenbefehle zeigen bei nicht erreichbaren Geräten eine verständliche Meldung in der Konfiguration, statt nur die Zigbee2MQTT-Fehlermeldung durchzureichen.
 - Die Bridge enthält einen Diagnosebereich für Health Check, Coordinator Check, Bridge-Events, Warnungen/Fehler sowie nicht unterstützte oder unvollständig interviewte Geräte.
-- Die Bridge kann globale Zigbee2MQTT-Blocklist und -Passlist verwalten; Passlist-Änderungen werden wegen der restriktiven Wirkung mit einer Sicherheitsabfrage geschützt.
+- Die Bridge kann globale Zigbee2MQTT-Blocklist und -Passlist verwalten; die Geräteauswahl nutzt bekannte Z2M-Geräte sowie vorhandene Device-Instanzen, Passlist-Änderungen werden wegen der restriktiven Wirkung mit einer Sicherheitsabfrage geschützt.
 - Die Bridge bietet Wartungsfunktionen für Zigbee2MQTT-Backups, Zigbee-3.0-Install-Codes und Touchlink-Scan/Identify/Factory-Reset.
 - Temperatur-Visualisierungen können einen konfigurierbaren Fallback-Bereich nutzen, wenn Zigbee2MQTT keine `value_min`/`value_max` Werte liefert.
 - Mindestversion auf IP-Symcon 9.0 angehoben, da das Modul auf `IPSModuleStrict` basiert.

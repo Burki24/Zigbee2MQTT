@@ -160,6 +160,26 @@
             }
         },
         {
+            "name": "NetworkSecurityError",
+            "type": "PopupAlert",
+            "visible": false,
+            "popup": {
+                "closeCaption": "Close",
+                "items": [
+                    {
+                        "type": "Label",
+                        "bold": true,
+                        "caption": "Input required"
+                    },
+                    {
+                        "name": "NetworkSecurityErrorText",
+                        "type": "Label",
+                        "caption": "Please select a known device or enter a valid IEEE address."
+                    }
+                ]
+            }
+        },
+        {
             "type": "ExpansionPanel",
             "name": "BridgeDiagnostics",
             "caption": "Diagnostics",

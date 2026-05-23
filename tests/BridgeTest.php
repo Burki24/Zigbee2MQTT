@@ -8,6 +8,8 @@ use PHPUnit\Framework\TestCase;
 
 class BridgeTest extends TestCase
 {
+    private const DEVICE_MODULE_ID = '{E5BB36C6-A70B-EB23-3716-9151A09AC8A2}';
+
     public function setUp(): void
     {
         IPS\Kernel::reset();
@@ -175,6 +177,43 @@ class BridgeTest extends TestCase
 
         $this->assertFalse(@$bridge->SetPasslist('["not-an-ieee-address"]'));
         $this->assertSame('', $bridge->lastTopic);
+    }
+
+    public function testNetworkSecurityFormShowsPopupForMissingIeeeAddress(): void
+    {
+        $bridge = $this->createBridgeTestDouble(true);
+
+        $bridge->RequestAction('AddBlocklistDevice', json_encode([
+            'ieee_address'          => '',
+            'selected_ieee_address' => ''
+        ]));
+
+        $this->assertSame('', $bridge->lastTopic);
+        $this->assertTrue($bridge->updatedFields['NetworkSecurityError']['visible']);
+        $this->assertSame(
+            'Please select a known device or enter a valid IEEE address.',
+            $bridge->updatedFields['NetworkSecurityErrorText']['caption']
+        );
+    }
+
+    public function testNetworkSecurityDeviceOptionsUseConfiguredDeviceInstances(): void
+    {
+        $bridge = $this->createBridgeTestDouble(true);
+        $bridge->setBaseTopicForTest('zigbee2mqtt');
+        $deviceID = IPS_CreateInstance(self::DEVICE_MODULE_ID);
+        IPS_SetName($deviceID, 'Kitchen light');
+        IPS_SetConfiguration($deviceID, json_encode([
+            'MQTTBaseTopic' => 'zigbee2mqtt',
+            'MQTTTopic'     => 'Kitchen/Light',
+            'IEEE'          => '0x000b57fffec6a5b2'
+        ]));
+        IPS_ApplyChanges($deviceID);
+
+        $method = new ReflectionMethod(Zigbee2MQTTBridge::class, 'BuildNetworkSecurityDeviceOptions');
+        $options = $method->invoke($bridge);
+
+        $this->assertContains('0x000b57fffec6a5b2', array_column($options, 'value'));
+        $this->assertStringContainsString('Kitchen/Light', implode("\n", array_column($options, 'caption')));
     }
 
     public function testBindWithOptionsUsesClustersAndSkipDisableReporting(): void
@@ -567,6 +606,7 @@ class BridgeTest extends TestCase
             public string $lastTopic = '';
             public array $lastPayload = [];
             public int $lastTimeout = -1;
+            public array $updatedFields = [];
             private string $testBaseTopic = '';
 
             public function __construct(int $InstanceID, private array|bool $result)
@@ -609,6 +649,12 @@ class BridgeTest extends TestCase
 
             protected function SendDebug(string $Message, string $Data, int $Format): bool
             {
+                return true;
+            }
+
+            protected function UpdateFormField(string $Field, string $Parameter, mixed $Value): bool
+            {
+                $this->updatedFields[$Field][$Parameter] = $Value;
                 return true;
             }
         };

@@ -1650,7 +1650,7 @@ class Zigbee2MQTTBridge extends IPSModuleStrict
 
         $ieeeAddress = $this->ResolveNetworkSecurityFormIeeeAddress($selection);
         if ($ieeeAddress === '') {
-            trigger_error($this->Translate('IEEE address is required.'), E_USER_NOTICE);
+            $this->ShowNetworkSecurityFormError('Please select a known device or enter a valid IEEE address.');
             return false;
         }
 
@@ -1669,7 +1669,7 @@ class Zigbee2MQTTBridge extends IPSModuleStrict
 
         $ieeeAddress = $this->NormalizeNetworkSecurityIeeeAddress((string) ($selection['ieee_address'] ?? ''));
         if ($ieeeAddress === '') {
-            trigger_error($this->Translate('IEEE address is required.'), E_USER_NOTICE);
+            $this->ShowNetworkSecurityFormError('The selected list entry does not contain a valid IEEE address.');
             return false;
         }
 
@@ -1691,7 +1691,7 @@ class Zigbee2MQTTBridge extends IPSModuleStrict
             ? $this->ResolveNetworkSecurityFormIeeeAddress($selection)
             : $this->NormalizeNetworkSecurityIeeeAddress((string) ($selection['ieee_address'] ?? ''));
         if ($ieeeAddress === '') {
-            trigger_error($this->Translate('IEEE address is required.'), E_USER_NOTICE);
+            $this->ShowNetworkSecurityFormError('Please select a known device or enter a valid IEEE address.');
             return false;
         }
         if (!\in_array($operation, ['add', 'remove'], true)) {
@@ -1747,7 +1747,7 @@ class Zigbee2MQTTBridge extends IPSModuleStrict
 
         $ieeeAddress = $this->NormalizeNetworkSecurityIeeeAddress($ieeeAddress);
         if ($ieeeAddress === '') {
-            trigger_error($this->Translate('Invalid IEEE address.'), E_USER_NOTICE);
+            $this->ShowNetworkSecurityFormError('The IEEE address must start with 0x and contain 16 hexadecimal characters.');
             return false;
         }
 
@@ -1776,7 +1776,7 @@ class Zigbee2MQTTBridge extends IPSModuleStrict
             ]
         ];
 
-        foreach ($this->ReadAttributeArray(self::ATTRIBUTE_NETWORK_DEVICES) as $device) {
+        foreach ($this->BuildNetworkSecurityDevices() as $device) {
             if (!\is_array($device)) {
                 continue;
             }
@@ -1831,7 +1831,7 @@ class Zigbee2MQTTBridge extends IPSModuleStrict
     private function BuildNetworkSecurityDeviceNameMap(): array
     {
         $names = [];
-        foreach ($this->ReadAttributeArray(self::ATTRIBUTE_NETWORK_DEVICES) as $device) {
+        foreach ($this->BuildNetworkSecurityDevices() as $device) {
             if (!\is_array($device)) {
                 continue;
             }
@@ -1854,6 +1854,117 @@ class Zigbee2MQTTBridge extends IPSModuleStrict
     {
         $this->UpdateFormField('NetworkSecurityBlocklist', 'values', json_encode($this->BuildNetworkSecurityListFormValues('blocklist')));
         $this->UpdateFormField('NetworkSecurityPasslist', 'values', json_encode($this->BuildNetworkSecurityListFormValues('passlist')));
+    }
+
+    /**
+     * Zeigt Formularfehler im Netzwerksicherheitsbereich als Popup.
+     */
+    private function ShowNetworkSecurityFormError(string $message): void
+    {
+        $this->UpdateFormField('NetworkSecurityErrorText', 'caption', $this->Translate($message));
+        $this->UpdateFormField('NetworkSecurityError', 'visible', true);
+    }
+
+    /**
+     * Baut die bekannten Geraete aus Cache, Instanzen und Extension-Fallback.
+     */
+    private function BuildNetworkSecurityDevices(): array
+    {
+        $devices = [];
+        foreach ($this->ReadAttributeArray(self::ATTRIBUTE_NETWORK_DEVICES) as $device) {
+            $this->AddNetworkSecurityDevice($devices, $device);
+        }
+        foreach ($this->LoadNetworkSecurityDevicesFromInstances() as $device) {
+            $this->AddNetworkSecurityDevice($devices, $device);
+        }
+        if ($devices === []) {
+            foreach ($this->LoadNetworkSecurityDevicesFromExtension() as $device) {
+                $this->AddNetworkSecurityDevice($devices, $device);
+            }
+        }
+
+        $devices = array_values($devices);
+        usort($devices, static fn (array $left, array $right): int => strnatcasecmp($left['friendly_name'], $right['friendly_name']));
+        return $devices;
+    }
+
+    /**
+     * Fuegt ein Geraet in eine IEEE-indizierte Liste ein.
+     */
+    private function AddNetworkSecurityDevice(array &$devices, mixed $device): void
+    {
+        if (!\is_array($device)) {
+            return;
+        }
+
+        $ieeeAddress = $this->NormalizeNetworkSecurityIeeeAddress((string) ($device['ieee_address'] ?? $device['ieeeAddr'] ?? ''));
+        if ($ieeeAddress === '') {
+            return;
+        }
+
+        $devices[$ieeeAddress] = array_merge($devices[$ieeeAddress] ?? [], [
+            'friendly_name' => (string) ($device['friendly_name'] ?? $device['friendlyName'] ?? $devices[$ieeeAddress]['friendly_name'] ?? ''),
+            'ieee_address'  => $ieeeAddress,
+            'model'         => (string) ($device['model'] ?? $devices[$ieeeAddress]['model'] ?? ''),
+            'vendor'        => (string) ($device['vendor'] ?? $devices[$ieeeAddress]['vendor'] ?? ''),
+            'type'          => (string) ($device['type'] ?? $devices[$ieeeAddress]['type'] ?? '')
+        ]);
+    }
+
+    /**
+     * Liest bekannte Device-Instanzen mit gleichem BaseTopic.
+     */
+    private function LoadNetworkSecurityDevicesFromInstances(): array
+    {
+        $baseTopic = $this->ReadPropertyString(self::MQTT_BASE_TOPIC);
+        if ($baseTopic === '') {
+            return [];
+        }
+
+        $devices = [];
+        foreach (IPS_GetInstanceListByModuleID(self::GUID_MODULE_DEVICE) as $instanceID) {
+            if (@IPS_GetProperty($instanceID, self::MQTT_BASE_TOPIC) !== $baseTopic) {
+                continue;
+            }
+
+            $ieeeAddress = $this->NormalizeNetworkSecurityIeeeAddress((string) @IPS_GetProperty($instanceID, 'IEEE'));
+            if ($ieeeAddress === '') {
+                continue;
+            }
+
+            $topic = trim((string) @IPS_GetProperty($instanceID, self::MQTT_TOPIC));
+            $devices[] = [
+                'friendly_name' => $topic !== '' ? $topic : @IPS_GetName($instanceID),
+                'ieee_address'  => $ieeeAddress,
+                'model'         => ''
+            ];
+        }
+
+        return $devices;
+    }
+
+    /**
+     * Fragt die Symcon-Extension nach bekannten Zigbee2MQTT-Geraeten.
+     */
+    private function LoadNetworkSecurityDevicesFromExtension(): array
+    {
+        try {
+            if (!$this->HasActiveParent()) {
+                return [];
+            }
+        } catch (\Throwable) {
+            return [];
+        }
+
+        $result = @$this->SendData(self::SYMCON_EXTENSION_LIST_REQUEST . 'getDevices', [], 2500);
+        if (!\is_array($result) || !\is_array($result['list'] ?? null)) {
+            return [];
+        }
+
+        return array_values(array_filter(
+            $result['list'],
+            static fn (mixed $device): bool => \is_array($device) && ($device['type'] ?? '') !== 'Coordinator'
+        ));
     }
 
     /**
