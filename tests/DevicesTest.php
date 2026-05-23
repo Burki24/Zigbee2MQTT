@@ -80,6 +80,58 @@ class DevicesTest extends DumpInclude
         $this->assertSame(0.0, $variable['VariableCustomPresentation']['CLOSE_INSIDE_VALUE'] ?? null);
     }
 
+    public function testCoverStateActionKeepsEnumValue(): void
+    {
+        $device = $this->createDeviceActionTestDouble();
+        $device->setExposesForTest([
+            [
+                'type'     => 'cover',
+                'features' => [
+                    [
+                        'name'     => 'state',
+                        'access'   => 2,
+                        'type'     => 'enum',
+                        'property' => 'state',
+                        'values'   => ['OPEN', 'CLOSE', 'STOP']
+                    ]
+                ]
+            ]
+        ]);
+
+        $device->RequestAction('state', 'OPEN');
+        $this->assertSame('/Wohnbereich/Beschattung/Terrassenfenster/set', $device->sentTopic);
+        $this->assertSame(['state' => 'OPEN'], $device->sentPayload);
+
+        $device->RequestAction('state', 'STOP');
+        $this->assertSame(['state' => 'STOP'], $device->sentPayload);
+    }
+
+    public function testSwitchStateActionStillMapsBooleanToOnOff(): void
+    {
+        $device = $this->createDeviceActionTestDouble();
+        $device->setExposesForTest([
+            [
+                'type'     => 'switch',
+                'features' => [
+                    [
+                        'name'      => 'state',
+                        'access'    => 7,
+                        'type'      => 'binary',
+                        'property'  => 'state',
+                        'value_on'  => 'ON',
+                        'value_off' => 'OFF'
+                    ]
+                ]
+            ]
+        ]);
+
+        $device->RequestAction('state', true);
+        $this->assertSame(['state' => 'ON'], $device->sentPayload);
+
+        $device->RequestAction('state', false);
+        $this->assertSame(['state' => 'OFF'], $device->sentPayload);
+    }
+
     public function testWHD02()
     {
         [$iid,$Debug] = $this->createTestInstance('WHD02.json');
@@ -998,6 +1050,44 @@ class DevicesTest extends DumpInclude
             {
                 $this->updatedFields[$Field][$Parameter] = $Value;
                 return true;
+            }
+
+            protected function SendDebug(string $Message, string $Data, int $Format): bool
+            {
+                return true;
+            }
+
+            public function setExposesForTest(array $exposes): void
+            {
+                $this->WriteAttributeArray(self::ATTRIBUTE_EXPOSES, $exposes);
+            }
+        };
+        $device->Create();
+
+        return $device;
+    }
+
+    private function createDeviceActionTestDouble(): Zigbee2MQTTDevice
+    {
+        $instanceID = IPS_CreateInstance('{E5BB36C6-A70B-EB23-3716-9151A09AC8A2}');
+        $device = new class($instanceID) extends Zigbee2MQTTDevice {
+            public string $sentTopic = '';
+            public array $sentPayload = [];
+
+            protected function SendData(string $Topic, array $Payload = [], int $Timeout = 5000): array|bool
+            {
+                $this->sentTopic = $Topic;
+                $this->sentPayload = $Payload;
+                return true;
+            }
+
+            protected function ReadPropertyString(string $Name): string
+            {
+                return match ($Name) {
+                    self::MQTT_TOPIC      => 'Wohnbereich/Beschattung/Terrassenfenster',
+                    self::MQTT_BASE_TOPIC => 'zigbee2mqtt',
+                    default               => parent::ReadPropertyString($Name)
+                };
             }
 
             protected function SendDebug(string $Message, string $Data, int $Format): bool

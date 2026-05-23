@@ -3027,6 +3027,18 @@ abstract class ModulBase extends \IPSModuleStrict
     {
         $this->SendDebug(__FUNCTION__, 'State-Handler für: ' . $ident . ' mit Wert: ' . json_encode($value), 0);
 
+        $enumStateValue = $this->normalizeEnumStateActionValue($ident, $value);
+        if ($enumStateValue !== null) {
+            $payload = [$ident => $enumStateValue];
+            $this->SendDebug(__FUNCTION__, 'Enum-State-Payload wird gesendet: ' . json_encode($payload), 0);
+
+            if (!$this->SendSetCommand($payload)) {
+                return false;
+            }
+            $this->SetValueDirect($ident, $enumStateValue);
+            return true;
+        }
+
         // State Pattern Prüfung
         if (preg_match(self::STATE_PATTERN['SYMCON'], $ident)) {
             $payload = [$ident => $this->convertOnOffValue($value, false)];
@@ -3066,6 +3078,31 @@ abstract class ModulBase extends \IPSModuleStrict
 
         $this->SendDebug(__FUNCTION__, 'Kein passender State-Handler gefunden', 0);
         return false;
+    }
+
+    /**
+     * Ermittelt den exakten Enum-Wert fuer State-Aktionen wie OPEN/CLOSE/STOP.
+     */
+    private function normalizeEnumStateActionValue(string $ident, mixed $value): ?string
+    {
+        $feature = $this->findExposeFeatureByProperty($ident);
+        if (($feature['type'] ?? '') !== 'enum' || !\is_array($feature['values'] ?? null)) {
+            return null;
+        }
+
+        $values = array_values(array_map(static fn (mixed $entry): string => (string) $entry, $feature['values']));
+        if (\is_int($value) && isset($values[$value])) {
+            return $values[$value];
+        }
+
+        $stringValue = (string) $value;
+        foreach ($values as $enumValue) {
+            if ($enumValue === $stringValue) {
+                return $enumValue;
+            }
+        }
+
+        return null;
     }
 
     /**
