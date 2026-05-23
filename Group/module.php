@@ -6,6 +6,44 @@ require_once dirname(__DIR__) . '/libs/ModulBase.php';
 
 class Zigbee2MQTTGroup extends \Zigbee2MQTT\ModulBase
 {
+    private const GROUP_OPTION_DEFINITIONS = [
+        'retain'              => [
+            'type'        => 'Boolean',
+            'default'     => 'false',
+            'description' => 'Retain MQTT messages for this group.'
+        ],
+        'transition'          => [
+            'type'        => 'Number',
+            'default'     => '0',
+            'description' => 'Default transition time for group commands in seconds.'
+        ],
+        'optimistic'          => [
+            'type'        => 'Boolean',
+            'default'     => 'true',
+            'description' => 'Update the group state when one member changes state.'
+        ],
+        'qos'                 => [
+            'type'        => 'Number',
+            'default'     => 'null',
+            'description' => 'MQTT quality of service for messages of this group.'
+        ],
+        'off_state'           => [
+            'type'        => 'String',
+            'default'     => 'all_members_off',
+            'description' => 'Controls when OFF or CLOSE is published for a group.'
+        ],
+        'filtered_attributes' => [
+            'type'        => 'Array',
+            'default'     => '[]',
+            'description' => 'Attributes not published by Zigbee2MQTT for this group.'
+        ],
+        'homeassistant'       => [
+            'type'        => 'Object',
+            'default'     => '{}',
+            'description' => 'Override Home Assistant discovery properties for this group.'
+        ]
+    ];
+
     /** @var mixed $ExtensionTopic Topic für den ReceiveFilter */
     protected static $ExtensionTopic = 'getGroupInfo/';
 
@@ -474,11 +512,30 @@ class Zigbee2MQTTGroup extends \Zigbee2MQTT\ModulBase
     private function BuildGroupOptionFormValues(): array
     {
         $values = [];
-        foreach ($this->ReadAttributeArray(self::ATTRIBUTE_GROUP_OPTIONS) as $name => $currentValue) {
+        $currentOptions = $this->ReadAttributeArray(self::ATTRIBUTE_GROUP_OPTIONS);
+
+        foreach (self::GROUP_OPTION_DEFINITIONS as $name => $definition) {
+            $hasCurrentValue = \array_key_exists($name, $currentOptions);
             $values[] = [
-                'name'    => (string) $name,
-                'current' => $this->FormatGroupFormValue($currentValue),
-                'action'  => $this->Translate('Edit')
+                'name'          => $name,
+                'type'          => $this->Translate($definition['type']),
+                'current'       => $hasCurrentValue ? $this->FormatGroupFormValue($currentOptions[$name]) : '',
+                'default_value' => $definition['default'],
+                'description'   => $this->Translate($definition['description']),
+                'action'        => $this->Translate('Edit')
+            ];
+
+            unset($currentOptions[$name]);
+        }
+
+        foreach ($currentOptions as $name => $currentValue) {
+            $values[] = [
+                'name'          => (string) $name,
+                'type'          => $this->Translate('Mixed'),
+                'current'       => $this->FormatGroupFormValue($currentValue),
+                'default_value' => '',
+                'description'   => $this->Translate('Option returned by Zigbee2MQTT.'),
+                'action'        => $this->Translate('Edit')
             ];
         }
 

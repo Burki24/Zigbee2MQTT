@@ -172,20 +172,35 @@
                         {
                             "caption": "Option",
                             "name": "name",
-                            "width": "180px",
+                            "width": "160px",
                             "quickFilter": true
+                        },
+                        {
+                            "caption": "Type",
+                            "name": "type",
+                            "width": "100px"
                         },
                         {
                             "caption": "Current value",
                             "name": "current",
-                            "width": "180px"
+                            "width": "140px"
+                        },
+                        {
+                            "caption": "Default value",
+                            "name": "default_value",
+                            "width": "140px"
+                        },
+                        {
+                            "caption": "Description",
+                            "name": "description",
+                            "width": "auto"
                         },
                         {
                             "caption": "Action",
                             "name": "action",
                             "width": "100px",
                             "align": "center",
-                            "onClick": "IPS_RequestAction($id, 'SelectGroupOption', json_encode(['name' => $GroupOptionList['name'], 'value' => $GroupOptionList['current']]));"
+                            "onClick": "IPS_RequestAction($id, 'SelectGroupOption', json_encode(['name' => $GroupOptionList['name'], 'value' => ($GroupOptionList['current'] !== '' ? $GroupOptionList['current'] : $GroupOptionList['default_value'])]));"
                         }
                     ],
                     "values": []

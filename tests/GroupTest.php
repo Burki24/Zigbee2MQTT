@@ -95,6 +95,49 @@ class GroupTest extends DumpInclude
         $this->assertStringContainsString('did not respond', $group->updatedFields['GroupMemberRequestErrorText']['caption']);
     }
 
+    public function testGroupOptionListContainsKnownOptionsWhenUnset(): void
+    {
+        $groupID = $this->createConfiguredGroup('zigbee2mqtt', 'Flur/Beleuchtung/Deckenlicht/Gruppe');
+        $form = json_decode(IPS_GetConfigurationForm($groupID), true);
+        $list = $this->findFormItemByName($form, 'GroupOptionList');
+
+        $this->assertNotNull($list);
+        $values = [];
+        foreach ($list['values'] as $value) {
+            $values[$value['name']] = $value;
+        }
+
+        $this->assertArrayHasKey('retain', $values);
+        $this->assertArrayHasKey('transition', $values);
+        $this->assertArrayHasKey('optimistic', $values);
+        $this->assertArrayHasKey('qos', $values);
+        $this->assertArrayHasKey('off_state', $values);
+        $this->assertArrayHasKey('filtered_attributes', $values);
+        $this->assertArrayHasKey('homeassistant', $values);
+        $this->assertSame('', $values['transition']['current']);
+        $this->assertSame('0', $values['transition']['default_value']);
+    }
+
+    public function testGroupOptionListMergesConfiguredAndUnknownOptions(): void
+    {
+        $groupID = $this->createConfiguredGroup('zigbee2mqtt', 'Flur/Beleuchtung/Deckenlicht/Gruppe');
+        $this->writeStubAttributeArray($groupID, 'GroupOptions', [
+            'transition'    => 2,
+            'custom_option' => 'abc'
+        ]);
+
+        $form = json_decode(IPS_GetConfigurationForm($groupID), true);
+        $list = $this->findFormItemByName($form, 'GroupOptionList');
+        $values = [];
+        foreach ($list['values'] as $value) {
+            $values[$value['name']] = $value;
+        }
+
+        $this->assertSame('2', $values['transition']['current']);
+        $this->assertSame('abc', $values['custom_option']['current']);
+        $this->assertSame('', $values['custom_option']['default_value']);
+    }
+
     private function createConfiguredDevice(string $baseTopic, string $mqttTopic): int
     {
         $instanceID = IPS_CreateInstance(self::DEVICE_MODULE_ID);
