@@ -257,9 +257,10 @@ class Zigbee2MQTTGroup extends \Zigbee2MQTT\ModulBase
         $values = [];
         foreach ($this->BuildGroupMemberDeviceOptions() as $device) {
             $values[] = [
-                'device' => $device['caption'],
-                'topic'  => $device['value'],
-                'action' => $this->Translate('Select')
+                'device'    => $device['caption'],
+                'topic'     => $device['value'],
+                'endpoints' => $this->FormatGroupMemberEndpointList($device['endpoints'] ?? []),
+                'action'    => $this->Translate('Select')
             ];
         }
 
@@ -291,8 +292,9 @@ class Zigbee2MQTTGroup extends \Zigbee2MQTT\ModulBase
             }
 
             $devices[$device] = [
-                'caption' => $device,
-                'value'   => $device
+                'caption'   => $device,
+                'value'     => $device,
+                'endpoints' => $this->BuildGroupMemberEndpointValues([(string) ($member['endpoint'] ?? '')])
             ];
         }
 
@@ -323,8 +325,9 @@ class Zigbee2MQTTGroup extends \Zigbee2MQTT\ModulBase
             }
 
             $devices[] = [
-                'caption' => $this->BuildGroupMemberDeviceCaption($topic, @IPS_GetName($instanceID)),
-                'value'   => $topic
+                'caption'   => $this->BuildGroupMemberDeviceCaption($topic, @IPS_GetName($instanceID)),
+                'value'     => $topic,
+                'endpoints' => []
             ];
         }
 
@@ -360,12 +363,93 @@ class Zigbee2MQTTGroup extends \Zigbee2MQTT\ModulBase
             }
 
             $devices[] = [
-                'caption' => $this->BuildGroupMemberDeviceCaption($topic, (string) ($device['model'] ?? '')),
-                'value'   => $topic
+                'caption'   => $this->BuildGroupMemberDeviceCaption($topic, (string) ($device['model'] ?? '')),
+                'value'     => $topic,
+                'endpoints' => $this->BuildGroupMemberEndpointValuesFromDefinition($device['endpoints'] ?? [])
             ];
         }
 
         return $devices;
+    }
+
+    /**
+     * Ermittelt die auswählbaren Endpoint-Werte aus der Zigbee2MQTT-Endpoint-Struktur.
+     */
+    private function BuildGroupMemberEndpointValuesFromDefinition(mixed $endpoints): array
+    {
+        if (!\is_array($endpoints)) {
+            return [];
+        }
+
+        $values = [];
+        foreach ($endpoints as $endpointID => $endpoint) {
+            if (\is_array($endpoint)) {
+                $values[] = (string) ($endpoint['id'] ?? $endpoint['ID'] ?? $endpointID);
+                continue;
+            }
+
+            $values[] = \is_int($endpointID) ? (string) $endpoint : (string) $endpointID;
+        }
+
+        return $this->BuildGroupMemberEndpointValues($values);
+    }
+
+    /**
+     * Normalisiert Endpoint-Werte fuer Auswahlfelder und Listen.
+     */
+    private function BuildGroupMemberEndpointValues(array $endpoints): array
+    {
+        $values = [];
+        foreach ($endpoints as $endpoint) {
+            $endpoint = trim((string) $endpoint);
+            if ($endpoint === '') {
+                continue;
+            }
+
+            $values[$endpoint] = $endpoint;
+        }
+
+        $values = array_values($values);
+        usort($values, static fn (string $left, string $right): int => strnatcasecmp($left, $right));
+        return $values;
+    }
+
+    /**
+     * Formatiert Endpoint-Werte fuer die Geraeteliste.
+     */
+    private function FormatGroupMemberEndpointList(array $endpoints): string
+    {
+        return implode(', ', $this->BuildGroupMemberEndpointValues($endpoints));
+    }
+
+    /**
+     * Baut die Endpoint-Auswahl fuer ein ausgewaehltes Gruppenmitglied.
+     */
+    private function BuildGroupMemberEndpointOptions(string $device, string $selectedEndpoint = ''): array
+    {
+        $endpoints = [];
+        foreach ($this->BuildGroupMemberDeviceOptions() as $candidate) {
+            if (($candidate['value'] ?? '') !== $device) {
+                continue;
+            }
+
+            $endpoints = \is_array($candidate['endpoints'] ?? null) ? $candidate['endpoints'] : [];
+            break;
+        }
+
+        if ($selectedEndpoint !== '') {
+            $endpoints[] = $selectedEndpoint;
+        }
+
+        $options = [];
+        foreach ($this->BuildGroupMemberEndpointValues($endpoints) as $endpoint) {
+            $options[] = [
+                'caption' => $endpoint,
+                'value'   => $endpoint
+            ];
+        }
+
+        return $options;
     }
 
     /**
@@ -433,8 +517,16 @@ class Zigbee2MQTTGroup extends \Zigbee2MQTT\ModulBase
             return false;
         }
 
-        $this->UpdateFormField('GroupMemberDevice', 'value', (string) ($selection['device'] ?? ''));
-        $this->UpdateFormField('GroupMemberEndpoint', 'value', (string) ($selection['endpoint'] ?? ''));
+        $device = (string) ($selection['device'] ?? '');
+        $endpoint = (string) ($selection['endpoint'] ?? '');
+        $endpointOptions = $this->BuildGroupMemberEndpointOptions($device, $endpoint);
+        if ($endpoint === '' && \count($endpointOptions) > 0) {
+            $endpoint = (string) $endpointOptions[0]['value'];
+        }
+
+        $this->UpdateFormField('GroupMemberDevice', 'value', $device);
+        $this->UpdateFormField('GroupMemberEndpoint', 'options', json_encode($endpointOptions));
+        $this->UpdateFormField('GroupMemberEndpoint', 'value', $endpoint);
 
         return true;
     }

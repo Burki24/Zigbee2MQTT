@@ -84,8 +84,13 @@
                         {
                             "caption": "Topic",
                             "name": "topic",
-                            "width": "420px",
+                            "width": "380px",
                             "quickFilter": true
+                        },
+                        {
+                            "caption": "Endpoints",
+                            "name": "endpoints",
+                            "width": "140px"
                         },
                         {
                             "caption": "Action",
@@ -110,9 +115,10 @@
                             "caption": "Device"
                         },
                         {
-                            "type": "ValidationTextBox",
+                            "type": "Select",
                             "name": "GroupMemberEndpoint",
-                            "caption": "Endpoint"
+                            "caption": "Endpoint",
+                            "options": []
                         }
                     ]
                 },

@@ -47,6 +47,36 @@ class GroupTest extends DumpInclude
 
         $values = array_column($list['values'], 'topic');
         $this->assertContains('Extern/Nur/In/Gruppe', $values);
+        $this->assertSame('1', $list['values'][0]['endpoints']);
+    }
+
+    public function testSelectingAvailableDevicePopulatesEndpointOptionsFromExtension(): void
+    {
+        $group = $this->createGroupFormTestDouble([
+            [
+                'friendly_name' => 'Flur/Beleuchtung/Treppe',
+                'model'         => '929001821618',
+                'type'          => 'Router',
+                'endpoints'     => [
+                    '11'  => ['id' => '11'],
+                    '242' => ['id' => '242']
+                ]
+            ]
+        ]);
+        $form = json_decode($group->GetConfigurationForm(), true);
+        $list = $this->findFormItemByName($form, 'GroupAvailableDeviceList');
+
+        $this->assertSame('11, 242', $list['values'][0]['endpoints']);
+
+        $group->RequestAction('SelectGroupMemberDevice', json_encode([
+            'device'   => 'Flur/Beleuchtung/Treppe',
+            'endpoint' => ''
+        ]));
+
+        $this->assertSame('Flur/Beleuchtung/Treppe', $group->updatedFields['GroupMemberDevice']['value']);
+        $endpointOptions = json_decode($group->updatedFields['GroupMemberEndpoint']['options'], true);
+        $this->assertSame(['11', '242'], array_column($endpointOptions, 'value'));
+        $this->assertSame('11', $group->updatedFields['GroupMemberEndpoint']['value']);
     }
 
     private function createConfiguredDevice(string $baseTopic, string $mqttTopic): int
@@ -74,6 +104,60 @@ class GroupTest extends DumpInclude
         IPS_ApplyChanges($instanceID);
 
         return $instanceID;
+    }
+
+    private function createGroupFormTestDouble(array $devices): Zigbee2MQTTGroup
+    {
+        $group = new class(990001, $devices) extends Zigbee2MQTTGroup {
+            public array $updatedFields = [];
+
+            public function __construct(int $InstanceID, private array $devices)
+            {
+                parent::__construct($InstanceID);
+            }
+
+            protected function SendData(string $Topic, array $Payload = [], int $Timeout = 5000): array|bool
+            {
+                if ($Topic === self::SYMCON_EXTENSION_LIST_REQUEST . 'getDevices') {
+                    return ['list' => $this->devices];
+                }
+
+                return false;
+            }
+
+            protected function ReadPropertyString(string $Name): string
+            {
+                return match ($Name) {
+                    self::MQTT_BASE_TOPIC => 'zigbee2mqtt',
+                    self::MQTT_TOPIC      => 'Flur/Beleuchtung/Deckenlicht/Gruppe',
+                    default               => parent::ReadPropertyString($Name)
+                };
+            }
+
+            protected function HasActiveParent(): bool
+            {
+                return true;
+            }
+
+            protected function GetStatus(): int
+            {
+                return IS_ACTIVE;
+            }
+
+            protected function UpdateFormField(string $Field, string $Parameter, mixed $Value): bool
+            {
+                $this->updatedFields[$Field][$Parameter] = $Value;
+                return true;
+            }
+
+            protected function SendDebug(string $Message, string $Data, int $Format): bool
+            {
+                return true;
+            }
+        };
+        $group->Create();
+
+        return $group;
     }
 
     private function findFormItemByName(array $node, string $name): ?array
