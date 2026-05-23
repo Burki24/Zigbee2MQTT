@@ -3027,14 +3027,21 @@ abstract class ModulBase extends \IPSModuleStrict
     {
         $this->SendDebug(__FUNCTION__, 'State-Handler für: ' . $ident . ' mit Wert: ' . json_encode($value), 0);
 
-        $enumStateValue = $this->normalizeEnumStateActionValue($ident, $value);
-        if ($enumStateValue !== null) {
+        $stateFeature = $this->findExposeFeatureByProperty($ident);
+        if ($this->isEnumStateFeature($stateFeature)) {
+            $enumStateValue = $this->normalizeEnumStateActionValue($stateFeature, $value);
+            if ($enumStateValue === null) {
+                $this->SendDebug(__FUNCTION__, 'Unbekannter Enum-State-Wert: ' . json_encode($value), 0);
+                return false;
+            }
+
             $payload = [$ident => $enumStateValue];
             $this->SendDebug(__FUNCTION__, 'Enum-State-Payload wird gesendet: ' . json_encode($payload), 0);
 
             if (!$this->SendSetCommand($payload)) {
                 return false;
             }
+
             $this->SetValueDirect($ident, $enumStateValue);
             return true;
         }
@@ -3083,13 +3090,8 @@ abstract class ModulBase extends \IPSModuleStrict
     /**
      * Ermittelt den exakten Enum-Wert fuer State-Aktionen wie OPEN/CLOSE/STOP.
      */
-    private function normalizeEnumStateActionValue(string $ident, mixed $value): ?string
+    private function normalizeEnumStateActionValue(array $feature, mixed $value): ?string
     {
-        $feature = $this->findExposeFeatureByProperty($ident);
-        if (($feature['type'] ?? '') !== 'enum' || !\is_array($feature['values'] ?? null)) {
-            return null;
-        }
-
         $values = array_values(array_map(static fn (mixed $entry): string => (string) $entry, $feature['values']));
         if (\is_int($value) && isset($values[$value])) {
             return $values[$value];
@@ -3103,6 +3105,16 @@ abstract class ModulBase extends \IPSModuleStrict
         }
 
         return null;
+    }
+
+    /**
+     * Prueft, ob ein State-Expose als Enum definiert ist.
+     */
+    private function isEnumStateFeature(?array $feature): bool
+    {
+        return $feature !== null
+            && ($feature['type'] ?? '') === 'enum'
+            && \is_array($feature['values'] ?? null);
     }
 
     /**

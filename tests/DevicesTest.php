@@ -104,6 +104,10 @@ class DevicesTest extends DumpInclude
 
         $device->RequestAction('state', 'STOP');
         $this->assertSame(['state' => 'STOP'], $device->sentPayload);
+
+        $device->sentPayload = [];
+        $device->RequestAction('state', 'UNKNOWN');
+        $this->assertSame([], $device->sentPayload);
     }
 
     public function testSwitchStateActionStillMapsBooleanToOnOff(): void
