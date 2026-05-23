@@ -2438,6 +2438,12 @@ abstract class ModulBase extends \IPSModuleStrict
             }
             return true;
         }
+        if (str_starts_with($fullTopic, self::SYMCON_EXTENSION_LIST_RESPONSE)) {
+            if (isset($payload['transaction'])) {
+                $this->UpdateTransaction($payload);
+            }
+            return true;
+        }
         return false;
     }
 

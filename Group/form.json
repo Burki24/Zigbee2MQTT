@@ -63,9 +63,10 @@
                     "type": "RowLayout",
                     "items": [
                         {
-                            "type": "ValidationTextBox",
+                            "type": "Select",
                             "name": "GroupMemberDevice",
-                            "caption": "Device"
+                            "caption": "Device",
+                            "options": []
                         },
                         {
                             "type": "ValidationTextBox",

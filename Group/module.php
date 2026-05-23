@@ -46,6 +46,7 @@ class Zigbee2MQTTGroup extends \Zigbee2MQTT\ModulBase
         }
         // Führe parent::ApplyChanges zuerst aus
         parent::ApplyChanges();
+        $this->UpdateGroupReceiveDataFilter();
     }
 
     /**
@@ -205,6 +206,7 @@ class Zigbee2MQTTGroup extends \Zigbee2MQTT\ModulBase
         $this->SetGroupFormField($form, 'GroupMembersSettings', 'visible', $configured || $memberValues !== []);
         $this->SetGroupFormField($form, 'GroupMemberList', 'values', $memberValues);
         $this->SetGroupFormField($form, 'GroupMemberList', 'rowCount', min(10, max(4, \count($memberValues) + 1)));
+        $this->SetGroupFormField($form, 'GroupMemberDevice', 'options', $this->BuildGroupMemberDeviceOptions());
 
         $optionValues = $this->BuildGroupOptionFormValues();
         $this->SetGroupFormField($form, 'GroupOptionsSettings', 'visible', $configured || $optionValues !== []);
@@ -238,6 +240,124 @@ class Zigbee2MQTTGroup extends \Zigbee2MQTT\ModulBase
         }
 
         return $values;
+    }
+
+    /**
+     * Baut die Auswahl verfuegbarer Zigbee2MQTT-Geraete fuer die Gruppenverwaltung.
+     */
+    private function BuildGroupMemberDeviceOptions(): array
+    {
+        $devices = [];
+        foreach ($this->LoadGroupMemberDevicesFromInstances() as $device) {
+            $devices[$device['value']] = $device;
+        }
+
+        foreach ($this->LoadGroupMemberDevicesFromExtension() as $device) {
+            $devices[$device['value']] = $device;
+        }
+
+        foreach ($this->ReadAttributeArray(self::ATTRIBUTE_GROUP_MEMBERS) as $member) {
+            if (!\is_array($member)) {
+                continue;
+            }
+
+            $device = $this->FormatGroupMemberDevice($member);
+            if ($device === '' || isset($devices[$device])) {
+                continue;
+            }
+
+            $devices[$device] = [
+                'caption' => $device,
+                'value'   => $device
+            ];
+        }
+
+        $options = array_values($devices);
+        usort($options, static fn (array $left, array $right): int => strnatcasecmp($left['caption'], $right['caption']));
+        return $options;
+    }
+
+    /**
+     * Liest bekannte Device-Instanzen mit gleichem BaseTopic als lokale Fallback-Liste.
+     */
+    private function LoadGroupMemberDevicesFromInstances(): array
+    {
+        $baseTopic = $this->ReadPropertyString(self::MQTT_BASE_TOPIC);
+        if ($baseTopic === '') {
+            return [];
+        }
+
+        $devices = [];
+        foreach (IPS_GetInstanceListByModuleID(self::GUID_MODULE_DEVICE) as $instanceID) {
+            if (@IPS_GetProperty($instanceID, self::MQTT_BASE_TOPIC) !== $baseTopic) {
+                continue;
+            }
+
+            $topic = trim((string) @IPS_GetProperty($instanceID, self::MQTT_TOPIC));
+            if ($topic === '') {
+                continue;
+            }
+
+            $devices[] = [
+                'caption' => $this->BuildGroupMemberDeviceCaption($topic, @IPS_GetName($instanceID)),
+                'value'   => $topic
+            ];
+        }
+
+        return $devices;
+    }
+
+    /**
+     * Fragt Zigbee2MQTT nach bekannten Devices, damit auch noch nicht angelegte Instanzen auswählbar sind.
+     */
+    private function LoadGroupMemberDevicesFromExtension(): array
+    {
+        if (!$this->HasActiveParent()) {
+            return [];
+        }
+
+        $result = @$this->SendData(self::SYMCON_EXTENSION_LIST_REQUEST . 'getDevices', [], 2500);
+        if (!\is_array($result) || !\is_array($result['list'] ?? null)) {
+            return [];
+        }
+
+        $devices = [];
+        foreach ($result['list'] as $device) {
+            if (!\is_array($device)) {
+                continue;
+            }
+            if (($device['type'] ?? '') === 'Coordinator') {
+                continue;
+            }
+
+            $topic = trim((string) ($device['friendly_name'] ?? ''));
+            if ($topic === '') {
+                continue;
+            }
+
+            $devices[] = [
+                'caption' => $this->BuildGroupMemberDeviceCaption($topic, (string) ($device['model'] ?? '')),
+                'value'   => $topic
+            ];
+        }
+
+        return $devices;
+    }
+
+    /**
+     * Erzeugt eine lesbare Beschriftung fuer die Geraeteauswahl.
+     */
+    private function BuildGroupMemberDeviceCaption(string $topic, string $suffix = ''): string
+    {
+        $nameParts = explode('/', $topic);
+        $name = (string) end($nameParts);
+        $suffix = trim($suffix);
+
+        if ($suffix === '' || $suffix === $name || $suffix === $topic) {
+            return $topic;
+        }
+
+        return $topic . ' (' . $suffix . ')';
     }
 
     /**
@@ -727,5 +847,28 @@ class Zigbee2MQTTGroup extends \Zigbee2MQTT\ModulBase
         }
 
         return false;
+    }
+
+    /**
+     * Erweitert den ReceiveFilter um Listen-Antworten fuer die Geraeteauswahl.
+     */
+    private function UpdateGroupReceiveDataFilter(): void
+    {
+        if ($this->GetStatus() !== IS_ACTIVE) {
+            return;
+        }
+
+        $baseTopic = $this->ReadPropertyString(self::MQTT_BASE_TOPIC);
+        $mqttTopic = $this->ReadPropertyString(self::MQTT_TOPIC);
+        if ($baseTopic === '' || $mqttTopic === '') {
+            return;
+        }
+
+        $filterAvailability = preg_quote('"Topic":"' . $baseTopic . '/' . $mqttTopic . '/' . self::AVAILABILITY_TOPIC . '"');
+        $filterPayload = preg_quote('"Topic":"' . $baseTopic . '/' . $mqttTopic . '"');
+        $filterInfo = preg_quote('"Topic":"' . $baseTopic . self::SYMCON_EXTENSION_RESPONSE . static::$ExtensionTopic . $mqttTopic . '"');
+        $filterDeviceList = preg_quote('"Topic":"' . $baseTopic . self::SYMCON_EXTENSION_LIST_RESPONSE . 'getDevices"');
+
+        $this->SetReceiveDataFilter('.*(' . $filterAvailability . '|' . $filterPayload . '|' . $filterInfo . '|' . $filterDeviceList . ').*');
     }
 }
