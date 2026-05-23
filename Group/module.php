@@ -8,37 +8,48 @@ class Zigbee2MQTTGroup extends \Zigbee2MQTT\ModulBase
 {
     private const GROUP_OPTION_DEFINITIONS = [
         'retain'              => [
-            'type'        => 'Boolean',
-            'default'     => 'false',
+            'type'        => 'boolean',
+            'default'     => false,
             'description' => 'Retain MQTT messages for this group.'
         ],
         'transition'          => [
-            'type'        => 'Number',
-            'default'     => '0',
+            'type'        => 'numeric',
+            'default'     => 0,
             'description' => 'Default transition time for group commands in seconds.'
         ],
         'optimistic'          => [
-            'type'        => 'Boolean',
-            'default'     => 'true',
+            'type'        => 'boolean',
+            'default'     => true,
             'description' => 'Update the group state when one member changes state.'
         ],
         'qos'                 => [
-            'type'        => 'Number',
-            'default'     => 'null',
-            'description' => 'MQTT quality of service for messages of this group.'
+            'type'        => 'enum',
+            'default'     => null,
+            'description' => 'MQTT quality of service for messages of this group.',
+            'values'      => [
+                ['caption' => '-', 'value' => 'null', 'actual' => null],
+                ['caption' => '0', 'value' => '0', 'actual' => 0],
+                ['caption' => '1', 'value' => '1', 'actual' => 1],
+                ['caption' => '2', 'value' => '2', 'actual' => 2]
+            ]
         ],
         'off_state'           => [
-            'type'        => 'String',
+            'type'        => 'enum',
             'default'     => 'all_members_off',
-            'description' => 'Controls when OFF or CLOSE is published for a group.'
+            'description' => 'Controls when OFF or CLOSE is published for a group.',
+            'values'      => [
+                ['caption' => 'all_members_off', 'value' => 'all_members_off'],
+                ['caption' => 'last_member_state', 'value' => 'last_member_state']
+            ]
         ],
         'filtered_attributes' => [
-            'type'        => 'Array',
+            'type'        => 'array',
             'default'     => '[]',
-            'description' => 'Attributes not published by Zigbee2MQTT for this group.'
+            'description' => 'Attributes not published by Zigbee2MQTT for this group.',
+            'editor'      => 'filtered_attributes'
         ],
         'homeassistant'       => [
-            'type'        => 'Object',
+            'type'        => 'object',
             'default'     => '{}',
             'description' => 'Override Home Assistant discovery properties for this group.'
         ]
@@ -165,6 +176,14 @@ class Zigbee2MQTTGroup extends \Zigbee2MQTT\ModulBase
         }
         if ($ident == 'ApplyGroupOption') {
             $this->ApplyGroupOptionFromForm($value);
+            return;
+        }
+        if ($ident == 'AddGroupFilteredAttribute') {
+            $this->AddGroupFilteredAttributeFromForm($value);
+            return;
+        }
+        if ($ident == 'RemoveGroupFilteredAttribute') {
+            $this->RemoveGroupFilteredAttributeFromForm($value);
             return;
         }
         if ($ident == 'SelectGroupScene') {
@@ -518,9 +537,9 @@ class Zigbee2MQTTGroup extends \Zigbee2MQTT\ModulBase
             $hasCurrentValue = \array_key_exists($name, $currentOptions);
             $values[] = [
                 'name'          => $name,
-                'type'          => $this->Translate($definition['type']),
+                'type'          => $this->Translate($this->FormatGroupOptionType((string) $definition['type'])),
                 'current'       => $hasCurrentValue ? $this->FormatGroupFormValue($currentOptions[$name]) : '',
-                'default_value' => $definition['default'],
+                'default_value' => $this->FormatGroupFormValue($definition['default'] ?? ''),
                 'description'   => $this->Translate($definition['description']),
                 'action'        => $this->Translate('Edit')
             ];
@@ -680,7 +699,7 @@ class Zigbee2MQTTGroup extends \Zigbee2MQTT\ModulBase
         }
 
         $this->UpdateFormField('GroupOptionName', 'value', (string) ($selection['name'] ?? ''));
-        $this->UpdateFormField('GroupOptionValue', 'value', (string) ($selection['value'] ?? ''));
+        $this->ConfigureGroupOptionEditor((string) ($selection['name'] ?? ''), (string) ($selection['value'] ?? ''));
 
         return true;
     }
@@ -765,7 +784,13 @@ class Zigbee2MQTTGroup extends \Zigbee2MQTT\ModulBase
             return false;
         }
 
-        $parsedValue = $this->ParseGroupFormValue((string) ($selection['value'] ?? ''));
+        try {
+            $parsedValue = $this->ParseGroupOptionValue($name, $this->ResolveGroupOptionRawValue($name, $selection));
+        } catch (\InvalidArgumentException $e) {
+            trigger_error($this->Translate($e->getMessage()), E_USER_NOTICE);
+            return false;
+        }
+
         if ($this->CallMatchingBridgeFunction('SetGroupOptions', [
             $this->ReadPropertyString(self::MQTT_TOPIC),
             json_encode([$name => $parsedValue], JSON_UNESCAPED_SLASHES | JSON_UNESCAPED_UNICODE)
@@ -779,6 +804,458 @@ class Zigbee2MQTTGroup extends \Zigbee2MQTT\ModulBase
         $this->UpdateFormField('GroupOptionList', 'values', json_encode($this->BuildGroupOptionFormValues()));
 
         return true;
+    }
+
+    /**
+     * Schaltet den passenden Editor fuer eine Gruppenoption sichtbar.
+     */
+    private function ConfigureGroupOptionEditor(string $name, string $rawValue): void
+    {
+        $definition = $this->GetGroupOptionDefinition($name);
+        $editor = $this->GetGroupOptionEditor($definition);
+
+        $this->UpdateFormField('GroupOptionEditor', 'value', $editor);
+        $this->UpdateFormField('GroupOptionValue', 'visible', $editor === 'text');
+        $this->UpdateFormField('GroupOptionBoolean', 'visible', $editor === 'boolean');
+        $this->UpdateFormField('GroupOptionSelect', 'visible', $editor === 'select');
+        $this->UpdateFormField('GroupFilteredAttributeList', 'visible', $editor === 'filtered_attributes');
+        $this->UpdateFormField('GroupFilteredAttributeEditor', 'visible', $editor === 'filtered_attributes');
+
+        if ($editor === 'boolean') {
+            $this->UpdateFormField('GroupOptionBoolean', 'value', $this->ParseGroupOptionBooleanValue($rawValue));
+            return;
+        }
+
+        if ($editor === 'select') {
+            $options = $this->BuildGroupOptionSelectOptions($definition);
+            $this->UpdateFormField('GroupOptionSelect', 'options', json_encode($options));
+            $this->UpdateFormField('GroupOptionSelect', 'value', $this->NormalizeGroupOptionSelectValue($rawValue, $definition));
+            return;
+        }
+
+        if ($editor === 'filtered_attributes') {
+            try {
+                $selected = $this->ParseGroupOptionArray($rawValue);
+            } catch (\InvalidArgumentException) {
+                $selected = [];
+            }
+
+            $this->UpdateGroupFilteredAttributeEditor($selected);
+            return;
+        }
+
+        $this->UpdateFormField('GroupOptionValue', 'value', $rawValue);
+    }
+
+    /**
+     * Ermittelt aus den sichtbaren Formularfeldern den Rohwert.
+     */
+    private function ResolveGroupOptionRawValue(string $name, array $selection): mixed
+    {
+        $definition = $this->GetGroupOptionDefinition($name);
+        $editor = (string) ($selection['editor'] ?? $this->GetGroupOptionEditor($definition));
+
+        return match ($editor) {
+            'boolean'             => $selection['boolean'] ?? $selection['value'] ?? false,
+            'select'              => (string) ($selection['selection'] ?? $selection['value'] ?? ''),
+            'filtered_attributes' => (string) ($selection['value'] ?? '[]'),
+            default               => (string) ($selection['value'] ?? '')
+        };
+    }
+
+    /**
+     * Liefert die bekannte Definition einer Gruppenoption.
+     */
+    private function GetGroupOptionDefinition(string $name): array
+    {
+        $definition = self::GROUP_OPTION_DEFINITIONS[$name] ?? [
+            'type'        => 'mixed',
+            'default'     => '',
+            'description' => 'Option returned by Zigbee2MQTT.'
+        ];
+
+        return $definition;
+    }
+
+    /**
+     * Liefert den Formulareditor passend zum Optionstyp.
+     */
+    private function GetGroupOptionEditor(array $definition): string
+    {
+        if (($definition['editor'] ?? '') === 'filtered_attributes') {
+            return 'filtered_attributes';
+        }
+
+        $type = $this->NormalizeGroupOptionType((string) ($definition['type'] ?? 'mixed'));
+        if ($type === 'boolean') {
+            return 'boolean';
+        }
+        if ($type === 'enum' && \is_array($definition['values'] ?? null)) {
+            return 'select';
+        }
+
+        return 'text';
+    }
+
+    /**
+     * Baut die Auswahlwerte fuer eine Enum-Option.
+     */
+    private function BuildGroupOptionSelectOptions(array $definition): array
+    {
+        $options = [];
+        foreach (($definition['values'] ?? []) as $value) {
+            if (!\is_array($value)) {
+                continue;
+            }
+
+            $options[] = [
+                'caption' => (string) ($value['caption'] ?? $value['value'] ?? ''),
+                'value'   => (string) ($value['value'] ?? '')
+            ];
+        }
+
+        return $options;
+    }
+
+    /**
+     * Fuegt ein Filterattribut in den Editor ein.
+     */
+    private function AddGroupFilteredAttributeFromForm(mixed $value): bool
+    {
+        $selection = $this->DecodeGroupFormPayload($value);
+        if ($selection === null) {
+            return false;
+        }
+
+        $attribute = trim((string) ($selection['attribute'] ?? ''));
+        $selected = $this->DecodeGroupFilteredAttributeSelection((string) ($selection['value'] ?? '[]'));
+        if ($attribute !== '' && !\in_array($attribute, $selected, true)) {
+            $selected[] = $attribute;
+        }
+
+        $this->UpdateGroupFilteredAttributeEditor($selected);
+        return true;
+    }
+
+    /**
+     * Entfernt ein Filterattribut aus dem Editor.
+     */
+    private function RemoveGroupFilteredAttributeFromForm(mixed $value): bool
+    {
+        $selection = $this->DecodeGroupFormPayload($value);
+        if ($selection === null) {
+            return false;
+        }
+
+        $attribute = trim((string) ($selection['attribute'] ?? ''));
+        $selected = array_values(array_filter(
+            $this->DecodeGroupFilteredAttributeSelection((string) ($selection['value'] ?? '[]')),
+            static fn (string $entry): bool => $entry !== $attribute
+        ));
+
+        $this->UpdateGroupFilteredAttributeEditor($selected);
+        return true;
+    }
+
+    /**
+     * Aktualisiert Listen, Auswahl und Hidden-JSON fuer filtered_attributes.
+     */
+    private function UpdateGroupFilteredAttributeEditor(array $selected): void
+    {
+        $selected = $this->NormalizeGroupFilteredAttributes($selected);
+        $listValues = $this->BuildGroupFilteredAttributeFormValues($selected);
+        $candidateOptions = $this->BuildGroupFilteredAttributeCandidateOptions($selected);
+
+        $this->UpdateFormField('GroupOptionValue', 'value', $this->FormatGroupFormValue($selected));
+        $this->UpdateFormField('GroupFilteredAttributeList', 'values', json_encode($listValues));
+        $this->UpdateFormField('GroupFilteredAttributeList', 'rowCount', min(8, max(3, \count($listValues) + 1)));
+        $this->UpdateFormField('GroupFilteredAttributeCandidate', 'options', json_encode($candidateOptions));
+        $this->UpdateFormField('GroupFilteredAttributeCandidate', 'value', (string) ($candidateOptions[0]['value'] ?? ''));
+    }
+
+    /**
+     * Baut die Liste der aktuell gefilterten Attribute.
+     */
+    private function BuildGroupFilteredAttributeFormValues(array $selected): array
+    {
+        $values = [];
+        foreach ($this->NormalizeGroupFilteredAttributes($selected) as $attribute) {
+            $values[] = [
+                'attribute' => $attribute,
+                'action'    => $this->Translate('Remove')
+            ];
+        }
+
+        return $values;
+    }
+
+    /**
+     * Baut die noch waehlbaren Attribute aus Exposes, Variablen und aktuellem Wert.
+     */
+    private function BuildGroupFilteredAttributeCandidateOptions(array $selected): array
+    {
+        $selected = $this->NormalizeGroupFilteredAttributes($selected);
+        $candidates = array_values(array_diff($this->BuildGroupFilteredAttributeCandidates($selected), $selected));
+
+        return array_map(
+            static fn (string $attribute): array => [
+                'caption' => $attribute,
+                'value'   => $attribute
+            ],
+            $candidates
+        );
+    }
+
+    /**
+     * Ermittelt die Attribute, die diese Gruppe potentiell im Payload anbietet.
+     */
+    private function BuildGroupFilteredAttributeCandidates(array $selected = []): array
+    {
+        $candidates = [];
+        $this->CollectGroupPayloadAttributes($this->ReadAttributeArray(self::ATTRIBUTE_EXPOSES), $candidates);
+
+        if (@IPS_ObjectExists($this->InstanceID)) {
+            foreach (IPS_GetChildrenIDs($this->InstanceID) as $childID) {
+                $object = @IPS_GetObject($childID);
+                $ident = (string) ($object['ObjectIdent'] ?? '');
+                if ($ident !== '') {
+                    $candidates[] = $ident;
+                }
+            }
+        }
+
+        $candidates = array_merge($candidates, $selected);
+        $candidates = array_values(array_unique(array_filter(array_map('strval', $candidates), [$this, 'IsGroupFilteredAttributeCandidate'])));
+        usort($candidates, static fn (string $left, string $right): int => strnatcasecmp($left, $right));
+        return $candidates;
+    }
+
+    /**
+     * Sammelt Payload-Properties aus Expose-Strukturen.
+     */
+    private function CollectGroupPayloadAttributes(mixed $node, array &$candidates): void
+    {
+        if (!\is_array($node)) {
+            return;
+        }
+
+        if (array_is_list($node)) {
+            foreach ($node as $child) {
+                $this->CollectGroupPayloadAttributes($child, $candidates);
+            }
+
+            return;
+        }
+
+        $property = (string) ($node['property'] ?? '');
+        if ($property !== '') {
+            $candidates[] = $property;
+        }
+
+        foreach ($node as $key => $value) {
+            if (!\is_array($value)) {
+                continue;
+            }
+
+            if (\in_array($key, ['features', 'exposes'], true) || array_is_list($value)) {
+                $this->CollectGroupPayloadAttributes($value, $candidates);
+            }
+        }
+    }
+
+    /**
+     * Normalisiert den aktuellen filtered_attributes-Wert.
+     */
+    private function DecodeGroupFilteredAttributeSelection(string $rawValue): array
+    {
+        try {
+            return $this->ParseGroupOptionArray($rawValue);
+        } catch (\InvalidArgumentException) {
+            return [];
+        }
+    }
+
+    /**
+     * Entfernt leere und doppelte Eintraege.
+     */
+    private function NormalizeGroupFilteredAttributes(array $attributes): array
+    {
+        $normalized = array_values(array_unique(array_filter(array_map(
+            static fn (mixed $attribute): string => trim((string) $attribute),
+            $attributes
+        ), [$this, 'IsGroupFilteredAttributeCandidate'])));
+
+        usort($normalized, static fn (string $left, string $right): int => strnatcasecmp($left, $right));
+        return $normalized;
+    }
+
+    /**
+     * Filtert technische oder leere Eintraege aus der Attributauswahl.
+     */
+    private function IsGroupFilteredAttributeCandidate(string $attribute): bool
+    {
+        return $attribute !== ''
+            && !\in_array($attribute, ['filtered_attributes', 'friendly_name'], true);
+    }
+
+    /**
+     * Normalisiert den aktuellen Wert fuer das Select-Feld.
+     */
+    private function NormalizeGroupOptionSelectValue(string $rawValue, array $definition): string
+    {
+        if ($rawValue === '') {
+            return $this->FormatGroupFormValue($definition['default'] ?? '');
+        }
+
+        if ($rawValue === '-') {
+            return 'null';
+        }
+
+        return $rawValue;
+    }
+
+    /**
+     * Konvertiert Gruppenoptionen typisiert.
+     */
+    private function ParseGroupOptionValue(string $name, mixed $rawValue): mixed
+    {
+        $definition = $this->GetGroupOptionDefinition($name);
+        $type = $this->NormalizeGroupOptionType((string) ($definition['type'] ?? 'mixed'));
+
+        return match ($type) {
+            'boolean' => $this->ParseGroupOptionBooleanValue($rawValue),
+            'numeric' => $this->ParseGroupOptionNumber((string) $rawValue),
+            'enum'    => $this->ParseGroupOptionEnum((string) $rawValue, $definition),
+            'array'   => $this->ParseGroupOptionArray((string) $rawValue),
+            'object'  => $this->ParseGroupOptionObject((string) $rawValue),
+            'text'    => (string) $rawValue,
+            default   => $this->ParseGroupFormValue((string) $rawValue)
+        };
+    }
+
+    /**
+     * Normalisiert interne Typnamen.
+     */
+    private function NormalizeGroupOptionType(string $type): string
+    {
+        return match (strtolower($type)) {
+            'bool',
+            'boolean',
+            'binary' => 'boolean',
+            'float',
+            'integer',
+            'number',
+            'numeric' => 'numeric',
+            'enum',
+            'select' => 'enum',
+            'list',
+            'array' => 'array',
+            'composite',
+            'object' => 'object',
+            'string',
+            'text'  => 'text',
+            default => 'mixed'
+        };
+    }
+
+    /**
+     * Liefert eine lesbare Typbezeichnung fuer die Optionsliste.
+     */
+    private function FormatGroupOptionType(string $type): string
+    {
+        return match ($this->NormalizeGroupOptionType($type)) {
+            'boolean' => 'Boolean',
+            'numeric' => 'Number',
+            'enum'    => 'Selection',
+            'array'   => 'Array',
+            'object'  => 'Object',
+            'text'    => 'Text',
+            default   => 'Mixed'
+        };
+    }
+
+    /**
+     * Wandelt Formularwerte in boolesche Gruppenoptionen.
+     */
+    private function ParseGroupOptionBooleanValue(mixed $rawValue): bool
+    {
+        if (\is_bool($rawValue)) {
+            return $rawValue;
+        }
+
+        $normalized = strtolower(trim((string) $rawValue));
+        if (\in_array($normalized, ['true', '1', 'on', 'yes', 'ja', 'an'], true)) {
+            return true;
+        }
+        if (\in_array($normalized, ['false', '0', 'off', 'no', 'nein', 'aus', ''], true)) {
+            return false;
+        }
+
+        throw new \InvalidArgumentException('Group option value must be true or false.');
+    }
+
+    /**
+     * Wandelt Formularwerte in numerische Gruppenoptionen.
+     */
+    private function ParseGroupOptionNumber(string $rawValue): int|float
+    {
+        $normalized = str_replace(',', '.', trim($rawValue));
+        if (!is_numeric($normalized)) {
+            throw new \InvalidArgumentException('Group option value must be numeric.');
+        }
+
+        return str_contains($normalized, '.') ? (float) $normalized : (int) $normalized;
+    }
+
+    /**
+     * Wandelt Formularwerte in Enum-Gruppenoptionen.
+     */
+    private function ParseGroupOptionEnum(string $rawValue, array $definition): mixed
+    {
+        foreach (($definition['values'] ?? []) as $option) {
+            if (!\is_array($option) || (string) ($option['value'] ?? '') !== $rawValue) {
+                continue;
+            }
+
+            return \array_key_exists('actual', $option) ? $option['actual'] : (string) $option['value'];
+        }
+
+        throw new \InvalidArgumentException('Group option value is not allowed.');
+    }
+
+    /**
+     * Wandelt Formularwerte in Array-Gruppenoptionen.
+     */
+    private function ParseGroupOptionArray(string $rawValue): array
+    {
+        $rawValue = trim($rawValue);
+        if ($rawValue === '') {
+            return [];
+        }
+
+        $decoded = json_decode($rawValue, true);
+        if (\is_array($decoded) && array_is_list($decoded)) {
+            return $decoded;
+        }
+
+        if (str_starts_with($rawValue, '[')) {
+            throw new \InvalidArgumentException('Group option value must be a JSON array.');
+        }
+
+        return array_values(array_filter(array_map('trim', explode(',', $rawValue)), static fn (string $entry): bool => $entry !== ''));
+    }
+
+    /**
+     * Wandelt Formularwerte in Objekt-Gruppenoptionen.
+     */
+    private function ParseGroupOptionObject(string $rawValue): array
+    {
+        $decoded = json_decode(trim($rawValue), true);
+        if (\is_array($decoded) && !array_is_list($decoded)) {
+            return $decoded;
+        }
+
+        throw new \InvalidArgumentException('Group option value must be a JSON object.');
     }
 
     /**
@@ -963,7 +1440,7 @@ class Zigbee2MQTTGroup extends \Zigbee2MQTT\ModulBase
             return $value ? 'true' : 'false';
         }
         if ($value === null) {
-            return '';
+            return 'null';
         }
 
         return (string) $value;

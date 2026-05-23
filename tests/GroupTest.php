@@ -116,6 +116,7 @@ class GroupTest extends DumpInclude
         $this->assertArrayHasKey('homeassistant', $values);
         $this->assertSame('', $values['transition']['current']);
         $this->assertSame('0', $values['transition']['default_value']);
+        $this->assertSame('Selection', $values['off_state']['type']);
     }
 
     public function testGroupOptionListMergesConfiguredAndUnknownOptions(): void
@@ -136,6 +137,131 @@ class GroupTest extends DumpInclude
         $this->assertSame('2', $values['transition']['current']);
         $this->assertSame('abc', $values['custom_option']['current']);
         $this->assertSame('', $values['custom_option']['default_value']);
+    }
+
+    public function testSelectingGroupOptionShowsBooleanEditor(): void
+    {
+        $group = $this->createGroupFormTestDouble([]);
+
+        $group->RequestAction('SelectGroupOption', json_encode([
+            'name'  => 'retain',
+            'value' => 'true'
+        ]));
+
+        $this->assertSame('retain', $group->updatedFields['GroupOptionName']['value']);
+        $this->assertSame('boolean', $group->updatedFields['GroupOptionEditor']['value']);
+        $this->assertSame(false, $group->updatedFields['GroupOptionValue']['visible']);
+        $this->assertSame(true, $group->updatedFields['GroupOptionBoolean']['visible']);
+        $this->assertSame(true, $group->updatedFields['GroupOptionBoolean']['value']);
+        $this->assertSame(false, $group->updatedFields['GroupOptionSelect']['visible']);
+    }
+
+    public function testSelectingGroupOptionShowsSelectEditor(): void
+    {
+        $group = $this->createGroupFormTestDouble([]);
+
+        $group->RequestAction('SelectGroupOption', json_encode([
+            'name'  => 'off_state',
+            'value' => 'last_member_state'
+        ]));
+
+        $this->assertSame('select', $group->updatedFields['GroupOptionEditor']['value']);
+        $this->assertSame(false, $group->updatedFields['GroupOptionValue']['visible']);
+        $this->assertSame(false, $group->updatedFields['GroupOptionBoolean']['visible']);
+        $this->assertSame(true, $group->updatedFields['GroupOptionSelect']['visible']);
+        $this->assertSame('last_member_state', $group->updatedFields['GroupOptionSelect']['value']);
+
+        $options = json_decode($group->updatedFields['GroupOptionSelect']['options'], true);
+        $this->assertSame(['all_members_off', 'last_member_state'], array_column($options, 'value'));
+    }
+
+    public function testSelectingFilteredAttributesShowsAttributeEditor(): void
+    {
+        $group = $this->createGroupFormTestDouble([]);
+        $group->setExposesForTest([
+            [
+                'type'     => 'light',
+                'features' => [
+                    ['property' => 'state'],
+                    ['property' => 'brightness'],
+                    ['property' => 'color_temp']
+                ]
+            ]
+        ]);
+
+        $group->RequestAction('SelectGroupOption', json_encode([
+            'name'  => 'filtered_attributes',
+            'value' => '["brightness"]'
+        ]));
+
+        $this->assertSame('filtered_attributes', $group->updatedFields['GroupOptionEditor']['value']);
+        $this->assertSame(false, $group->updatedFields['GroupOptionValue']['visible']);
+        $this->assertSame(true, $group->updatedFields['GroupFilteredAttributeList']['visible']);
+        $this->assertSame(true, $group->updatedFields['GroupFilteredAttributeEditor']['visible']);
+        $this->assertSame('["brightness"]', $group->updatedFields['GroupOptionValue']['value']);
+
+        $listValues = json_decode($group->updatedFields['GroupFilteredAttributeList']['values'], true);
+        $this->assertSame(['brightness'], array_column($listValues, 'attribute'));
+
+        $candidateOptions = json_decode($group->updatedFields['GroupFilteredAttributeCandidate']['options'], true);
+        $this->assertSame(['color_temp', 'state'], array_column($candidateOptions, 'value'));
+    }
+
+    public function testFilteredAttributeEditorAddsAndRemovesAttributes(): void
+    {
+        $group = $this->createGroupFormTestDouble([]);
+        $group->setExposesForTest([
+            [
+                'type'     => 'light',
+                'features' => [
+                    ['property' => 'state'],
+                    ['property' => 'brightness']
+                ]
+            ]
+        ]);
+
+        $group->RequestAction('AddGroupFilteredAttribute', json_encode([
+            'attribute' => 'state',
+            'value'     => '["brightness"]'
+        ]));
+
+        $this->assertSame(['brightness', 'state'], json_decode($group->updatedFields['GroupOptionValue']['value'], true));
+
+        $group->RequestAction('RemoveGroupFilteredAttribute', json_encode([
+            'attribute' => 'brightness',
+            'value'     => $group->updatedFields['GroupOptionValue']['value']
+        ]));
+
+        $this->assertSame(['state'], json_decode($group->updatedFields['GroupOptionValue']['value'], true));
+    }
+
+    public function testApplyingTypedGroupOptionsSendsTypedValues(): void
+    {
+        $group = $this->createGroupOptionBridgeTestDouble();
+
+        $group->RequestAction('ApplyGroupOption', json_encode([
+            'name'    => 'retain',
+            'editor'  => 'boolean',
+            'boolean' => true
+        ]));
+
+        $this->assertSame('SetGroupOptions', $group->calledFunction);
+        $this->assertSame(['retain' => true], json_decode($group->calledArguments[1], true));
+
+        $group->RequestAction('ApplyGroupOption', json_encode([
+            'name'      => 'qos',
+            'editor'    => 'select',
+            'selection' => 'null'
+        ]));
+
+        $this->assertSame(['qos' => null], json_decode($group->calledArguments[1], true));
+
+        $group->RequestAction('ApplyGroupOption', json_encode([
+            'name'  => 'retain',
+            'value' => 'false'
+        ]));
+
+        $this->assertSame(['retain' => false], json_decode($group->calledArguments[1], true));
     }
 
     private function createConfiguredDevice(string $baseTopic, string $mqttTopic): int
@@ -213,6 +339,11 @@ class GroupTest extends DumpInclude
             {
                 return true;
             }
+
+            public function setExposesForTest(array $exposes): void
+            {
+                $this->WriteAttributeArray(self::ATTRIBUTE_EXPOSES, $exposes);
+            }
         };
         $group->Create();
 
@@ -252,6 +383,40 @@ class GroupTest extends DumpInclude
 
             protected function SendDebug(string $Message, string $Data, int $Format): bool
             {
+                return true;
+            }
+        };
+        $group->Create();
+
+        return $group;
+    }
+
+    private function createGroupOptionBridgeTestDouble(): Zigbee2MQTTGroup
+    {
+        $group = new class(990003) extends Zigbee2MQTTGroup {
+            public string $calledFunction = '';
+            public array $calledArguments = [];
+            public array $updatedFields = [];
+
+            protected function CallMatchingBridgeFunction(string $function, array $arguments): mixed
+            {
+                $this->calledFunction = $function;
+                $this->calledArguments = $arguments;
+                return true;
+            }
+
+            protected function ReadPropertyString(string $Name): string
+            {
+                return match ($Name) {
+                    self::MQTT_BASE_TOPIC => 'zigbee2mqtt',
+                    self::MQTT_TOPIC      => 'Flur/Beleuchtung/Deckenlicht/Gruppe',
+                    default               => parent::ReadPropertyString($Name)
+                };
+            }
+
+            protected function UpdateFormField(string $Field, string $Parameter, mixed $Value): bool
+            {
+                $this->updatedFields[$Field][$Parameter] = $Value;
                 return true;
             }
         };

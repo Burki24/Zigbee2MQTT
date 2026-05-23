@@ -215,13 +215,75 @@
                         },
                         {
                             "type": "ValidationTextBox",
+                            "name": "GroupOptionEditor",
+                            "caption": "Editor",
+                            "visible": false
+                        },
+                        {
+                            "type": "ValidationTextBox",
                             "name": "GroupOptionValue",
                             "caption": "Value (JSON or text)"
                         },
                         {
+                            "type": "CheckBox",
+                            "name": "GroupOptionBoolean",
+                            "caption": "Value",
+                            "visible": false
+                        },
+                        {
+                            "type": "Select",
+                            "name": "GroupOptionSelect",
+                            "caption": "Value",
+                            "visible": false,
+                            "options": []
+                        },
+                        {
                             "type": "Button",
                             "caption": "Apply option",
-                            "onClick": "IPS_RequestAction($id, 'ApplyGroupOption', json_encode(['name' => $GroupOptionName, 'value' => $GroupOptionValue]));"
+                            "onClick": "IPS_RequestAction($id, 'ApplyGroupOption', json_encode(['name' => $GroupOptionName, 'editor' => $GroupOptionEditor, 'value' => $GroupOptionValue, 'boolean' => $GroupOptionBoolean, 'selection' => $GroupOptionSelect]));"
+                        }
+                    ]
+                },
+                {
+                    "type": "List",
+                    "name": "GroupFilteredAttributeList",
+                    "visible": false,
+                    "add": false,
+                    "delete": false,
+                    "rowCount": 4,
+                    "loadValuesFromConfiguration": false,
+                    "columns": [
+                        {
+                            "caption": "Attribute",
+                            "name": "attribute",
+                            "width": "auto",
+                            "quickFilter": true
+                        },
+                        {
+                            "caption": "Action",
+                            "name": "action",
+                            "width": "100px",
+                            "align": "center",
+                            "onClick": "IPS_RequestAction($id, 'RemoveGroupFilteredAttribute', json_encode(['attribute' => $GroupFilteredAttributeList['attribute'], 'value' => $GroupOptionValue]));"
+                        }
+                    ],
+                    "values": []
+                },
+                {
+                    "type": "RowLayout",
+                    "name": "GroupFilteredAttributeEditor",
+                    "visible": false,
+                    "items": [
+                        {
+                            "type": "Select",
+                            "name": "GroupFilteredAttributeCandidate",
+                            "caption": "Attribute",
+                            "options": []
+                        },
+                        {
+                            "type": "Button",
+                            "caption": "Add attribute",
+                            "onClick": "IPS_RequestAction($id, 'AddGroupFilteredAttribute', json_encode(['attribute' => $GroupFilteredAttributeCandidate, 'value' => $GroupOptionValue]));"
                         }
                     ]
                 }
