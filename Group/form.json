@@ -337,6 +337,27 @@
             }
         },
         {
+            "name": "GroupMemberRequestError",
+            "type": "PopupAlert",
+            "visible": false,
+            "popup": {
+                "closeCaption": "Close",
+                "items": [
+                    {
+                        "name": "GroupMemberRequestErrorTitle",
+                        "type": "Label",
+                        "bold": true,
+                        "caption": "Device offline"
+                    },
+                    {
+                        "name": "GroupMemberRequestErrorText",
+                        "type": "Label",
+                        "caption": "The device did not respond to the group command. Please check whether it is online and try again."
+                    }
+                ]
+            }
+        },
+        {
             "type": "ExpansionPanel",
             "caption": "Expert Settings",
             "expanded": false,

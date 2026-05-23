@@ -548,7 +548,7 @@ class Zigbee2MQTTGroup extends \Zigbee2MQTT\ModulBase
             return false;
         }
 
-        if ($this->CallMatchingBridgeFunction('AddDeviceToGroup', [$this->ReadPropertyString(self::MQTT_TOPIC), $device, $endpoint]) !== true) {
+        if (!$this->CallGroupBridgeFunctionWithPopup('AddDeviceToGroup', [$this->ReadPropertyString(self::MQTT_TOPIC), $device, $endpoint])) {
             return false;
         }
 
@@ -576,7 +576,7 @@ class Zigbee2MQTTGroup extends \Zigbee2MQTT\ModulBase
         }
 
         $skipDisableReporting = (bool) ($selection['skip_disable_reporting'] ?? true);
-        if ($this->CallMatchingBridgeFunction('RemoveDeviceFromGroup', [$this->ReadPropertyString(self::MQTT_TOPIC), $device, $endpoint, $skipDisableReporting]) !== true) {
+        if (!$this->CallGroupBridgeFunctionWithPopup('RemoveDeviceFromGroup', [$this->ReadPropertyString(self::MQTT_TOPIC), $device, $endpoint, $skipDisableReporting])) {
             return false;
         }
 
@@ -602,7 +602,7 @@ class Zigbee2MQTTGroup extends \Zigbee2MQTT\ModulBase
             return false;
         }
 
-        if ($this->CallMatchingBridgeFunction('RemoveDeviceFromAllGroups', [$device, (bool) ($selection['skip_disable_reporting'] ?? true)]) !== true) {
+        if (!$this->CallGroupBridgeFunctionWithPopup('RemoveDeviceFromAllGroups', [$device, (bool) ($selection['skip_disable_reporting'] ?? true)])) {
             return false;
         }
 
@@ -626,6 +626,70 @@ class Zigbee2MQTTGroup extends \Zigbee2MQTT\ModulBase
         $this->UpdateFormField('GroupOptionValue', 'value', (string) ($selection['value'] ?? ''));
 
         return true;
+    }
+
+    /**
+     * Ruft eine Bridge-Funktion für Gruppenmitglieder auf und zeigt Formularfehler als Popup.
+     */
+    private function CallGroupBridgeFunctionWithPopup(string $function, array $arguments): bool
+    {
+        $errorMessage = '';
+        set_error_handler(static function (int $severity, string $message) use (&$errorMessage): bool
+        {
+            if (!\in_array($severity, [E_USER_NOTICE, E_USER_WARNING], true)) {
+                return false;
+            }
+
+            $errorMessage = $message;
+            return true;
+        });
+
+        try {
+            $result = $this->CallMatchingBridgeFunction($function, $arguments);
+        } finally {
+            restore_error_handler();
+        }
+
+        if ($result === true) {
+            return true;
+        }
+
+        if ($errorMessage !== '') {
+            $this->SendDebug('Group request failed', $errorMessage, 0);
+        }
+
+        $this->ShowGroupMemberRequestError($errorMessage);
+        return false;
+    }
+
+    /**
+     * Zeigt einen lesbaren Fehler im Gruppenformular.
+     */
+    private function ShowGroupMemberRequestError(string $errorMessage): void
+    {
+        $isOffline = $this->IsGroupMemberOfflineError($errorMessage);
+        $title = $this->Translate($isOffline ? 'Device offline' : 'Group request failed');
+        $text = $this->Translate($isOffline
+            ? 'The device did not respond to the group command. Please check whether it is online and try again.'
+            : 'The Zigbee2MQTT group request failed. Please check the device and try again.');
+
+        $this->UpdateFormField('GroupMemberRequestErrorTitle', 'caption', $title);
+        $this->UpdateFormField('GroupMemberRequestErrorText', 'caption', $text);
+        $this->UpdateFormField('GroupMemberRequestError', 'visible', true);
+    }
+
+    /**
+     * Erkennt typische Zigbee2MQTT-Fehler fuer nicht erreichbare Geraete.
+     */
+    private function IsGroupMemberOfflineError(string $errorMessage): bool
+    {
+        $normalized = strtolower($errorMessage);
+        return str_contains($normalized, 'delivery failed')
+            || str_contains($normalized, 'timed out')
+            || str_contains($normalized, 'timeout')
+            || str_contains($normalized, 'did not respond')
+            || str_contains($normalized, 'not available')
+            || str_contains($normalized, 'offline');
     }
 
     /**

@@ -79,6 +79,22 @@ class GroupTest extends DumpInclude
         $this->assertSame('11', $group->updatedFields['GroupMemberEndpoint']['value']);
     }
 
+    public function testOfflineGroupMemberRequestShowsPopupInsteadOfNotice(): void
+    {
+        $group = $this->createFailingGroupBridgeTestDouble(
+            "Failed to add to group (ZCL command 0x142d41fffe507d64/1 genGroups.add failed (Delivery failed for '10979'.))"
+        );
+
+        $group->RequestAction('AddGroupMember', json_encode([
+            'device'   => 'Flur/Beleuchtung/Treppe',
+            'endpoint' => '11'
+        ]));
+
+        $this->assertSame(true, $group->updatedFields['GroupMemberRequestError']['visible']);
+        $this->assertSame('Device offline', $group->updatedFields['GroupMemberRequestErrorTitle']['caption']);
+        $this->assertStringContainsString('did not respond', $group->updatedFields['GroupMemberRequestErrorText']['caption']);
+    }
+
     private function createConfiguredDevice(string $baseTopic, string $mqttTopic): int
     {
         $instanceID = IPS_CreateInstance(self::DEVICE_MODULE_ID);
@@ -142,6 +158,47 @@ class GroupTest extends DumpInclude
             protected function GetStatus(): int
             {
                 return IS_ACTIVE;
+            }
+
+            protected function UpdateFormField(string $Field, string $Parameter, mixed $Value): bool
+            {
+                $this->updatedFields[$Field][$Parameter] = $Value;
+                return true;
+            }
+
+            protected function SendDebug(string $Message, string $Data, int $Format): bool
+            {
+                return true;
+            }
+        };
+        $group->Create();
+
+        return $group;
+    }
+
+    private function createFailingGroupBridgeTestDouble(string $errorMessage): Zigbee2MQTTGroup
+    {
+        $group = new class(990002, $errorMessage) extends Zigbee2MQTTGroup {
+            public array $updatedFields = [];
+
+            public function __construct(int $InstanceID, private string $errorMessage)
+            {
+                parent::__construct($InstanceID);
+            }
+
+            protected function CallMatchingBridgeFunction(string $function, array $arguments): mixed
+            {
+                trigger_error($this->errorMessage, E_USER_NOTICE);
+                return false;
+            }
+
+            protected function ReadPropertyString(string $Name): string
+            {
+                return match ($Name) {
+                    self::MQTT_BASE_TOPIC => 'zigbee2mqtt',
+                    self::MQTT_TOPIC      => 'Flur/Beleuchtung/Deckenlicht/Gruppe',
+                    default               => parent::ReadPropertyString($Name)
+                };
             }
 
             protected function UpdateFormField(string $Field, string $Parameter, mixed $Value): bool
