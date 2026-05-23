@@ -32,6 +32,135 @@
         },
         {
             "type": "ExpansionPanel",
+            "name": "NetworkSecurity",
+            "caption": "Network security",
+            "expanded": false,
+            "items": [
+                {
+                    "type": "Label",
+                    "caption": "Manage Zigbee2MQTT blocklist and passlist. The passlist is restrictive: Zigbee2MQTT removes devices that are not included."
+                },
+                {
+                    "type": "RowLayout",
+                    "items": [
+                        {
+                            "type": "Select",
+                            "name": "NetworkSecurityKnownDevice",
+                            "caption": "Known device",
+                            "options": []
+                        },
+                        {
+                            "type": "ValidationTextBox",
+                            "name": "NetworkSecurityIeeeAddress",
+                            "caption": "Manual IEEE address"
+                        }
+                    ]
+                },
+                {
+                    "type": "RowLayout",
+                    "items": [
+                        {
+                            "type": "Button",
+                            "caption": "Add to blocklist",
+                            "onClick": "IPS_RequestAction($id, 'AddBlocklistDevice', json_encode(['ieee_address' => $NetworkSecurityIeeeAddress, 'selected_ieee_address' => $NetworkSecurityKnownDevice]));"
+                        },
+                        {
+                            "type": "Button",
+                            "caption": "Add to passlist",
+                            "onClick": "IPS_RequestAction($id, 'RequestPasslistChange', json_encode(['operation' => 'add', 'ieee_address' => $NetworkSecurityIeeeAddress, 'selected_ieee_address' => $NetworkSecurityKnownDevice]));"
+                        }
+                    ]
+                },
+                {
+                    "type": "List",
+                    "name": "NetworkSecurityBlocklist",
+                    "caption": "Blocklist",
+                    "add": false,
+                    "delete": false,
+                    "rowCount": 4,
+                    "loadValuesFromConfiguration": false,
+                    "columns": [
+                        {
+                            "caption": "Device",
+                            "name": "device",
+                            "width": "auto",
+                            "quickFilter": true
+                        },
+                        {
+                            "caption": "IEEE address",
+                            "name": "ieee_address",
+                            "width": "180px"
+                        },
+                        {
+                            "caption": "Action",
+                            "name": "action",
+                            "width": "100px",
+                            "align": "center",
+                            "onClick": "IPS_RequestAction($id, 'RemoveBlocklistDevice', json_encode(['ieee_address' => $NetworkSecurityBlocklist['ieee_address']]));"
+                        }
+                    ],
+                    "values": []
+                },
+                {
+                    "type": "List",
+                    "name": "NetworkSecurityPasslist",
+                    "caption": "Passlist",
+                    "add": false,
+                    "delete": false,
+                    "rowCount": 4,
+                    "loadValuesFromConfiguration": false,
+                    "columns": [
+                        {
+                            "caption": "Device",
+                            "name": "device",
+                            "width": "auto",
+                            "quickFilter": true
+                        },
+                        {
+                            "caption": "IEEE address",
+                            "name": "ieee_address",
+                            "width": "180px"
+                        },
+                        {
+                            "caption": "Action",
+                            "name": "action",
+                            "width": "100px",
+                            "align": "center",
+                            "onClick": "IPS_RequestAction($id, 'RequestPasslistChange', json_encode(['operation' => 'remove', 'ieee_address' => $NetworkSecurityPasslist['ieee_address']]));"
+                        }
+                    ],
+                    "values": []
+                }
+            ]
+        },
+        {
+            "name": "PasslistWarning",
+            "type": "PopupAlert",
+            "visible": false,
+            "popup": {
+                "closeCaption": "Close",
+                "buttons": [
+                    {
+                        "caption": "I understand",
+                        "onClick": "IPS_RequestAction($id, 'ConfirmPendingPasslistChange', true);"
+                    }
+                ],
+                "items": [
+                    {
+                        "type": "Label",
+                        "bold": true,
+                        "caption": "Warning!"
+                    },
+                    {
+                        "name": "PasslistWarningText",
+                        "type": "Label",
+                        "caption": "Devices not contained in the passlist are removed from the network by Zigbee2MQTT."
+                    }
+                ]
+            }
+        },
+        {
+            "type": "ExpansionPanel",
             "name": "BridgeDiagnostics",
             "caption": "Diagnostics",
             "expanded": false,

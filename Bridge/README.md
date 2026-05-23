@@ -29,6 +29,7 @@
 - Verwaltung der für das Modul benötigten Extension in Zigbee2MQTT
 - Systemweite Einstellungen in Zigbee2MQTT aus Symcon anpassen
 - Netzwerkbeitritt aus Symcon steuern und darstellen
+- Globale Zigbee2MQTT-Blocklist und -Passlist verwalten
 - Diagnosebereich für Health Check, Coordinator Check, Bridge-Events, Warnungen/Fehler und auffällige Geräte
 - Wartungsbereich für Zigbee2MQTT-Backup, Install-Code und Touchlink-Scan/Identify/Factory-Reset
 - Viele PHP-Funktionen um interne Zigbee2MQTT Funktionen auszuführen (Gruppen verwalten, Geräte umbenennen usw...)
@@ -59,7 +60,10 @@ Zusätzlich enthält die Bridge-Konfiguration folgende Verwaltungsbereiche:
 | Bereich | Beschreibung |
 | ------- | ------------ |
 | Diagnose | Führt Health Check und Coordinator Check aus, fordert die Netzwerkkarte an und zeigt fehlende Router, nicht unterstützte Geräte, Interview-Probleme, Bridge-Events sowie Warnungen und Fehler an. |
+| Netzwerksicherheit | Verwaltet `blocklist` und `passlist` direkt über bekannte Zigbee2MQTT-Geräte oder manuelle IEEE-Adressen. |
 | Wartung | Erstellt ein Zigbee2MQTT-Backup, sendet Zigbee-3.0-Install-Codes und bietet Touchlink-Scan, Identify und Factory-Reset an. |
+
+Die `blocklist` blockiert Geräte anhand ihrer IEEE-Adresse. Die `passlist` ist restriktiver: Zigbee2MQTT entfernt Geräte aus dem Netzwerk, die nicht in der Passlist stehen. Deshalb verlangt die Bridge-Konfiguration vor Passlist-Änderungen eine Bestätigung.
 
 Touchlink-Scan und Touchlink-Factory-Reset können die Zigbee-Kommunikation kurzfristig stören. Ein Factory-Reset ohne ausgewähltes Ziel kann das nächste per Touchlink erreichbare Gerät zurücksetzen und sollte daher nur bewusst genutzt werden.
 
@@ -136,6 +140,28 @@ bool Z2M_SetPermitJoin(int $InstanzID, bool $PermitJoin);
 ```
 
 Aktiviert oder deaktiviert den Netzwerkbeitritt zur Laufzeit. Bei `true` wird Zigbee2MQTT angewiesen, neue Geräte temporär beitreten zu lassen; bei `false` wird der Beitritt beendet.
+
+---
+
+### Z2M_SetBlocklist <!-- omit in toc -->
+
+```php
+bool Z2M_SetBlocklist(int $InstanzID, string $DevicesJSON);
+```
+
+Setzt die globale Zigbee2MQTT-Option `blocklist` über `bridge/request/options`. `DevicesJSON` muss ein JSON-Array mit IEEE-Adressen enthalten, z. B. `["0x000b57fffec6a5b2"]`.
+
+---
+
+### Z2M_SetPasslist <!-- omit in toc -->
+
+```php
+bool Z2M_SetPasslist(int $InstanzID, string $DevicesJSON);
+```
+
+Setzt die globale Zigbee2MQTT-Option `passlist` über `bridge/request/options`. `DevicesJSON` muss ein JSON-Array mit IEEE-Adressen enthalten.
+
+Wichtig: Zigbee2MQTT entfernt Geräte, die nicht in der Passlist enthalten sind. Die Bridge-Konfiguration zeigt deshalb vor Passlist-Änderungen eine Sicherheitsabfrage.
 
 ---
 

@@ -52,6 +52,10 @@ class Zigbee2MQTTBridge extends IPSModuleStrict
     private const ATTRIBUTE_DIAGNOSTIC_UNSUPPORTED_DEVICES = 'DiagnosticUnsupportedDevices';
     private const ATTRIBUTE_DIAGNOSTIC_INTERVIEW_DEVICES = 'DiagnosticInterviewDevices';
     private const ATTRIBUTE_TOUCHLINK_DEVICES = 'TouchlinkDevices';
+    private const ATTRIBUTE_NETWORK_DEVICES = 'NetworkDevices';
+    private const ATTRIBUTE_CONFIG_BLOCKLIST = 'ConfigBlocklist';
+    private const ATTRIBUTE_CONFIG_PASSLIST = 'ConfigPasslist';
+    private const ATTRIBUTE_PENDING_PASSLIST_CHANGE = 'PendingPasslistChange';
     private const MAX_DIAGNOSTIC_ENTRIES = 50;
 
     /**
@@ -83,6 +87,10 @@ class Zigbee2MQTTBridge extends IPSModuleStrict
         $this->RegisterAttributeArray(self::ATTRIBUTE_DIAGNOSTIC_UNSUPPORTED_DEVICES, []);
         $this->RegisterAttributeArray(self::ATTRIBUTE_DIAGNOSTIC_INTERVIEW_DEVICES, []);
         $this->RegisterAttributeArray(self::ATTRIBUTE_TOUCHLINK_DEVICES, []);
+        $this->RegisterAttributeArray(self::ATTRIBUTE_NETWORK_DEVICES, []);
+        $this->RegisterAttributeArray(self::ATTRIBUTE_CONFIG_BLOCKLIST, []);
+        $this->RegisterAttributeArray(self::ATTRIBUTE_CONFIG_PASSLIST, []);
+        $this->RegisterAttributeArray(self::ATTRIBUTE_PENDING_PASSLIST_CHANGE, []);
     }
 
     /**
@@ -318,6 +326,16 @@ class Zigbee2MQTTBridge extends IPSModuleStrict
                         $this->LogMessage($this->Translate('Wrong last_seen setting in Zigbee2MQTT. Please set last_seen to epoch.'), KL_ERROR);
                     }
                 }
+                if (isset($Payload['config']) && \is_array($Payload['config'])) {
+                    $this->WriteAttributeArray(
+                        self::ATTRIBUTE_CONFIG_BLOCKLIST,
+                        $this->NormalizeNetworkSecurityDeviceList($Payload['config']['blocklist'] ?? [])
+                    );
+                    $this->WriteAttributeArray(
+                        self::ATTRIBUTE_CONFIG_PASSLIST,
+                        $this->NormalizeNetworkSecurityDeviceList($Payload['config']['passlist'] ?? [])
+                    );
+                }
                 if (isset($Payload['network'])) {
                     $this->SetValue('network_channel', $Payload['network']['channel']);
                 }
@@ -406,6 +424,18 @@ class Zigbee2MQTTBridge extends IPSModuleStrict
                 if ($target !== null) {
                     $this->TouchlinkFactoryReset((string) ($target['ieee_address'] ?? ''), (int) ($target['channel'] ?? 0));
                 }
+                break;
+            case 'AddBlocklistDevice':
+                $this->AddNetworkSecurityDeviceFromForm('blocklist', $value);
+                break;
+            case 'RemoveBlocklistDevice':
+                $this->RemoveNetworkSecurityDeviceFromForm('blocklist', $value);
+                break;
+            case 'RequestPasslistChange':
+                $this->RequestPasslistChangeFromForm($value);
+                break;
+            case 'ConfirmPendingPasslistChange':
+                $this->ApplyPendingPasslistChange();
                 break;
         }
     }
@@ -541,6 +571,30 @@ class Zigbee2MQTTBridge extends IPSModuleStrict
         $Topic = '/bridge/request/permit_join';
         $Payload = ['time'=> ($PermitJoin ? 254 : 0)];
         return $this->SendCheckedBridgeRequest($Topic, $Payload) !== false;
+    }
+
+    /**
+     * SetBlocklist
+     *
+     * @param string $DevicesJSON JSON-Array mit IEEE-Adressen.
+     *
+     * @return bool
+     */
+    public function SetBlocklist(string $DevicesJSON): bool
+    {
+        return $this->SetNetworkSecurityList('blocklist', $DevicesJSON);
+    }
+
+    /**
+     * SetPasslist
+     *
+     * @param string $DevicesJSON JSON-Array mit IEEE-Adressen.
+     *
+     * @return bool
+     */
+    public function SetPasslist(string $DevicesJSON): bool
+    {
+        return $this->SetNetworkSecurityList('passlist', $DevicesJSON);
     }
 
     /**
@@ -1540,6 +1594,9 @@ class Zigbee2MQTTBridge extends IPSModuleStrict
      */
     private function BuildBridgeConfigurationForm(array $form): array
     {
+        $this->SetBridgeFormField($form, 'NetworkSecurityKnownDevice', 'options', $this->BuildNetworkSecurityDeviceOptions());
+        $this->SetBridgeFormField($form, 'NetworkSecurityBlocklist', 'values', $this->BuildNetworkSecurityListFormValues('blocklist'));
+        $this->SetBridgeFormField($form, 'NetworkSecurityPasslist', 'values', $this->BuildNetworkSecurityListFormValues('passlist'));
         $this->SetBridgeFormField($form, 'DiagnosticHealthStatus', 'caption', $this->BuildHealthStatusCaption());
         $this->SetBridgeFormField($form, 'DiagnosticCoordinatorStatus', 'caption', $this->BuildCoordinatorStatusCaption());
         $this->SetBridgeFormField($form, 'DiagnosticMissingRoutersList', 'values', $this->BuildMissingRouterFormValues());
@@ -1550,6 +1607,335 @@ class Zigbee2MQTTBridge extends IPSModuleStrict
         $this->SetBridgeFormField($form, 'TouchlinkDeviceList', 'values', $this->BuildTouchlinkDeviceFormValues());
 
         return $form;
+    }
+
+    /**
+     * Setzt eine globale Z2M-Netzwerksicherheitsliste.
+     */
+    private function SetNetworkSecurityList(string $listName, string $DevicesJSON): bool
+    {
+        $devices = $this->ParseNetworkSecurityDeviceList($DevicesJSON);
+        if ($devices === null) {
+            return false;
+        }
+
+        $attribute = $this->GetNetworkSecurityAttribute($listName);
+        if ($attribute === '') {
+            return false;
+        }
+
+        $data = $this->SendCheckedBridgeRequest('/bridge/request/options', [
+            'options' => [
+                $listName => $devices
+            ]
+        ]);
+        if ($data === false) {
+            return false;
+        }
+
+        $this->WriteAttributeArray($attribute, $devices);
+        $this->UpdateNetworkSecurityFormLists();
+        return true;
+    }
+
+    /**
+     * Fuegt ein Geraet sofort zur Blocklist hinzu.
+     */
+    private function AddNetworkSecurityDeviceFromForm(string $listName, mixed $value): bool
+    {
+        $selection = $this->DecodeBridgeFormPayload($value);
+        if ($selection === null) {
+            return false;
+        }
+
+        $ieeeAddress = $this->ResolveNetworkSecurityFormIeeeAddress($selection);
+        if ($ieeeAddress === '') {
+            trigger_error($this->Translate('IEEE address is required.'), E_USER_NOTICE);
+            return false;
+        }
+
+        return $this->ApplyNetworkSecurityListChange($listName, 'add', $ieeeAddress);
+    }
+
+    /**
+     * Entfernt ein Geraet sofort aus der Blocklist.
+     */
+    private function RemoveNetworkSecurityDeviceFromForm(string $listName, mixed $value): bool
+    {
+        $selection = $this->DecodeBridgeFormPayload($value);
+        if ($selection === null) {
+            return false;
+        }
+
+        $ieeeAddress = $this->NormalizeNetworkSecurityIeeeAddress((string) ($selection['ieee_address'] ?? ''));
+        if ($ieeeAddress === '') {
+            trigger_error($this->Translate('IEEE address is required.'), E_USER_NOTICE);
+            return false;
+        }
+
+        return $this->ApplyNetworkSecurityListChange($listName, 'remove', $ieeeAddress);
+    }
+
+    /**
+     * Speichert eine Passlist-Aenderung erst nach einer Bestaetigung.
+     */
+    private function RequestPasslistChangeFromForm(mixed $value): bool
+    {
+        $selection = $this->DecodeBridgeFormPayload($value);
+        if ($selection === null) {
+            return false;
+        }
+
+        $operation = (string) ($selection['operation'] ?? '');
+        $ieeeAddress = $operation === 'add'
+            ? $this->ResolveNetworkSecurityFormIeeeAddress($selection)
+            : $this->NormalizeNetworkSecurityIeeeAddress((string) ($selection['ieee_address'] ?? ''));
+        if ($ieeeAddress === '') {
+            trigger_error($this->Translate('IEEE address is required.'), E_USER_NOTICE);
+            return false;
+        }
+        if (!\in_array($operation, ['add', 'remove'], true)) {
+            return false;
+        }
+
+        $this->WriteAttributeArray(self::ATTRIBUTE_PENDING_PASSLIST_CHANGE, [
+            'operation'    => $operation,
+            'ieee_address' => $ieeeAddress
+        ]);
+        $this->UpdateFormField(
+            'PasslistWarningText',
+            'caption',
+            \sprintf(
+                $this->Translate('You are about to change the passlist for %s. Devices not contained in the passlist are removed from the network by Zigbee2MQTT.'),
+                $ieeeAddress
+            )
+        );
+        $this->UpdateFormField('PasslistWarning', 'visible', true);
+        return true;
+    }
+
+    /**
+     * Fuehrt eine zuvor bestaetigte Passlist-Aenderung aus.
+     */
+    private function ApplyPendingPasslistChange(): bool
+    {
+        $pending = $this->ReadAttributeArray(self::ATTRIBUTE_PENDING_PASSLIST_CHANGE);
+        $operation = (string) ($pending['operation'] ?? '');
+        $ieeeAddress = (string) ($pending['ieee_address'] ?? '');
+        if (!\in_array($operation, ['add', 'remove'], true) || $ieeeAddress === '') {
+            return false;
+        }
+
+        if (!$this->ApplyNetworkSecurityListChange('passlist', $operation, $ieeeAddress)) {
+            return false;
+        }
+
+        $this->WriteAttributeArray(self::ATTRIBUTE_PENDING_PASSLIST_CHANGE, []);
+        $this->UpdateFormField('PasslistWarning', 'visible', false);
+        return true;
+    }
+
+    /**
+     * Aendert eine Sicherheitsliste und schreibt sie nach Zigbee2MQTT.
+     */
+    private function ApplyNetworkSecurityListChange(string $listName, string $operation, string $ieeeAddress): bool
+    {
+        $attribute = $this->GetNetworkSecurityAttribute($listName);
+        if ($attribute === '') {
+            return false;
+        }
+
+        $ieeeAddress = $this->NormalizeNetworkSecurityIeeeAddress($ieeeAddress);
+        if ($ieeeAddress === '') {
+            trigger_error($this->Translate('Invalid IEEE address.'), E_USER_NOTICE);
+            return false;
+        }
+
+        $devices = $this->ReadAttributeArray($attribute);
+        if ($operation === 'add' && !\in_array($ieeeAddress, $devices, true)) {
+            $devices[] = $ieeeAddress;
+        }
+        if ($operation === 'remove') {
+            $devices = array_values(array_filter($devices, static fn (mixed $device): bool => (string) $device !== $ieeeAddress));
+        }
+
+        return $listName === 'passlist'
+            ? $this->SetPasslist(json_encode($devices, JSON_UNESCAPED_SLASHES | JSON_UNESCAPED_UNICODE))
+            : $this->SetBlocklist(json_encode($devices, JSON_UNESCAPED_SLASHES | JSON_UNESCAPED_UNICODE));
+    }
+
+    /**
+     * Baut die Device-Auswahl fuer Blocklist und Passlist.
+     */
+    private function BuildNetworkSecurityDeviceOptions(): array
+    {
+        $options = [
+            [
+                'caption' => '-',
+                'value'   => ''
+            ]
+        ];
+
+        foreach ($this->ReadAttributeArray(self::ATTRIBUTE_NETWORK_DEVICES) as $device) {
+            if (!\is_array($device)) {
+                continue;
+            }
+
+            $ieeeAddress = (string) ($device['ieee_address'] ?? '');
+            if ($ieeeAddress === '') {
+                continue;
+            }
+
+            $caption = (string) ($device['friendly_name'] ?? $ieeeAddress);
+            $model = (string) ($device['model'] ?? '');
+            if ($model !== '' && $model !== $caption) {
+                $caption .= ' (' . $model . ')';
+            }
+
+            $options[] = [
+                'caption' => $caption . ' - ' . $ieeeAddress,
+                'value'   => $ieeeAddress
+            ];
+        }
+
+        return $options;
+    }
+
+    /**
+     * Baut die Formularzeilen fuer blocklist oder passlist.
+     */
+    private function BuildNetworkSecurityListFormValues(string $listName): array
+    {
+        $attribute = $this->GetNetworkSecurityAttribute($listName);
+        if ($attribute === '') {
+            return [];
+        }
+
+        $deviceNames = $this->BuildNetworkSecurityDeviceNameMap();
+        $values = [];
+        foreach ($this->ReadAttributeArray($attribute) as $ieeeAddress) {
+            $ieeeAddress = (string) $ieeeAddress;
+            $values[] = [
+                'device'       => $deviceNames[$ieeeAddress] ?? '',
+                'ieee_address' => $ieeeAddress,
+                'action'       => $this->Translate('Remove')
+            ];
+        }
+
+        return $values;
+    }
+
+    /**
+     * Baut eine IEEE-zu-Name-Map fuer Listenanzeigen.
+     */
+    private function BuildNetworkSecurityDeviceNameMap(): array
+    {
+        $names = [];
+        foreach ($this->ReadAttributeArray(self::ATTRIBUTE_NETWORK_DEVICES) as $device) {
+            if (!\is_array($device)) {
+                continue;
+            }
+
+            $ieeeAddress = (string) ($device['ieee_address'] ?? '');
+            if ($ieeeAddress === '') {
+                continue;
+            }
+
+            $names[$ieeeAddress] = (string) ($device['friendly_name'] ?? '');
+        }
+
+        return $names;
+    }
+
+    /**
+     * Aktualisiert die Sicherheitslisten nach Aenderungen.
+     */
+    private function UpdateNetworkSecurityFormLists(): void
+    {
+        $this->UpdateFormField('NetworkSecurityBlocklist', 'values', json_encode($this->BuildNetworkSecurityListFormValues('blocklist')));
+        $this->UpdateFormField('NetworkSecurityPasslist', 'values', json_encode($this->BuildNetworkSecurityListFormValues('passlist')));
+    }
+
+    /**
+     * Liest die manuelle oder selektierte IEEE-Adresse aus der Form.
+     */
+    private function ResolveNetworkSecurityFormIeeeAddress(array $selection): string
+    {
+        $manualAddress = trim((string) ($selection['ieee_address'] ?? ''));
+        if ($manualAddress !== '') {
+            return $this->NormalizeNetworkSecurityIeeeAddress($manualAddress);
+        }
+
+        return $this->NormalizeNetworkSecurityIeeeAddress((string) ($selection['selected_ieee_address'] ?? ''));
+    }
+
+    /**
+     * Validiert und normalisiert eine JSON-Liste aus IEEE-Adressen.
+     */
+    private function ParseNetworkSecurityDeviceList(string $devicesJSON): ?array
+    {
+        $decoded = json_decode($devicesJSON, true);
+        if (!\is_array($decoded) || !array_is_list($decoded)) {
+            trigger_error($this->Translate('Device list must be a JSON array.'), E_USER_NOTICE);
+            return null;
+        }
+
+        foreach ($decoded as $device) {
+            if ((string) $device === '') {
+                continue;
+            }
+            if ($this->NormalizeNetworkSecurityIeeeAddress((string) $device) === '') {
+                trigger_error($this->Translate('Invalid IEEE address.'), E_USER_NOTICE);
+                return null;
+            }
+        }
+
+        $devices = $this->NormalizeNetworkSecurityDeviceList($decoded);
+
+        return $devices;
+    }
+
+    /**
+     * Normalisiert eine Liste von IEEE-Adressen.
+     */
+    private function NormalizeNetworkSecurityDeviceList(mixed $devices): array
+    {
+        if (!\is_array($devices)) {
+            return [];
+        }
+
+        $normalized = [];
+        foreach ($devices as $device) {
+            $ieeeAddress = $this->NormalizeNetworkSecurityIeeeAddress((string) $device);
+            if ($ieeeAddress === '') {
+                continue;
+            }
+
+            $normalized[$ieeeAddress] = $ieeeAddress;
+        }
+
+        return array_values($normalized);
+    }
+
+    /**
+     * Normalisiert eine einzelne IEEE-Adresse.
+     */
+    private function NormalizeNetworkSecurityIeeeAddress(string $ieeeAddress): string
+    {
+        $ieeeAddress = strtolower(trim($ieeeAddress));
+        return preg_match('/^0x[0-9a-f]{16}$/', $ieeeAddress) === 1 ? $ieeeAddress : '';
+    }
+
+    /**
+     * Liefert das Attribut fuer eine Sicherheitsliste.
+     */
+    private function GetNetworkSecurityAttribute(string $listName): string
+    {
+        return match ($listName) {
+            'blocklist' => self::ATTRIBUTE_CONFIG_BLOCKLIST,
+            'passlist'  => self::ATTRIBUTE_CONFIG_PASSLIST,
+            default     => ''
+        };
     }
 
     /**
@@ -1611,6 +1997,7 @@ class Zigbee2MQTTBridge extends IPSModuleStrict
      */
     private function UpdateDeviceDiagnostics(array $devices): void
     {
+        $networkDevices = [];
         $unsupported = [];
         $interviewIssues = [];
         foreach ($devices as $device) {
@@ -1619,6 +2006,15 @@ class Zigbee2MQTTBridge extends IPSModuleStrict
             }
 
             $row = $this->BuildDeviceDiagnosticRow($device);
+            if (($row['status'] ?? '') !== 'Coordinator') {
+                $networkDevices[] = [
+                    'friendly_name' => $row['friendly_name'],
+                    'ieee_address'  => $row['ieee_address'],
+                    'model'         => $row['model'],
+                    'vendor'        => $row['vendor'],
+                    'type'          => $row['status']
+                ];
+            }
             if (($device['supported'] ?? true) === false || (\array_key_exists('definition', $device) && $device['definition'] === null)) {
                 $unsupported[] = $row;
             }
@@ -1631,6 +2027,8 @@ class Zigbee2MQTTBridge extends IPSModuleStrict
             }
         }
 
+        usort($networkDevices, static fn (array $left, array $right): int => strnatcasecmp($left['friendly_name'], $right['friendly_name']));
+        $this->WriteAttributeArray(self::ATTRIBUTE_NETWORK_DEVICES, $networkDevices);
         $this->WriteAttributeArray(self::ATTRIBUTE_DIAGNOSTIC_UNSUPPORTED_DEVICES, $unsupported);
         $this->WriteAttributeArray(self::ATTRIBUTE_DIAGNOSTIC_INTERVIEW_DEVICES, $interviewIssues);
     }

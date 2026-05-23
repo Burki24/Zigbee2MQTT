@@ -152,6 +152,31 @@ class BridgeTest extends TestCase
         $this->assertSame('', $bridge->lastTopic);
     }
 
+    public function testSetBlocklistUsesBridgeOptionsRequest(): void
+    {
+        $bridge = $this->createBridgeTestDouble([
+            'status' => 'ok',
+            'data'   => []
+        ]);
+
+        $this->assertTrue($bridge->SetBlocklist('["0x000b57fffec6a5b2"]'));
+        $this->assertSame('/bridge/request/options', $bridge->lastTopic);
+        $this->assertSame([
+            'options' => [
+                'blocklist' => ['0x000b57fffec6a5b2']
+            ]
+        ], $bridge->lastPayload);
+        $this->assertSame(['0x000b57fffec6a5b2'], $bridge->readDiagnosticAttribute('ConfigBlocklist'));
+    }
+
+    public function testSetPasslistRejectsInvalidIeeeAddress(): void
+    {
+        $bridge = $this->createBridgeTestDouble(true);
+
+        $this->assertFalse(@$bridge->SetPasslist('["not-an-ieee-address"]'));
+        $this->assertSame('', $bridge->lastTopic);
+    }
+
     public function testBindWithOptionsUsesClustersAndSkipDisableReporting(): void
     {
         $bridge = $this->createBridgeTestDouble([
@@ -302,6 +327,27 @@ class BridgeTest extends TestCase
         $this->assertSame('device_joined', $bridge->readDiagnosticAttribute('DiagnosticEvents')[0]['type']);
         $this->assertSame('unsupported', $bridge->readDiagnosticAttribute('DiagnosticUnsupportedDevices')[0]['friendly_name']);
         $this->assertSame('interviewing', $bridge->readDiagnosticAttribute('DiagnosticInterviewDevices')[0]['friendly_name']);
+        $this->assertContains('unsupported', array_column($bridge->readDiagnosticAttribute('NetworkDevices'), 'friendly_name'));
+        $this->assertContains('0x1111', array_column($bridge->readDiagnosticAttribute('NetworkDevices'), 'ieee_address'));
+    }
+
+    public function testReceiveDataStoresNetworkSecurityConfig(): void
+    {
+        $bridge = $this->createBridgeTestDouble(true);
+        $bridge->setBaseTopicForTest('zigbee2mqtt');
+
+        $bridge->ReceiveData(json_encode([
+            'Topic'   => 'zigbee2mqtt/bridge/info',
+            'Payload' => bin2hex(json_encode([
+                'config' => [
+                    'blocklist' => ['0x000b57fffec6a5b2'],
+                    'passlist'  => ['0x000b57fffec6a5b3']
+                ]
+            ]))
+        ]));
+
+        $this->assertSame(['0x000b57fffec6a5b2'], $bridge->readDiagnosticAttribute('ConfigBlocklist'));
+        $this->assertSame(['0x000b57fffec6a5b3'], $bridge->readDiagnosticAttribute('ConfigPasslist'));
     }
 
     public function testCreateBackupReturnsBase64Zip(): void
