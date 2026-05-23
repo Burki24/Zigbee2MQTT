@@ -31,6 +31,10 @@
             "visible": false,
             "items": [
                 {
+                    "type": "Label",
+                    "caption": "Current group members"
+                },
+                {
                     "type": "List",
                     "name": "GroupMemberList",
                     "add": false,
@@ -60,13 +64,50 @@
                     "values": []
                 },
                 {
+                    "type": "Label",
+                    "caption": "Available devices to add"
+                },
+                {
+                    "type": "List",
+                    "name": "GroupAvailableDeviceList",
+                    "add": false,
+                    "delete": false,
+                    "rowCount": 4,
+                    "loadValuesFromConfiguration": false,
+                    "columns": [
+                        {
+                            "caption": "Device",
+                            "name": "device",
+                            "width": "auto",
+                            "quickFilter": true
+                        },
+                        {
+                            "caption": "Topic",
+                            "name": "topic",
+                            "width": "420px",
+                            "quickFilter": true
+                        },
+                        {
+                            "caption": "Action",
+                            "name": "action",
+                            "width": "100px",
+                            "align": "center",
+                            "onClick": "IPS_RequestAction($id, 'SelectGroupMemberDevice', json_encode(['device' => $GroupAvailableDeviceList['topic'], 'endpoint' => '']));"
+                        }
+                    ],
+                    "values": []
+                },
+                {
+                    "type": "Label",
+                    "caption": "Selected device"
+                },
+                {
                     "type": "RowLayout",
                     "items": [
                         {
-                            "type": "Select",
+                            "type": "ValidationTextBox",
                             "name": "GroupMemberDevice",
-                            "caption": "Device",
-                            "options": []
+                            "caption": "Device"
                         },
                         {
                             "type": "ValidationTextBox",

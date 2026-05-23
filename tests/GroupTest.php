@@ -9,7 +9,7 @@ class GroupTest extends DumpInclude
     private const DEVICE_MODULE_ID = '{E5BB36C6-A70B-EB23-3716-9151A09AC8A2}';
     private const GROUP_MODULE_ID = '{11BF3773-E940-469B-9DD7-FB9ACD7199A2}';
 
-    public function testGroupMemberDeviceSelectIsFilledFromExistingDeviceInstances(): void
+    public function testGroupAvailableDeviceListIsFilledFromExistingDeviceInstances(): void
     {
         $this->createConfiguredDevice('zigbee2mqtt', 'Flur/Beleuchtung/Deckenlicht');
         $this->createConfiguredDevice('zigbee2mqtt', 'Bad/Beleuchtung/Spiegel');
@@ -18,17 +18,21 @@ class GroupTest extends DumpInclude
         $groupID = $this->createConfiguredGroup('zigbee2mqtt', 'Flur/Beleuchtung/Deckenlicht/Gruppe');
         $form = json_decode(IPS_GetConfigurationForm($groupID), true);
 
-        $select = $this->findFormItemByName($form, 'GroupMemberDevice');
-        $this->assertNotNull($select);
-        $this->assertSame('Select', $select['type']);
+        $list = $this->findFormItemByName($form, 'GroupAvailableDeviceList');
+        $this->assertNotNull($list);
+        $this->assertSame('List', $list['type']);
 
-        $values = array_column($select['options'], 'value');
+        $values = array_column($list['values'], 'topic');
         $this->assertContains('Flur/Beleuchtung/Deckenlicht', $values);
         $this->assertContains('Bad/Beleuchtung/Spiegel', $values);
         $this->assertNotContains('Darf/Nicht/Erscheinen', $values);
+
+        $input = $this->findFormItemByName($form, 'GroupMemberDevice');
+        $this->assertNotNull($input);
+        $this->assertSame('ValidationTextBox', $input['type']);
     }
 
-    public function testGroupMemberDeviceSelectKeepsUnknownExistingMembersSelectable(): void
+    public function testGroupAvailableDeviceListKeepsUnknownExistingMembersSelectable(): void
     {
         $groupID = $this->createConfiguredGroup('zigbee2mqtt', 'Flur/Beleuchtung/Deckenlicht/Gruppe');
         $this->writeStubAttributeArray($groupID, 'GroupMembers', [
@@ -39,9 +43,9 @@ class GroupTest extends DumpInclude
         ]);
 
         $form = json_decode(IPS_GetConfigurationForm($groupID), true);
-        $select = $this->findFormItemByName($form, 'GroupMemberDevice');
+        $list = $this->findFormItemByName($form, 'GroupAvailableDeviceList');
 
-        $values = array_column($select['options'], 'value');
+        $values = array_column($list['values'], 'topic');
         $this->assertContains('Extern/Nur/In/Gruppe', $values);
     }
 

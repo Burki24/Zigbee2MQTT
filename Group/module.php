@@ -105,6 +105,10 @@ class Zigbee2MQTTGroup extends \Zigbee2MQTT\ModulBase
             $this->SelectGroupMemberFromForm($value);
             return;
         }
+        if ($ident == 'SelectGroupMemberDevice') {
+            $this->SelectGroupMemberFromForm($value);
+            return;
+        }
         if ($ident == 'AddGroupMember') {
             $this->AddGroupMemberFromForm($value);
             return;
@@ -206,7 +210,10 @@ class Zigbee2MQTTGroup extends \Zigbee2MQTT\ModulBase
         $this->SetGroupFormField($form, 'GroupMembersSettings', 'visible', $configured || $memberValues !== []);
         $this->SetGroupFormField($form, 'GroupMemberList', 'values', $memberValues);
         $this->SetGroupFormField($form, 'GroupMemberList', 'rowCount', min(10, max(4, \count($memberValues) + 1)));
-        $this->SetGroupFormField($form, 'GroupMemberDevice', 'options', $this->BuildGroupMemberDeviceOptions());
+
+        $availableDeviceValues = $this->BuildGroupAvailableDeviceFormValues();
+        $this->SetGroupFormField($form, 'GroupAvailableDeviceList', 'values', $availableDeviceValues);
+        $this->SetGroupFormField($form, 'GroupAvailableDeviceList', 'rowCount', min(10, max(4, \count($availableDeviceValues) + 1)));
 
         $optionValues = $this->BuildGroupOptionFormValues();
         $this->SetGroupFormField($form, 'GroupOptionsSettings', 'visible', $configured || $optionValues !== []);
@@ -236,6 +243,23 @@ class Zigbee2MQTTGroup extends \Zigbee2MQTT\ModulBase
                 'device'   => $this->FormatGroupMemberDevice($member),
                 'endpoint' => (string) ($member['endpoint'] ?? ''),
                 'action'   => $this->Translate('Edit')
+            ];
+        }
+
+        return $values;
+    }
+
+    /**
+     * Baut die Liste verfuegbarer Geraete fuer die Gruppenform.
+     */
+    private function BuildGroupAvailableDeviceFormValues(): array
+    {
+        $values = [];
+        foreach ($this->BuildGroupMemberDeviceOptions() as $device) {
+            $values[] = [
+                'device' => $device['caption'],
+                'topic'  => $device['value'],
+                'action' => $this->Translate('Select')
             ];
         }
 
