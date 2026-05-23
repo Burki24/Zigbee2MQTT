@@ -67,4 +67,30 @@ trait Constants
     protected const ATTRIBUTE_GROUP_MEMBERS = 'GroupMembers';
     /** @var string Attribut fuer aktuelle Zigbee2MQTT-Gruppenszenen */
     protected const ATTRIBUTE_GROUP_SCENES = 'GroupScenes';
+    /** @var string Property zum Deaktivieren der Mess-Schalter-Kachel */
+    protected const PROPERTY_DISABLE_METERED_SWITCH_TILE = 'DisableMeteredSwitchTile';
+    /** @var string Property zum Deaktivieren der Heizungs-Kachel */
+    protected const PROPERTY_DISABLE_HEATING_TILE = 'DisableHeatingTile';
+    /** @var string Property zum Deaktivieren der Sicherheits-Kachel */
+    protected const PROPERTY_DISABLE_SECURITY_TILE = 'DisableSecurityTile';
+    /** @var string Property zum Deaktivieren der Fenstergriff-Kachel */
+    protected const PROPERTY_DISABLE_WINDOW_HANDLE_TILE = 'DisableWindowHandleTile';
+    /** @var string Property zum Deaktivieren der Aktions-Kachel */
+    protected const PROPERTY_DISABLE_ACTION_TILE = 'DisableActionTile';
+    /** @var string Property zum Erzwingen der Sensor-Kachel bei Kombigeraeten */
+    protected const PROPERTY_USE_SENSOR_TILE = 'UseSensorTile';
+    /** @var string Property fuer den unteren Temperatur-Fallback der Sensor-Kachel */
+    protected const PROPERTY_TEMPERATURE_PRESENTATION_FALLBACK_MIN = 'TemperaturePresentationFallbackMin';
+    /** @var string Property fuer den oberen Temperatur-Fallback der Sensor-Kachel */
+    protected const PROPERTY_TEMPERATURE_PRESENTATION_FALLBACK_MAX = 'TemperaturePresentationFallbackMax';
+    /** @var string Property fuer den unteren Kelvin-Bereich der Farbtemperatur-Darstellung */
+    protected const PROPERTY_COLOR_TEMPERATURE_PRESENTATION_MIN = 'ColorTemperaturePresentationMin';
+    /** @var string Property fuer den oberen Kelvin-Bereich der Farbtemperatur-Darstellung */
+    protected const PROPERTY_COLOR_TEMPERATURE_PRESENTATION_MAX = 'ColorTemperaturePresentationMax';
+    /** @var string Property fuer das erste Heizungs-Kachel-Preset */
+    protected const PROPERTY_HEATING_TILE_PRESET_1 = 'HeatingTilePreset1';
+    /** @var string Property fuer das zweite Heizungs-Kachel-Preset */
+    protected const PROPERTY_HEATING_TILE_PRESET_2 = 'HeatingTilePreset2';
+    /** @var string Property fuer das dritte Heizungs-Kachel-Preset */
+    protected const PROPERTY_HEATING_TILE_PRESET_3 = 'HeatingTilePreset3';
 }
