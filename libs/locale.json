@@ -76,6 +76,7 @@
             "Value (JSON or text)": "Wert (JSON oder Text)",
             "Apply option": "Option übernehmen",
             "Edit": "Bearbeiten",
+            "Select": "Auswählen",
             "No device option selected.": "Keine Geräteoption ausgewählt.",
             "This device option must be changed through a dedicated Zigbee2MQTT function.": "Diese Geräteoption muss über eine dedizierte Zigbee2MQTT-Funktion geändert werden.",
             "Device option value must be true or false.": "Der Wert der Geräteoption muss true oder false sein.",
