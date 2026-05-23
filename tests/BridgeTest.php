@@ -196,7 +196,7 @@ class BridgeTest extends TestCase
         );
     }
 
-    public function testNetworkSecurityDeviceOptionsUseConfiguredDeviceInstances(): void
+    public function testNetworkSecurityAvailableDevicesUseConfiguredDeviceInstances(): void
     {
         $bridge = $this->createBridgeTestDouble(true);
         $bridge->setBaseTopicForTest('zigbee2mqtt');
@@ -209,11 +209,25 @@ class BridgeTest extends TestCase
         ]));
         IPS_ApplyChanges($deviceID);
 
-        $method = new ReflectionMethod(Zigbee2MQTTBridge::class, 'BuildNetworkSecurityDeviceOptions');
-        $options = $method->invoke($bridge);
+        $method = new ReflectionMethod(Zigbee2MQTTBridge::class, 'BuildNetworkSecurityAvailableDeviceFormValues');
+        $values = $method->invoke($bridge);
 
-        $this->assertContains('0x000b57fffec6a5b2', array_column($options, 'value'));
-        $this->assertStringContainsString('Kitchen/Light', implode("\n", array_column($options, 'caption')));
+        $this->assertContains('0x000b57fffec6a5b2', array_column($values, 'ieee_address'));
+        $this->assertStringContainsString('Kitchen/Light', implode("\n", array_column($values, 'device')));
+    }
+
+    public function testSelectNetworkSecurityDeviceUpdatesSelectedFields(): void
+    {
+        $bridge = $this->createBridgeTestDouble(true);
+
+        $bridge->RequestAction('SelectNetworkSecurityDevice', json_encode([
+            'device'       => 'Kitchen/Light',
+            'ieee_address' => '0x000b57fffec6a5b2'
+        ]));
+
+        $this->assertSame('Kitchen/Light', $bridge->updatedFields['NetworkSecuritySelectedDevice']['value']);
+        $this->assertSame('0x000b57fffec6a5b2', $bridge->updatedFields['NetworkSecuritySelectedIeeeAddress']['value']);
+        $this->assertSame('', $bridge->updatedFields['NetworkSecurityIeeeAddress']['value']);
     }
 
     public function testBindWithOptionsUsesClustersAndSkipDisableReporting(): void

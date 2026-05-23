@@ -425,6 +425,9 @@ class Zigbee2MQTTBridge extends IPSModuleStrict
                     $this->TouchlinkFactoryReset((string) ($target['ieee_address'] ?? ''), (int) ($target['channel'] ?? 0));
                 }
                 break;
+            case 'SelectNetworkSecurityDevice':
+                $this->SelectNetworkSecurityDeviceFromForm($value);
+                break;
             case 'AddBlocklistDevice':
                 $this->AddNetworkSecurityDeviceFromForm('blocklist', $value);
                 break;
@@ -1594,7 +1597,9 @@ class Zigbee2MQTTBridge extends IPSModuleStrict
      */
     private function BuildBridgeConfigurationForm(array $form): array
     {
-        $this->SetBridgeFormField($form, 'NetworkSecurityKnownDevice', 'options', $this->BuildNetworkSecurityDeviceOptions());
+        $availableDevices = $this->BuildNetworkSecurityAvailableDeviceFormValues();
+        $this->SetBridgeFormField($form, 'NetworkSecurityAvailableDeviceList', 'values', $availableDevices);
+        $this->SetBridgeFormField($form, 'NetworkSecurityAvailableDeviceList', 'rowCount', min(10, max(4, \count($availableDevices) + 1)));
         $this->SetBridgeFormField($form, 'NetworkSecurityBlocklist', 'values', $this->BuildNetworkSecurityListFormValues('blocklist'));
         $this->SetBridgeFormField($form, 'NetworkSecurityPasslist', 'values', $this->BuildNetworkSecurityListFormValues('passlist'));
         $this->SetBridgeFormField($form, 'DiagnosticHealthStatus', 'caption', $this->BuildHealthStatusCaption());
@@ -1765,17 +1770,33 @@ class Zigbee2MQTTBridge extends IPSModuleStrict
     }
 
     /**
-     * Baut die Device-Auswahl fuer Blocklist und Passlist.
+     * Uebernimmt ein Geraet in die Netzwerksicherheits-Eingabefelder.
      */
-    private function BuildNetworkSecurityDeviceOptions(): array
+    private function SelectNetworkSecurityDeviceFromForm(mixed $value): bool
     {
-        $options = [
-            [
-                'caption' => '-',
-                'value'   => ''
-            ]
-        ];
+        $selection = $this->DecodeBridgeFormPayload($value);
+        if ($selection === null) {
+            return false;
+        }
 
+        $ieeeAddress = $this->NormalizeNetworkSecurityIeeeAddress((string) ($selection['ieee_address'] ?? ''));
+        if ($ieeeAddress === '') {
+            $this->ShowNetworkSecurityFormError('The selected list entry does not contain a valid IEEE address.');
+            return false;
+        }
+
+        $this->UpdateFormField('NetworkSecuritySelectedDevice', 'value', (string) ($selection['device'] ?? ''));
+        $this->UpdateFormField('NetworkSecuritySelectedIeeeAddress', 'value', $ieeeAddress);
+        $this->UpdateFormField('NetworkSecurityIeeeAddress', 'value', '');
+        return true;
+    }
+
+    /**
+     * Baut die Device-Liste fuer Blocklist und Passlist.
+     */
+    private function BuildNetworkSecurityAvailableDeviceFormValues(): array
+    {
+        $values = [];
         foreach ($this->BuildNetworkSecurityDevices() as $device) {
             if (!\is_array($device)) {
                 continue;
@@ -1792,13 +1813,14 @@ class Zigbee2MQTTBridge extends IPSModuleStrict
                 $caption .= ' (' . $model . ')';
             }
 
-            $options[] = [
-                'caption' => $caption . ' - ' . $ieeeAddress,
-                'value'   => $ieeeAddress
+            $values[] = [
+                'device'       => $caption,
+                'ieee_address' => $ieeeAddress,
+                'action'       => $this->Translate('Select')
             ];
         }
 
-        return $options;
+        return $values;
     }
 
     /**
