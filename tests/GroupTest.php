@@ -116,7 +116,7 @@ class GroupTest extends DumpInclude
         $this->assertArrayHasKey('homeassistant', $values);
         $this->assertSame('', $values['transition']['current']);
         $this->assertSame('0', $values['transition']['default_value']);
-        $this->assertSame('Selection', $values['off_state']['type']);
+        $this->assertSame('Auswahl', $values['off_state']['type']);
     }
 
     public function testGroupOptionListMergesConfiguredAndUnknownOptions(): void

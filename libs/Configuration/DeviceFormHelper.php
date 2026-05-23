@@ -272,7 +272,7 @@ trait DeviceFormHelper
         }
 
         $this->UpdateFormField('DeviceOptionName', 'value', $selection['name'] ?? '');
-        $this->UpdateFormField('DeviceOptionValue', 'value', $selection['value'] ?? '');
+        $this->ConfigureDeviceOptionEditor((string) ($selection['name'] ?? ''), (string) ($selection['value'] ?? ''));
 
         return true;
     }
@@ -298,7 +298,7 @@ trait DeviceFormHelper
         }
 
         try {
-            $parsedValue = $this->ParseDeviceOptionValue($name, (string) ($selection['value'] ?? ''));
+            $parsedValue = $this->ParseDeviceOptionValue($name, $this->ResolveDeviceOptionRawValue($name, $selection));
         } catch (\InvalidArgumentException $e) {
             trigger_error($this->Translate($e->getMessage()), E_USER_NOTICE);
             return false;
@@ -442,7 +442,7 @@ trait DeviceFormHelper
             $values[] = [
                 'label'       => $this->Translate((string) ($definition['label'] ?? $this->BuildDeviceOptionLabel($name))),
                 'name'        => $name,
-                'type'        => $this->Translate($type),
+                'type'        => $this->Translate($this->FormatDeviceOptionType($type)),
                 'current'     => \array_key_exists($name, $options) ? $this->FormatDeviceOptionValue($currentValue) : '',
                 'description' => $description === '' ? '' : $this->Translate($description),
                 'action'      => $this->Translate('Edit')
@@ -522,25 +522,47 @@ trait DeviceFormHelper
                 'name'        => 'debounce_ignore',
                 'label'       => 'Debounce ignore',
                 'type'        => 'array',
-                'description' => 'Attributes ignored by debounce.'
+                'description' => 'Attributes ignored by debounce.',
+                'editor'      => 'attributes'
+            ],
+            'disable_automatic_update_check' => [
+                'name'        => 'disable_automatic_update_check',
+                'label'       => 'Disable automatic update check',
+                'type'        => 'binary',
+                'description' => 'Disable automatic firmware update checks initiated by Zigbee2MQTT for this device.'
+            ],
+            'disabled' => [
+                'name'        => 'disabled',
+                'label'       => 'Disabled',
+                'type'        => 'binary',
+                'description' => 'Disable this device in Zigbee2MQTT.'
             ],
             'filtered_attributes' => [
                 'name'        => 'filtered_attributes',
                 'label'       => 'Filtered attributes',
                 'type'        => 'array',
-                'description' => 'Attributes not published by Zigbee2MQTT.'
+                'description' => 'Attributes not published by Zigbee2MQTT.',
+                'editor'      => 'attributes'
             ],
             'filtered_cache' => [
                 'name'        => 'filtered_cache',
                 'label'       => 'Filtered cache',
                 'type'        => 'array',
-                'description' => 'Attributes not written to the Zigbee2MQTT cache.'
+                'description' => 'Attributes not written to the Zigbee2MQTT cache.',
+                'editor'      => 'attributes'
             ],
             'filtered_optimistic' => [
                 'name'        => 'filtered_optimistic',
                 'label'       => 'Filtered optimistic',
                 'type'        => 'array',
-                'description' => 'Optimistic attributes not published by Zigbee2MQTT.'
+                'description' => 'Optimistic attributes not published by Zigbee2MQTT.',
+                'editor'      => 'attributes'
+            ],
+            'homeassistant' => [
+                'name'        => 'homeassistant',
+                'label'       => 'Home Assistant',
+                'type'        => 'object',
+                'description' => 'Override Home Assistant discovery properties for this device.'
             ],
             'icon' => [
                 'name'        => 'icon',
@@ -557,8 +579,15 @@ trait DeviceFormHelper
             'qos' => [
                 'name'        => 'qos',
                 'label'       => 'QoS',
-                'type'        => 'numeric',
-                'description' => 'MQTT quality of service.'
+                'type'        => 'enum',
+                'description' => 'MQTT quality of service.',
+                'default'     => null,
+                'values'      => [
+                    ['caption' => '-', 'value' => 'null', 'actual' => null],
+                    ['caption' => '0', 'value' => '0', 'actual' => 0],
+                    ['caption' => '1', 'value' => '1', 'actual' => 1],
+                    ['caption' => '2', 'value' => '2', 'actual' => 2]
+                ]
             ],
             'retain' => [
                 'name'        => 'retain',
@@ -605,22 +634,337 @@ trait DeviceFormHelper
     }
 
     /**
+     * Schaltet den passenden Editor fuer eine Geraeteoption sichtbar.
+     */
+    private function ConfigureDeviceOptionEditor(string $name, string $rawValue): void
+    {
+        $definition = $this->GetDeviceOptionDefinition($name);
+        $editor = $this->GetDeviceOptionEditor($definition);
+
+        $this->UpdateFormField('DeviceOptionEditor', 'value', $editor);
+        $this->UpdateFormField('DeviceOptionValue', 'visible', $editor === 'text');
+        $this->UpdateFormField('DeviceOptionBoolean', 'visible', $editor === 'boolean');
+        $this->UpdateFormField('DeviceOptionSelect', 'visible', $editor === 'select');
+        $this->UpdateFormField('DeviceOptionAttributeList', 'visible', $editor === 'attributes');
+        $this->UpdateFormField('DeviceOptionAttributeEditor', 'visible', $editor === 'attributes');
+
+        if ($editor === 'boolean') {
+            $this->UpdateFormField('DeviceOptionBoolean', 'value', $this->ParseDeviceOptionBoolean($rawValue));
+            return;
+        }
+
+        if ($editor === 'select') {
+            $options = $this->BuildDeviceOptionSelectOptions($definition);
+            $this->UpdateFormField('DeviceOptionSelect', 'options', json_encode($options));
+            $this->UpdateFormField('DeviceOptionSelect', 'value', $this->NormalizeDeviceOptionSelectValue($rawValue, $definition));
+            return;
+        }
+
+        if ($editor === 'attributes') {
+            $selected = $this->DecodeDeviceOptionAttributeSelection($rawValue);
+            $this->UpdateDeviceOptionAttributeEditor($selected);
+            return;
+        }
+
+        $this->UpdateFormField('DeviceOptionValue', 'value', $rawValue);
+    }
+
+    /**
+     * Ermittelt aus den sichtbaren Formularfeldern den Rohwert.
+     */
+    private function ResolveDeviceOptionRawValue(string $name, array $selection): mixed
+    {
+        $definition = $this->GetDeviceOptionDefinition($name);
+        $editor = trim((string) ($selection['editor'] ?? ''));
+        if ($editor === '') {
+            $editor = $this->GetDeviceOptionEditor($definition);
+        }
+
+        return match ($editor) {
+            'boolean'   => $selection['boolean'] ?? $selection['value'] ?? false,
+            'select'    => (string) ($selection['selection'] ?? $selection['value'] ?? ''),
+            'attributes' => (string) ($selection['value'] ?? '[]'),
+            default     => (string) ($selection['value'] ?? '')
+        };
+    }
+
+    /**
+     * Liefert die bekannte Definition einer Geraeteoption.
+     */
+    private function GetDeviceOptionDefinition(string $name): array
+    {
+        return $this->BuildDeviceOptionDefinitionMap()[$name] ?? [
+            'type'        => 'mixed',
+            'description' => 'Option returned by Zigbee2MQTT.'
+        ];
+    }
+
+    /**
+     * Liefert den Formulareditor passend zum Optionstyp.
+     */
+    private function GetDeviceOptionEditor(array $definition): string
+    {
+        if (($definition['editor'] ?? '') === 'attributes') {
+            return 'attributes';
+        }
+
+        $type = $this->NormalizeDeviceOptionType((string) ($definition['type'] ?? 'mixed'));
+        if ($type === 'binary') {
+            return 'boolean';
+        }
+        if ($type === 'enum' && \is_array($definition['values'] ?? null)) {
+            return 'select';
+        }
+
+        return 'text';
+    }
+
+    /**
+     * Baut die Auswahlwerte fuer eine Enum-Option.
+     */
+    private function BuildDeviceOptionSelectOptions(array $definition): array
+    {
+        $options = [];
+        foreach (($definition['values'] ?? []) as $value) {
+            if (\is_array($value)) {
+                $optionValue = (string) ($value['value'] ?? $value['name'] ?? '');
+                $options[] = [
+                    'caption' => (string) ($value['caption'] ?? $value['label'] ?? $optionValue),
+                    'value'   => $optionValue
+                ];
+                continue;
+            }
+
+            $optionValue = (string) $value;
+            $options[] = [
+                'caption' => $optionValue,
+                'value'   => $optionValue
+            ];
+        }
+
+        return $options;
+    }
+
+    /**
+     * Normalisiert den aktuellen Wert fuer das Select-Feld.
+     */
+    private function NormalizeDeviceOptionSelectValue(string $rawValue, array $definition): string
+    {
+        if ($rawValue === '' && \array_key_exists('default', $definition)) {
+            return $this->FormatDeviceOptionValue($definition['default']);
+        }
+
+        if ($rawValue === '-') {
+            return 'null';
+        }
+
+        return $rawValue;
+    }
+
+    /**
+     * Fuegt ein Attribut in einen Listen-Editor ein.
+     */
+    protected function AddDeviceOptionAttributeFromForm(mixed $value): bool
+    {
+        $selection = $this->DecodeDeviceOptionFormPayload($value);
+        if ($selection === null) {
+            return false;
+        }
+
+        $attribute = trim((string) ($selection['attribute'] ?? ''));
+        $selected = $this->DecodeDeviceOptionAttributeSelection((string) ($selection['value'] ?? '[]'));
+        if ($attribute !== '' && !\in_array($attribute, $selected, true)) {
+            $selected[] = $attribute;
+        }
+
+        $this->UpdateDeviceOptionAttributeEditor($selected);
+        return true;
+    }
+
+    /**
+     * Entfernt ein Attribut aus einem Listen-Editor.
+     */
+    protected function RemoveDeviceOptionAttributeFromForm(mixed $value): bool
+    {
+        $selection = $this->DecodeDeviceOptionFormPayload($value);
+        if ($selection === null) {
+            return false;
+        }
+
+        $attribute = trim((string) ($selection['attribute'] ?? ''));
+        $selected = array_values(array_filter(
+            $this->DecodeDeviceOptionAttributeSelection((string) ($selection['value'] ?? '[]')),
+            static fn (string $entry): bool => $entry !== $attribute
+        ));
+
+        $this->UpdateDeviceOptionAttributeEditor($selected);
+        return true;
+    }
+
+    /**
+     * Aktualisiert Listen, Auswahl und Hidden-JSON fuer Attribut-Optionen.
+     */
+    private function UpdateDeviceOptionAttributeEditor(array $selected): void
+    {
+        $selected = $this->NormalizeDeviceOptionAttributes($selected);
+        $listValues = $this->BuildDeviceOptionAttributeFormValues($selected);
+        $candidateOptions = $this->BuildDeviceOptionAttributeCandidateOptions($selected);
+
+        $this->UpdateFormField('DeviceOptionValue', 'value', $this->FormatDeviceOptionValue($selected));
+        $this->UpdateFormField('DeviceOptionAttributeList', 'values', json_encode($listValues));
+        $this->UpdateFormField('DeviceOptionAttributeList', 'rowCount', min(8, max(3, \count($listValues) + 1)));
+        $this->UpdateFormField('DeviceOptionAttributeCandidate', 'options', json_encode($candidateOptions));
+        $this->UpdateFormField('DeviceOptionAttributeCandidate', 'value', (string) ($candidateOptions[0]['value'] ?? ''));
+    }
+
+    /**
+     * Baut die Liste der aktuell gewaehlten Attribute.
+     */
+    private function BuildDeviceOptionAttributeFormValues(array $selected): array
+    {
+        $values = [];
+        foreach ($this->NormalizeDeviceOptionAttributes($selected) as $attribute) {
+            $values[] = [
+                'attribute' => $attribute,
+                'action'    => $this->Translate('Remove')
+            ];
+        }
+
+        return $values;
+    }
+
+    /**
+     * Baut die noch waehlbaren Attribute aus Exposes, Variablen und aktuellem Wert.
+     */
+    private function BuildDeviceOptionAttributeCandidateOptions(array $selected): array
+    {
+        $selected = $this->NormalizeDeviceOptionAttributes($selected);
+        $candidates = array_values(array_diff($this->BuildDeviceOptionAttributeCandidates($selected), $selected));
+
+        return array_map(
+            static fn (string $attribute): array => [
+                'caption' => $attribute,
+                'value'   => $attribute
+            ],
+            $candidates
+        );
+    }
+
+    /**
+     * Ermittelt die Attribute, die dieses Geraet potentiell im Payload anbietet.
+     */
+    private function BuildDeviceOptionAttributeCandidates(array $selected = []): array
+    {
+        $candidates = [];
+        $this->CollectDevicePayloadAttributes($this->ReadAttributeArray(self::ATTRIBUTE_EXPOSES), $candidates);
+        $candidates = array_merge($candidates, array_keys($this->ReadAttributeArray(self::ATTRIBUTE_VARIABLE_CATALOG)));
+
+        if (@IPS_ObjectExists($this->InstanceID)) {
+            foreach (IPS_GetChildrenIDs($this->InstanceID) as $childID) {
+                $object = @IPS_GetObject($childID);
+                $ident = (string) ($object['ObjectIdent'] ?? '');
+                if ($ident !== '') {
+                    $candidates[] = $ident;
+                }
+            }
+        }
+
+        $candidates = array_merge($candidates, $selected);
+        $candidates = array_values(array_unique(array_filter(array_map('strval', $candidates), [$this, 'IsDeviceOptionAttributeCandidate'])));
+        usort($candidates, static fn (string $left, string $right): int => strnatcasecmp($left, $right));
+        return $candidates;
+    }
+
+    /**
+     * Sammelt Payload-Properties aus Expose-Strukturen.
+     */
+    private function CollectDevicePayloadAttributes(mixed $node, array &$candidates): void
+    {
+        if (!\is_array($node)) {
+            return;
+        }
+
+        if (array_is_list($node)) {
+            foreach ($node as $child) {
+                $this->CollectDevicePayloadAttributes($child, $candidates);
+            }
+
+            return;
+        }
+
+        $property = (string) ($node['property'] ?? '');
+        if ($property !== '') {
+            $candidates[] = $property;
+        }
+
+        foreach ($node as $key => $value) {
+            if (!\is_array($value)) {
+                continue;
+            }
+
+            if (\in_array($key, ['features', 'exposes'], true) || array_is_list($value)) {
+                $this->CollectDevicePayloadAttributes($value, $candidates);
+            }
+        }
+    }
+
+    /**
+     * Normalisiert den aktuellen Wert fuer Attribut-Optionen.
+     */
+    private function DecodeDeviceOptionAttributeSelection(string $rawValue): array
+    {
+        try {
+            return $this->ParseDeviceOptionArray($rawValue);
+        } catch (\InvalidArgumentException) {
+            return [];
+        }
+    }
+
+    /**
+     * Entfernt leere und doppelte Eintraege.
+     */
+    private function NormalizeDeviceOptionAttributes(array $attributes): array
+    {
+        $normalized = array_values(array_unique(array_filter(array_map(
+            static fn (mixed $attribute): string => trim((string) $attribute),
+            $attributes
+        ), [$this, 'IsDeviceOptionAttributeCandidate'])));
+
+        usort($normalized, static fn (string $left, string $right): int => strnatcasecmp($left, $right));
+        return $normalized;
+    }
+
+    /**
+     * Filtert technische oder leere Eintraege aus der Attributauswahl.
+     */
+    private function IsDeviceOptionAttributeCandidate(string $attribute): bool
+    {
+        return $attribute !== ''
+            && !\in_array($attribute, [
+                'debounce_ignore',
+                'filtered_attributes',
+                'filtered_cache',
+                'filtered_optimistic',
+                'friendly_name'
+            ], true);
+    }
+
+    /**
      * Konvertiert den Formularwert passend zum bekannten Optionstyp.
      */
-    private function ParseDeviceOptionValue(string $name, string $rawValue): mixed
+    private function ParseDeviceOptionValue(string $name, mixed $rawValue): mixed
     {
-        $rawValue = trim($rawValue);
         $definition = $this->BuildDeviceOptionDefinitionMap()[$name] ?? [];
         $type = $this->NormalizeDeviceOptionType((string) ($definition['type'] ?? 'mixed'));
 
         return match ($type) {
             'binary'  => $this->ParseDeviceOptionBoolean($rawValue),
-            'numeric' => $this->ParseDeviceOptionNumber($rawValue),
-            'array'   => $this->ParseDeviceOptionArray($rawValue),
-            'object'  => $this->ParseDeviceOptionObject($rawValue),
-            'text',
-            'enum'    => $rawValue,
-            default   => $this->ParseDeviceOptionMixed($rawValue)
+            'numeric' => $this->ParseDeviceOptionNumber((string) $rawValue),
+            'enum'    => $this->ParseDeviceOptionEnum((string) $rawValue, $definition),
+            'array'   => $this->ParseDeviceOptionArray((string) $rawValue),
+            'object'  => $this->ParseDeviceOptionObject((string) $rawValue),
+            'text'    => (string) $rawValue,
+            default   => $this->ParseDeviceOptionMixed((string) $rawValue)
         };
     }
 
@@ -739,10 +1083,27 @@ trait DeviceFormHelper
             'array' => 'array',
             'composite',
             'object' => 'object',
-            'enum' => 'enum',
+            'enum',
+            'select' => 'enum',
             'string',
             'text' => 'text',
             default => 'mixed'
+        };
+    }
+
+    /**
+     * Liefert eine lesbare Typbezeichnung fuer die Optionsliste.
+     */
+    private function FormatDeviceOptionType(string $type): string
+    {
+        return match ($this->NormalizeDeviceOptionType($type)) {
+            'binary'  => 'Boolean',
+            'numeric' => 'Number',
+            'enum'    => 'Selection',
+            'array'   => 'Array',
+            'object'  => 'Object',
+            'text'    => 'Text',
+            default   => 'Mixed'
         };
     }
 
@@ -816,9 +1177,13 @@ trait DeviceFormHelper
     /**
      * Wandelt Formularwerte in boolesche Optionswerte.
      */
-    private function ParseDeviceOptionBoolean(string $rawValue): bool
+    private function ParseDeviceOptionBoolean(mixed $rawValue): bool
     {
-        $normalized = strtolower($rawValue);
+        if (\is_bool($rawValue)) {
+            return $rawValue;
+        }
+
+        $normalized = strtolower(trim((string) $rawValue));
         if (\in_array($normalized, ['true', '1', 'on', 'yes', 'ja', 'an'], true)) {
             return true;
         }
@@ -840,6 +1205,33 @@ trait DeviceFormHelper
         }
 
         return str_contains($normalized, '.') ? (float) $normalized : (int) $normalized;
+    }
+
+    /**
+     * Wandelt Formularwerte in Enum-Optionswerte.
+     */
+    private function ParseDeviceOptionEnum(string $rawValue, array $definition): mixed
+    {
+        if (!\is_array($definition['values'] ?? null)) {
+            return $rawValue;
+        }
+
+        foreach ($definition['values'] as $option) {
+            if (\is_array($option)) {
+                $optionValue = (string) ($option['value'] ?? $option['name'] ?? '');
+                if ($optionValue !== $rawValue) {
+                    continue;
+                }
+
+                return \array_key_exists('actual', $option) ? $option['actual'] : $optionValue;
+            }
+
+            if ((string) $option === $rawValue) {
+                return (string) $option;
+            }
+        }
+
+        throw new \InvalidArgumentException('Device option value is not allowed.');
     }
 
     /**
@@ -868,6 +1260,11 @@ trait DeviceFormHelper
      */
     private function ParseDeviceOptionObject(string $rawValue): array
     {
+        $rawValue = trim($rawValue);
+        if ($rawValue === '') {
+            return [];
+        }
+
         $decoded = json_decode($rawValue, true);
         if (\is_array($decoded) && !array_is_list($decoded)) {
             return $decoded;

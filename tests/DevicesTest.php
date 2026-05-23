@@ -325,7 +325,147 @@ class DevicesTest extends DumpInclude
 
         $temperaturePrecision = $this->findDeviceOptionRow($list['values'], 'temperature_precision');
         $this->assertNotNull($temperaturePrecision);
-        $this->assertSame('Numerisch', $temperaturePrecision['type']);
+        $this->assertSame('Zahl', $temperaturePrecision['type']);
+
+        $qos = $this->findDeviceOptionRow($list['values'], 'qos');
+        $this->assertNotNull($qos);
+        $this->assertSame('Auswahl', $qos['type']);
+
+        $disabled = $this->findDeviceOptionRow($list['values'], 'disabled');
+        $this->assertNotNull($disabled);
+        $this->assertSame('Wahr/Falsch', $disabled['type']);
+
+        $updateCheck = $this->findDeviceOptionRow($list['values'], 'disable_automatic_update_check');
+        $this->assertNotNull($updateCheck);
+
+        $homeassistant = $this->findDeviceOptionRow($list['values'], 'homeassistant');
+        $this->assertNotNull($homeassistant);
+        $this->assertSame('Objekt', $homeassistant['type']);
+    }
+
+    public function testSelectingDeviceOptionShowsBooleanEditor(): void
+    {
+        $device = $this->createDeviceOptionFormTestDouble();
+
+        $device->RequestAction('SelectDeviceOption', json_encode([
+            'name'  => 'disabled',
+            'value' => 'true'
+        ]));
+
+        $this->assertSame('disabled', $device->updatedFields['DeviceOptionName']['value']);
+        $this->assertSame('boolean', $device->updatedFields['DeviceOptionEditor']['value']);
+        $this->assertSame(false, $device->updatedFields['DeviceOptionValue']['visible']);
+        $this->assertSame(true, $device->updatedFields['DeviceOptionBoolean']['visible']);
+        $this->assertSame(true, $device->updatedFields['DeviceOptionBoolean']['value']);
+        $this->assertSame(false, $device->updatedFields['DeviceOptionSelect']['visible']);
+    }
+
+    public function testSelectingDeviceOptionShowsSelectEditor(): void
+    {
+        $device = $this->createDeviceOptionFormTestDouble();
+
+        $device->RequestAction('SelectDeviceOption', json_encode([
+            'name'  => 'qos',
+            'value' => '1'
+        ]));
+
+        $this->assertSame('select', $device->updatedFields['DeviceOptionEditor']['value']);
+        $this->assertSame(false, $device->updatedFields['DeviceOptionValue']['visible']);
+        $this->assertSame(false, $device->updatedFields['DeviceOptionBoolean']['visible']);
+        $this->assertSame(true, $device->updatedFields['DeviceOptionSelect']['visible']);
+        $this->assertSame('1', $device->updatedFields['DeviceOptionSelect']['value']);
+
+        $options = json_decode($device->updatedFields['DeviceOptionSelect']['options'], true);
+        $this->assertSame(['null', '0', '1', '2'], array_column($options, 'value'));
+    }
+
+    public function testSelectingDeviceAttributeOptionShowsAttributeEditor(): void
+    {
+        $device = $this->createDeviceOptionFormTestDouble();
+        $device->setExposesForTest([
+            [
+                'type'     => 'light',
+                'features' => [
+                    ['property' => 'state'],
+                    ['property' => 'brightness'],
+                    ['property' => 'color_temp']
+                ]
+            ]
+        ]);
+
+        $device->RequestAction('SelectDeviceOption', json_encode([
+            'name'  => 'filtered_attributes',
+            'value' => '["brightness"]'
+        ]));
+
+        $this->assertSame('attributes', $device->updatedFields['DeviceOptionEditor']['value']);
+        $this->assertSame(false, $device->updatedFields['DeviceOptionValue']['visible']);
+        $this->assertSame(true, $device->updatedFields['DeviceOptionAttributeList']['visible']);
+        $this->assertSame(true, $device->updatedFields['DeviceOptionAttributeEditor']['visible']);
+        $this->assertSame('["brightness"]', $device->updatedFields['DeviceOptionValue']['value']);
+
+        $listValues = json_decode($device->updatedFields['DeviceOptionAttributeList']['values'], true);
+        $this->assertSame(['brightness'], array_column($listValues, 'attribute'));
+
+        $candidateOptions = json_decode($device->updatedFields['DeviceOptionAttributeCandidate']['options'], true);
+        $this->assertSame(['color_temp', 'state'], array_column($candidateOptions, 'value'));
+    }
+
+    public function testDeviceAttributeOptionEditorAddsAndRemovesAttributes(): void
+    {
+        $device = $this->createDeviceOptionFormTestDouble();
+        $device->setExposesForTest([
+            [
+                'type'     => 'light',
+                'features' => [
+                    ['property' => 'state'],
+                    ['property' => 'brightness']
+                ]
+            ]
+        ]);
+
+        $device->RequestAction('AddDeviceOptionAttribute', json_encode([
+            'attribute' => 'state',
+            'value'     => '["brightness"]'
+        ]));
+
+        $this->assertSame(['brightness', 'state'], json_decode($device->updatedFields['DeviceOptionValue']['value'], true));
+
+        $device->RequestAction('RemoveDeviceOptionAttribute', json_encode([
+            'attribute' => 'brightness',
+            'value'     => $device->updatedFields['DeviceOptionValue']['value']
+        ]));
+
+        $this->assertSame(['state'], json_decode($device->updatedFields['DeviceOptionValue']['value'], true));
+    }
+
+    public function testApplyingTypedDeviceOptionsSendsTypedValues(): void
+    {
+        $device = $this->createDeviceOptionFormTestDouble();
+
+        $device->RequestAction('ApplyDeviceOption', json_encode([
+            'name'    => 'disabled',
+            'editor'  => 'boolean',
+            'boolean' => true
+        ]));
+
+        $this->assertSame('/bridge/request/device/options', $device->sentTopic);
+        $this->assertSame(['disabled' => true], $device->sentPayload['options']);
+
+        $device->RequestAction('ApplyDeviceOption', json_encode([
+            'name'      => 'qos',
+            'editor'    => 'select',
+            'selection' => 'null'
+        ]));
+
+        $this->assertSame(['qos' => null], $device->sentPayload['options']);
+
+        $device->RequestAction('ApplyDeviceOption', json_encode([
+            'name'  => 'transition',
+            'value' => '1.5'
+        ]));
+
+        $this->assertSame(['transition' => 1.5], $device->sentPayload['options']);
     }
 
     public function testBindingAndReportingEndpointsAreShownInConfigurationForm(): void
@@ -829,6 +969,50 @@ class DevicesTest extends DumpInclude
         }
 
         return null;
+    }
+
+    private function createDeviceOptionFormTestDouble(): Zigbee2MQTTDevice
+    {
+        $device = new class(990004) extends Zigbee2MQTTDevice {
+            public array $updatedFields = [];
+            public string $sentTopic = '';
+            public array $sentPayload = [];
+
+            protected function SendData(string $Topic, array $Payload = [], int $Timeout = 5000): array|bool
+            {
+                $this->sentTopic = $Topic;
+                $this->sentPayload = $Payload;
+                return true;
+            }
+
+            protected function ReadPropertyString(string $Name): string
+            {
+                return match ($Name) {
+                    self::MQTT_TOPIC      => 'Flur/Beleuchtung/Unten',
+                    self::MQTT_BASE_TOPIC => 'zigbee2mqtt',
+                    default               => parent::ReadPropertyString($Name)
+                };
+            }
+
+            protected function UpdateFormField(string $Field, string $Parameter, mixed $Value): bool
+            {
+                $this->updatedFields[$Field][$Parameter] = $Value;
+                return true;
+            }
+
+            protected function SendDebug(string $Message, string $Data, int $Format): bool
+            {
+                return true;
+            }
+
+            public function setExposesForTest(array $exposes): void
+            {
+                $this->WriteAttributeArray(self::ATTRIBUTE_EXPOSES, $exposes);
+            }
+        };
+        $device->Create();
+
+        return $device;
     }
 
     private static function buildMqttRequest(string $topic, array $payload): string

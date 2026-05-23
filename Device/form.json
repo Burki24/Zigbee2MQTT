@@ -283,13 +283,75 @@
                         },
                         {
                             "type": "ValidationTextBox",
+                            "name": "DeviceOptionEditor",
+                            "caption": "Editor",
+                            "visible": false
+                        },
+                        {
+                            "type": "ValidationTextBox",
                             "name": "DeviceOptionValue",
                             "caption": "Value (JSON or text)"
                         },
                         {
+                            "type": "CheckBox",
+                            "name": "DeviceOptionBoolean",
+                            "caption": "Value",
+                            "visible": false
+                        },
+                        {
+                            "type": "Select",
+                            "name": "DeviceOptionSelect",
+                            "caption": "Value",
+                            "visible": false,
+                            "options": []
+                        },
+                        {
                             "type": "Button",
                             "caption": "Apply option",
-                            "onClick": "IPS_RequestAction($id, 'ApplyDeviceOption', json_encode(['name' => $DeviceOptionName, 'value' => $DeviceOptionValue]));"
+                            "onClick": "IPS_RequestAction($id, 'ApplyDeviceOption', json_encode(['name' => $DeviceOptionName, 'editor' => $DeviceOptionEditor, 'value' => $DeviceOptionValue, 'boolean' => $DeviceOptionBoolean, 'selection' => $DeviceOptionSelect]));"
+                        }
+                    ]
+                },
+                {
+                    "type": "List",
+                    "name": "DeviceOptionAttributeList",
+                    "visible": false,
+                    "add": false,
+                    "delete": false,
+                    "rowCount": 4,
+                    "loadValuesFromConfiguration": false,
+                    "columns": [
+                        {
+                            "caption": "Attribute",
+                            "name": "attribute",
+                            "width": "auto",
+                            "quickFilter": true
+                        },
+                        {
+                            "caption": "Action",
+                            "name": "action",
+                            "width": "100px",
+                            "align": "center",
+                            "onClick": "IPS_RequestAction($id, 'RemoveDeviceOptionAttribute', json_encode(['attribute' => $DeviceOptionAttributeList['attribute'], 'value' => $DeviceOptionValue]));"
+                        }
+                    ],
+                    "values": []
+                },
+                {
+                    "type": "RowLayout",
+                    "name": "DeviceOptionAttributeEditor",
+                    "visible": false,
+                    "items": [
+                        {
+                            "type": "Select",
+                            "name": "DeviceOptionAttributeCandidate",
+                            "caption": "Attribute",
+                            "options": []
+                        },
+                        {
+                            "type": "Button",
+                            "caption": "Add attribute",
+                            "onClick": "IPS_RequestAction($id, 'AddDeviceOptionAttribute', json_encode(['attribute' => $DeviceOptionAttributeCandidate, 'value' => $DeviceOptionValue]));"
                         }
                     ]
                 }

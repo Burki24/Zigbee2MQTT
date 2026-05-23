@@ -141,6 +141,14 @@ class Zigbee2MQTTDevice extends \Zigbee2MQTT\ModulBase
             $this->ApplyDeviceOptionFromForm($value);
             return;
         }
+        if ($ident == 'AddDeviceOptionAttribute') {
+            $this->AddDeviceOptionAttributeFromForm($value);
+            return;
+        }
+        if ($ident == 'RemoveDeviceOptionAttribute') {
+            $this->RemoveDeviceOptionAttributeFromForm($value);
+            return;
+        }
         if ($ident == 'ApplyBinding') {
             $this->ApplyBindingFromForm($value);
             return;
