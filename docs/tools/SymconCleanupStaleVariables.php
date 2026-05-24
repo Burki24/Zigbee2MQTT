@@ -6,23 +6,57 @@ declare(strict_types=1);
  * Zigbee2MQTT stale variable cleanup for IP-Symcon.
  *
  * Usage:
- * 1. Copy this script into an IP-Symcon script and run it unchanged.
- * 2. Review the reported variable IDs.
- * 3. To delete selected variables, set $deleteMode = true and enter the
- *    variable object IDs in $deleteVariableIDs.
+ * 1. Copy this script and SymconCleanupStaleVariables.config.json into the
+ *    same IP-Symcon script directory, or adjust $configFile below once.
+ * 2. Run the script unchanged and review the reported variable IDs.
+ * 3. Enter selected variable object IDs in the JSON config file and set
+ *    deleteMode plus confirmDeletion there.
  *
  * The default run is always a dry run. No variable is deleted unless delete
- * mode is explicitly enabled.
+ * mode is explicitly enabled in the external JSON config.
  */
 
-$deleteMode = false;
-$deleteVariableIDs = [];
-$deleteAllClearCandidates = false;
+$configFile = __DIR__ . '/SymconCleanupStaleVariables.config.json';
+$configFileStatus = 'nicht gefunden, Dry-Run-Defaults werden verwendet';
+$config = [
+    'deleteMode'                 => false,
+    'confirmDeletion'            => '',
+    'deleteVariableIDs'          => [],
+    'deleteAllClearCandidates'   => false,
+    'includeGroups'              => true,
+    'showPayloadOnlyReview'      => true,
+    'protectArchivedVariables'   => true,
+    'protectReferencedVariables' => true,
+];
 
-$includeGroups = true;
-$showPayloadOnlyReview = true;
-$protectArchivedVariables = true;
-$protectReferencedVariables = true;
+if (is_file($configFile)) {
+    $rawConfig = file_get_contents($configFile);
+    $decodedConfig = $rawConfig === false ? null : json_decode($rawConfig, true);
+    if (!is_array($decodedConfig)) {
+        echo 'Konfigurationsdatei ist kein gueltiges JSON: ' . $configFile . "\n";
+        return;
+    }
+
+    $config = array_replace($config, array_intersect_key($decodedConfig, $config));
+    $configFileStatus = $configFile;
+}
+
+$deleteMode = (bool) $config['deleteMode'];
+$deleteVariableIDs = array_values(array_unique(array_map(
+    'intval',
+    is_array($config['deleteVariableIDs']) ? $config['deleteVariableIDs'] : []
+)));
+$deleteAllClearCandidates = (bool) $config['deleteAllClearCandidates'];
+
+$includeGroups = (bool) $config['includeGroups'];
+$showPayloadOnlyReview = (bool) $config['showPayloadOnlyReview'];
+$protectArchivedVariables = (bool) $config['protectArchivedVariables'];
+$protectReferencedVariables = (bool) $config['protectReferencedVariables'];
+
+if ($deleteMode && (string) $config['confirmDeletion'] !== 'DELETE') {
+    echo "Loeschmodus wurde angefordert, aber confirmDeletion ist nicht \"DELETE\". Script laeuft sicherheitshalber im Dry-Run.\n";
+    $deleteMode = false;
+}
 
 if (!function_exists('IPS_GetInstanceListByModuleID') || !function_exists('Z2M_UIExportDebugData')) {
     echo "Dieses Script muss in IP-Symcon mit installiertem Zigbee2MQTT-Modul ausgefuehrt werden.\n";
@@ -477,6 +511,7 @@ $printRows = static function (string $title, array $rows): void
 
 echo "Zigbee2MQTT Variablen-Cleanup\n";
 echo "=============================\n";
+echo 'Konfiguration: ' . $configFileStatus . "\n";
 echo 'Modus: ' . ($deleteMode ? 'LOESCHMODUS' : 'DRY-RUN') . "\n";
 echo 'Gepruefte Instanzen: ' . $instanceCount . "\n";
 echo 'Behaltene Variablen: ' . $keptCount . "\n";
@@ -495,8 +530,9 @@ if ($errors !== []) {
 }
 
 if (!$deleteMode && $clearCandidates !== []) {
-    echo "\nZum Loeschen einzelne IDs in \$deleteVariableIDs eintragen und \$deleteMode auf true setzen.\n";
-    echo "Alternativ \$deleteAllClearCandidates auf true setzen, um alle klaren Kandidaten zu loeschen.\n";
+    echo "\nZum Loeschen einzelne IDs in die externe JSON-Datei unter deleteVariableIDs eintragen.\n";
+    echo "Danach deleteMode auf true und confirmDeletion auf DELETE setzen.\n";
+    echo "Alternativ deleteAllClearCandidates auf true setzen, um alle klaren Kandidaten zu loeschen.\n";
     echo "Archivierte oder referenzierte Variablen werden standardmaessig nicht geloescht.\n";
 }
 

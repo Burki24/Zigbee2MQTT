@@ -1,0 +1,10 @@
+{
+    "deleteMode": false,
+    "confirmDeletion": "",
+    "deleteVariableIDs": [],
+    "deleteAllClearCandidates": false,
+    "includeGroups": true,
+    "showPayloadOnlyReview": true,
+    "protectArchivedVariables": true,
+    "protectReferencedVariables": true
+}

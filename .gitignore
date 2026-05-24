@@ -6,3 +6,4 @@ libs/composer.*
 libs/phpunit.*
 tests/.phpunit.cache/
 tests/.phpunit.result.cache
+docs/tools/SymconCleanupStaleVariables.config.json
