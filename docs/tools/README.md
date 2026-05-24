@@ -33,6 +33,8 @@ Beispiel:
 
 Das Script zieht aus einer kompletten Kandidatenzeile automatisch nur die Variable-ID hinter `#`. In JSON muessen Backslashes innerhalb von Texten doppelt geschrieben werden (`\\`). Fuer wirklich rohes Copy/Paste ohne JSON-Escaping kann stattdessen die Datei aus `deleteCandidateFile` genutzt werden. Dazu `SymconCleanupStaleVariables.delete.example.txt` als `SymconCleanupStaleVariables.delete.txt` kopieren und die Kandidatenzeilen zeilenweise einfuegen.
 
+Wenn das PHP als IP-Symcon-Scriptobjekt ausgefuehrt wird, liegt `__DIR__` nicht zwingend im Modulverzeichnis. Das Script sucht die Config deshalb zusaetzlich im installierten Modulordner unter `modules/Zigbee2MQTT/docs/tools`. Relative Angaben in `deleteCandidateFile` werden relativ zur gefundenen Config-Datei aufgeloest.
+
 Alternativ kann `deleteAllClearCandidates` fuer alle klaren Kandidaten aktiviert werden. Auch dann bleiben archivierte oder referenzierte Variablen standardmaessig geschuetzt.
 
 Schutzmechanismen:

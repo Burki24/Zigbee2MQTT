@@ -7,7 +7,8 @@ declare(strict_types=1);
  *
  * Usage:
  * 1. Copy this script and SymconCleanupStaleVariables.config.json into the
- *    same IP-Symcon script directory, or adjust $configFile below once.
+ *    same IP-Symcon script directory, or keep the config in the module's
+ *    docs/tools directory.
  * 2. Run the script unchanged and review the reported variable IDs.
  * 3. Enter selected variable object IDs in the JSON config file and set
  *    deleteMode plus confirmDeletion there.
@@ -18,14 +19,63 @@ declare(strict_types=1);
  * mode is explicitly enabled in the external JSON config.
  */
 
-$configFile = __DIR__ . '/SymconCleanupStaleVariables.config.json';
-$configFileStatus = 'nicht gefunden, Dry-Run-Defaults werden verwendet';
+$configFileName = 'SymconCleanupStaleVariables.config.json';
+$deleteCandidateFileName = 'SymconCleanupStaleVariables.delete.txt';
+$toolRelativePath = 'modules/Zigbee2MQTT/docs/tools';
+
+$buildPath = static function (string $directory, string $file = ''): string
+{
+    $path = rtrim($directory, '/\\');
+    if ($file !== '') {
+        $path .= DIRECTORY_SEPARATOR . $file;
+    }
+
+    return $path;
+};
+
+$configDirectories = [
+    __DIR__,
+];
+
+foreach (['IPS_GetKernelDir', 'IPS_GetKernelDirEx'] as $kernelDirectoryFunction) {
+    if (!function_exists($kernelDirectoryFunction)) {
+        continue;
+    }
+
+    $kernelDirectory = (string) $kernelDirectoryFunction();
+    if ($kernelDirectory !== '') {
+        $configDirectories[] = $buildPath($kernelDirectory, $toolRelativePath);
+    }
+}
+
+$configDirectories[] = '/var/lib/symcon/' . $toolRelativePath;
+$configDirectories[] = 'C:/ProgramData/Symcon/' . $toolRelativePath;
+$configDirectories = array_values(array_unique($configDirectories));
+
+$configFile = '';
+$configDirectory = __DIR__;
+$searchedConfigFiles = [];
+foreach ($configDirectories as $configSearchDirectory) {
+    $configSearchFile = $buildPath($configSearchDirectory, $configFileName);
+    $searchedConfigFiles[] = $configSearchFile;
+    if (!is_file($configSearchFile)) {
+        continue;
+    }
+
+    $configFile = $configSearchFile;
+    $configDirectory = $buildPath($configSearchDirectory);
+    break;
+}
+
+$configFileStatus = $configFile === ''
+    ? 'nicht gefunden, Dry-Run-Defaults werden verwendet. Gesucht: ' . implode('; ', $searchedConfigFiles)
+    : $configFile;
 $config = [
     'deleteMode'                 => false,
     'confirmDeletion'            => '',
     'deleteVariableIDs'          => [],
     'deleteCandidateLines'       => [],
-    'deleteCandidateFile'        => __DIR__ . '/SymconCleanupStaleVariables.delete.txt',
+    'deleteCandidateFile'        => $deleteCandidateFileName,
     'deleteAllClearCandidates'   => false,
     'includeGroups'              => true,
     'showPayloadOnlyReview'      => true,
@@ -33,7 +83,7 @@ $config = [
     'protectReferencedVariables' => true,
 ];
 
-if (is_file($configFile)) {
+if ($configFile !== '') {
     $rawConfig = file_get_contents($configFile);
     $decodedConfig = $rawConfig === false ? null : json_decode($rawConfig, true);
     if (!is_array($decodedConfig)) {
@@ -42,7 +92,6 @@ if (is_file($configFile)) {
     }
 
     $config = array_replace($config, array_intersect_key($decodedConfig, $config));
-    $configFileStatus = $configFile;
 }
 
 $extractDeleteVariableID = static function (mixed $selection): int
@@ -89,7 +138,7 @@ if ($deleteCandidateFile !== ''
     && !str_starts_with($deleteCandidateFile, '/')
     && preg_match('/^[A-Za-z]:[\/\\\\]/', $deleteCandidateFile) !== 1
 ) {
-    $deleteCandidateFile = __DIR__ . '/' . $deleteCandidateFile;
+    $deleteCandidateFile = $buildPath($configDirectory, $deleteCandidateFile);
 }
 if ($deleteCandidateFile !== '' && is_file($deleteCandidateFile)) {
     $candidateFileLines = file($deleteCandidateFile, FILE_IGNORE_NEW_LINES | FILE_SKIP_EMPTY_LINES);
