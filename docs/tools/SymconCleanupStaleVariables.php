@@ -21,7 +21,10 @@ declare(strict_types=1);
 
 $configFileName = 'SymconCleanupStaleVariables.config.json';
 $deleteCandidateFileName = 'SymconCleanupStaleVariables.delete.txt';
-$toolRelativePath = 'modules/Zigbee2MQTT/docs/tools';
+$libraryID = '{EBDB6E58-DFAC-911B-0EDA-79A9C7CCD0B3}';
+$libraryName = 'Zigbee2MQTT';
+$moduleDirectoryName = 'Zigbee2MQTT';
+$toolRelativePath = 'docs/tools';
 
 $buildPath = static function (string $directory, string $file = ''): string
 {
@@ -33,10 +36,108 @@ $buildPath = static function (string $directory, string $file = ''): string
     return $path;
 };
 
-$configDirectories = [
-    __DIR__,
-];
+$isAbsolutePath = static function (string $path): bool
+{
+    return str_starts_with($path, '/')
+        || preg_match('/^[A-Za-z]:[\/\\\\]/', $path) === 1;
+};
 
+$readJsonFile = static function (string $path): ?array
+{
+    $raw = @file_get_contents($path);
+    if ($raw === false) {
+        return null;
+    }
+
+    try {
+        $decoded = json_decode($raw, true, 512, JSON_THROW_ON_ERROR);
+    } catch (Throwable) {
+        return null;
+    }
+
+    return is_array($decoded) ? $decoded : null;
+};
+
+$getGitDirectory = static function (string $repositoryDirectory) use ($buildPath, $isAbsolutePath): string
+{
+    $gitPath = $buildPath($repositoryDirectory, '.git');
+    if (is_dir($gitPath)) {
+        return $gitPath;
+    }
+
+    if (!is_file($gitPath)) {
+        return '';
+    }
+
+    $gitFile = file_get_contents($gitPath);
+    if ($gitFile === false || preg_match('/^gitdir:\s*(.+)$/m', trim($gitFile), $matches) !== 1) {
+        return '';
+    }
+
+    $gitDirectory = trim($matches[1]);
+    if (!$isAbsolutePath($gitDirectory)) {
+        $gitDirectory = $buildPath($repositoryDirectory, $gitDirectory);
+    }
+
+    return is_dir($gitDirectory) ? $gitDirectory : '';
+};
+
+$getGitCommit = static function (string $repositoryDirectory) use ($buildPath, $getGitDirectory): string
+{
+    $gitDirectory = $getGitDirectory($repositoryDirectory);
+    if ($gitDirectory === '') {
+        return '';
+    }
+
+    $head = @file_get_contents($buildPath($gitDirectory, 'HEAD'));
+    if ($head === false) {
+        return '';
+    }
+
+    $head = trim($head);
+    if (preg_match('/^[a-f0-9]{40}$/i', $head) === 1) {
+        return substr($head, 0, 7);
+    }
+
+    if (preg_match('/^ref:\s*(.+)$/', $head, $matches) !== 1) {
+        return '';
+    }
+
+    $refPath = $buildPath($gitDirectory, trim($matches[1]));
+    $commit = @file_get_contents($refPath);
+    if ($commit !== false && preg_match('/^[a-f0-9]{40}$/i', trim($commit)) === 1) {
+        return substr(trim($commit), 0, 7);
+    }
+
+    $packedRefs = @file_get_contents($buildPath($gitDirectory, 'packed-refs'));
+    if ($packedRefs === false) {
+        return '';
+    }
+
+    foreach (explode("\n", $packedRefs) as $line) {
+        if (preg_match('/^([a-f0-9]{40})\s+' . preg_quote(trim($matches[1]), '/') . '$/i', trim($line), $refMatches) === 1) {
+            return substr($refMatches[1], 0, 7);
+        }
+    }
+
+    return '';
+};
+
+$findParentDirectoryWithFile = static function (string $startDirectory, string $fileName) use ($buildPath): string
+{
+    $directory = $startDirectory;
+    while ($directory !== '' && $directory !== dirname($directory)) {
+        if (is_file($buildPath($directory, $fileName))) {
+            return $directory;
+        }
+
+        $directory = dirname($directory);
+    }
+
+    return '';
+};
+
+$moduleSearchRoots = [];
 foreach (['IPS_GetKernelDir', 'IPS_GetKernelDirEx'] as $kernelDirectoryFunction) {
     if (!function_exists($kernelDirectoryFunction)) {
         continue;
@@ -44,12 +145,77 @@ foreach (['IPS_GetKernelDir', 'IPS_GetKernelDirEx'] as $kernelDirectoryFunction)
 
     $kernelDirectory = (string) $kernelDirectoryFunction();
     if ($kernelDirectory !== '') {
-        $configDirectories[] = $buildPath($kernelDirectory, $toolRelativePath);
+        $moduleSearchRoots[] = $buildPath($kernelDirectory, 'modules');
     }
 }
+$moduleSearchRoots[] = '/var/lib/symcon/modules';
+$moduleSearchRoots[] = 'C:/ProgramData/Symcon/modules';
+$moduleSearchRoots = array_values(array_unique($moduleSearchRoots));
 
-$configDirectories[] = '/var/lib/symcon/' . $toolRelativePath;
-$configDirectories[] = 'C:/ProgramData/Symcon/' . $toolRelativePath;
+$findModuleDirectories = static function () use ($buildPath, $moduleSearchRoots, $moduleDirectoryName, $libraryID, $libraryName, $readJsonFile): array
+{
+    $moduleDirectories = [];
+
+    $parentRepositoryDirectory = dirname(__DIR__, 2);
+    if (is_file($buildPath($parentRepositoryDirectory, 'library.json'))) {
+        $moduleDirectories[] = $parentRepositoryDirectory;
+    }
+
+    foreach ($moduleSearchRoots as $moduleSearchRoot) {
+        if (!is_dir($moduleSearchRoot)) {
+            continue;
+        }
+
+        $namedModuleDirectory = $buildPath($moduleSearchRoot, $moduleDirectoryName);
+        if (is_file($buildPath($namedModuleDirectory, 'library.json'))) {
+            $moduleDirectories[] = $namedModuleDirectory;
+        }
+
+        foreach ([$moduleSearchRoot . '/*/library.json', $moduleSearchRoot . '/.store/*/library.json'] as $pattern) {
+            $libraryFiles = glob($pattern);
+            if (!is_array($libraryFiles)) {
+                continue;
+            }
+
+            foreach ($libraryFiles as $libraryFile) {
+                $library = $readJsonFile($libraryFile);
+                if (($library['id'] ?? '') !== $libraryID && ($library['name'] ?? '') !== $libraryName) {
+                    continue;
+                }
+
+                $moduleDirectories[] = dirname($libraryFile);
+            }
+        }
+    }
+
+    return array_values(array_unique($moduleDirectories));
+};
+
+$moduleDirectories = $findModuleDirectories();
+$moduleDirectory = $moduleDirectories[0] ?? $findParentDirectoryWithFile(__DIR__, 'library.json');
+$library = $moduleDirectory !== '' ? $readJsonFile($buildPath($moduleDirectory, 'library.json')) : null;
+$scriptVersionParts = [];
+if (is_array($library)) {
+    $scriptVersionParts[] = 'Modul ' . ($library['version'] ?? 'unbekannt');
+    $scriptVersionParts[] = 'Build ' . (string) ($library['build'] ?? 'unbekannt');
+}
+$scriptCommit = $moduleDirectory !== '' ? $getGitCommit($moduleDirectory) : $getGitCommit(__DIR__);
+if ($scriptCommit !== '') {
+    $scriptVersionParts[] = 'Commit ' . $scriptCommit;
+}
+$scriptVersion = $scriptVersionParts === [] ? 'unbekannt' : implode(', ', $scriptVersionParts);
+
+$configDirectories = [
+    __DIR__,
+];
+
+foreach ($moduleDirectories as $currentModuleDirectory) {
+    $configDirectories[] = $buildPath($currentModuleDirectory, $toolRelativePath);
+}
+
+foreach ($moduleSearchRoots as $moduleSearchRoot) {
+    $configDirectories[] = $buildPath($buildPath($moduleSearchRoot, $moduleDirectoryName), $toolRelativePath);
+}
 $configDirectories = array_values(array_unique($configDirectories));
 
 $configFile = '';
@@ -135,8 +301,7 @@ if (is_array($config['deleteCandidateLines'])) {
 
 $deleteCandidateFile = (string) $config['deleteCandidateFile'];
 if ($deleteCandidateFile !== ''
-    && !str_starts_with($deleteCandidateFile, '/')
-    && preg_match('/^[A-Za-z]:[\/\\\\]/', $deleteCandidateFile) !== 1
+    && !$isAbsolutePath($deleteCandidateFile)
 ) {
     $deleteCandidateFile = $buildPath($configDirectory, $deleteCandidateFile);
 }
@@ -684,6 +849,7 @@ $printRows = static function (string $title, array $rows, bool $includeCategory 
 
 echo "Zigbee2MQTT Variablen-Cleanup\n";
 echo "=============================\n";
+echo 'Script-Version: ' . $scriptVersion . "\n";
 echo 'Konfiguration: ' . $configFileStatus . "\n";
 echo 'Modus: ' . ($deleteMode ? 'LOESCHMODUS' : 'DRY-RUN') . "\n";
 echo 'Vorgemerkte Loesch-IDs: ' . count($deleteVariableIDs) . "\n";
