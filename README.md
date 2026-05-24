@@ -20,6 +20,7 @@ Anbindung von [zigbee2mqtt](https://www.zigbee2mqtt.io) an IP-Symcon.
 - [4. Konfiguration in IP-Symcon](#4-konfiguration-in-ip-symcon)
   - [4.1 Tile-Visualisierung](#41-tile-visualisierung)
   - [4.2 Variablenverwaltung](#42-variablenverwaltung)
+  - [4.3 Wartungstool fuer alte Variablen](#43-wartungstool-fuer-alte-variablen)
 - [5. Changelog](#5-changelog)
 - [6. Spenden](#6-spenden)
 - [7. Lizenz](#7-lizenz)
@@ -227,6 +228,14 @@ Details stehen in der [Dokumentation des Geräte-Moduls](Device/README.md#46-var
 
 Geräte- und Gruppenoptionen aus Zigbee2MQTT können ebenfalls direkt in Symcon gepflegt werden. Soweit Zigbee2MQTT Typinformationen liefert oder das Modul die Option kennt, werden passende Editoren für Schalter, Auswahllisten, Zahlen, Text, JSON-Objekte und Attributlisten angezeigt.
 
+### 4.3 Wartungstool fuer alte Variablen
+
+Unter [docs/tools](docs/tools/README.md) liegt mit `SymconCleanupStaleVariables.php` ein Wartungstool, das alte Zigbee2MQTT-Variablen finden kann, die nicht mehr durch aktuelle Exposes oder das zuletzt bekannte Payload abgedeckt sind.
+
+Das Tool ist ausschliesslich fuer erfahrene Anwender gedacht. Es kann Variablen loeschen; falsch gewaehlte Kandidaten koennen Visualisierungen, Ereignisse, Scripte, Links, Referenzen oder Archivdaten betreffen. Deshalb arbeitet das Tool standardmaessig im Dry-Run, nutzt eine externe Config im Symcon-User-Verzeichnis und verlangt fuer echte Loeschungen eine ausdrueckliche Freigabe.
+
+Vor der Nutzung bitte die [Tool-Dokumentation](docs/tools/README.md) vollstaendig lesen und vor groesseren Loeschlaeufen ein aktuelles Symcon-Backup erstellen.
+
 ## 5. Changelog  
 
 **Version 6.00:**
@@ -244,6 +253,7 @@ Geräte- und Gruppenoptionen aus Zigbee2MQTT können ebenfalls direkt in Symcon 
 - Reine Tunable-White-Leuchtmittel erhalten eine abgeleitete `color`-Variable, die den aktuellen Weißton als `~HexColor`-Farbwert darstellt.
 - Die Geräte-Konfiguration zeigt Visualisierungsoptionen nur noch an, wenn sie für die Instanz fachlich verfügbar sind.
 - Geräte-Instanzen erhalten eine Variablenverwaltung, mit der automatisch angelegte, nachgelieferte und gelöschte Variablen kontrolliert werden können.
+- Ein Wartungstool fuer erfahrene Anwender kann alte, nicht mehr durch aktuelle Exposes oder Payloads abgedeckte Zigbee2MQTT-Variablen im Dry-Run finden und nach ausdruecklicher Freigabe gezielt loeschen.
 - Composite-Exposes werden in der Variablenverwaltung nur mit den tatsächlich anlegbaren Untervariablen geführt, damit nicht bedienbare Composite-Eltern nicht als eigene Variable angeboten werden.
 - Geräte-Instanzen können Zigbee2MQTT-Geräteoptionen wie `transition`, `debounce`, `filtered_attributes`, `optimistic`, `retain` oder gerätespezifische `definition.options` direkt in der Instanz-Konfiguration anzeigen und setzen.
 - Geräte- und Gruppenoptionen nutzen typisierte Editoren für Boolean-, Enum-, Numeric-, Text-, Array- und Objektwerte; Attributfilter wie `filtered_attributes`, `filtered_cache` oder `debounce_ignore` bieten eine Auswahl bekannter Payload-Attribute.

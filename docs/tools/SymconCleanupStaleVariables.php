@@ -6,9 +6,9 @@ declare(strict_types=1);
  * Zigbee2MQTT stale variable cleanup for IP-Symcon.
  *
  * Usage:
- * 1. Copy this script and SymconCleanupStaleVariables.config.json into the
- *    same IP-Symcon script directory, or keep the config in the module's
- *    docs/tools directory.
+ * 1. Copy SymconCleanupStaleVariables.config.example.json to the Symcon data
+ *    directory listed in the script output and rename it to
+ *    SymconCleanupStaleVariables.config.json.
  * 2. Run the script unchanged and review the reported variable IDs.
  * 3. Enter selected variable object IDs in the JSON config file and set
  *    deleteMode plus confirmDeletion there.
@@ -25,6 +25,7 @@ $libraryID = '{EBDB6E58-DFAC-911B-0EDA-79A9C7CCD0B3}';
 $libraryName = 'Zigbee2MQTT';
 $moduleDirectoryName = 'Zigbee2MQTT';
 $toolRelativePath = 'docs/tools';
+$userConfigRelativePath = 'user/IPSZigbee2MQTT';
 
 $buildPath = static function (string $directory, string $file = ''): string
 {
@@ -40,6 +41,20 @@ $isAbsolutePath = static function (string $path): bool
 {
     return str_starts_with($path, '/')
         || preg_match('/^[A-Za-z]:[\/\\\\]/', $path) === 1;
+};
+
+$ensureDirectory = static function (string $directory): void
+{
+    if ($directory === '' || is_dir($directory)) {
+        return;
+    }
+
+    $parentDirectory = dirname($directory);
+    if ($parentDirectory === '' || !is_dir($parentDirectory)) {
+        return;
+    }
+
+    @mkdir($directory, 0775, true);
 };
 
 $readJsonFile = static function (string $path): ?array
@@ -152,6 +167,24 @@ $moduleSearchRoots[] = '/var/lib/symcon/modules';
 $moduleSearchRoots[] = 'C:/ProgramData/Symcon/modules';
 $moduleSearchRoots = array_values(array_unique($moduleSearchRoots));
 
+$userConfigDirectories = [];
+foreach (['IPS_GetKernelDir', 'IPS_GetKernelDirEx'] as $kernelDirectoryFunction) {
+    if (!function_exists($kernelDirectoryFunction)) {
+        continue;
+    }
+
+    $kernelDirectory = (string) $kernelDirectoryFunction();
+    if ($kernelDirectory !== '') {
+        $userConfigDirectories[] = $buildPath($kernelDirectory, $userConfigRelativePath);
+    }
+}
+$userConfigDirectories[] = '/var/lib/symcon/' . $userConfigRelativePath;
+$userConfigDirectories[] = 'C:/ProgramData/Symcon/' . $userConfigRelativePath;
+$userConfigDirectories = array_values(array_unique($userConfigDirectories));
+foreach ($userConfigDirectories as $userConfigDirectory) {
+    $ensureDirectory($userConfigDirectory);
+}
+
 $findModuleDirectories = static function () use ($buildPath, $moduleSearchRoots, $moduleDirectoryName, $libraryID, $libraryName, $readJsonFile): array
 {
     $moduleDirectories = [];
@@ -205,9 +238,18 @@ if ($scriptCommit !== '') {
 }
 $scriptVersion = $scriptVersionParts === [] ? 'unbekannt' : implode(', ', $scriptVersionParts);
 
-$configDirectories = [
-    __DIR__,
-];
+$configDirectories = $userConfigDirectories;
+$scriptDirectoryIsInModule = false;
+foreach ($moduleDirectories as $currentModuleDirectory) {
+    if (str_starts_with($buildPath(__DIR__), $buildPath($currentModuleDirectory))) {
+        $scriptDirectoryIsInModule = true;
+        break;
+    }
+}
+
+if (!$scriptDirectoryIsInModule) {
+    $configDirectories[] = __DIR__;
+}
 
 foreach ($moduleDirectories as $currentModuleDirectory) {
     $configDirectories[] = $buildPath($currentModuleDirectory, $toolRelativePath);
@@ -220,6 +262,7 @@ $configDirectories = array_values(array_unique($configDirectories));
 
 $configFile = '';
 $configDirectory = __DIR__;
+$configIsInModuleDirectory = false;
 $searchedConfigFiles = [];
 foreach ($configDirectories as $configSearchDirectory) {
     $configSearchFile = $buildPath($configSearchDirectory, $configFileName);
@@ -230,9 +273,17 @@ foreach ($configDirectories as $configSearchDirectory) {
 
     $configFile = $configSearchFile;
     $configDirectory = $buildPath($configSearchDirectory);
+    foreach ($moduleDirectories as $currentModuleDirectory) {
+        if (str_starts_with($configFile, $buildPath($currentModuleDirectory))) {
+            $configIsInModuleDirectory = true;
+            break;
+        }
+    }
+
     break;
 }
 
+$recommendedConfigDirectory = $userConfigDirectories[0] ?? $configDirectory;
 $configFileStatus = $configFile === ''
     ? 'nicht gefunden, Dry-Run-Defaults werden verwendet. Gesucht: ' . implode('; ', $searchedConfigFiles)
     : $configFile;
@@ -851,6 +902,11 @@ echo "Zigbee2MQTT Variablen-Cleanup\n";
 echo "=============================\n";
 echo 'Script-Version: ' . $scriptVersion . "\n";
 echo 'Konfiguration: ' . $configFileStatus . "\n";
+echo 'Empfohlener Config-Pfad: ' . $buildPath($recommendedConfigDirectory, $configFileName) . "\n";
+if ($configIsInModuleDirectory) {
+    echo "Hinweis: Die aktive Config liegt im Modulverzeichnis. Das kann Symcon-Modulupdates als lokale Aenderung blockieren.\n";
+    echo "Bitte die Config in den empfohlenen Config-Pfad verschieben.\n";
+}
 echo 'Modus: ' . ($deleteMode ? 'LOESCHMODUS' : 'DRY-RUN') . "\n";
 echo 'Vorgemerkte Loesch-IDs: ' . count($deleteVariableIDs) . "\n";
 echo 'Gepruefte Instanzen: ' . $instanceCount . "\n";
