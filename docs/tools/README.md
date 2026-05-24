@@ -42,3 +42,4 @@ Schutzmechanismen:
 - nachgelieferte Systemvariablen wie `last_seen`, `update` und alle `update__*`-Variablen werden immer behalten
 - Payload-only-Variablen werden separat als Review-Kandidaten angezeigt
 - Instanzen ohne Expose- und Payload-Daten werden uebersprungen
+- erfolgreich geloeschte Variablen werden mit ihrer uebergeordneten Kategorie ausgegeben

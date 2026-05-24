@@ -140,6 +140,7 @@ if (!$includeGroups) {
 }
 
 $variableObjectType = defined('OBJECTTYPE_VARIABLE') ? OBJECTTYPE_VARIABLE : 2;
+$instanceObjectType = defined('OBJECTTYPE_INSTANCE') ? OBJECTTYPE_INSTANCE : 1;
 $archiveModuleID = '{43192F0B-135B-4CE7-A0A7-1475603F3060}';
 $skipComposites = ['device', 'endpoints', 'options'];
 $alwaysKeepIdents = [
@@ -341,6 +342,27 @@ $getObjectPath = static function (int $objectID): string
     return IPS_GetName($objectID);
 };
 
+$getVariableCategoryPath = static function (int $variableID) use ($getObjectPath, $instanceObjectType): string
+{
+    $variable = IPS_GetObject($variableID);
+    $parentID = (int) ($variable['ParentID'] ?? 0);
+    if ($parentID <= 0) {
+        return '-';
+    }
+
+    $parent = IPS_GetObject($parentID);
+    if (($parent['ObjectType'] ?? -1) !== $instanceObjectType) {
+        return $getObjectPath($parentID);
+    }
+
+    $categoryID = (int) ($parent['ParentID'] ?? 0);
+    if ($categoryID <= 0) {
+        return '-';
+    }
+
+    return $getObjectPath($categoryID);
+};
+
 $getArchiveID = static function () use ($archiveModuleID): int
 {
     if (!function_exists('IPS_GetInstanceListByModuleID')) {
@@ -477,6 +499,7 @@ foreach ($moduleIDs as $moduleType => $moduleID) {
                 'moduleType'  => $moduleType,
                 'instanceID'  => (int) $instanceID,
                 'instance'    => $getObjectPath((int) $instanceID),
+                'category'    => $getVariableCategoryPath((int) $childID),
                 'variableID'  => (int) $childID,
                 'ident'       => $ident,
                 'name'        => (string) ($object['ObjectName'] ?? ''),
@@ -565,7 +588,7 @@ if ($deleteMode) {
     }
 }
 
-$printRows = static function (string $title, array $rows): void
+$printRows = static function (string $title, array $rows, bool $includeCategory = false): void
 {
     echo "\n" . $title . "\n";
     echo str_repeat('=', strlen($title)) . "\n";
@@ -582,6 +605,20 @@ $printRows = static function (string $title, array $rows): void
         }
         if (!empty($row['references'])) {
             $protection[] = 'Referenzen: ' . implode(', ', $row['references']);
+        }
+
+        if ($includeCategory) {
+            echo sprintf(
+                "#%d | Kategorie: %s | Instanz: %s | %s | %s | %s | %s\n",
+                $row['variableID'],
+                $row['category'] ?? '-',
+                $row['instance'],
+                $row['ident'],
+                $row['name'],
+                $row['reason'],
+                $protection === [] ? 'nicht geschuetzt' : implode('; ', $protection)
+            );
+            continue;
         }
 
         echo sprintf(
@@ -634,7 +671,7 @@ if (!$deleteMode && $clearCandidates !== []) {
 }
 
 if ($deleteMode) {
-    $printRows('Geloeschte Variablen', $deleted);
+    $printRows('Geloeschte Variablen', $deleted, true);
 
     if ($skippedDeletes !== []) {
         echo "\nUebersprungene Loeschungen\n";
