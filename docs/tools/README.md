@@ -39,5 +39,6 @@ Schutzmechanismen:
 
 - archivierte Variablen werden standardmaessig nicht geloescht
 - Variablen mit registrierten Referenzen werden standardmaessig nicht geloescht
+- nachgelieferte Systemvariablen wie `last_seen`, `update` und alle `update__*`-Variablen werden immer behalten
 - Payload-only-Variablen werden separat als Review-Kandidaten angezeigt
 - Instanzen ohne Expose- und Payload-Daten werden uebersprungen

@@ -144,11 +144,16 @@ $archiveModuleID = '{43192F0B-135B-4CE7-A0A7-1475603F3060}';
 $skipComposites = ['device', 'endpoints', 'options'];
 $alwaysKeepIdents = [
     'device_status',
+    'last_seen',
+    'update',
     'Z2M_ActionTransaction',
     'Z2M_ActionTransTime',
     'Z2M_XAxis',
     'Z2M_YAxis',
     'Z2M_ZAxis',
+];
+$alwaysKeepIdentPrefixes = [
+    'update__',
 ];
 
 $normalizeIdent = static function (string $ident): string
@@ -165,6 +170,21 @@ $addExpected = static function (array &$expected, string $ident, string $source)
 
     $expected[$ident] ??= [];
     $expected[$ident][$source] = true;
+};
+
+$isAlwaysKeepIdent = static function (string $ident) use ($alwaysKeepIdents, $alwaysKeepIdentPrefixes): bool
+{
+    if (in_array($ident, $alwaysKeepIdents, true)) {
+        return true;
+    }
+
+    foreach ($alwaysKeepIdentPrefixes as $prefix) {
+        if (str_starts_with($ident, $prefix)) {
+            return true;
+        }
+    }
+
+    return false;
 };
 
 $isColorComposite = static function (array $feature): bool
@@ -439,7 +459,7 @@ foreach ($moduleIDs as $moduleType => $moduleID) {
             $sources = array_keys($expected[$ident] ?? []);
             $inExpose = in_array('expose', $sources, true) || in_array('derived', $sources, true) || in_array('system', $sources, true);
             $inPayload = in_array('payload', $sources, true);
-            $alwaysKeep = in_array($ident, $alwaysKeepIdents, true);
+            $alwaysKeep = $isAlwaysKeepIdent($ident);
 
             $isUnsupportedColorTemperatureDerived = in_array($ident, ['color_temp_kelvin', 'color_temp_presets'], true)
                 && !($capabilities['color_temp'] ?? false);
