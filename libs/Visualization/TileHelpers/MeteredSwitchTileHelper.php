@@ -409,33 +409,19 @@ trait MeteredSwitchTileHelper
     }
 
     /**
-     * Prueft, ob ein Wert im Archive Control geloggt oder graphisch sichtbar ist.
+     * Prueft, ob ein Wert im Archive Control wirklich geloggt wird.
      */
     private function IsMeteredSwitchTileValueArchived(int $variableID, int|false $archiveID): bool
     {
-        if ($archiveID === false) {
+        if ($archiveID === false || !\function_exists('AC_GetLoggingStatus')) {
             return false;
         }
 
-        if (\function_exists('AC_GetLoggingStatus')) {
-            try {
-                if ((bool) AC_GetLoggingStatus($archiveID, $variableID)) {
-                    return true;
-                }
-            } catch (\Throwable) {
-                // Fallback auf GraphStatus
-            }
+        try {
+            return (bool) AC_GetLoggingStatus($archiveID, $variableID);
+        } catch (\Throwable) {
+            return false;
         }
-
-        if (\function_exists('AC_GetGraphStatus')) {
-            try {
-                return (bool) AC_GetGraphStatus($archiveID, $variableID);
-            } catch (\Throwable) {
-                return false;
-            }
-        }
-
-        return false;
     }
 
     /**

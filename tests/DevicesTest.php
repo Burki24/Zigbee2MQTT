@@ -828,6 +828,24 @@ class DevicesTest extends DumpInclude
         $this->assertStringContainsString('power_factor: "Leistungsfaktor"', $html);
     }
 
+    public function testMeteredSwitchArchiveButtonRequiresActiveLogging(): void
+    {
+        [$iid] = $this->createTestInstance('BMCT-SLZ.json');
+        $archiveID = IPS_CreateInstance('{43192F0B-135B-4CE7-A0A7-1475603F3060}');
+        $powerID = IPS_GetObjectIDByIdent('power', $iid);
+
+        AC_SetGraphStatus($archiveID, $powerID, true);
+
+        $html = IPS\InstanceManager::getInstanceInterface($iid)->GetVisualizationTile();
+        $this->assertStringContainsString('"power":{"available":true', $html);
+        $this->assertStringContainsString('"power":{"available":true,"label":"Leistung","unit":"W","value":0,"formatted":"0.0 W","archived":false}', $html);
+
+        AC_SetLoggingStatus($archiveID, $powerID, true);
+
+        $html = IPS\InstanceManager::getInstanceInterface($iid)->GetVisualizationTile();
+        $this->assertStringContainsString('"power":{"available":true,"label":"Leistung","unit":"W","value":0,"formatted":"0.0 W","archived":true}', $html);
+    }
+
     public function testWT_A03E()
     {
         [$iid,$Debug] = $this->createTestInstance('WT-A03E.json');
