@@ -2316,6 +2316,11 @@ abstract class ModulBase extends \IPSModuleStrict
             return $this->sendBrightnessAction($value);
         }
 
+        if ($ident === 'color_temp' && !$this->HasExposeProperty('color_temp')) {
+            $this->SendDebug(__FUNCTION__, 'Skip color_temp action without color_temp expose support', 0);
+            return false;
+        }
+
         return $this->sendStandardActionPayload($ident, $value);
     }
 
@@ -2356,6 +2361,14 @@ abstract class ModulBase extends \IPSModuleStrict
         }
 
         return null;
+    }
+
+    /**
+     * Prueft, ob die aktuelle Zigbee2MQTT-Expose-Liste eine Property anbietet.
+     */
+    private function HasExposeProperty(string $property): bool
+    {
+        return $this->findExposeFeatureByProperty($property) !== null;
     }
 
     /**
@@ -2645,6 +2658,11 @@ abstract class ModulBase extends \IPSModuleStrict
      */
     private function handleColorTemperatureKelvinAction(mixed $value): bool
     {
+        if (!$this->HasExposeProperty('color_temp')) {
+            $this->SendDebug('handleColorVariable', 'Skip color_temp_kelvin action without color_temp expose support', 0);
+            return false;
+        }
+
         $kelvinValue = $this->ClampColorTemperatureKelvinToConfiguredRange((int) $value);
         $convertedValue = $this->convertKelvinToMired($kelvinValue);
         $this->SendDebug('handleColorVariable', \sprintf('Converting %dK to %d Mired', $kelvinValue, $convertedValue), 0);
@@ -2664,6 +2682,11 @@ abstract class ModulBase extends \IPSModuleStrict
      */
     private function handleColorTemperatureAction(mixed $value): bool
     {
+        if (!$this->HasExposeProperty('color_temp')) {
+            $this->SendDebug('handleColorVariable', 'Skip color_temp action without color_temp expose support', 0);
+            return false;
+        }
+
         $convertedValue = $this->convertKelvinToMired($value);
         $this->SendDebug('handleColorVariable', 'Converted Color Temp: ' . $convertedValue, 0);
 

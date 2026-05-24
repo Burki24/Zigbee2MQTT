@@ -177,55 +177,12 @@ trait DeviceFormHelper
      */
     private function ConfigureDeviceFormColorTemperatureVisualization(array &$form): void
     {
-        $hasColorTemperature = $this->GetObjectIDByIdent('color_temp_kelvin') !== false
-            || $this->DeviceFormHasExposeProperty('color_temp');
-        $hasCustomColorTemperatureRange =
-            $this->ReadPropertyIntegerSafe(self::PROPERTY_COLOR_TEMPERATURE_PRESENTATION_MIN, 0) > 0
-            || $this->ReadPropertyIntegerSafe(self::PROPERTY_COLOR_TEMPERATURE_PRESENTATION_MAX, 0) > 0;
-
         $this->SetDeviceFormField(
             $form,
             'ColorTemperatureVisualization',
             'visible',
-            $hasColorTemperature || $hasCustomColorTemperatureRange
+            $this->HasExposeProperty('color_temp')
         );
-    }
-
-    /**
-     * Prueft die gespeicherten Exposes rekursiv auf eine Property.
-     */
-    private function DeviceFormHasExposeProperty(string $property): bool
-    {
-        foreach ($this->ReadAttributeArray(self::ATTRIBUTE_EXPOSES) as $expose) {
-            if (\is_array($expose) && $this->DeviceFormFeatureTreeHasProperty($expose, $property)) {
-                return true;
-            }
-        }
-
-        return false;
-    }
-
-    /**
-     * Rekursive Suche in einem Expose-Baum.
-     */
-    private function DeviceFormFeatureTreeHasProperty(array $feature, string $property): bool
-    {
-        if (($feature['property'] ?? null) === $property) {
-            return true;
-        }
-
-        $subFeatures = $feature['features'] ?? [];
-        if (!\is_array($subFeatures)) {
-            return false;
-        }
-
-        foreach ($subFeatures as $subFeature) {
-            if (\is_array($subFeature) && $this->DeviceFormFeatureTreeHasProperty($subFeature, $property)) {
-                return true;
-            }
-        }
-
-        return false;
     }
 
     /**

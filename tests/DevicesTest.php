@@ -136,6 +136,37 @@ class DevicesTest extends DumpInclude
         $this->assertSame(['state' => 'OFF'], $device->sentPayload);
     }
 
+    public function testColorTemperatureActionRequiresExposeSupport(): void
+    {
+        $device = $this->createDeviceActionTestDouble();
+        $device->setExposesForTest([
+            [
+                'type'     => 'light',
+                'features' => [
+                    [
+                        'name'      => 'state',
+                        'access'    => 7,
+                        'type'      => 'binary',
+                        'property'  => 'state',
+                        'value_on'  => 'ON',
+                        'value_off' => 'OFF'
+                    ],
+                    [
+                        'name'      => 'brightness',
+                        'access'    => 7,
+                        'type'      => 'numeric',
+                        'property'  => 'brightness',
+                        'value_min' => 0,
+                        'value_max' => 254
+                    ]
+                ]
+            ]
+        ]);
+
+        $device->RequestAction('color_temp_kelvin', 3000);
+        $this->assertSame([], $device->sentPayload);
+    }
+
     public function testWHD02()
     {
         [$iid,$Debug] = $this->createTestInstance('WHD02.json');
@@ -350,6 +381,41 @@ class DevicesTest extends DumpInclude
 
         $interface->ReceiveData(self::buildMqttRequest($topic, ['color_temp' => 153]));
         $this->assertNotSame(0xFF9227, GetValue($colorID));
+    }
+
+    public function testColorTemperatureVisualizationRequiresExposeSupport(): void
+    {
+        [$iid] = $this->createTestInstance('TunableWhiteLight.json');
+        $this->assertNotFalse(IPS_GetObjectIDByIdent('color_temp_kelvin', $iid));
+
+        $this->writeStubAttributeArray($iid, 'Exposes', [
+            [
+                'type'     => 'light',
+                'features' => [
+                    [
+                        'name'      => 'state',
+                        'label'     => 'State',
+                        'access'    => 7,
+                        'type'      => 'binary',
+                        'property'  => 'state',
+                        'value_on'  => 'ON',
+                        'value_off' => 'OFF'
+                    ],
+                    [
+                        'name'      => 'brightness',
+                        'label'     => 'Brightness',
+                        'access'    => 7,
+                        'type'      => 'numeric',
+                        'property'  => 'brightness',
+                        'value_min' => 0,
+                        'value_max' => 254
+                    ]
+                ]
+            ]
+        ]);
+
+        $form = json_decode(IPS_GetConfigurationForm($iid), true);
+        $this->assertFormItemHidden($form, 'ColorTemperatureVisualization');
     }
 
     public function testDeviceOptionsAreShownInConfigurationForm(): void
