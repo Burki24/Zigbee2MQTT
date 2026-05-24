@@ -11,6 +11,8 @@ declare(strict_types=1);
  * 2. Run the script unchanged and review the reported variable IDs.
  * 3. Enter selected variable object IDs in the JSON config file and set
  *    deleteMode plus confirmDeletion there.
+ *    Complete report rows can be pasted into deleteCandidateLines. If the
+ *    rows contain backslashes, use the external deleteCandidateFile instead.
  *
  * The default run is always a dry run. No variable is deleted unless delete
  * mode is explicitly enabled in the external JSON config.
@@ -22,6 +24,8 @@ $config = [
     'deleteMode'                 => false,
     'confirmDeletion'            => '',
     'deleteVariableIDs'          => [],
+    'deleteCandidateLines'       => [],
+    'deleteCandidateFile'        => __DIR__ . '/SymconCleanupStaleVariables.delete.txt',
     'deleteAllClearCandidates'   => false,
     'includeGroups'              => true,
     'showPayloadOnlyReview'      => true,
@@ -41,11 +45,74 @@ if (is_file($configFile)) {
     $configFileStatus = $configFile;
 }
 
+$extractDeleteVariableID = static function (mixed $selection): int
+{
+    if (is_int($selection)) {
+        return max(0, $selection);
+    }
+
+    if (is_float($selection)) {
+        return max(0, (int) $selection);
+    }
+
+    if (!is_string($selection)) {
+        return 0;
+    }
+
+    $selection = trim($selection);
+    if ($selection === '') {
+        return 0;
+    }
+
+    if (ctype_digit($selection)) {
+        return (int) $selection;
+    }
+
+    if (preg_match('/#\s*(\d+)/', $selection, $matches) === 1) {
+        return (int) $matches[1];
+    }
+
+    if (preg_match('/^\s*(\d+)\b/', $selection, $matches) === 1) {
+        return (int) $matches[1];
+    }
+
+    return 0;
+};
+
+$deleteVariableSelections = is_array($config['deleteVariableIDs']) ? $config['deleteVariableIDs'] : [];
+if (is_array($config['deleteCandidateLines'])) {
+    $deleteVariableSelections = array_merge($deleteVariableSelections, $config['deleteCandidateLines']);
+}
+
+$deleteCandidateFile = (string) $config['deleteCandidateFile'];
+if ($deleteCandidateFile !== ''
+    && !str_starts_with($deleteCandidateFile, '/')
+    && preg_match('/^[A-Za-z]:[\/\\\\]/', $deleteCandidateFile) !== 1
+) {
+    $deleteCandidateFile = __DIR__ . '/' . $deleteCandidateFile;
+}
+if ($deleteCandidateFile !== '' && is_file($deleteCandidateFile)) {
+    $candidateFileLines = file($deleteCandidateFile, FILE_IGNORE_NEW_LINES | FILE_SKIP_EMPTY_LINES);
+    if (is_array($candidateFileLines)) {
+        $deleteVariableSelections = array_merge($deleteVariableSelections, $candidateFileLines);
+    }
+}
+
 $deleteMode = (bool) $config['deleteMode'];
-$deleteVariableIDs = array_values(array_unique(array_map(
-    'intval',
-    is_array($config['deleteVariableIDs']) ? $config['deleteVariableIDs'] : []
-)));
+$deleteVariableIDs = [];
+$ignoredDeleteSelections = [];
+foreach ($deleteVariableSelections as $selection) {
+    $variableID = $extractDeleteVariableID($selection);
+    if ($variableID > 0) {
+        $deleteVariableIDs[] = $variableID;
+        continue;
+    }
+
+    if (is_scalar($selection) && trim((string) $selection) !== '') {
+        $ignoredDeleteSelections[] = (string) $selection;
+    }
+}
+$deleteVariableIDs = array_values(array_unique($deleteVariableIDs));
 $deleteAllClearCandidates = (bool) $config['deleteAllClearCandidates'];
 
 $includeGroups = (bool) $config['includeGroups'];
@@ -513,6 +580,7 @@ echo "Zigbee2MQTT Variablen-Cleanup\n";
 echo "=============================\n";
 echo 'Konfiguration: ' . $configFileStatus . "\n";
 echo 'Modus: ' . ($deleteMode ? 'LOESCHMODUS' : 'DRY-RUN') . "\n";
+echo 'Vorgemerkte Loesch-IDs: ' . count($deleteVariableIDs) . "\n";
 echo 'Gepruefte Instanzen: ' . $instanceCount . "\n";
 echo 'Behaltene Variablen: ' . $keptCount . "\n";
 echo 'Klare Loeschkandidaten: ' . count($clearCandidates) . "\n";
@@ -529,8 +597,17 @@ if ($errors !== []) {
     }
 }
 
+if ($ignoredDeleteSelections !== []) {
+    echo "\nIgnorierte Loeschzeilen\n";
+    echo "======================\n";
+    foreach ($ignoredDeleteSelections as $selection) {
+        echo $selection . "\n";
+    }
+}
+
 if (!$deleteMode && $clearCandidates !== []) {
-    echo "\nZum Loeschen einzelne IDs in die externe JSON-Datei unter deleteVariableIDs eintragen.\n";
+    echo "\nZum Loeschen einzelne IDs oder komplette Kandidatenzeilen in die externe JSON-Datei eintragen.\n";
+    echo "Fuer rohe Copy/Paste-Zeilen mit Backslashes die Datei aus deleteCandidateFile verwenden.\n";
     echo "Danach deleteMode auf true und confirmDeletion auf DELETE setzen.\n";
     echo "Alternativ deleteAllClearCandidates auf true setzen, um alle klaren Kandidaten zu loeschen.\n";
     echo "Archivierte oder referenzierte Variablen werden standardmaessig nicht geloescht.\n";
