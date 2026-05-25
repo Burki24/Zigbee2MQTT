@@ -648,7 +648,7 @@ class DevicesTest extends DumpInclude
             '1'   => [
                 'id'       => '1',
                 'name'     => 'left',
-                'clusters' => ['input' => [], 'output' => ['genOnOff']]
+                'clusters' => ['input' => ['6'], 'output' => []]
             ],
             '242' => [
                 'id'       => '242',
@@ -696,6 +696,11 @@ class DevicesTest extends DumpInclude
         $this->assertContains('', $clusterValues);
         $this->assertContains('genOnOff', $clusterValues);
         $this->assertNotContains('greenPower', $clusterValues);
+
+        $bindingList = $this->findFormItemByName($form, 'BindingOverviewList');
+        $this->assertNotNull($bindingList);
+        $this->assertTrue($bindingList['visible']);
+        $this->assertSame('Keine Bindungen vorhanden', $bindingList['values'][0]['source_endpoint']);
     }
 
     public function testBindingClusterSelectionUpdatesForSelectedEndpoint(): void
@@ -705,7 +710,7 @@ class DevicesTest extends DumpInclude
             '1'   => [
                 'id'       => '1',
                 'name'     => 'left',
-                'clusters' => ['input' => ['genBasic'], 'output' => ['genOnOff']]
+                'clusters' => ['input' => ['genBasic'], 'output' => ['8']]
             ],
             '242' => [
                 'id'       => '242',
@@ -724,7 +729,7 @@ class DevicesTest extends DumpInclude
         $this->assertIsArray($options);
         $clusterValues = array_column($options, 'value');
         $this->assertContains('', $clusterValues);
-        $this->assertContains('genOnOff', $clusterValues);
+        $this->assertContains('genLevelCtrl', $clusterValues);
         $this->assertNotContains('genBasic', $clusterValues);
         $this->assertNotContains('greenPower', $clusterValues);
     }

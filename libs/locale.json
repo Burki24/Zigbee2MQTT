@@ -135,6 +135,7 @@
             "Bindings": "Bindings",
             "Reportings": "Reportings",
             "Existing bindings": "Bestehende Bindings",
+            "No bindings available": "Keine Bindungen vorhanden",
             "Binding": "Binding",
             "Source endpoint": "Quell-Endpoint",
             "Target device or group": "Zielgerät oder Gruppe",

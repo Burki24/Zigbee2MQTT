@@ -225,7 +225,7 @@ trait DeviceFormHelper
         $this->SetDeviceFormField($form, 'EndpointDataHint', 'visible', $visible && \count($values) === 0);
         $this->SetDeviceFormField($form, 'EndpointList', 'values', $values);
         $this->SetDeviceFormField($form, 'EndpointList', 'rowCount', min(10, max(4, \count($values) + 1)));
-        $this->SetDeviceFormField($form, 'BindingOverviewList', 'visible', \count($bindingValues) > 0);
+        $this->SetDeviceFormField($form, 'BindingOverviewList', 'visible', $visible);
         $this->SetDeviceFormField($form, 'BindingOverviewList', 'values', $bindingValues);
         $this->SetDeviceFormField($form, 'BindingOverviewList', 'rowCount', min(10, max(4, \count($bindingValues) + 1)));
         $this->SetDeviceFormField($form, 'BindingSourceEndpoint', 'options', $this->BuildBindingSourceEndpointOptions());
@@ -500,6 +500,16 @@ trait DeviceFormHelper
                     'target_endpoint' => $this->FormatBindingTargetEndpoint($target, $binding)
                 ];
             }
+        }
+
+        if ($values === []) {
+            return [[
+                'source_endpoint' => $this->Translate('No bindings available'),
+                'cluster'         => '',
+                'target_type'     => '',
+                'target'          => '',
+                'target_endpoint' => ''
+            ]];
         }
 
         return $values;
@@ -956,7 +966,7 @@ trait DeviceFormHelper
         $supportedClusters = array_flip($this->GetSupportedBindingClusterValues());
         $values = [];
         foreach ($clusters as $cluster) {
-            $cluster = trim((string) $cluster);
+            $cluster = $this->NormalizeBindingClusterValue($cluster);
             if ($cluster === '' || !\array_key_exists($cluster, $supportedClusters)) {
                 continue;
             }
@@ -968,16 +978,46 @@ trait DeviceFormHelper
     }
 
     /**
+     * Normalisiert numerische Cluster-IDs auf die von Zigbee2MQTT erwarteten Binding-Namen.
+     */
+    private function NormalizeBindingClusterValue(mixed $cluster): string
+    {
+        if (\is_array($cluster)) {
+            $cluster = $cluster['name'] ?? $cluster['ID'] ?? $cluster['id'] ?? $cluster['clusterID'] ?? '';
+        }
+
+        $cluster = trim((string) $cluster);
+        if ($cluster === '') {
+            return '';
+        }
+
+        return $this->GetSupportedBindingClusterMap()[$cluster] ?? $cluster;
+    }
+
+    /**
      * Liefert die von Zigbee2MQTT dokumentierten Binding-Cluster.
      */
     private function GetSupportedBindingClusterValues(): array
     {
+        return array_values(array_unique($this->GetSupportedBindingClusterMap()));
+    }
+
+    /**
+     * Liefert die von Zigbee2MQTT dokumentierten Binding-Cluster mit numerischen Zigbee-IDs.
+     */
+    private function GetSupportedBindingClusterMap(): array
+    {
         return [
-            'closuresWindowCovering',
-            'genLevelCtrl',
-            'genOnOff',
-            'genScenes',
-            'lightingColorCtrl'
+            '5'                       => 'genScenes',
+            '6'                       => 'genOnOff',
+            '8'                       => 'genLevelCtrl',
+            '258'                     => 'closuresWindowCovering',
+            '768'                     => 'lightingColorCtrl',
+            'genScenes'               => 'genScenes',
+            'genOnOff'                => 'genOnOff',
+            'genLevelCtrl'            => 'genLevelCtrl',
+            'closuresWindowCovering'  => 'closuresWindowCovering',
+            'lightingColorCtrl'       => 'lightingColorCtrl'
         ];
     }
 
