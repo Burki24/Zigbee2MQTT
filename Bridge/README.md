@@ -375,6 +375,18 @@ Entfernt alle Bindings eines Geräts über `bridge/request/device/binds/clear`.
 
 ---
 
+### Z2M_GetCachedDeviceEndpoints <!-- omit in toc -->
+
+```php
+string Z2M_GetCachedDeviceEndpoints(int $InstanzID, string $DeviceName);
+```
+
+Liefert die in der Bridge zwischengespeicherten Endpoint-Daten eines Geräts als JSON. Die Daten stammen aus dem retained Zigbee2MQTT-Topic `bridge/devices` und enthalten, sofern Zigbee2MQTT sie meldet, auch vorhandene `bindings` und `configured_reportings`.
+
+Diese Funktion wird von den Device-Instanzen genutzt, um den Bereich **Binding und Reporting** zu aktualisieren. Zigbee2MQTT bietet keinen separaten Request zum Lesen vorhandener Bindings; die Anzeige basiert deshalb auf dem zuletzt empfangenen `bridge/devices` Cache.
+
+---
+
 ### Z2M_ConfigureReporting <!-- omit in toc -->
 
 ```php

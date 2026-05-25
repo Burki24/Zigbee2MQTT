@@ -259,7 +259,7 @@ Vor der Nutzung bitte die [Tool-Dokumentation](docs/tools/README.md) vollstaendi
 - Geräte- und Gruppenoptionen nutzen typisierte Editoren für Boolean-, Enum-, Numeric-, Text-, Array- und Objektwerte; Attributfilter wie `filtered_attributes`, `filtered_cache` oder `debounce_ignore` bieten eine Auswahl bekannter Payload-Attribute.
 - Enum-basierte `state`-Variablen wie Rollladenbefehle senden wieder die originalen Zigbee2MQTT-Werte wie `OPEN`, `CLOSE` oder `STOP`; binäre Schalter bleiben bei `ON`/`OFF`.
 - Die Bridge unterstützt `bridge/request/device/options` über `Z2M_SetDeviceOptions()` und aktualisierte OTA-Funktionen für Downgrade, Scheduling, Unschedule und eigene OTA-URLs.
-- Binding und Reporting können in der Geräte-Konfiguration über Endpoint-, Cluster- und Attributdaten gepflegt werden; die Bridge stellt dazu Funktionen für Binding mit Cluster-Auswahl sowie Reporting Configure/Read bereit.
+- Binding und Reporting können in der Geräte-Konfiguration über Endpoint-, Cluster- und Attributdaten gepflegt werden; vorhandene Bindings und Reportings werden aus dem Zigbee2MQTT-`bridge/devices` Cache gelesen und per **Endpoint-Daten aktualisieren** neu eingelesen.
 - Gruppen-Instanzen können Mitglieder inklusive automatisch gelisteter Endpoints verwalten, Zigbee2MQTT-Gruppenoptionen setzen und Szenen speichern, hinzufügen, abrufen, umbenennen oder löschen.
 - Gruppenbefehle zeigen bei nicht erreichbaren Geräten eine verständliche Meldung in der Konfiguration, statt nur die Zigbee2MQTT-Fehlermeldung durchzureichen.
 - Die Bridge enthält einen Diagnosebereich für Health Check, Coordinator Check, Bridge-Events, Warnungen/Fehler sowie nicht unterstützte oder unvollständig interviewte Geräte.
