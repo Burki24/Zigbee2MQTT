@@ -161,6 +161,10 @@ class Zigbee2MQTTDevice extends \Zigbee2MQTT\ModulBase
             $this->ClearBindingsFromForm();
             return;
         }
+        if ($ident == 'UpdateBindingClusters') {
+            $this->UpdateBindingClustersFromForm($value);
+            return;
+        }
         if ($ident == 'ConfigureReporting') {
             $this->ConfigureReportingFromForm($value);
             return;

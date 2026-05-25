@@ -665,6 +665,7 @@ class DevicesTest extends DumpInclude
         $this->assertContains('', $endpointValues);
         $this->assertContains('1', $endpointValues);
         $this->assertContains('242', $endpointValues);
+        $this->assertStringContainsString('UpdateBindingClusters', $endpointSelect['onChange'] ?? '');
 
         $targetSelect = $this->findFormItemByName($form, 'BindingTarget');
         $this->assertNotNull($targetSelect);
@@ -673,6 +674,94 @@ class DevicesTest extends DumpInclude
         $this->assertContains('', $targetValues);
         $this->assertContains('Binding/Target/Device', $targetValues);
         $this->assertContains('Binding/Target/Group', $targetValues);
+        $this->assertStringContainsString('UpdateBindingClusters', $targetSelect['onChange'] ?? '');
+
+        $clusterSelect = $this->findFormItemByName($form, 'BindingClusters');
+        $this->assertNotNull($clusterSelect);
+        $this->assertSame('Select', $clusterSelect['type']);
+        $clusterValues = array_column($clusterSelect['options'], 'value');
+        $this->assertContains('', $clusterValues);
+        $this->assertContains('genOnOff', $clusterValues);
+        $this->assertNotContains('greenPower', $clusterValues);
+    }
+
+    public function testBindingClusterSelectionUpdatesForSelectedEndpoint(): void
+    {
+        $device = $this->createDeviceOptionFormTestDouble();
+        $device->setAttributeArrayForTest('DeviceEndpoints', [
+            '1'   => [
+                'id'       => '1',
+                'name'     => 'left',
+                'clusters' => ['input' => ['genBasic'], 'output' => ['genOnOff']]
+            ],
+            '242' => [
+                'id'       => '242',
+                'name'     => 'green-power',
+                'clusters' => ['input' => [], 'output' => ['greenPower']]
+            ]
+        ]);
+
+        $device->RequestAction('UpdateBindingClusters', json_encode([
+            'endpoint' => '1',
+            'target'   => '',
+            'cluster'  => ''
+        ]));
+
+        $options = json_decode($device->updatedFields['BindingClusters']['options'], true);
+        $this->assertIsArray($options);
+        $clusterValues = array_column($options, 'value');
+        $this->assertContains('', $clusterValues);
+        $this->assertContains('genOnOff', $clusterValues);
+        $this->assertNotContains('genBasic', $clusterValues);
+        $this->assertNotContains('greenPower', $clusterValues);
+    }
+
+    public function testBindingClusterSelectionUsesGroupMemberClusters(): void
+    {
+        $device = $this->createDeviceOptionFormTestDouble();
+        $device->sendDataResponses = [
+            'getDevices' => [
+                'list' => [
+                    [
+                        'friendly_name' => 'Binding/Target/Member',
+                        'ieeeAddr'      => '0x1234',
+                        'endpoints'     => [
+                            '1' => [
+                                'id'       => '1',
+                                'clusters' => ['input' => ['genOnOff'], 'output' => []]
+                            ],
+                            '2' => [
+                                'id'       => '2',
+                                'clusters' => ['input' => ['lightingColorCtrl'], 'output' => []]
+                            ]
+                        ]
+                    ]
+                ]
+            ],
+            'getGroups'  => [
+                'list' => [
+                    [
+                        'friendly_name' => 'Binding/Target/Group',
+                        'members'       => [
+                            ['device' => 'Binding/Target/Member', 'endpoint' => '1']
+                        ],
+                        'devices'       => []
+                    ]
+                ]
+            ]
+        ];
+
+        $device->RequestAction('UpdateBindingClusters', json_encode([
+            'endpoint' => '',
+            'target'   => 'Binding/Target/Group',
+            'cluster'  => ''
+        ]));
+
+        $options = json_decode($device->updatedFields['BindingClusters']['options'], true);
+        $this->assertIsArray($options);
+        $clusterValues = array_column($options, 'value');
+        $this->assertContains('genOnOff', $clusterValues);
+        $this->assertNotContains('lightingColorCtrl', $clusterValues);
     }
 
     public function testBindingAndReportingSectionShowsEndpointHintWhenEndpointDataIsMissing(): void
@@ -1179,11 +1268,17 @@ class DevicesTest extends DumpInclude
             public array $updatedFields = [];
             public string $sentTopic = '';
             public array $sentPayload = [];
+            public array $sendDataResponses = [];
 
             protected function SendData(string $Topic, array $Payload = [], int $Timeout = 5000): array|bool
             {
                 $this->sentTopic = $Topic;
                 $this->sentPayload = $Payload;
+                $key = str_replace(self::SYMCON_EXTENSION_LIST_REQUEST, '', $Topic);
+                if (\array_key_exists($key, $this->sendDataResponses)) {
+                    return $this->sendDataResponses[$key];
+                }
+
                 return true;
             }
 
@@ -1202,6 +1297,11 @@ class DevicesTest extends DumpInclude
                 return true;
             }
 
+            protected function HasActiveParent(): bool
+            {
+                return true;
+            }
+
             protected function SendDebug(string $Message, string $Data, int $Format): bool
             {
                 return true;
@@ -1210,6 +1310,11 @@ class DevicesTest extends DumpInclude
             public function setExposesForTest(array $exposes): void
             {
                 $this->WriteAttributeArray(self::ATTRIBUTE_EXPOSES, $exposes);
+            }
+
+            public function setAttributeArrayForTest(string $name, array $value): void
+            {
+                $this->WriteAttributeArray($name, $value);
             }
         };
         $device->Create();

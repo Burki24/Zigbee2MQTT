@@ -427,18 +427,21 @@
                                     "type": "Select",
                                     "name": "BindingSourceEndpoint",
                                     "caption": "Source endpoint",
-                                    "options": []
+                                    "options": [],
+                                    "onChange": "IPS_RequestAction($id, 'UpdateBindingClusters', json_encode(['endpoint' => $BindingSourceEndpoint, 'target' => $BindingTarget, 'cluster' => $BindingClusters]));"
                                 },
                                 {
                                     "type": "Select",
                                     "name": "BindingTarget",
                                     "caption": "Target device or group",
-                                    "options": []
+                                    "options": [],
+                                    "onChange": "IPS_RequestAction($id, 'UpdateBindingClusters', json_encode(['endpoint' => $BindingSourceEndpoint, 'target' => $BindingTarget, 'cluster' => $BindingClusters]));"
                                 },
                                 {
-                                    "type": "ValidationTextBox",
+                                    "type": "Select",
                                     "name": "BindingClusters",
-                                    "caption": "Clusters"
+                                    "caption": "Clusters",
+                                    "options": []
                                 }
                             ]
                         },

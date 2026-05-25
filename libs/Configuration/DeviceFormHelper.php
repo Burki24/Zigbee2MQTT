@@ -226,6 +226,7 @@ trait DeviceFormHelper
         $this->SetDeviceFormField($form, 'EndpointList', 'rowCount', min(10, max(4, \count($values) + 1)));
         $this->SetDeviceFormField($form, 'BindingSourceEndpoint', 'options', $this->BuildBindingSourceEndpointOptions());
         $this->SetDeviceFormField($form, 'BindingTarget', 'options', $this->BuildBindingTargetOptions());
+        $this->SetDeviceFormField($form, 'BindingClusters', 'options', $this->BuildBindingClusterOptions());
     }
 
     /**
@@ -310,6 +311,28 @@ trait DeviceFormHelper
     protected function ClearBindingsFromForm(): bool
     {
         return $this->CallMatchingBridgeFunction('ClearBinds', [$this->ReadPropertyString(self::MQTT_TOPIC)]) === true;
+    }
+
+    /**
+     * Aktualisiert die Cluster-Auswahl bei Wechsel des Quell-Endpoints oder Ziels.
+     */
+    protected function UpdateBindingClustersFromForm(mixed $value): bool
+    {
+        $selection = $this->DecodeDeviceOptionFormPayload($value);
+        if ($selection === null) {
+            return false;
+        }
+
+        $endpoint = trim((string) ($selection['endpoint'] ?? ''));
+        $target = trim((string) ($selection['target'] ?? ''));
+        $currentCluster = trim((string) ($selection['cluster'] ?? ''));
+        $options = $this->BuildBindingClusterOptions($endpoint, $target);
+        $selectedCluster = $this->ResolveBindingClusterSelection($currentCluster, $options);
+
+        $this->UpdateFormField('BindingClusters', 'options', json_encode($options));
+        $this->UpdateFormField('BindingClusters', 'value', $selectedCluster);
+
+        return true;
     }
 
     /**
@@ -511,6 +534,346 @@ trait DeviceFormHelper
         }
 
         return $options;
+    }
+
+    /**
+     * Baut die Cluster-Auswahl fuer Binding-Requests.
+     */
+    private function BuildBindingClusterOptions(string $sourceEndpoint = '', string $target = ''): array
+    {
+        $sourceClusters = $this->BuildBindingSourceClusterValues($sourceEndpoint);
+        $targetClusters = $this->BuildBindingTargetClusterValues($target);
+
+        if ($sourceClusters !== [] && $targetClusters !== []) {
+            $matchingClusters = array_values(array_intersect($sourceClusters, $targetClusters));
+            $clusters = $matchingClusters !== [] ? $matchingClusters : $sourceClusters;
+        } elseif ($sourceClusters !== []) {
+            $clusters = $sourceClusters;
+        } else {
+            $clusters = $targetClusters;
+        }
+
+        $clusters = $this->FilterSupportedBindingClusterValues($clusters);
+        $options = [
+            ['caption' => '-', 'value' => '']
+        ];
+        foreach ($clusters as $cluster) {
+            $cluster = trim((string) $cluster);
+            if ($cluster === '') {
+                continue;
+            }
+
+            $options[$cluster] = [
+                'caption' => $cluster,
+                'value'   => $cluster
+            ];
+        }
+
+        return array_values($options);
+    }
+
+    /**
+     * Liefert die Cluster-Werte des ausgewaehlten Quell-Endpoints.
+     */
+    private function BuildBindingSourceClusterValues(string $sourceEndpoint): array
+    {
+        $clusters = [];
+        foreach ($this->ReadAttributeArray(self::ATTRIBUTE_DEVICE_ENDPOINTS) as $endpointID => $endpoint) {
+            if (!\is_array($endpoint)) {
+                continue;
+            }
+
+            $id = trim((string) ($endpoint['id'] ?? $endpoint['ID'] ?? $endpointID));
+            if ($sourceEndpoint !== '' && $id !== $sourceEndpoint) {
+                continue;
+            }
+
+            $clusters = array_merge($clusters, $this->ExtractBindingClusterValues($endpoint['clusters'] ?? []));
+        }
+
+        return $this->NormalizeBindingClusterValues($clusters);
+    }
+
+    /**
+     * Liefert bekannte Cluster eines ausgewaehlten Binding-Ziels.
+     */
+    private function BuildBindingTargetClusterValues(string $target): array
+    {
+        if ($target === '' || !$this->HasActiveParent()) {
+            return [];
+        }
+
+        $devices = $this->ReadBindingTargetDeviceList();
+        foreach ($devices as $device) {
+            if (!\is_array($device) || trim((string) ($device['friendly_name'] ?? '')) !== $target) {
+                continue;
+            }
+
+            return $this->ExtractBindingEndpointClusterValues($device['endpoints'] ?? []);
+        }
+
+        foreach ($this->ReadBindingTargetGroupList() as $group) {
+            if (!\is_array($group) || trim((string) ($group['friendly_name'] ?? '')) !== $target) {
+                continue;
+            }
+
+            return $this->ExtractBindingGroupMemberClusterValues($group, $devices);
+        }
+
+        return [];
+    }
+
+    /**
+     * Fragt die von der Extension bekannten Geraete fuer Binding-Auswahlen ab.
+     */
+    private function ReadBindingTargetDeviceList(): array
+    {
+        $result = @$this->SendData(self::SYMCON_EXTENSION_LIST_REQUEST . 'getDevices', [], 2500);
+        if (!\is_array($result) || !\is_array($result['list'] ?? null)) {
+            return [];
+        }
+
+        return $result['list'];
+    }
+
+    /**
+     * Fragt die von der Extension bekannten Gruppen fuer Binding-Auswahlen ab.
+     */
+    private function ReadBindingTargetGroupList(): array
+    {
+        $result = @$this->SendData(self::SYMCON_EXTENSION_LIST_REQUEST . 'getGroups', [], 2500);
+        if (!\is_array($result) || !\is_array($result['list'] ?? null)) {
+            return [];
+        }
+
+        return $result['list'];
+    }
+
+    /**
+     * Leitet die Cluster einer Gruppe aus ihren bekannten Mitgliedern ab.
+     */
+    private function ExtractBindingGroupMemberClusterValues(array $group, array $devices): array
+    {
+        $deviceIndex = $this->IndexBindingDevices($devices);
+        $clusters = [];
+        foreach ($this->BuildBindingGroupMemberReferences($group) as $reference) {
+            $device = $this->FindIndexedBindingDevice($deviceIndex, (string) ($reference['device'] ?? ''));
+            if ($device === null) {
+                continue;
+            }
+
+            $clusters = array_merge(
+                $clusters,
+                $this->ExtractBindingEndpointClusterValues($device['endpoints'] ?? [], (string) ($reference['endpoint'] ?? ''))
+            );
+        }
+
+        return $this->NormalizeBindingClusterValues($clusters);
+    }
+
+    /**
+     * Baut einen schnellen Zugriff auf Geraete per Friendly Name und IEEE-Adresse.
+     */
+    private function IndexBindingDevices(array $devices): array
+    {
+        $index = [];
+        foreach ($devices as $device) {
+            if (!\is_array($device)) {
+                continue;
+            }
+
+            foreach (['friendly_name', 'ieeeAddr', 'ieee_address'] as $key) {
+                $identifier = strtolower(trim((string) ($device[$key] ?? '')));
+                if ($identifier !== '') {
+                    $index[$identifier] = $device;
+                }
+            }
+        }
+
+        return $index;
+    }
+
+    /**
+     * Sucht ein indexiertes Binding-Geraet.
+     */
+    private function FindIndexedBindingDevice(array $deviceIndex, string $identifier): ?array
+    {
+        $identifier = strtolower(trim($identifier));
+        if ($identifier === '' || !\is_array($deviceIndex[$identifier] ?? null)) {
+            return null;
+        }
+
+        return $deviceIndex[$identifier];
+    }
+
+    /**
+     * Normalisiert Gruppenmitglieder fuer die Cluster-Ableitung.
+     */
+    private function BuildBindingGroupMemberReferences(array $group): array
+    {
+        $references = [];
+        foreach (['members', 'devices'] as $key) {
+            if (!\is_array($group[$key] ?? null)) {
+                continue;
+            }
+
+            foreach ($group[$key] as $entry) {
+                $reference = $this->BuildBindingGroupMemberReference($entry);
+                if ($reference === null) {
+                    continue;
+                }
+
+                $references[$reference['device'] . '#' . $reference['endpoint']] = $reference;
+            }
+        }
+
+        return array_values($references);
+    }
+
+    /**
+     * Normalisiert ein Gruppenmitglied fuer die Cluster-Ableitung.
+     */
+    private function BuildBindingGroupMemberReference(mixed $entry): ?array
+    {
+        if (\is_string($entry) || \is_int($entry)) {
+            $device = trim((string) $entry);
+            return $device === '' ? null : ['device' => $device, 'endpoint' => ''];
+        }
+
+        if (!\is_array($entry)) {
+            return null;
+        }
+
+        $device = trim((string) ($entry['device'] ?? $entry['friendly_name'] ?? $entry['ieee_address'] ?? $entry['ieeeAddr'] ?? ''));
+        if ($device === '') {
+            return null;
+        }
+
+        return [
+            'device'   => $device,
+            'endpoint' => trim((string) ($entry['endpoint'] ?? $entry['endpoint_id'] ?? $entry['endpointID'] ?? ''))
+        ];
+    }
+
+    /**
+     * Extrahiert Cluster aus einer Endpoint-Liste.
+     */
+    private function ExtractBindingEndpointClusterValues(mixed $endpoints, string $endpointFilter = ''): array
+    {
+        if (!\is_array($endpoints)) {
+            return [];
+        }
+
+        $clusters = [];
+        foreach ($endpoints as $endpointID => $endpoint) {
+            if (!\is_array($endpoint)) {
+                continue;
+            }
+
+            $id = trim((string) ($endpoint['id'] ?? $endpoint['ID'] ?? $endpointID));
+            if ($endpointFilter !== '' && $id !== $endpointFilter) {
+                continue;
+            }
+
+            $clusters = array_merge($clusters, $this->ExtractBindingClusterValues($endpoint['clusters'] ?? []));
+        }
+
+        return $this->NormalizeBindingClusterValues($clusters);
+    }
+
+    /**
+     * Extrahiert Eingangs- und Ausgangscluster aus einer Cluster-Struktur.
+     */
+    private function ExtractBindingClusterValues(mixed $clusters): array
+    {
+        if (!\is_array($clusters)) {
+            return [];
+        }
+
+        $values = [];
+        foreach (['input', 'output'] as $clusterDirection) {
+            if (!\is_array($clusters[$clusterDirection] ?? null)) {
+                continue;
+            }
+
+            foreach ($clusters[$clusterDirection] as $cluster) {
+                $values[] = $cluster;
+            }
+        }
+
+        return $values;
+    }
+
+    /**
+     * Normalisiert Cluster-Werte fuer Auswahlfelder.
+     */
+    private function NormalizeBindingClusterValues(array $clusters): array
+    {
+        $values = [];
+        foreach ($clusters as $cluster) {
+            $cluster = trim((string) $cluster);
+            if ($cluster === '') {
+                continue;
+            }
+
+            $values[$cluster] = $cluster;
+        }
+
+        $values = array_values($values);
+        usort($values, static fn (string $left, string $right): int => strnatcasecmp($left, $right));
+        return $values;
+    }
+
+    /**
+     * Beschraenkt Cluster auf die von Zigbee2MQTT fuer Bindings unterstuetzten Werte.
+     */
+    private function FilterSupportedBindingClusterValues(array $clusters): array
+    {
+        $supportedClusters = array_flip($this->GetSupportedBindingClusterValues());
+        $values = [];
+        foreach ($clusters as $cluster) {
+            $cluster = trim((string) $cluster);
+            if ($cluster === '' || !\array_key_exists($cluster, $supportedClusters)) {
+                continue;
+            }
+
+            $values[] = $cluster;
+        }
+
+        return $this->NormalizeBindingClusterValues($values);
+    }
+
+    /**
+     * Liefert die von Zigbee2MQTT dokumentierten Binding-Cluster.
+     */
+    private function GetSupportedBindingClusterValues(): array
+    {
+        return [
+            'closuresWindowCovering',
+            'genLevelCtrl',
+            'genOnOff',
+            'genScenes',
+            'lightingColorCtrl'
+        ];
+    }
+
+    /**
+     * Erhaelt einen aktuell gewaehlt Cluster, wenn er weiter verfuegbar ist.
+     */
+    private function ResolveBindingClusterSelection(string $currentCluster, array $options): string
+    {
+        $values = array_column($options, 'value');
+        if ($currentCluster !== '' && \in_array($currentCluster, $values, true)) {
+            return $currentCluster;
+        }
+
+        foreach ($values as $value) {
+            if ($value !== '') {
+                return (string) $value;
+            }
+        }
+
+        return '';
     }
 
     /**
