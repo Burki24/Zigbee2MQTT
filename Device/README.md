@@ -15,12 +15,13 @@
 - [2. Voraussetzungen](#2-voraussetzungen)
 - [3. Software-Installation](#3-software-installation)
 - [4. Konfiguration](#4-konfiguration)
-  - [4.1 Visualisierung und Kacheln](#41-visualisierung-und-kacheln)
-  - [4.2 Temperatur-Visualisierung](#42-temperatur-visualisierung)
-  - [4.3 Farbtemperatur in der Beleuchtungs-Kachel](#43-farbtemperatur-in-der-beleuchtungs-kachel)
-  - [4.4 Geräteoptionen](#44-geräteoptionen)
-  - [4.5 Binding und Reporting](#45-binding-und-reporting)
-  - [4.6 Variablenverwaltung](#46-variablenverwaltung)
+  - [4.1 Praxisablauf nach dem Anlegen](#41-praxisablauf-nach-dem-anlegen)
+  - [4.2 Visualisierung und Kacheln](#42-visualisierung-und-kacheln)
+  - [4.3 Temperatur-Visualisierung](#43-temperatur-visualisierung)
+  - [4.4 Farbtemperatur in der Beleuchtungs-Kachel](#44-farbtemperatur-in-der-beleuchtungs-kachel)
+  - [4.5 Geräteoptionen](#45-geräteoptionen)
+  - [4.6 Binding und Reporting](#46-binding-und-reporting)
+  - [4.7 Variablenverwaltung](#47-variablenverwaltung)
 - [5. Statusvariablen](#5-statusvariablen)
 - [6. PHP-Funktionsreferenz](#6-php-funktionsreferenz)
 - [7. Aktionen](#7-aktionen)
@@ -72,7 +73,29 @@
 | **13**     | **Statusvariablen**             | Hier lassen sich alle der Instanz zugehörigen Variablen bearbeiten ![Variablen](imgs/variablen.png)                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                   |
 | **14**     | **Debug**                       | Öffnet eine Debug-Ausgabe dieser Instanz. Protokolle der Debug-Ausgabe werden im Fehlerfall von den Entwicklern abgefragt. Da hier u.a. auch zu sehen ist, ob Werte des MQTT-Expose oder Payload nicht zugeordnet werden können, Profile fehlen, Schaltaktionen nicht ausgeführt werden können usw...<br>Sollte es Probleme mit einer Instanz geben, können diese nur adäquat bearbeitet werden, wenn der Meldung (unter Issues oder im Forum) ein Debug beigelegt wird. Dazu bitte im Debug-Fenster zuerst das Limit ausschalten und später über ![Download](imgs/download-debug.png) die heruntergeladene Debug-Datei der Meldung im Forum beifügen. |
 
-### 4.1 Visualisierung und Kacheln
+### 4.1 Praxisablauf nach dem Anlegen
+
+Nach dem Anlegen einer Geräteinstanz sind in der Regel nur wenige Schritte nötig. Die meisten Einstellungen werden automatisch aus den von Zigbee2MQTT gelieferten Geräteinformationen abgeleitet.
+
+1. **Geräteinformationen prüfen oder neu abrufen**
+   Kontrollieren Sie, ob Gerätebild, Modell-Link, IEEE-Adresse und MQTT-Topic passen. Wenn Zigbee2MQTT neue oder geänderte Exposes liefert, können die Informationen über **Geräteinformationen abrufen** neu geladen werden.
+
+2. **Variablen prüfen**
+   Öffnen Sie den Bereich **Variablen** und prüfen Sie, welche Werte angelegt, deaktiviert, gelöscht oder noch nicht angelegt sind. Deaktivierte Variablen werden nicht automatisch neu erzeugt, können dort aber später wieder aktiviert werden.
+
+3. **Visualisierung prüfen**
+   Im Bereich **Visualisierung** zeigt das Modul, welche Kachel automatisch verwendet wird. Wenn mehrere Darstellungen fachlich passen, kann eine spezielle Kachel deaktiviert werden, damit die nächste passende Darstellung oder die Symcon-Standarddarstellung verwendet wird.
+
+4. **Geräteoptionen nur bei Bedarf anpassen**
+   Optionen wie `transition`, `debounce`, `retain`, `optimistic` oder `filtered_attributes` sollten nur geändert werden, wenn das gewünschte Verhalten bekannt ist. Änderungen werden direkt an Zigbee2MQTT gesendet.
+
+5. **Binding und Reporting nur bewusst konfigurieren**
+   Binding und Reporting greifen direkt in Zigbee-Funktionen ein. Sie sind hilfreich für direkte Geräteverknüpfungen oder angepasste Meldeintervalle, sollten aber erst genutzt werden, wenn klar ist, welche Endpoints, Cluster und Attribute das Gerät unterstützt.
+
+6. **Funktion testen**
+   Bedienbare Variablen können im Testcenter oder in der Tile-Visualisierung geprüft werden. Wenn Aktionen nicht funktionieren, hilft der Debug der Instanz, weil dort die gesendeten MQTT-Payloads und mögliche Zuordnungsprobleme sichtbar sind.
+
+### 4.2 Visualisierung und Kacheln
 
 Das Modul prüft anhand der Zigbee2MQTT-Exposes automatisch, ob eine eigene HTML-SDK-Kachel sinnvoll ist. Wenn eine passende Kachel verfügbar ist, wird diese automatisch als Visualisierung der Instanz verwendet. In der Konfiguration erscheint dann der Bereich **Visualisierung** mit der aktuell aktiven Kachel und den passenden Abschaltoptionen.
 
@@ -113,7 +136,7 @@ Die höher priorisierte Kachel kann in der Instanz-Konfiguration deaktiviert wer
 
 Für Gerätetypen, die Symcon bereits nativ gut darstellen kann, erstellt das Modul bewusst keine eigene HTML-Kachel. Rollladen/Jalousien mit `type: "cover"` und `position` werden über die Symcon-Shutter-Darstellung bzw. das Standardprofil `~Shutter.Reversed` abgebildet. Einfache Türschlösser, Lüfter oder Sirenen bleiben bei den passenden Standarddarstellungen wie Schalter, Slider oder Aufzählung, solange die Exposes keine eigenständige zusammengefasste Kachel nötig machen.
 
-### 4.2 Temperatur-Visualisierung
+### 4.3 Temperatur-Visualisierung
 
 Für Temperatur-Exposes setzt das Modul automatisch eine moderne Tile-Darstellung. Wenn Zigbee2MQTT `value_min` und `value_max` liefert, werden diese Werte für den Darstellungsbereich genutzt.
 
@@ -126,7 +149,7 @@ Falls ein Temperatur-Expose keinen Wertebereich mitliefert, verwendet das Modul 
 
 Der Bereich ist nur für die Darstellung relevant. Er ändert keine Gerätewerte und keine von Zigbee2MQTT gelieferten Exposes.
 
-### 4.3 Farbtemperatur in der Beleuchtungs-Kachel
+### 4.4 Farbtemperatur in der Beleuchtungs-Kachel
 
 Für Leuchtmittel mit `color_temp` legt das Modul zusätzlich die Variable `color_temp_kelvin` an. Diese Variable wird für die Farbtemperatur-Seite der Symcon-Standardkachel **Beleuchtung** verwendet, damit die Bedienung in Kelvin statt in Mired erfolgt.
 
@@ -154,7 +177,7 @@ Der Override korrigiert die Symcon-Darstellung der `color_temp_kelvin`-Variable,
 
 Bei reinen Tunable-White-Leuchtmitteln ohne RGB/HS/XY-Farb-Expose legt das Modul zusätzlich eine abgeleitete Variable `color` mit dem Profil `~HexColor` an. Diese Variable zeigt den aktuellen Weißton als Farbe an, bleibt aber eine reine Darstellung und ersetzt keine echte RGB-Steuerung.
 
-### 4.4 Geräteoptionen
+### 4.5 Geräteoptionen
 
 Zigbee2MQTT liefert je nach Gerät allgemeine und gerätespezifische Optionen. In der Instanz-Konfiguration erscheint dafür der Bereich **Geräteoptionen**. Dort werden bekannte Optionen mit aktuellem Wert, Typ und Beschreibung angezeigt.
 
@@ -183,7 +206,7 @@ Für Listen und Objekte muss JSON-Schreibweise verwendet werden, z. B. `["batter
 
 Optionen, die Zigbee2MQTT erst nach einem Neustart übernimmt, lösen in der Bridge eine entsprechende Meldung aus.
 
-### 4.5 Binding und Reporting
+### 4.6 Binding und Reporting
 
 Binding und Reporting sind Zigbee-Funktionen, mit denen Geräte direkter und effizienter miteinander arbeiten können. Beim Binding sendet ein Gerät bestimmte Cluster direkt an ein Zielgerät oder eine Zielgruppe, ohne dass jede Aktion erst über eine Automatisierung abgebildet werden muss. Reporting legt fest, welche Attribute ein Gerät selbstständig meldet und in welchen Intervallen oder ab welcher Änderung neue Werte übertragen werden. Beides ist besonders bei Tastern, Leuchtmitteln, Sensoren und batteriebetriebenen Geräten hilfreich, sollte aber bewusst konfiguriert werden, da nicht jedes Gerät jeden Cluster oder jedes Attribut unterstützt.
 
@@ -215,7 +238,7 @@ Für die Bedienung sind vor allem diese Felder wichtig:
 
 Die Endpoint-Liste wird aus den von Zigbee2MQTT gelieferten Geräteinformationen aufgebaut. Sie zeigt Endpoint, Name, Eingangscluster, Ausgangscluster sowie die Anzahl bekannter Bindings und konfigurierter Reportings.
 
-### 4.6 Variablenverwaltung
+### 4.7 Variablenverwaltung
 
 Die Instanz merkt sich alle aus Exposes, Payloads und Systemmeldungen bekannten Variablen in einem lokalen Variablenkatalog. In der Konfiguration erscheint dazu der Bereich **Variablen**. Dort kann pro Variable gesteuert werden, ob das Modul sie automatisch anlegen darf.
 
