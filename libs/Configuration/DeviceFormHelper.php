@@ -329,9 +329,8 @@ trait DeviceFormHelper
      */
     protected function RefreshBindingReportingInfoFromForm(): bool
     {
-        if (!$this->UpdateDeviceInfo()) {
-            return false;
-        }
+        @$this->UpdateDeviceInfo();
+        $this->RefreshEndpointDataFromBridgeCache();
 
         $endpointValues = $this->BuildEndpointFormValues();
         $bindingValues = $this->BuildBindingOverviewFormValues();
@@ -352,6 +351,18 @@ trait DeviceFormHelper
         $this->UpdateFormField('ReportingAttribute', 'options', json_encode($this->BuildReportingAttributeOptions()));
 
         return true;
+    }
+
+    /**
+     * Aktualisiert nur die Endpoint-Daten aus dem Bridge-Cache.
+     */
+    private function RefreshEndpointDataFromBridgeCache(): void
+    {
+        $currentEndpoints = $this->ReadAttributeArray(self::ATTRIBUTE_DEVICE_ENDPOINTS);
+        $mergedEndpoints = $this->MergeBridgeCachedDeviceEndpoints($currentEndpoints);
+        if ($mergedEndpoints !== $currentEndpoints) {
+            $this->WriteAttributeArray(self::ATTRIBUTE_DEVICE_ENDPOINTS, $mergedEndpoints);
+        }
     }
 
     /**

@@ -889,6 +889,40 @@ class DevicesTest extends DumpInclude
         $this->assertSame([], $list['values']);
     }
 
+    public function testRefreshBindingReportingUsesBridgeCacheWhenDeviceInfoFails(): void
+    {
+        $device = $this->createDeviceOptionFormTestDouble();
+        $device->updateDeviceInfoResult = false;
+        $device->setAttributeArrayForTest('DeviceEndpoints', [
+            '11' => [
+                'id'       => '11',
+                'bindings' => [],
+                'clusters' => [
+                    'input'  => ['genOnOff'],
+                    'output' => ['genOnOff']
+                ]
+            ]
+        ]);
+        $device->cachedEndpoints = [
+            '11' => [
+                'id'       => '11',
+                'bindings' => [
+                    ['cluster' => 'genOnOff', 'target' => ['type' => 'endpoint', 'deviceIeeeAddress' => '0xabcd', 'endpointID' => 1]]
+                ]
+            ]
+        ];
+
+        $device->RequestAction('RefreshBindingReportingInfo', true);
+
+        $endpoints = $device->getAttributeArrayForTest('DeviceEndpoints');
+        $this->assertSame('genOnOff', $endpoints['11']['bindings'][0]['cluster']);
+
+        $bindingRows = json_decode($device->updatedFields['BindingOverviewList']['values'], true);
+        $this->assertIsArray($bindingRows);
+        $this->assertSame('genOnOff', $bindingRows[0]['cluster']);
+        $this->assertSame('0xabcd', $bindingRows[0]['target']);
+    }
+
     public function testColorCompositeCatalogUsesSingleColorVariable()
     {
         if (!IPS_VariableProfileExists('~HexColor')) {
@@ -1381,6 +1415,8 @@ class DevicesTest extends DumpInclude
             public string $sentTopic = '';
             public array $sentPayload = [];
             public array $sendDataResponses = [];
+            public array $cachedEndpoints = [];
+            public ?bool $updateDeviceInfoResult = null;
 
             protected function SendData(string $Topic, array $Payload = [], int $Timeout = 5000): array|bool
             {
@@ -1427,6 +1463,25 @@ class DevicesTest extends DumpInclude
             public function setAttributeArrayForTest(string $name, array $value): void
             {
                 $this->WriteAttributeArray($name, $value);
+            }
+
+            public function getAttributeArrayForTest(string $name): array
+            {
+                return $this->ReadAttributeArray($name);
+            }
+
+            protected function UpdateDeviceInfo(): bool
+            {
+                if ($this->updateDeviceInfoResult !== null) {
+                    return $this->updateDeviceInfoResult;
+                }
+
+                return parent::UpdateDeviceInfo();
+            }
+
+            protected function ReadBridgeCachedDeviceEndpoints(): array
+            {
+                return $this->cachedEndpoints;
             }
         };
         $device->Create();
