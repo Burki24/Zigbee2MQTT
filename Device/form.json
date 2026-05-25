@@ -390,27 +390,27 @@
                         {
                             "caption": "Name",
                             "name": "name",
-                            "width": "120px"
+                            "width": "140px"
                         },
                         {
                             "caption": "Input clusters",
                             "name": "input",
-                            "width": "220px"
+                            "width": "auto"
                         },
                         {
                             "caption": "Output clusters",
                             "name": "output",
-                            "width": "220px"
+                            "width": "160px"
                         },
                         {
                             "caption": "Bindings",
                             "name": "bindings",
-                            "width": "120px"
+                            "width": "90px"
                         },
                         {
                             "caption": "Reportings",
                             "name": "reportings",
-                            "width": "120px"
+                            "width": "90px"
                         }
                     ],
                     "values": []
@@ -433,22 +433,22 @@
                         {
                             "caption": "Cluster",
                             "name": "cluster",
-                            "width": "180px"
+                            "width": "160px"
                         },
                         {
                             "caption": "Type",
                             "name": "target_type",
-                            "width": "120px"
+                            "width": "100px"
                         },
                         {
                             "caption": "Target",
                             "name": "target",
-                            "width": "260px"
+                            "width": "auto"
                         },
                         {
                             "caption": "Target endpoint",
                             "name": "target_endpoint",
-                            "width": "140px"
+                            "width": "120px"
                         }
                     ],
                     "values": []
@@ -466,7 +466,7 @@
                         {
                             "caption": "Endpoint",
                             "name": "endpoint",
-                            "width": "120px"
+                            "width": "90px"
                         },
                         {
                             "caption": "Cluster",
@@ -476,22 +476,22 @@
                         {
                             "caption": "Attribute",
                             "name": "attribute",
-                            "width": "180px"
+                            "width": "auto"
                         },
                         {
                             "caption": "Minimum interval",
                             "name": "minimum_interval",
-                            "width": "140px"
+                            "width": "130px"
                         },
                         {
                             "caption": "Maximum interval",
                             "name": "maximum_interval",
-                            "width": "140px"
+                            "width": "130px"
                         },
                         {
                             "caption": "Reportable change",
                             "name": "reportable_change",
-                            "width": "160px"
+                            "width": "150px"
                         }
                     ],
                     "values": []

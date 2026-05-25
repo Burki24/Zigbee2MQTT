@@ -726,12 +726,12 @@ class DevicesTest extends DumpInclude
         $bindingList = $this->findFormItemByName($form, 'BindingOverviewList');
         $this->assertNotNull($bindingList);
         $this->assertTrue($bindingList['visible']);
-        $this->assertSame('Keine Bindungen vorhanden', $bindingList['values'][0]['source_endpoint']);
+        $this->assertSame('Keine Bindungen vorhanden', $bindingList['values'][0]['target']);
 
         $reportingList = $this->findFormItemByName($form, 'ReportingOverviewList');
         $this->assertNotNull($reportingList);
         $this->assertTrue($reportingList['visible']);
-        $this->assertSame('Keine Reportings vorhanden', $reportingList['values'][0]['endpoint']);
+        $this->assertSame('Keine Reportings vorhanden', $reportingList['values'][0]['attribute']);
     }
 
     public function testBindingClusterSelectionUpdatesForSelectedEndpoint(): void

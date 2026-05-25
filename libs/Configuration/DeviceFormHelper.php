@@ -508,10 +508,10 @@ trait DeviceFormHelper
 
         if ($values === []) {
             return [[
-                'source_endpoint' => $this->Translate('No bindings available'),
+                'source_endpoint' => '',
                 'cluster'         => '',
                 'target_type'     => '',
-                'target'          => '',
+                'target'          => $this->Translate('No bindings available'),
                 'target_endpoint' => ''
             ]];
         }
@@ -549,9 +549,9 @@ trait DeviceFormHelper
 
         if ($values === []) {
             return [[
-                'endpoint'          => $this->Translate('No reportings available'),
+                'endpoint'          => '',
                 'cluster'           => '',
-                'attribute'         => '',
+                'attribute'         => $this->Translate('No reportings available'),
                 'minimum_interval'  => '',
                 'maximum_interval'  => '',
                 'reportable_change' => ''
