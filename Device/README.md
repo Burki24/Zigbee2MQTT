@@ -158,6 +158,12 @@ Bei reinen Tunable-White-Leuchtmitteln ohne RGB/HS/XY-Farb-Expose legt das Modul
 
 Zigbee2MQTT liefert je nach Gerät allgemeine und gerätespezifische Optionen. In der Instanz-Konfiguration erscheint dafür der Bereich **Geräteoptionen**. Dort werden bekannte Optionen mit aktuellem Wert, Typ und Beschreibung angezeigt.
 
+![Geräteoptionen](imgs/geraeteoptionen.png)
+
+Wird eine Option über `Bearbeiten` ausgewählt, passt sich der Editor an den Optionstyp an. Bei `Wahr/Falsch` erscheint z. B. ein Schalter, bei Listen eine JSON-/Attributauswahl und bei Zahlen oder Texten ein Eingabefeld.
+
+![Geräteoptionen Editor](imgs/geraeteoptionen-editor.png)
+
 Die Änderung wird über `bridge/request/device/options` an Zigbee2MQTT gesendet. Wenn eine passende Bridge-Instanz mit gleichem MQTT-Basistopic vorhanden ist, wird diese für die Anfrage genutzt und die Zigbee2MQTT-Antwort geprüft.
 
 Soweit der Typ bekannt ist, zeigt das Formular passende Editoren:
