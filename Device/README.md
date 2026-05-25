@@ -203,6 +203,18 @@ Soweit der Typ bekannt ist, zeigt das Formular passende Editoren:
 
 Das Modul kennt die häufigsten allgemeinen Zigbee2MQTT-Geräteoptionen wie `debounce`, `debounce_ignore`, `disable_automatic_update_check`, `disabled`, `filtered_attributes`, `filtered_cache`, `filtered_optimistic`, `homeassistant`, `icon`, `optimistic`, `qos`, `retain`, `retention`, `throttle` und `transition`. Zusätzlich werden gerätespezifische Optionen aus `definition.options` angezeigt, wenn Zigbee2MQTT sie für das Gerät liefert.
 
+Häufige Optionen in Kurzform:
+
+| Option | Bedeutung |
+| --- | --- |
+| `transition` | Übergangszeit in Sekunden, z. B. für Ein-/Ausschalten, Helligkeit oder Farbwechsel bei Leuchtmitteln. |
+| `debounce` | Entprellt schnelle Meldungen. Mehrere Werte innerhalb der angegebenen Zeit werden zusammengefasst bzw. verzögert verarbeitet. |
+| `optimistic` | Zigbee2MQTT veröffentlicht erwartete Zustände direkt nach einem Set-Befehl, auch bevor das Gerät den Zustand bestätigt hat. |
+| `retain` | MQTT-Nachrichten dieses Geräts werden vom Broker behalten. Neue MQTT-Clients erhalten dadurch den letzten bekannten Wert sofort. |
+| `filtered_attributes` | Filtert ausgewählte Attribute aus veröffentlichten Payloads heraus. Das kann nützlich sein, wenn bestimmte Werte nicht verarbeitet werden sollen. |
+| `disabled` | Deaktiviert das Gerät in Zigbee2MQTT, z. B. damit es von Scans oder Verfügbarkeitsprüfungen ausgenommen wird. |
+| `qos` | MQTT-Quality-of-Service für Nachrichten dieses Geräts. Standard ist meistens ausreichend. |
+
 Für Listen und Objekte muss JSON-Schreibweise verwendet werden, z. B. `["battery"]` für `filtered_attributes` oder `{"key":"value"}` für Objektwerte. Bei Attributoptionen schlägt das Formular bekannte Payload-Attribute aus Exposes, Variablenkatalog und vorhandenen Variablen vor.
 
 Optionen, die Zigbee2MQTT erst nach einem Neustart übernimmt, lösen in der Bridge eine entsprechende Meldung aus.
