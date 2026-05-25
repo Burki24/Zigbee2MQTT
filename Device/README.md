@@ -93,7 +93,7 @@ Es werden nur Optionen angezeigt, die für das jeweilige Gerät fachlich passen.
 Bei kombinierten Aktor-/Sensorgeräten bleibt die automatische Auswahl zunächst bei der Aktor- bzw. Standarddarstellung. Sobald passende Sensorwerte vorhanden sind, kann in der Instanzkonfiguration bewusst **Sensor-Kachel verwenden** aktiviert werden.
 
 Die drei Solltemperatur-Presets der Heizungs-Kachel sind pro Instanz im Bereich **Visualisierung** konfigurierbar. Standardwerte sind `18,0 °C`, `20,0 °C` und `22,0 °C`.
-![Schaltaktor mit Leistungsmessung](imgs/Heizungs-Kachel.png)
+![Heizungs-Kachel mit Einstellung](imgs/Heizungs-Kachel.png)
 
 Die eigenen Kacheln geben keine festen Schriftarten oder Grundfarben vor. Dadurch übernehmen sie Hell-/Dunkelmodus, Schrift und Basisfarben der Symcon Tile-Visualisierung. Eigene Farben werden nur für fachliche Zustände verwendet, z. B. Alarm, OK, aktiv, inaktiv oder den Farbverlauf eines Messwerts.
 
@@ -108,6 +108,7 @@ Wenn mehrere Kacheln fachlich passen, gilt folgende Priorität:
 7. Standard-Visualisierung von Symcon
 
 Die höher priorisierte Kachel kann in der Instanz-Konfiguration deaktiviert werden, wenn stattdessen die nächste passende Kachel oder die Standard-Visualisierung verwendet werden soll.
+![Kachel-Auswahl](imgs/Instanz_Visualisierung.png)
 
 Für Gerätetypen, die Symcon bereits nativ gut darstellen kann, erstellt das Modul bewusst keine eigene HTML-Kachel. Rollladen/Jalousien mit `type: "cover"` und `position` werden über die Symcon-Shutter-Darstellung bzw. das Standardprofil `~Shutter.Reversed` abgebildet. Einfache Türschlösser, Lüfter oder Sirenen bleiben bei den passenden Standarddarstellungen wie Schalter, Slider oder Aufzählung, solange die Exposes keine eigenständige zusammengefasste Kachel nötig machen.
 
