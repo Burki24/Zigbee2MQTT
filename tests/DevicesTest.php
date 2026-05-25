@@ -602,7 +602,20 @@ class DevicesTest extends DumpInclude
                     ['cluster' => ['name' => 'genLevelCtrl'], 'target' => ['type' => 'endpoint', 'deviceIeeeAddress' => '0xabcd', 'endpointID' => 2]]
                 ],
                 'configured_reportings' => [
-                    ['cluster' => 'genOnOff', 'attribute' => 'onOff']
+                    [
+                        'cluster'                 => 'genOnOff',
+                        'attribute'               => 'onOff',
+                        'minimum_report_interval' => 5,
+                        'maximum_report_interval' => 3600,
+                        'reportable_change'       => 1
+                    ],
+                    [
+                        'cluster'               => ['name' => 'msTemperatureMeasurement'],
+                        'attributeName'         => 'measuredValue',
+                        'minimumReportInterval' => 10,
+                        'maximumReportInterval' => 600,
+                        'reportableChange'      => 25
+                    ]
                 ],
                 'clusters'              => [
                     'input'  => ['genOnOff', 'genBasic'],
@@ -625,7 +638,7 @@ class DevicesTest extends DumpInclude
         $this->assertSame('genOnOff, genBasic', $endpoint['input']);
         $this->assertSame('genLevelCtrl', $endpoint['output']);
         $this->assertSame('2', $endpoint['bindings']);
-        $this->assertSame('1', $endpoint['reportings']);
+        $this->assertSame('2', $endpoint['reportings']);
 
         $bindingList = $this->findFormItemByName($form, 'BindingOverviewList');
         $this->assertNotNull($bindingList);
@@ -638,6 +651,19 @@ class DevicesTest extends DumpInclude
         $this->assertSame('genLevelCtrl', $bindingList['values'][1]['cluster']);
         $this->assertSame('0xabcd', $bindingList['values'][1]['target']);
         $this->assertSame('2', $bindingList['values'][1]['target_endpoint']);
+
+        $reportingList = $this->findFormItemByName($form, 'ReportingOverviewList');
+        $this->assertNotNull($reportingList);
+        $this->assertTrue($reportingList['visible']);
+        $this->assertCount(2, $reportingList['values']);
+        $this->assertSame('1', $reportingList['values'][0]['endpoint']);
+        $this->assertSame('genOnOff', $reportingList['values'][0]['cluster']);
+        $this->assertSame('onOff', $reportingList['values'][0]['attribute']);
+        $this->assertSame('5 s', $reportingList['values'][0]['minimum_interval']);
+        $this->assertSame('3600 s', $reportingList['values'][0]['maximum_interval']);
+        $this->assertSame('1', $reportingList['values'][0]['reportable_change']);
+        $this->assertSame('msTemperatureMeasurement', $reportingList['values'][1]['cluster']);
+        $this->assertSame('measuredValue', $reportingList['values'][1]['attribute']);
     }
 
     public function testBindingFormProvidesEndpointAndTargetSelections(): void
@@ -701,6 +727,11 @@ class DevicesTest extends DumpInclude
         $this->assertNotNull($bindingList);
         $this->assertTrue($bindingList['visible']);
         $this->assertSame('Keine Bindungen vorhanden', $bindingList['values'][0]['source_endpoint']);
+
+        $reportingList = $this->findFormItemByName($form, 'ReportingOverviewList');
+        $this->assertNotNull($reportingList);
+        $this->assertTrue($reportingList['visible']);
+        $this->assertSame('Keine Reportings vorhanden', $reportingList['values'][0]['endpoint']);
     }
 
     public function testBindingClusterSelectionUpdatesForSelectedEndpoint(): void

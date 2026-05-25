@@ -214,6 +214,7 @@ trait DeviceFormHelper
     {
         $values = $this->BuildEndpointFormValues();
         $bindingValues = $this->BuildBindingOverviewFormValues();
+        $reportingValues = $this->BuildReportingOverviewFormValues();
         $visible = \count($values) > 0 || trim($this->ReadPropertyString(self::MQTT_TOPIC)) !== '';
         $this->SetDeviceFormField($form, 'BindingReportingSettings', 'visible', $visible);
         $this->SetDeviceFormField(
@@ -228,6 +229,9 @@ trait DeviceFormHelper
         $this->SetDeviceFormField($form, 'BindingOverviewList', 'visible', $visible);
         $this->SetDeviceFormField($form, 'BindingOverviewList', 'values', $bindingValues);
         $this->SetDeviceFormField($form, 'BindingOverviewList', 'rowCount', min(10, max(4, \count($bindingValues) + 1)));
+        $this->SetDeviceFormField($form, 'ReportingOverviewList', 'visible', $visible);
+        $this->SetDeviceFormField($form, 'ReportingOverviewList', 'values', $reportingValues);
+        $this->SetDeviceFormField($form, 'ReportingOverviewList', 'rowCount', min(10, max(4, \count($reportingValues) + 1)));
         $this->SetDeviceFormField($form, 'BindingSourceEndpoint', 'options', $this->BuildBindingSourceEndpointOptions());
         $this->SetDeviceFormField($form, 'BindingTarget', 'options', $this->BuildBindingTargetOptions());
         $this->SetDeviceFormField($form, 'BindingClusters', 'options', $this->BuildBindingClusterOptions());
@@ -513,6 +517,105 @@ trait DeviceFormHelper
         }
 
         return $values;
+    }
+
+    /**
+     * Baut eine lesbare Uebersicht der bekannten Reportings.
+     */
+    private function BuildReportingOverviewFormValues(): array
+    {
+        $values = [];
+        foreach ($this->ReadAttributeArray(self::ATTRIBUTE_DEVICE_ENDPOINTS) as $endpointID => $endpoint) {
+            if (!\is_array($endpoint) || !\is_array($endpoint['configured_reportings'] ?? null)) {
+                continue;
+            }
+
+            $sourceEndpoint = trim((string) ($endpoint['id'] ?? $endpoint['ID'] ?? $endpointID));
+            foreach ($endpoint['configured_reportings'] as $reporting) {
+                if (!\is_array($reporting)) {
+                    continue;
+                }
+
+                $values[] = [
+                    'endpoint'          => $sourceEndpoint,
+                    'cluster'           => $this->FormatBindingClusterValue($reporting['cluster'] ?? $reporting['clusterName'] ?? ''),
+                    'attribute'         => trim((string) ($reporting['attribute'] ?? $reporting['attributeName'] ?? '')),
+                    'minimum_interval'  => $this->FormatReportingIntervalValue($this->ReadReportingMinimumInterval($reporting)),
+                    'maximum_interval'  => $this->FormatReportingIntervalValue($this->ReadReportingMaximumInterval($reporting)),
+                    'reportable_change' => $this->FormatReportingValue($reporting['reportable_change'] ?? $reporting['reportableChange'] ?? $reporting['change'] ?? '')
+                ];
+            }
+        }
+
+        if ($values === []) {
+            return [[
+                'endpoint'          => $this->Translate('No reportings available'),
+                'cluster'           => '',
+                'attribute'         => '',
+                'minimum_interval'  => '',
+                'maximum_interval'  => '',
+                'reportable_change' => ''
+            ]];
+        }
+
+        return $values;
+    }
+
+    /**
+     * Liest das minimale Reporting-Intervall aus bekannten Z2M-Feldvarianten.
+     */
+    private function ReadReportingMinimumInterval(array $reporting): mixed
+    {
+        foreach (['minimum_report_interval', 'minimumReportInterval', 'minimum_interval', 'minimumInterval', 'min_interval', 'minInterval', 'min'] as $key) {
+            if (\array_key_exists($key, $reporting)) {
+                return $reporting[$key];
+            }
+        }
+
+        return '';
+    }
+
+    /**
+     * Liest das maximale Reporting-Intervall aus bekannten Z2M-Feldvarianten.
+     */
+    private function ReadReportingMaximumInterval(array $reporting): mixed
+    {
+        foreach (['maximum_report_interval', 'maximumReportInterval', 'maximum_interval', 'maximumInterval', 'max_interval', 'maxInterval', 'max'] as $key) {
+            if (\array_key_exists($key, $reporting)) {
+                return $reporting[$key];
+            }
+        }
+
+        return '';
+    }
+
+    /**
+     * Formatiert ein Reporting-Intervall.
+     */
+    private function FormatReportingIntervalValue(mixed $value): string
+    {
+        $value = $this->FormatReportingValue($value);
+        if ($value === '') {
+            return '';
+        }
+
+        return $value . ' s';
+    }
+
+    /**
+     * Formatiert einen Reporting-Wert.
+     */
+    private function FormatReportingValue(mixed $value): string
+    {
+        if (\is_bool($value)) {
+            return $value ? 'true' : 'false';
+        }
+        if (\is_array($value)) {
+            $encoded = json_encode($value, JSON_UNESCAPED_SLASHES | JSON_UNESCAPED_UNICODE);
+            return $encoded === false ? '' : $encoded;
+        }
+
+        return trim((string) $value);
     }
 
     /**

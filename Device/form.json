@@ -454,6 +454,49 @@
                     "values": []
                 },
                 {
+                    "type": "List",
+                    "name": "ReportingOverviewList",
+                    "caption": "Existing reportings",
+                    "visible": false,
+                    "add": false,
+                    "delete": false,
+                    "rowCount": 4,
+                    "loadValuesFromConfiguration": false,
+                    "columns": [
+                        {
+                            "caption": "Endpoint",
+                            "name": "endpoint",
+                            "width": "120px"
+                        },
+                        {
+                            "caption": "Cluster",
+                            "name": "cluster",
+                            "width": "180px"
+                        },
+                        {
+                            "caption": "Attribute",
+                            "name": "attribute",
+                            "width": "180px"
+                        },
+                        {
+                            "caption": "Minimum interval",
+                            "name": "minimum_interval",
+                            "width": "140px"
+                        },
+                        {
+                            "caption": "Maximum interval",
+                            "name": "maximum_interval",
+                            "width": "140px"
+                        },
+                        {
+                            "caption": "Reportable change",
+                            "name": "reportable_change",
+                            "width": "160px"
+                        }
+                    ],
+                    "values": []
+                },
+                {
                     "type": "ExpansionPanel",
                     "caption": "Binding",
                     "expanded": false,
