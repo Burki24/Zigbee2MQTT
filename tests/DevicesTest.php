@@ -723,6 +723,25 @@ class DevicesTest extends DumpInclude
         $this->assertContains('genOnOff', $clusterValues);
         $this->assertNotContains('greenPower', $clusterValues);
 
+        $reportingEndpointSelect = $this->findFormItemByName($form, 'ReportingEndpoint');
+        $this->assertNotNull($reportingEndpointSelect);
+        $this->assertSame('Select', $reportingEndpointSelect['type']);
+        $this->assertContains('1', array_column($reportingEndpointSelect['options'], 'value'));
+        $this->assertStringContainsString('UpdateReportingSelection', $reportingEndpointSelect['onChange'] ?? '');
+
+        $reportingClusterSelect = $this->findFormItemByName($form, 'ReportingCluster');
+        $this->assertNotNull($reportingClusterSelect);
+        $this->assertSame('Select', $reportingClusterSelect['type']);
+        $reportingClusterValues = array_column($reportingClusterSelect['options'], 'value');
+        $this->assertContains('genOnOff', $reportingClusterValues);
+        $this->assertNotContains('greenPower', $reportingClusterValues);
+        $this->assertStringContainsString('UpdateReportingSelection', $reportingClusterSelect['onChange'] ?? '');
+
+        $reportingAttributeSelect = $this->findFormItemByName($form, 'ReportingAttribute');
+        $this->assertNotNull($reportingAttributeSelect);
+        $this->assertSame('Select', $reportingAttributeSelect['type']);
+        $this->assertContains('onOff', array_column($reportingAttributeSelect['options'], 'value'));
+
         $bindingList = $this->findFormItemByName($form, 'BindingOverviewList');
         $this->assertNotNull($bindingList);
         $this->assertTrue($bindingList['visible']);
@@ -811,6 +830,50 @@ class DevicesTest extends DumpInclude
         $clusterValues = array_column($options, 'value');
         $this->assertContains('genOnOff', $clusterValues);
         $this->assertNotContains('lightingColorCtrl', $clusterValues);
+    }
+
+    public function testReportingSelectionUpdatesClusterAndAttributeOptions(): void
+    {
+        $device = $this->createDeviceOptionFormTestDouble();
+        $device->setAttributeArrayForTest('DeviceEndpoints', [
+            '1' => [
+                'id'                    => '1',
+                'name'                  => 'power',
+                'clusters'              => ['input' => ['2820', '1794'], 'output' => []],
+                'configured_reportings' => [
+                    [
+                        'cluster'   => 'haElectricalMeasurement',
+                        'attribute' => 'activePower'
+                    ]
+                ]
+            ],
+            '2' => [
+                'id'       => '2',
+                'name'     => 'switch',
+                'clusters' => ['input' => ['6'], 'output' => []]
+            ]
+        ]);
+
+        $device->RequestAction('UpdateReportingSelection', json_encode([
+            'endpoint'  => '1',
+            'cluster'   => 'haElectricalMeasurement',
+            'attribute' => 'activePower'
+        ]));
+
+        $clusterOptions = json_decode($device->updatedFields['ReportingCluster']['options'], true);
+        $this->assertIsArray($clusterOptions);
+        $clusterValues = array_column($clusterOptions, 'value');
+        $this->assertContains('haElectricalMeasurement', $clusterValues);
+        $this->assertContains('seMetering', $clusterValues);
+        $this->assertNotContains('genOnOff', $clusterValues);
+        $this->assertSame('haElectricalMeasurement', $device->updatedFields['ReportingCluster']['value']);
+
+        $attributeOptions = json_decode($device->updatedFields['ReportingAttribute']['options'], true);
+        $this->assertIsArray($attributeOptions);
+        $attributeValues = array_column($attributeOptions, 'value');
+        $this->assertContains('activePower', $attributeValues);
+        $this->assertContains('rmsVoltage', $attributeValues);
+        $this->assertSame('activePower', $device->updatedFields['ReportingAttribute']['value']);
     }
 
     public function testBindingAndReportingSectionShowsEndpointHintWhenEndpointDataIsMissing(): void

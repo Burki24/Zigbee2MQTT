@@ -185,11 +185,17 @@ Optionen, die Zigbee2MQTT erst nach einem Neustart übernimmt, lösen in der Bri
 
 ### 4.5 Binding und Reporting
 
+Binding und Reporting sind Zigbee-Funktionen, mit denen Geräte direkter und effizienter miteinander arbeiten können. Beim Binding sendet ein Gerät bestimmte Cluster direkt an ein Zielgerät oder eine Zielgruppe, ohne dass jede Aktion erst über eine Automatisierung abgebildet werden muss. Reporting legt fest, welche Attribute ein Gerät selbstständig meldet und in welchen Intervallen oder ab welcher Änderung neue Werte übertragen werden. Beides ist besonders bei Tastern, Leuchtmitteln, Sensoren und batteriebetriebenen Geräten hilfreich, sollte aber bewusst konfiguriert werden, da nicht jedes Gerät jeden Cluster oder jedes Attribut unterstützt.
+
+![Binding und Reporting](imgs/binding-reporting.png)
+
 Wenn Zigbee2MQTT Endpoint-Daten liefert, zeigt die Instanz-Konfiguration den Bereich **Binding und Reporting**. Dort sind Endpoints, Eingangs-/Ausgangscluster sowie vorhandene Bindings und konfigurierte Reportings sichtbar. Bekannte Bindings werden zusätzlich als eigene Übersicht mit Quell-Endpoint, Cluster, Zieltyp, Ziel und Ziel-Endpoint aufgelistet. Konfigurierte Reportings werden separat mit Endpoint, Cluster, Attribut, Intervallen und Reportable Change angezeigt.
 
 Über den Binding-Bereich können Geräte oder Gruppen direkt gebunden oder wieder gelöst werden. Der Quell-Endpoint wird aus den bekannten Endpoints des Geräts als Auswahl angeboten. Als Ziel können lokale Zigbee2MQTT-Geräte- und Gruppeninstanzen sowie von Zigbee2MQTT gemeldete Geräte und Gruppen ausgewählt werden. Die Cluster-Auswahl wird aus den bekannten Clustern des Quell-Endpoints aufgebaut und beim Wechsel von Endpoint oder Zielgerät aktualisiert. Bleibt der Quell-Endpoint leer, wird das Gerät ohne Endpoint-Suffix verwendet.
 
-Über den Reporting-Bereich kann Attribute Reporting gelesen oder konfiguriert werden. Batteriebetriebene Geräte müssen dafür unter Umständen direkt vor dem Ausführen geweckt werden. Nicht jedes Gerät und nicht jedes Attribut unterstützt Reporting.
+![Binding konfigurieren](imgs/binding-editor.png)
+
+Über den Reporting-Bereich kann Attribute Reporting gelesen oder konfiguriert werden. Endpoint, Cluster und Attribut werden als Auswahl angeboten und aus den bekannten Endpoint-Daten, bereits konfigurierten Reportings und typischen Zigbee-Clustern abgeleitet. Batteriebetriebene Geräte müssen dafür unter Umständen direkt vor dem Ausführen geweckt werden. Nicht jedes Gerät und nicht jedes Attribut unterstützt Reporting.
 
 Die Endpoint-Liste wird aus den von Zigbee2MQTT gelieferten Geräteinformationen aufgebaut. Sie zeigt Endpoint, Name, Eingangscluster, Ausgangscluster sowie die Anzahl bekannter Bindings und konfigurierter Reportings.
 

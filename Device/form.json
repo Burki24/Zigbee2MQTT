@@ -562,19 +562,24 @@
                             "type": "RowLayout",
                             "items": [
                                 {
-                                    "type": "ValidationTextBox",
+                                    "type": "Select",
                                     "name": "ReportingEndpoint",
-                                    "caption": "Endpoint"
+                                    "caption": "Endpoint",
+                                    "options": [],
+                                    "onChange": "IPS_RequestAction($id, 'UpdateReportingSelection', json_encode(['endpoint' => $ReportingEndpoint, 'cluster' => $ReportingCluster, 'attribute' => $ReportingAttribute]));"
                                 },
                                 {
-                                    "type": "ValidationTextBox",
+                                    "type": "Select",
                                     "name": "ReportingCluster",
-                                    "caption": "Cluster"
+                                    "caption": "Cluster",
+                                    "options": [],
+                                    "onChange": "IPS_RequestAction($id, 'UpdateReportingSelection', json_encode(['endpoint' => $ReportingEndpoint, 'cluster' => $ReportingCluster, 'attribute' => $ReportingAttribute]));"
                                 },
                                 {
-                                    "type": "ValidationTextBox",
+                                    "type": "Select",
                                     "name": "ReportingAttribute",
-                                    "caption": "Attribute"
+                                    "caption": "Attribute",
+                                    "options": []
                                 }
                             ]
                         },
