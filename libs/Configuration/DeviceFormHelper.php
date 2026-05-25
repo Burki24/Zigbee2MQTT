@@ -215,6 +215,12 @@ trait DeviceFormHelper
         $values = $this->BuildEndpointFormValues();
         $visible = \count($values) > 0 || trim($this->ReadPropertyString(self::MQTT_TOPIC)) !== '';
         $this->SetDeviceFormField($form, 'BindingReportingSettings', 'visible', $visible);
+        $this->SetDeviceFormField(
+            $form,
+            'EndpointDataHint',
+            'caption',
+            $this->Translate('No endpoint data is available yet. Update the device information and make sure the Symcon extension is current.')
+        );
         $this->SetDeviceFormField($form, 'EndpointDataHint', 'visible', $visible && \count($values) === 0);
         $this->SetDeviceFormField($form, 'EndpointList', 'values', $values);
         $this->SetDeviceFormField($form, 'EndpointList', 'rowCount', min(10, max(4, \count($values) + 1)));
