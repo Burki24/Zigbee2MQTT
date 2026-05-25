@@ -325,11 +325,10 @@ trait DeviceFormHelper
     }
 
     /**
-     * Aktualisiert Geraete-, Endpoint-, Binding- und Reporting-Daten aus Z2M.
+     * Aktualisiert Endpoint-, Binding- und Reporting-Daten aus dem bridge/devices-Cache.
      */
     protected function RefreshBindingReportingInfoFromForm(): bool
     {
-        @$this->UpdateDeviceInfo();
         $this->RefreshEndpointDataFromBridgeCache();
 
         $endpointValues = $this->BuildEndpointFormValues();

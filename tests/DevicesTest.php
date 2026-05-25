@@ -889,10 +889,9 @@ class DevicesTest extends DumpInclude
         $this->assertSame([], $list['values']);
     }
 
-    public function testRefreshBindingReportingUsesBridgeCacheWhenDeviceInfoFails(): void
+    public function testRefreshBindingReportingUsesBridgeCacheWithoutDeviceInfoRequest(): void
     {
         $device = $this->createDeviceOptionFormTestDouble();
-        $device->updateDeviceInfoResult = false;
         $device->setAttributeArrayForTest('DeviceEndpoints', [
             '11' => [
                 'id'       => '11',
@@ -921,6 +920,7 @@ class DevicesTest extends DumpInclude
         $this->assertIsArray($bindingRows);
         $this->assertSame('genOnOff', $bindingRows[0]['cluster']);
         $this->assertSame('0xabcd', $bindingRows[0]['target']);
+        $this->assertFalse($device->updateDeviceInfoCalled);
     }
 
     public function testColorCompositeCatalogUsesSingleColorVariable()
@@ -1416,7 +1416,7 @@ class DevicesTest extends DumpInclude
             public array $sentPayload = [];
             public array $sendDataResponses = [];
             public array $cachedEndpoints = [];
-            public ?bool $updateDeviceInfoResult = null;
+            public bool $updateDeviceInfoCalled = false;
 
             protected function SendData(string $Topic, array $Payload = [], int $Timeout = 5000): array|bool
             {
@@ -1472,10 +1472,7 @@ class DevicesTest extends DumpInclude
 
             protected function UpdateDeviceInfo(): bool
             {
-                if ($this->updateDeviceInfoResult !== null) {
-                    return $this->updateDeviceInfoResult;
-                }
-
+                $this->updateDeviceInfoCalled = true;
                 return parent::UpdateDeviceInfo();
             }
 
