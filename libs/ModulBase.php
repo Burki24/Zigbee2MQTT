@@ -1407,7 +1407,11 @@ abstract class ModulBase extends \IPSModuleStrict
             $this->LogMessage($this->Translate('MQTTTopic not configured.'), KL_WARNING);
             return false;
         }
-        $Result = $this->SendData(self::SYMCON_EXTENSION_REQUEST . static::$ExtensionTopic . $mqttTopic, [], 2500);
+        $Result = $this->SendData(
+            self::SYMCON_EXTENSION_REQUEST . static::$ExtensionTopic . $mqttTopic,
+            [],
+            self::TIMEOUT_SYMCON_EXTENSION_INFO
+        );
         return $Result;
     }
 

@@ -901,7 +901,7 @@ class Zigbee2MQTTBridge extends IPSModuleStrict
     {
         $Topic = '/bridge/request/device/bind';
         $Payload = ['from' => $SourceDevice, 'to' => $TargetDevice];
-        return $this->SendCheckedBridgeRequest($Topic, $Payload) !== false;
+        return $this->SendCheckedBridgeRequest($Topic, $Payload, self::TIMEOUT_ZIGBEE_BINDING_REQUEST) !== false;
     }
 
     /**
@@ -918,7 +918,8 @@ class Zigbee2MQTTBridge extends IPSModuleStrict
     {
         return $this->SendCheckedBridgeRequest(
             '/bridge/request/device/bind',
-            $this->BuildBindingPayload($SourceDevice, $TargetDevice, $ClustersJSON, $SkipDisableReporting)
+            $this->BuildBindingPayload($SourceDevice, $TargetDevice, $ClustersJSON, $SkipDisableReporting),
+            self::TIMEOUT_ZIGBEE_BINDING_REQUEST
         ) !== false;
     }
 
@@ -936,7 +937,7 @@ class Zigbee2MQTTBridge extends IPSModuleStrict
     {
         $Topic = '/bridge/request/device/unbind';
         $Payload = ['from' => $SourceDevice, 'to' => $TargetDevice];
-        return $this->SendCheckedBridgeRequest($Topic, $Payload) !== false;
+        return $this->SendCheckedBridgeRequest($Topic, $Payload, self::TIMEOUT_ZIGBEE_BINDING_REQUEST) !== false;
     }
 
     /**
@@ -953,7 +954,8 @@ class Zigbee2MQTTBridge extends IPSModuleStrict
     {
         return $this->SendCheckedBridgeRequest(
             '/bridge/request/device/unbind',
-            $this->BuildBindingPayload($SourceDevice, $TargetDevice, $ClustersJSON, $SkipDisableReporting)
+            $this->BuildBindingPayload($SourceDevice, $TargetDevice, $ClustersJSON, $SkipDisableReporting),
+            self::TIMEOUT_ZIGBEE_BINDING_REQUEST
         ) !== false;
     }
 
@@ -966,7 +968,11 @@ class Zigbee2MQTTBridge extends IPSModuleStrict
      */
     public function ClearBinds(string $DeviceName): bool
     {
-        return $this->SendCheckedBridgeRequest('/bridge/request/device/binds/clear', ['id' => $DeviceName]) !== false;
+        return $this->SendCheckedBridgeRequest(
+            '/bridge/request/device/binds/clear',
+            ['id' => $DeviceName],
+            self::TIMEOUT_ZIGBEE_BINDING_REQUEST
+        ) !== false;
     }
 
     /**

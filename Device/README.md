@@ -231,6 +231,16 @@ Wenn Zigbee2MQTT Endpoint-Daten liefert, zeigt die Instanz-Konfiguration den Ber
 
 ![Binding konfigurieren](imgs/binding-editor.png)
 
+Ein typisches Beispiel ist ein Zigbee-Taster, der eine Lampe oder eine Gruppe direkt schalten soll:
+
+1. Beim Taster den Bereich **Binding** öffnen.
+2. Den passenden **Quell-Endpoint** auswählen. Bei einfachen Geräten ist das häufig `1`.
+3. Als **Zielgerät oder Gruppe** die gewünschte Lampe oder Zigbee2MQTT-Gruppe auswählen.
+4. Als **Cluster** z. B. `genOnOff` für Ein/Aus oder `genLevelCtrl` für Helligkeit auswählen.
+5. Mit **Binden** die direkte Zigbee-Verknüpfung erstellen.
+
+Nach einem erfolgreichen Binding kann der Taster das Zielgerät auch dann direkt ansprechen, wenn keine Symcon-Automation dafür angelegt wurde. Ob ein Gerät Binding unterstützt und welche Cluster sinnvoll sind, hängt vom Gerät ab.
+
 Über den Reporting-Bereich kann Attribute Reporting gelesen oder konfiguriert werden. Endpoint, Cluster und Attribut werden als Auswahl angeboten und aus den bekannten Endpoint-Daten, bereits konfigurierten Reportings und typischen Zigbee-Clustern abgeleitet. Batteriebetriebene Geräte müssen dafür unter Umständen direkt vor dem Ausführen geweckt werden. Nicht jedes Gerät und nicht jedes Attribut unterstützt Reporting.
 
 ![Reporting konfigurieren](imgs/reporting-editor.png)

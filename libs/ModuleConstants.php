@@ -93,4 +93,8 @@ trait Constants
     protected const PROPERTY_HEATING_TILE_PRESET_2 = 'HeatingTilePreset2';
     /** @var string Property fuer das dritte Heizungs-Kachel-Preset */
     protected const PROPERTY_HEATING_TILE_PRESET_3 = 'HeatingTilePreset3';
+    /** @var int Wartezeit fuer Symcon-Extension Detailinformationen in Millisekunden */
+    protected const TIMEOUT_SYMCON_EXTENSION_INFO = 10000;
+    /** @var int Wartezeit fuer Zigbee-Binding-Requests in Millisekunden */
+    protected const TIMEOUT_ZIGBEE_BINDING_REQUEST = 15000;
 }

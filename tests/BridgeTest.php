@@ -245,6 +245,24 @@ class BridgeTest extends TestCase
             'clusters'               => ['genOnOff', 'genLevelCtrl'],
             'skip_disable_reporting' => true
         ], $bridge->lastPayload);
+        $this->assertSame(15000, $bridge->lastTimeout);
+    }
+
+    public function testUnbindWithOptionsUsesBindingTimeout(): void
+    {
+        $bridge = $this->createBridgeTestDouble([
+            'status' => 'ok',
+            'data'   => ['from' => 'remote/1', 'to' => 'lamp']
+        ]);
+
+        $this->assertTrue($bridge->UnbindWithOptions('remote/1', 'lamp', 'genOnOff', false));
+        $this->assertSame('/bridge/request/device/unbind', $bridge->lastTopic);
+        $this->assertSame([
+            'from'     => 'remote/1',
+            'to'       => 'lamp',
+            'clusters' => ['genOnOff']
+        ], $bridge->lastPayload);
+        $this->assertSame(15000, $bridge->lastTimeout);
     }
 
     public function testConfigureReportingUsesReportingConfigureTopic(): void
