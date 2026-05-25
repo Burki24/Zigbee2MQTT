@@ -1,6 +1,6 @@
 /*
  IPSymconExtension
- Version: 6.00
+ Version: 6.01
 */
 
 class MyLogger {
@@ -242,9 +242,7 @@ class IPSymconExtension {
 
     #createEndpointPayload(device) {
         const endpoints = device.endpoints ?? device.zh?.endpoints ?? {};
-        const entries = Array.isArray(endpoints)
-            ? endpoints.map(endpoint => [this.#endpointId(endpoint), endpoint])
-            : Object.entries(endpoints);
+        const entries = this.#endpointEntries(endpoints);
 
         const result = {};
         for (const [key, endpoint] of entries) {
@@ -252,13 +250,34 @@ class IPSymconExtension {
             result[id] = {
                 id,
                 name: endpoint.name ?? endpoint.endpoint_name ?? '',
-                bindings: this.#plainArray(endpoint.bindings),
-                configured_reportings: this.#plainArray(endpoint.configured_reportings),
+                bindings: this.#plainCollection(endpoint.bindings ?? endpoint.binds),
+                configured_reportings: this.#plainCollection(endpoint.configured_reportings ?? endpoint.configuredReportings),
                 clusters: this.#endpointClusters(endpoint),
             };
         }
 
         return result;
+    }
+
+    #endpointEntries(endpoints) {
+        if (!endpoints) {
+            return [];
+        }
+        if (Array.isArray(endpoints)) {
+            return endpoints.map(endpoint => [this.#endpointId(endpoint), endpoint]);
+        }
+        if (typeof endpoints.entries === 'function') {
+            return Array.from(endpoints.entries());
+        }
+        if (typeof endpoints[Symbol.iterator] === 'function') {
+            return Array.from(endpoints).map((endpoint, index) => {
+                if (Array.isArray(endpoint) && endpoint.length >= 2) {
+                    return endpoint;
+                }
+                return [this.#endpointId(endpoint, String(index)), endpoint];
+            });
+        }
+        return Object.entries(endpoints);
     }
 
     #endpointId(endpoint, fallback = '') {
@@ -270,21 +289,39 @@ class IPSymconExtension {
         return {
             input: this.#clusterNames(clusters.input ?? endpoint.inputClusters ?? []),
             output: this.#clusterNames(clusters.output ?? endpoint.outputClusters ?? []),
-            scenes: this.#plainArray(clusters.scenes ?? endpoint.scenes ?? []),
+            scenes: this.#plainCollection(clusters.scenes ?? endpoint.scenes ?? []),
         };
     }
 
     #clusterNames(clusters) {
-        if (!Array.isArray(clusters)) {
-            return [];
-        }
-
-        return clusters.map(cluster => {
+        return this.#plainCollection(clusters).map(cluster => {
             if (typeof cluster === 'string') {
                 return cluster;
             }
             return String(cluster.name ?? cluster.ID ?? cluster.id ?? cluster.clusterID ?? cluster);
         });
+    }
+
+    #plainCollection(value) {
+        if (Array.isArray(value)) {
+            return value.map(entry => this.#plainValue(entry, new WeakSet(), 0));
+        }
+        if (!value) {
+            return [];
+        }
+        if (typeof value === 'string') {
+            return [value];
+        }
+        if (typeof value.values === 'function') {
+            return Array.from(value.values()).map(entry => this.#plainValue(entry, new WeakSet(), 0));
+        }
+        if (typeof value[Symbol.iterator] === 'function') {
+            return Array.from(value).map(entry => this.#plainValue(entry, new WeakSet(), 0));
+        }
+        if (typeof value === 'object') {
+            return Object.values(value).map(entry => this.#plainValue(entry, new WeakSet(), 0));
+        }
+        return [];
     }
 
     #plainArray(value) {

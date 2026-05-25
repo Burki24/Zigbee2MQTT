@@ -613,6 +613,7 @@ class DevicesTest extends DumpInclude
 
         $form = json_decode(IPS_GetConfigurationForm($iid), true);
         $this->assertFormItemVisible($form, 'BindingReportingSettings');
+        $this->assertFormItemHidden($form, 'EndpointDataHint');
 
         $list = $this->findFormItemByName($form, 'EndpointList');
         $this->assertNotNull($list);
@@ -624,6 +625,19 @@ class DevicesTest extends DumpInclude
         $this->assertSame('genLevelCtrl', $endpoint['output']);
         $this->assertSame('1', $endpoint['bindings']);
         $this->assertSame('1', $endpoint['reportings']);
+    }
+
+    public function testBindingAndReportingSectionShowsEndpointHintWhenEndpointDataIsMissing(): void
+    {
+        [$iid] = $this->createTestInstance('MixedLightSensor.json');
+
+        $form = json_decode(IPS_GetConfigurationForm($iid), true);
+        $this->assertFormItemVisible($form, 'BindingReportingSettings');
+        $this->assertFormItemVisible($form, 'EndpointDataHint');
+
+        $list = $this->findFormItemByName($form, 'EndpointList');
+        $this->assertNotNull($list);
+        $this->assertSame([], $list['values']);
     }
 
     public function testColorCompositeCatalogUsesSingleColorVariable()
