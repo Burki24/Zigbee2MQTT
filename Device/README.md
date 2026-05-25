@@ -255,6 +255,15 @@ Die wichtigsten Zustände in der Liste sind:
 
 Deaktivierte Variablen werden nicht automatisch gelöscht. Bestehende Variablen bleiben erhalten, werden aber nach einer manuellen Löschung nicht wieder neu erzeugt, solange sie deaktiviert sind.
 
+Typische Fälle in der Praxis:
+
+| Fall | Verhalten |
+| --- | --- |
+| Eine nicht benötigte Variable wird im Objektbaum gelöscht | Die Variable wird als `Gelöscht` erkannt. Sie wird erst wieder angelegt, wenn im Bereich **Variablen** die Aktion `Anlegen` ausgeführt wird. |
+| Eine Variable wird über `Deaktivieren` gesperrt | Das Modul legt diese Variable nicht automatisch neu an. Existiert sie noch im Objektbaum, bleibt sie erhalten. |
+| Ein Wert erscheint später erstmals im Payload | Die Variable wird im Katalog als bekannt aufgenommen. Wenn sie erlaubt ist, kann sie automatisch angelegt oder über `Anlegen` nachträglich erstellt werden. |
+| Update- und Systemwerte wie `update__*` oder `last_seen` fehlen in den Exposes | Das ist normal. Diese Werte kommen oft erst später über Payloads oder Systemmeldungen und werden trotzdem als gültige Variablen behandelt. |
+
 Composite-Exposes werden dabei auf die tatsächlich anlegbaren Untervariablen reduziert. Ein nicht selbst nutzbarer Composite-Elternknoten wird nicht als eigene Variable angeboten, während Unterwerte wie `options__motor_speed` sauber im Variablenkatalog erscheinen.
 
 ## 5. Statusvariablen
