@@ -627,6 +627,54 @@ class DevicesTest extends DumpInclude
         $this->assertSame('1', $endpoint['reportings']);
     }
 
+    public function testBindingFormProvidesEndpointAndTargetSelections(): void
+    {
+        [$iid] = $this->createTestInstance('MixedLightSensor.json');
+        $baseTopic = IPS_GetProperty($iid, 'MQTTBaseTopic');
+        $this->writeStubAttributeArray($iid, 'DeviceEndpoints', [
+            '1'   => [
+                'id'       => '1',
+                'name'     => 'left',
+                'clusters' => ['input' => [], 'output' => ['genOnOff']]
+            ],
+            '242' => [
+                'id'       => '242',
+                'name'     => 'green-power',
+                'clusters' => ['input' => [], 'output' => ['greenPower']]
+            ]
+        ]);
+
+        $targetDeviceID = IPS_CreateInstance('{E5BB36C6-A70B-EB23-3716-9151A09AC8A2}');
+        IPS_SetName($targetDeviceID, 'Target Device');
+        IPS_SetProperty($targetDeviceID, 'MQTTBaseTopic', $baseTopic);
+        IPS_SetProperty($targetDeviceID, 'MQTTTopic', 'Binding/Target/Device');
+        IPS_ApplyChanges($targetDeviceID);
+
+        $targetGroupID = IPS_CreateInstance('{11BF3773-E940-469B-9DD7-FB9ACD7199A2}');
+        IPS_SetName($targetGroupID, 'Target Group');
+        IPS_SetProperty($targetGroupID, 'MQTTBaseTopic', $baseTopic);
+        IPS_SetProperty($targetGroupID, 'MQTTTopic', 'Binding/Target/Group');
+        IPS_ApplyChanges($targetGroupID);
+
+        $form = json_decode(IPS_GetConfigurationForm($iid), true);
+
+        $endpointSelect = $this->findFormItemByName($form, 'BindingSourceEndpoint');
+        $this->assertNotNull($endpointSelect);
+        $this->assertSame('Select', $endpointSelect['type']);
+        $endpointValues = array_column($endpointSelect['options'], 'value');
+        $this->assertContains('', $endpointValues);
+        $this->assertContains('1', $endpointValues);
+        $this->assertContains('242', $endpointValues);
+
+        $targetSelect = $this->findFormItemByName($form, 'BindingTarget');
+        $this->assertNotNull($targetSelect);
+        $this->assertSame('Select', $targetSelect['type']);
+        $targetValues = array_column($targetSelect['options'], 'value');
+        $this->assertContains('', $targetValues);
+        $this->assertContains('Binding/Target/Device', $targetValues);
+        $this->assertContains('Binding/Target/Group', $targetValues);
+    }
+
     public function testBindingAndReportingSectionShowsEndpointHintWhenEndpointDataIsMissing(): void
     {
         [$iid] = $this->createTestInstance('MixedLightSensor.json');

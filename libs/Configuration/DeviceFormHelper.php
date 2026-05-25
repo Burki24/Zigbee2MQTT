@@ -224,6 +224,8 @@ trait DeviceFormHelper
         $this->SetDeviceFormField($form, 'EndpointDataHint', 'visible', $visible && \count($values) === 0);
         $this->SetDeviceFormField($form, 'EndpointList', 'values', $values);
         $this->SetDeviceFormField($form, 'EndpointList', 'rowCount', min(10, max(4, \count($values) + 1)));
+        $this->SetDeviceFormField($form, 'BindingSourceEndpoint', 'options', $this->BuildBindingSourceEndpointOptions());
+        $this->SetDeviceFormField($form, 'BindingTarget', 'options', $this->BuildBindingTargetOptions());
     }
 
     /**
@@ -443,6 +445,215 @@ trait DeviceFormHelper
         }
 
         return $values;
+    }
+
+    /**
+     * Baut die Quell-Endpoint-Auswahl fuer Binding-Requests.
+     */
+    private function BuildBindingSourceEndpointOptions(): array
+    {
+        $options = [
+            ['caption' => '-', 'value' => '']
+        ];
+
+        foreach ($this->ReadAttributeArray(self::ATTRIBUTE_DEVICE_ENDPOINTS) as $endpointID => $endpoint) {
+            if (!\is_array($endpoint)) {
+                continue;
+            }
+
+            $id = trim((string) ($endpoint['id'] ?? $endpoint['ID'] ?? $endpointID));
+            if ($id === '') {
+                continue;
+            }
+
+            $name = trim((string) ($endpoint['name'] ?? ''));
+            $options[$id] = [
+                'caption' => $name === '' ? $id : $id . ' (' . $name . ')',
+                'value'   => $id
+            ];
+        }
+
+        return array_values($options);
+    }
+
+    /**
+     * Baut die Zielauswahl fuer Binding-Requests aus lokalen Instanzen und Z2M-Listen.
+     */
+    private function BuildBindingTargetOptions(): array
+    {
+        $targets = [];
+        foreach ([
+            $this->LoadBindingTargetDevicesFromInstances(),
+            $this->LoadBindingTargetGroupsFromInstances(),
+            $this->LoadBindingTargetDevicesFromExtension(),
+            $this->LoadBindingTargetGroupsFromExtension()
+        ] as $source) {
+            foreach ($source as $target) {
+                $value = trim((string) ($target['value'] ?? ''));
+                if ($value === '') {
+                    continue;
+                }
+
+                $targets[$value] = $target;
+            }
+        }
+
+        uasort($targets, static fn (array $left, array $right): int => strnatcasecmp((string) ($left['caption'] ?? ''), (string) ($right['caption'] ?? '')));
+
+        $options = [
+            ['caption' => '-', 'value' => '']
+        ];
+        foreach ($targets as $target) {
+            $options[] = [
+                'caption' => (string) ($target['caption'] ?? $target['value']),
+                'value'   => (string) $target['value']
+            ];
+        }
+
+        return $options;
+    }
+
+    /**
+     * Liest lokale Zigbee2MQTT-Geraeteinstanzen als Binding-Ziele.
+     */
+    private function LoadBindingTargetDevicesFromInstances(): array
+    {
+        $baseTopic = $this->ReadPropertyString(self::MQTT_BASE_TOPIC);
+        if ($baseTopic === '') {
+            return [];
+        }
+
+        $targets = [];
+        foreach (IPS_GetInstanceListByModuleID(self::GUID_MODULE_DEVICE) as $instanceID) {
+            if ($instanceID === $this->InstanceID || @IPS_GetProperty($instanceID, self::MQTT_BASE_TOPIC) !== $baseTopic) {
+                continue;
+            }
+
+            $topic = trim((string) @IPS_GetProperty($instanceID, self::MQTT_TOPIC));
+            if ($topic === '') {
+                continue;
+            }
+
+            $targets[] = [
+                'caption' => $this->BuildBindingTargetCaption('Device', $topic, @IPS_GetName($instanceID)),
+                'value'   => $topic
+            ];
+        }
+
+        return $targets;
+    }
+
+    /**
+     * Liest lokale Zigbee2MQTT-Gruppeninstanzen als Binding-Ziele.
+     */
+    private function LoadBindingTargetGroupsFromInstances(): array
+    {
+        $baseTopic = $this->ReadPropertyString(self::MQTT_BASE_TOPIC);
+        if ($baseTopic === '') {
+            return [];
+        }
+
+        $targets = [];
+        foreach (IPS_GetInstanceListByModuleID(self::GUID_MODULE_GROUP) as $instanceID) {
+            if (@IPS_GetProperty($instanceID, self::MQTT_BASE_TOPIC) !== $baseTopic) {
+                continue;
+            }
+
+            $topic = trim((string) @IPS_GetProperty($instanceID, self::MQTT_TOPIC));
+            if ($topic === '') {
+                continue;
+            }
+
+            $targets[] = [
+                'caption' => $this->BuildBindingTargetCaption('Group', $topic, @IPS_GetName($instanceID)),
+                'value'   => $topic
+            ];
+        }
+
+        return $targets;
+    }
+
+    /**
+     * Fragt Zigbee2MQTT nach bekannten Geraeten als Binding-Ziele.
+     */
+    private function LoadBindingTargetDevicesFromExtension(): array
+    {
+        if (!$this->HasActiveParent()) {
+            return [];
+        }
+
+        $currentTopic = $this->ReadPropertyString(self::MQTT_TOPIC);
+        $result = @$this->SendData(self::SYMCON_EXTENSION_LIST_REQUEST . 'getDevices', [], 2500);
+        if (!\is_array($result) || !\is_array($result['list'] ?? null)) {
+            return [];
+        }
+
+        $targets = [];
+        foreach ($result['list'] as $device) {
+            if (!\is_array($device) || ($device['type'] ?? '') === 'Coordinator') {
+                continue;
+            }
+
+            $topic = trim((string) ($device['friendly_name'] ?? ''));
+            if ($topic === '' || $topic === $currentTopic) {
+                continue;
+            }
+
+            $targets[] = [
+                'caption' => $this->BuildBindingTargetCaption('Device', $topic, (string) ($device['model'] ?? '')),
+                'value'   => $topic
+            ];
+        }
+
+        return $targets;
+    }
+
+    /**
+     * Fragt Zigbee2MQTT nach bekannten Gruppen als Binding-Ziele.
+     */
+    private function LoadBindingTargetGroupsFromExtension(): array
+    {
+        if (!$this->HasActiveParent()) {
+            return [];
+        }
+
+        $result = @$this->SendData(self::SYMCON_EXTENSION_LIST_REQUEST . 'getGroups', [], 2500);
+        if (!\is_array($result) || !\is_array($result['list'] ?? null)) {
+            return [];
+        }
+
+        $targets = [];
+        foreach ($result['list'] as $group) {
+            if (!\is_array($group)) {
+                continue;
+            }
+
+            $topic = trim((string) ($group['friendly_name'] ?? ''));
+            if ($topic === '') {
+                continue;
+            }
+
+            $targets[] = [
+                'caption' => $this->BuildBindingTargetCaption('Group', $topic, ''),
+                'value'   => $topic
+            ];
+        }
+
+        return $targets;
+    }
+
+    /**
+     * Erzeugt eine lesbare Beschriftung fuer Binding-Zielauswahlen.
+     */
+    private function BuildBindingTargetCaption(string $type, string $topic, string $suffix): string
+    {
+        $suffix = trim($suffix);
+        $caption = $this->Translate($type) . ': ' . $topic;
+        if ($suffix === '' || $suffix === $topic) {
+            return $caption;
+        }
+
+        return $caption . ' (' . $suffix . ')';
     }
 
     /**

@@ -187,7 +187,7 @@ Optionen, die Zigbee2MQTT erst nach einem Neustart übernimmt, lösen in der Bri
 
 Wenn Zigbee2MQTT Endpoint-Daten liefert, zeigt die Instanz-Konfiguration den Bereich **Binding und Reporting**. Dort sind Endpoints, Eingangs-/Ausgangscluster sowie vorhandene Bindings und konfigurierte Reportings sichtbar.
 
-Über den Binding-Bereich können Geräte oder Gruppen direkt gebunden oder wieder gelöst werden. Der Quell-Endpoint ist optional; bleibt er leer, wird das Gerät ohne Endpoint-Suffix verwendet. Cluster können als kommaseparierte Liste oder JSON-Array angegeben werden.
+Über den Binding-Bereich können Geräte oder Gruppen direkt gebunden oder wieder gelöst werden. Der Quell-Endpoint wird aus den bekannten Endpoints des Geräts als Auswahl angeboten. Als Ziel können lokale Zigbee2MQTT-Geräte- und Gruppeninstanzen sowie von Zigbee2MQTT gemeldete Geräte und Gruppen ausgewählt werden. Bleibt der Quell-Endpoint leer, wird das Gerät ohne Endpoint-Suffix verwendet. Cluster können als kommaseparierte Liste oder JSON-Array angegeben werden.
 
 Über den Reporting-Bereich kann Attribute Reporting gelesen oder konfiguriert werden. Batteriebetriebene Geräte müssen dafür unter Umständen direkt vor dem Ausführen geweckt werden. Nicht jedes Gerät und nicht jedes Attribut unterstützt Reporting.
 

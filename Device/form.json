@@ -424,14 +424,16 @@
                             "type": "RowLayout",
                             "items": [
                                 {
-                                    "type": "ValidationTextBox",
+                                    "type": "Select",
                                     "name": "BindingSourceEndpoint",
-                                    "caption": "Source endpoint"
+                                    "caption": "Source endpoint",
+                                    "options": []
                                 },
                                 {
-                                    "type": "ValidationTextBox",
+                                    "type": "Select",
                                     "name": "BindingTarget",
-                                    "caption": "Target device or group"
+                                    "caption": "Target device or group",
+                                    "options": []
                                 },
                                 {
                                     "type": "ValidationTextBox",
