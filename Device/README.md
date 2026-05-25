@@ -191,7 +191,16 @@ Die Endpoint-Liste wird aus den von Zigbee2MQTT gelieferten Geräteinformationen
 
 Die Instanz merkt sich alle aus Exposes, Payloads und Systemmeldungen bekannten Variablen in einem lokalen Variablenkatalog. In der Konfiguration erscheint dazu der Bereich **Variablen**. Dort kann pro Variable gesteuert werden, ob das Modul sie automatisch anlegen darf.
 
-Wird eine vom Modul bekannte Variable im Objektbaum gelöscht, wird sie bei der nächsten Geräteinformation oder beim nächsten passenden Payload nicht automatisch wieder angelegt. Sie erscheint stattdessen in der Variablenverwaltung mit dem Status `Gelöscht` und kann dort über `Anlegen` bewusst wieder angelegt werden.
+![Variablenverwaltung](imgs/variablenverwaltung.png)
+
+Die wichtigsten Zustände in der Liste sind:
+
+| Status | Bedeutung | Aktion |
+| --- | --- | --- |
+| `Angelegt` | Die Variable existiert im Objektbaum und darf vom Modul verwaltet werden. | `Deaktivieren` |
+| `Nicht angelegt` | Die Variable ist aus Exposes, Payloads oder Systemmeldungen bekannt, existiert aber noch nicht im Objektbaum. | `Anlegen` |
+| `Deaktiviert, existiert` | Die Variable existiert noch im Objektbaum, ist aber für die automatische Neuanlage gesperrt. | `Aktivieren` |
+| `Gelöscht` | Die Variable ist erlaubt, fehlt aber im Objektbaum. | `Anlegen` |
 
 Deaktivierte Variablen werden nicht automatisch gelöscht. Bestehende Variablen bleiben erhalten, werden aber nach einer manuellen Löschung nicht wieder neu erzeugt, solange sie deaktiviert sind.
 
