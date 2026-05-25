@@ -1,6 +1,6 @@
 /*
  IPSymconExtension
- Version: 6.01
+ Version: 6.02
 */
 
 class IPSymconExtension {
@@ -293,12 +293,13 @@ class IPSymconExtension {
         const result = {};
         for (const [key, endpoint] of entries) {
             const id = this.#endpointId(endpoint, key);
+            const zhEndpoint = this.#matchingEndpoint(device.zh?.endpoints, id);
             result[id] = {
                 id,
-                name: endpoint.name ?? endpoint.endpoint_name ?? '',
-                bindings: this.#plainCollection(endpoint.bindings ?? endpoint.binds),
-                configured_reportings: this.#plainCollection(endpoint.configured_reportings ?? endpoint.configuredReportings),
-                clusters: this.#endpointClusters(endpoint),
+                name: endpoint.name ?? endpoint.endpoint_name ?? zhEndpoint?.name ?? zhEndpoint?.endpoint_name ?? '',
+                bindings: this.#endpointBindings(endpoint, zhEndpoint),
+                configured_reportings: this.#endpointConfiguredReportings(endpoint, zhEndpoint),
+                clusters: this.#endpointClusters(endpoint, zhEndpoint),
             };
         }
 
@@ -330,13 +331,68 @@ class IPSymconExtension {
         return String(endpoint.ID ?? endpoint.id ?? endpoint.endpointID ?? endpoint.endpoint_id ?? fallback);
     }
 
-    #endpointClusters(endpoint) {
+    #matchingEndpoint(endpoints, id) {
+        for (const [key, endpoint] of this.#endpointEntries(endpoints)) {
+            if (this.#endpointId(endpoint, key) === id) {
+                return endpoint;
+            }
+        }
+
+        return undefined;
+    }
+
+    #endpointClusters(...endpoints) {
+        const endpoint = endpoints.find(candidate => candidate?.clusters || candidate?.inputClusters || candidate?.outputClusters)
+            ?? endpoints.find(candidate => candidate)
+            ?? {};
         const clusters = endpoint.clusters ?? {};
         return {
             input: this.#clusterNames(clusters.input ?? endpoint.inputClusters ?? []),
             output: this.#clusterNames(clusters.output ?? endpoint.outputClusters ?? []),
             scenes: this.#plainCollection(clusters.scenes ?? endpoint.scenes ?? []),
         };
+    }
+
+    #endpointBindings(...endpoints) {
+        const candidates = [];
+        for (const endpoint of endpoints) {
+            if (!endpoint) {
+                continue;
+            }
+            candidates.push(
+                endpoint.bindings,
+                endpoint.binds,
+                endpoint.bind,
+                endpoint.zh?.bindings,
+                endpoint.zh?.binds,
+                endpoint.zh?.bind,
+            );
+        }
+
+        return this.#firstPlainCollection(candidates);
+    }
+
+    #endpointConfiguredReportings(...endpoints) {
+        const candidates = [];
+        for (const endpoint of endpoints) {
+            if (!endpoint) {
+                continue;
+            }
+            candidates.push(
+                endpoint.configured_reportings,
+                endpoint.configuredReportings,
+                endpoint.configuredReporting,
+                endpoint.reportings,
+                endpoint.reports,
+                endpoint.zh?.configured_reportings,
+                endpoint.zh?.configuredReportings,
+                endpoint.zh?.configuredReporting,
+                endpoint.zh?.reportings,
+                endpoint.zh?.reports,
+            );
+        }
+
+        return this.#firstPlainCollection(candidates);
     }
 
     #clusterNames(clusters) {
@@ -346,6 +402,17 @@ class IPSymconExtension {
             }
             return String(cluster.name ?? cluster.ID ?? cluster.id ?? cluster.clusterID ?? cluster);
         });
+    }
+
+    #firstPlainCollection(candidates) {
+        for (const candidate of candidates) {
+            const values = this.#plainCollection(candidate);
+            if (values.length > 0) {
+                return values;
+            }
+        }
+
+        return [];
     }
 
     #plainCollection(value) {
