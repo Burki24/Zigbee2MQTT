@@ -416,6 +416,44 @@
                     "values": []
                 },
                 {
+                    "type": "List",
+                    "name": "BindingOverviewList",
+                    "caption": "Existing bindings",
+                    "visible": false,
+                    "add": false,
+                    "delete": false,
+                    "rowCount": 4,
+                    "loadValuesFromConfiguration": false,
+                    "columns": [
+                        {
+                            "caption": "Source endpoint",
+                            "name": "source_endpoint",
+                            "width": "120px"
+                        },
+                        {
+                            "caption": "Cluster",
+                            "name": "cluster",
+                            "width": "180px"
+                        },
+                        {
+                            "caption": "Type",
+                            "name": "target_type",
+                            "width": "120px"
+                        },
+                        {
+                            "caption": "Target",
+                            "name": "target",
+                            "width": "260px"
+                        },
+                        {
+                            "caption": "Target endpoint",
+                            "name": "target_endpoint",
+                            "width": "140px"
+                        }
+                    ],
+                    "values": []
+                },
+                {
                     "type": "ExpansionPanel",
                     "caption": "Binding",
                     "expanded": false,

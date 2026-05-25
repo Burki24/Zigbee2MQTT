@@ -598,7 +598,8 @@ class DevicesTest extends DumpInclude
                 'id'                    => '1',
                 'name'                  => 'left',
                 'bindings'              => [
-                    ['cluster' => 'genOnOff', 'target' => ['type' => 'group', 'id' => 1]]
+                    ['cluster' => 'genOnOff', 'target' => ['type' => 'group', 'id' => 1]],
+                    ['cluster' => ['name' => 'genLevelCtrl'], 'target' => ['type' => 'endpoint', 'deviceIeeeAddress' => '0xabcd', 'endpointID' => 2]]
                 ],
                 'configured_reportings' => [
                     ['cluster' => 'genOnOff', 'attribute' => 'onOff']
@@ -623,8 +624,20 @@ class DevicesTest extends DumpInclude
         $this->assertSame('left', $endpoint['name']);
         $this->assertSame('genOnOff, genBasic', $endpoint['input']);
         $this->assertSame('genLevelCtrl', $endpoint['output']);
-        $this->assertSame('1', $endpoint['bindings']);
+        $this->assertSame('2', $endpoint['bindings']);
         $this->assertSame('1', $endpoint['reportings']);
+
+        $bindingList = $this->findFormItemByName($form, 'BindingOverviewList');
+        $this->assertNotNull($bindingList);
+        $this->assertTrue($bindingList['visible']);
+        $this->assertCount(2, $bindingList['values']);
+        $this->assertSame('1', $bindingList['values'][0]['source_endpoint']);
+        $this->assertSame('genOnOff', $bindingList['values'][0]['cluster']);
+        $this->assertSame('1', $bindingList['values'][0]['target']);
+        $this->assertSame('', $bindingList['values'][0]['target_endpoint']);
+        $this->assertSame('genLevelCtrl', $bindingList['values'][1]['cluster']);
+        $this->assertSame('0xabcd', $bindingList['values'][1]['target']);
+        $this->assertSame('2', $bindingList['values'][1]['target_endpoint']);
     }
 
     public function testBindingFormProvidesEndpointAndTargetSelections(): void

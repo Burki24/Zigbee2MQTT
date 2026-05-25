@@ -213,6 +213,7 @@ trait DeviceFormHelper
     private function ConfigureDeviceFormBindingReporting(array &$form): void
     {
         $values = $this->BuildEndpointFormValues();
+        $bindingValues = $this->BuildBindingOverviewFormValues();
         $visible = \count($values) > 0 || trim($this->ReadPropertyString(self::MQTT_TOPIC)) !== '';
         $this->SetDeviceFormField($form, 'BindingReportingSettings', 'visible', $visible);
         $this->SetDeviceFormField(
@@ -224,6 +225,9 @@ trait DeviceFormHelper
         $this->SetDeviceFormField($form, 'EndpointDataHint', 'visible', $visible && \count($values) === 0);
         $this->SetDeviceFormField($form, 'EndpointList', 'values', $values);
         $this->SetDeviceFormField($form, 'EndpointList', 'rowCount', min(10, max(4, \count($values) + 1)));
+        $this->SetDeviceFormField($form, 'BindingOverviewList', 'visible', \count($bindingValues) > 0);
+        $this->SetDeviceFormField($form, 'BindingOverviewList', 'values', $bindingValues);
+        $this->SetDeviceFormField($form, 'BindingOverviewList', 'rowCount', min(10, max(4, \count($bindingValues) + 1)));
         $this->SetDeviceFormField($form, 'BindingSourceEndpoint', 'options', $this->BuildBindingSourceEndpointOptions());
         $this->SetDeviceFormField($form, 'BindingTarget', 'options', $this->BuildBindingTargetOptions());
         $this->SetDeviceFormField($form, 'BindingClusters', 'options', $this->BuildBindingClusterOptions());
@@ -468,6 +472,126 @@ trait DeviceFormHelper
         }
 
         return $values;
+    }
+
+    /**
+     * Baut eine lesbare Uebersicht der bekannten Bindings.
+     */
+    private function BuildBindingOverviewFormValues(): array
+    {
+        $values = [];
+        foreach ($this->ReadAttributeArray(self::ATTRIBUTE_DEVICE_ENDPOINTS) as $endpointID => $endpoint) {
+            if (!\is_array($endpoint) || !\is_array($endpoint['bindings'] ?? null)) {
+                continue;
+            }
+
+            $sourceEndpoint = trim((string) ($endpoint['id'] ?? $endpoint['ID'] ?? $endpointID));
+            foreach ($endpoint['bindings'] as $binding) {
+                if (!\is_array($binding)) {
+                    continue;
+                }
+
+                $target = $binding['target'] ?? $binding['to'] ?? $binding['destination'] ?? null;
+                $values[] = [
+                    'source_endpoint' => $sourceEndpoint,
+                    'cluster'         => $this->FormatBindingClusterValue($binding['cluster'] ?? $binding['clusterName'] ?? ''),
+                    'target_type'     => $this->FormatBindingTargetType($target),
+                    'target'          => $this->FormatBindingTargetValue($target),
+                    'target_endpoint' => $this->FormatBindingTargetEndpoint($target, $binding)
+                ];
+            }
+        }
+
+        return $values;
+    }
+
+    /**
+     * Formatiert einen Binding-Cluster fuer die Uebersicht.
+     */
+    private function FormatBindingClusterValue(mixed $cluster): string
+    {
+        if (!\is_array($cluster)) {
+            return trim((string) $cluster);
+        }
+
+        return trim((string) ($cluster['name'] ?? $cluster['ID'] ?? $cluster['id'] ?? $cluster['clusterID'] ?? ''));
+    }
+
+    /**
+     * Formatiert den Zieltyp eines Bindings.
+     */
+    private function FormatBindingTargetType(mixed $target): string
+    {
+        if (!\is_array($target)) {
+            return '';
+        }
+
+        $type = strtolower(trim((string) ($target['type'] ?? '')));
+        if ($type === 'group' || isset($target['groupID']) || isset($target['group_id'])) {
+            return $this->Translate('Group');
+        }
+        if (\in_array($type, ['device', 'endpoint'], true) || isset($target['deviceIeeeAddress']) || isset($target['ieeeAddr'])) {
+            return $type === 'endpoint' ? $this->Translate('Endpoint') : $this->Translate('Device');
+        }
+
+        return $type === '' ? '' : ucfirst($type);
+    }
+
+    /**
+     * Formatiert das Binding-Ziel.
+     */
+    private function FormatBindingTargetValue(mixed $target): string
+    {
+        if (!\is_array($target)) {
+            return trim((string) $target);
+        }
+
+        $type = strtolower(trim((string) ($target['type'] ?? '')));
+        if ($type === 'group' || isset($target['groupID']) || isset($target['group_id'])) {
+            return trim((string) ($target['friendly_name'] ?? $target['name'] ?? $target['groupID'] ?? $target['group_id'] ?? $target['ID'] ?? $target['id'] ?? ''));
+        }
+
+        $device = $target['device'] ?? null;
+        if (\is_array($device)) {
+            $value = trim((string) ($device['friendly_name'] ?? $device['name'] ?? $device['ieeeAddr'] ?? $device['ieee_address'] ?? ''));
+            if ($value !== '') {
+                return $value;
+            }
+        }
+
+        $value = trim((string) ($target['friendly_name'] ?? $target['name'] ?? $target['deviceIeeeAddress'] ?? $target['ieeeAddr'] ?? $target['ieee_address'] ?? ''));
+        if ($value !== '') {
+            return $value;
+        }
+
+        return $this->FormatBindingFallbackValue($target);
+    }
+
+    /**
+     * Formatiert den Ziel-Endpoint eines Bindings.
+     */
+    private function FormatBindingTargetEndpoint(mixed $target, array $binding): string
+    {
+        $endpoint = trim((string) ($binding['to_endpoint'] ?? $binding['target_endpoint'] ?? ''));
+        if ($endpoint !== '' || !\is_array($target)) {
+            return $endpoint;
+        }
+
+        $type = strtolower(trim((string) ($target['type'] ?? '')));
+        if ($type === 'group' || isset($target['groupID']) || isset($target['group_id'])) {
+            return '';
+        }
+
+        return trim((string) ($target['endpoint'] ?? $target['endpointID'] ?? $target['endpoint_id'] ?? $target['ID'] ?? $target['id'] ?? ''));
+    }
+
+    /**
+     * Liefert eine kompakte Rueckfallanzeige fuer unbekannte Binding-Ziele.
+     */
+    private function FormatBindingFallbackValue(array $target): string
+    {
+        $encoded = json_encode($target, JSON_UNESCAPED_SLASHES | JSON_UNESCAPED_UNICODE);
+        return $encoded === false ? '' : $encoded;
     }
 
     /**
