@@ -93,6 +93,7 @@ Es werden nur Optionen angezeigt, die für das jeweilige Gerät fachlich passen.
 Bei kombinierten Aktor-/Sensorgeräten bleibt die automatische Auswahl zunächst bei der Aktor- bzw. Standarddarstellung. Sobald passende Sensorwerte vorhanden sind, kann in der Instanzkonfiguration bewusst **Sensor-Kachel verwenden** aktiviert werden.
 
 Die drei Solltemperatur-Presets der Heizungs-Kachel sind pro Instanz im Bereich **Visualisierung** konfigurierbar. Standardwerte sind `18,0 °C`, `20,0 °C` und `22,0 °C`.
+![Schaltaktor mit Leistungsmessung](imgs/Heizungs-Kachel.png)
 
 Die eigenen Kacheln geben keine festen Schriftarten oder Grundfarben vor. Dadurch übernehmen sie Hell-/Dunkelmodus, Schrift und Basisfarben der Symcon Tile-Visualisierung. Eigene Farben werden nur für fachliche Zustände verwendet, z. B. Alarm, OK, aktiv, inaktiv oder den Farbverlauf eines Messwerts.
 
