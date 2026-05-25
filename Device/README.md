@@ -22,6 +22,7 @@
   - [4.5 Geräteoptionen](#45-geräteoptionen)
   - [4.6 Binding und Reporting](#46-binding-und-reporting)
   - [4.7 Variablenverwaltung](#47-variablenverwaltung)
+  - [4.8 Troubleshooting](#48-troubleshooting)
 - [5. Statusvariablen](#5-statusvariablen)
 - [6. PHP-Funktionsreferenz](#6-php-funktionsreferenz)
 - [7. Aktionen](#7-aktionen)
@@ -265,6 +266,20 @@ Typische Fälle in der Praxis:
 | Update- und Systemwerte wie `update__*` oder `last_seen` fehlen in den Exposes | Das ist normal. Diese Werte kommen oft erst später über Payloads oder Systemmeldungen und werden trotzdem als gültige Variablen behandelt. |
 
 Composite-Exposes werden dabei auf die tatsächlich anlegbaren Untervariablen reduziert. Ein nicht selbst nutzbarer Composite-Elternknoten wird nicht als eigene Variable angeboten, während Unterwerte wie `options__motor_speed` sauber im Variablenkatalog erscheinen.
+
+### 4.8 Troubleshooting
+
+Bei Problemen mit einer Geräteinstanz hilft zuerst der Debug der Instanz. Dort ist sichtbar, welche Payloads von Zigbee2MQTT empfangen werden, welche Variablen erkannt werden und welche Befehle an Zigbee2MQTT gesendet werden.
+
+| Problem | Mögliche Ursache | Vorgehen |
+| --- | --- | --- |
+| Keine Endpoint-Daten vorhanden | Zigbee2MQTT hat für das Gerät noch keine Endpoint-Informationen geliefert oder die Symcon-Erweiterung in Zigbee2MQTT ist nicht aktuell. | **Geräteinformationen abrufen** ausführen und prüfen, ob Zigbee2MQTT das Gerät vollständig interviewt hat. Falls nötig, die Symcon-Erweiterung in Zigbee2MQTT aktualisieren. |
+| Binding oder Reporting zeigt keine Cluster oder Attribute | Für den gewählten Endpoint sind keine passenden Cluster bekannt oder das Gerät unterstützt die Funktion nicht. | Endpoint wechseln, Geräteinformationen neu abrufen und in Zigbee2MQTT prüfen, welche Cluster das Gerät tatsächlich anbietet. Bei Batteriegeräten das Gerät vorher aufwecken. |
+| Gerät offline oder antwortet nicht | Das Gerät ist nicht erreichbar, schläft, hat keine Route oder ist in Zigbee2MQTT als offline markiert. | Gerät aufwecken, Stromversorgung/Batterie prüfen und in Zigbee2MQTT kontrollieren, ob es online ist. Danach die Aktion erneut ausführen. |
+| Kachel erscheint nicht oder es wird die Standarddarstellung verwendet | Die benötigten Exposes fehlen, eine höher priorisierte Kachel ist aktiv oder die Spezialkachel wurde in der Instanz deaktiviert. | Bereich **Visualisierung** prüfen, Geräteinformationen neu abrufen und kontrollieren, ob die für die gewünschte Kachel nötigen Exposes vorhanden sind. |
+| Farbtemperaturbereich passt nicht | Zigbee2MQTT meldet für `color_temp` einen zu großen oder falschen Mired-Bereich. | Im Bereich **Farbtemperatur-Visualisierung** eigene Kelvin-Minimum- und Maximumwerte setzen. Mit `0`/`0` wird wieder der Zigbee2MQTT-Expose-Bereich verwendet. |
+| Variable wird nach dem Löschen nicht wieder angelegt | Die Variable ist im Variablenkatalog als gelöscht oder deaktiviert vermerkt. | Im Bereich **Variablen** die betroffene Variable über `Anlegen` wieder erstellen oder über `Aktivieren` für die automatische Anlage freigeben. |
+| Bedienaktion sendet den falschen Wert | Das Profil oder die Expose-Zuordnung passt nicht zum Gerät, z. B. bei enum-basierten `state`-Variablen. | Im Debug prüfen, welcher Payload gesendet wird. Bei Rollladen und ähnlichen Geräten müssen Originalwerte wie `OPEN`, `CLOSE` oder `STOP` gesendet werden. |
 
 ## 5. Statusvariablen
 
