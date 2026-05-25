@@ -976,6 +976,39 @@ class Zigbee2MQTTBridge extends IPSModuleStrict
     }
 
     /**
+     * Liefert die aus bridge/devices bekannten Endpoint-Daten eines Geraets.
+     *
+     * @param string $DeviceName Friendly Name oder IEEE-Adresse.
+     *
+     * @return string JSON-Objekt mit Endpoint-Daten oder leeres JSON-Objekt.
+     */
+    public function GetCachedDeviceEndpoints(string $DeviceName): string
+    {
+        $DeviceName = trim($DeviceName);
+        if ($DeviceName === '') {
+            return '[]';
+        }
+
+        foreach ($this->ReadAttributeArray(self::ATTRIBUTE_NETWORK_DEVICES) as $device) {
+            if (!\is_array($device)) {
+                continue;
+            }
+
+            $friendlyName = trim((string) ($device['friendly_name'] ?? $device['friendlyName'] ?? ''));
+            $ieeeAddress = trim((string) ($device['ieee_address'] ?? $device['ieeeAddr'] ?? ''));
+            if ($DeviceName !== $friendlyName && strcasecmp($DeviceName, $ieeeAddress) !== 0) {
+                continue;
+            }
+
+            $endpoints = \is_array($device['endpoints'] ?? null) ? $device['endpoints'] : [];
+            $json = json_encode($endpoints, JSON_UNESCAPED_SLASHES | JSON_UNESCAPED_UNICODE);
+            return \is_string($json) ? $json : '[]';
+        }
+
+        return '[]';
+    }
+
+    /**
      * ConfigureReporting
      *
      * @param string $DeviceName            Friendly Name oder IEEE-Adresse.
@@ -2151,7 +2184,8 @@ class Zigbee2MQTTBridge extends IPSModuleStrict
                     'ieee_address'  => $row['ieee_address'],
                     'model'         => $row['model'],
                     'vendor'        => $row['vendor'],
-                    'type'          => $row['status']
+                    'type'          => $row['status'],
+                    'endpoints'     => \is_array($device['endpoints'] ?? null) ? $device['endpoints'] : []
                 ];
             }
             if (($device['supported'] ?? true) === false || (\array_key_exists('definition', $device) && $device['definition'] === null)) {

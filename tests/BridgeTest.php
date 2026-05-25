@@ -386,6 +386,14 @@ class BridgeTest extends TestCase
                     'ieee_address'        => '0x2222',
                     'supported'           => true,
                     'interview_completed' => false,
+                    'endpoints'           => [
+                        '1' => [
+                            'id'       => 1,
+                            'bindings' => [
+                                ['cluster' => 'genOnOff', 'target' => ['type' => 'group', 'id' => 1]]
+                            ]
+                        ]
+                    ],
                     'definition'          => [
                         'model'  => 'SENSOR',
                         'vendor' => 'Vendor'
@@ -400,6 +408,9 @@ class BridgeTest extends TestCase
         $this->assertSame('interviewing', $bridge->readDiagnosticAttribute('DiagnosticInterviewDevices')[0]['friendly_name']);
         $this->assertContains('unsupported', array_column($bridge->readDiagnosticAttribute('NetworkDevices'), 'friendly_name'));
         $this->assertContains('0x1111', array_column($bridge->readDiagnosticAttribute('NetworkDevices'), 'ieee_address'));
+
+        $cachedEndpoints = json_decode($bridge->GetCachedDeviceEndpoints('interviewing'), true);
+        $this->assertSame('genOnOff', $cachedEndpoints['1']['bindings'][0]['cluster']);
     }
 
     public function testReceiveDataStoresNetworkSecurityConfig(): void

@@ -71,6 +71,7 @@
             "Device option value is not allowed.": "Der Wert ist für diese Geräteoption nicht erlaubt.",
             "Binding and reporting": "Binding und Reporting",
             "Configure Zigbee binding and attribute reporting for this device. Battery devices may need to be woken up before applying changes.": "Konfigurieren Sie Zigbee-Binding und Attribut-Reporting für dieses Gerät. Batteriegeräte müssen vor Änderungen eventuell aufgeweckt werden.",
+            "Refresh endpoint data": "Endpoint-Daten aktualisieren",
             "Endpoint": "Endpoint",
             "Name": "Name",
             "Input clusters": "Eingangs-Cluster",

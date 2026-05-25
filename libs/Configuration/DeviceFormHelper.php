@@ -325,6 +325,36 @@ trait DeviceFormHelper
     }
 
     /**
+     * Aktualisiert Geraete-, Endpoint-, Binding- und Reporting-Daten aus Z2M.
+     */
+    protected function RefreshBindingReportingInfoFromForm(): bool
+    {
+        if (!$this->UpdateDeviceInfo()) {
+            return false;
+        }
+
+        $endpointValues = $this->BuildEndpointFormValues();
+        $bindingValues = $this->BuildBindingOverviewFormValues();
+        $reportingValues = $this->BuildReportingOverviewFormValues();
+
+        $this->UpdateFormField('EndpointDataHint', 'visible', \count($endpointValues) === 0);
+        $this->UpdateFormField('EndpointList', 'values', json_encode($endpointValues));
+        $this->UpdateFormField('EndpointList', 'rowCount', min(10, max(4, \count($endpointValues) + 1)));
+        $this->UpdateFormField('BindingOverviewList', 'values', json_encode($bindingValues));
+        $this->UpdateFormField('BindingOverviewList', 'rowCount', min(10, max(4, \count($bindingValues) + 1)));
+        $this->UpdateFormField('ReportingOverviewList', 'values', json_encode($reportingValues));
+        $this->UpdateFormField('ReportingOverviewList', 'rowCount', min(10, max(4, \count($reportingValues) + 1)));
+        $this->UpdateFormField('BindingSourceEndpoint', 'options', json_encode($this->BuildBindingSourceEndpointOptions()));
+        $this->UpdateFormField('BindingTarget', 'options', json_encode($this->BuildBindingTargetOptions()));
+        $this->UpdateFormField('BindingClusters', 'options', json_encode($this->BuildBindingClusterOptions()));
+        $this->UpdateFormField('ReportingEndpoint', 'options', json_encode($this->BuildReportingEndpointOptions()));
+        $this->UpdateFormField('ReportingCluster', 'options', json_encode($this->BuildReportingClusterOptions()));
+        $this->UpdateFormField('ReportingAttribute', 'options', json_encode($this->BuildReportingAttributeOptions()));
+
+        return true;
+    }
+
+    /**
      * Aktualisiert die Cluster-Auswahl bei Wechsel des Quell-Endpoints oder Ziels.
      */
     protected function UpdateBindingClustersFromForm(mixed $value): bool
@@ -2196,6 +2226,122 @@ trait DeviceFormHelper
         }
 
         return $functionName($bridgeID, ...$arguments);
+    }
+
+    /**
+     * Ergaenzt Endpoint-Daten um den Bridge-Cache aus bridge/devices.
+     */
+    protected function MergeBridgeCachedDeviceEndpoints(array $endpoints): array
+    {
+        $cachedEndpoints = $this->ReadBridgeCachedDeviceEndpoints();
+        if ($cachedEndpoints === []) {
+            return $endpoints;
+        }
+
+        return $this->MergeEndpointCollections($endpoints, $cachedEndpoints);
+    }
+
+    /**
+     * Liest gecachte Endpoint-Daten von der Bridge, ohne beim Fehlen eine Notice zu erzeugen.
+     */
+    protected function ReadBridgeCachedDeviceEndpoints(): array
+    {
+        $bridgeID = $this->FindMatchingBridgeInstanceID();
+        if ($bridgeID === false || !\function_exists('Z2M_GetCachedDeviceEndpoints')) {
+            return [];
+        }
+
+        $result = \Z2M_GetCachedDeviceEndpoints($bridgeID, $this->ReadPropertyString(self::MQTT_TOPIC));
+        if (!\is_string($result) || $result === '') {
+            return [];
+        }
+
+        $decoded = json_decode($result, true);
+        return \is_array($decoded) ? $decoded : [];
+    }
+
+    /**
+     * Fuehrt zwei Endpoint-Listen anhand ihrer Endpoint-ID zusammen.
+     */
+    private function MergeEndpointCollections(array $primary, array $fallback): array
+    {
+        $merged = $primary;
+        foreach ($fallback as $fallbackID => $fallbackEndpoint) {
+            if (!\is_array($fallbackEndpoint)) {
+                continue;
+            }
+
+            $endpointID = $this->ResolveEndpointCollectionID($fallbackID, $fallbackEndpoint);
+            $primaryKey = $this->FindEndpointCollectionKey($merged, $endpointID);
+            if ($primaryKey === null) {
+                $merged[$endpointID] = $fallbackEndpoint;
+                continue;
+            }
+
+            if (\is_array($merged[$primaryKey] ?? null)) {
+                $merged[$primaryKey] = $this->MergeEndpointDefinition($merged[$primaryKey], $fallbackEndpoint);
+            }
+        }
+
+        return $merged;
+    }
+
+    /**
+     * Fuehrt einzelne Endpoint-Daten zusammen, ohne vorhandene Details zu verlieren.
+     */
+    private function MergeEndpointDefinition(array $primary, array $fallback): array
+    {
+        foreach (['bindings', 'configured_reportings'] as $key) {
+            $primaryValues = \is_array($primary[$key] ?? null) ? $primary[$key] : [];
+            $fallbackValues = \is_array($fallback[$key] ?? null) ? $fallback[$key] : [];
+            if ($primaryValues === [] && $fallbackValues !== []) {
+                $primary[$key] = $fallbackValues;
+            }
+        }
+
+        $primaryClusters = \is_array($primary['clusters'] ?? null) ? $primary['clusters'] : [];
+        $fallbackClusters = \is_array($fallback['clusters'] ?? null) ? $fallback['clusters'] : [];
+        foreach (['input', 'output', 'scenes'] as $key) {
+            $primaryValues = \is_array($primaryClusters[$key] ?? null) ? $primaryClusters[$key] : [];
+            $fallbackValues = \is_array($fallbackClusters[$key] ?? null) ? $fallbackClusters[$key] : [];
+            if ($primaryValues === [] && $fallbackValues !== []) {
+                $primaryClusters[$key] = $fallbackValues;
+            }
+        }
+        if ($primaryClusters !== []) {
+            $primary['clusters'] = $primaryClusters;
+        }
+
+        if (trim((string) ($primary['name'] ?? '')) === '' && trim((string) ($fallback['name'] ?? '')) !== '') {
+            $primary['name'] = $fallback['name'];
+        }
+
+        return $primary;
+    }
+
+    /**
+     * Liefert die Endpoint-ID aus Array-Key oder Endpoint-Inhalt.
+     */
+    private function ResolveEndpointCollectionID(int|string $key, array $endpoint): string
+    {
+        return trim((string) ($endpoint['id'] ?? $endpoint['ID'] ?? $endpoint['endpointID'] ?? $endpoint['endpoint_id'] ?? $key));
+    }
+
+    /**
+     * Findet den Array-Key eines Endpoints anhand seiner Endpoint-ID.
+     */
+    private function FindEndpointCollectionKey(array $endpoints, string $endpointID): int|string|null
+    {
+        foreach ($endpoints as $key => $endpoint) {
+            if (!\is_array($endpoint)) {
+                continue;
+            }
+            if ($this->ResolveEndpointCollectionID($key, $endpoint) === $endpointID) {
+                return $key;
+            }
+        }
+
+        return null;
     }
 
     /**

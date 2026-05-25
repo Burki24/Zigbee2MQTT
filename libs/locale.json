@@ -126,6 +126,7 @@
             "Binding and reporting": "Binding und Reporting",
             "Configure Zigbee binding and attribute reporting for this device. Battery devices may need to be woken up before applying changes.": "Konfigurieren Sie Zigbee-Binding und Attribut-Reporting für dieses Gerät. Batteriegeräte müssen vor Änderungen eventuell aufgeweckt werden.",
             "No endpoint data is available yet. Update the device information and make sure the Symcon extension is current.": "Es sind noch keine Endpoint-Daten verfügbar. Aktualisieren Sie die Geräteinformationen und stellen Sie sicher, dass die Symcon-Extension aktuell ist.",
+            "Refresh endpoint data": "Endpoint-Daten aktualisieren",
             "Device": "Gerät",
             "Group": "Gruppe",
             "Endpoint": "Endpoint",

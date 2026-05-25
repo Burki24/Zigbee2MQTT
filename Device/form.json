@@ -369,6 +369,11 @@
                     "caption": "Configure Zigbee binding and attribute reporting for this device. Battery devices may need to be woken up before applying changes."
                 },
                 {
+                    "type": "Button",
+                    "caption": "Refresh endpoint data",
+                    "onClick": "IPS_RequestAction($id, 'RefreshBindingReportingInfo', true);"
+                },
+                {
                     "type": "Label",
                     "name": "EndpointDataHint",
                     "caption": "No endpoint data is available yet. Update the device information and make sure the Symcon extension is current.",

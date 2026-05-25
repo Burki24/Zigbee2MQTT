@@ -161,6 +161,10 @@ class Zigbee2MQTTDevice extends \Zigbee2MQTT\ModulBase
             $this->ClearBindingsFromForm();
             return;
         }
+        if ($ident == 'RefreshBindingReportingInfo') {
+            $this->RefreshBindingReportingInfoFromForm();
+            return;
+        }
         if ($ident == 'UpdateBindingClusters') {
             $this->UpdateBindingClustersFromForm($value);
             return;
@@ -232,7 +236,8 @@ class Zigbee2MQTTDevice extends \Zigbee2MQTT\ModulBase
 
         $this->WriteAttributeArray(parent::ATTRIBUTE_DEVICE_OPTIONS, $deviceOptions);
         $this->WriteAttributeArray(parent::ATTRIBUTE_DEVICE_OPTION_DEFINITIONS, $definitionOptions);
-        $this->WriteAttributeArray(parent::ATTRIBUTE_DEVICE_ENDPOINTS, \is_array($Result['endpoints'] ?? null) ? $Result['endpoints'] : []);
+        $endpoints = \is_array($Result['endpoints'] ?? null) ? $Result['endpoints'] : [];
+        $this->WriteAttributeArray(parent::ATTRIBUTE_DEVICE_ENDPOINTS, $this->MergeBridgeCachedDeviceEndpoints($endpoints));
         $this->WriteAttributeArray(parent::ATTRIBUTE_FILTERED, \is_array($filteredAttributes) ? $filteredAttributes : []);
 
         $this->WriteAttributeArray(parent::ATTRIBUTE_EXPOSES, $Result['exposes']);
