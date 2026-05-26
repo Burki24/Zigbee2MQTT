@@ -251,15 +251,15 @@ Vor der Nutzung bitte die [Tool-Dokumentation](docs/tools/README.md) vollstaendi
 - Die Kelvin-Farbtemperaturvariable `color_temp_kelvin` nutzt den aus dem Zigbee2MQTT-Mired-Bereich berechneten Kelvin-Bereich für die Symcon-Standardkachel Beleuchtung.
 - Der Kelvin-Bereich der Farbtemperatur kann je Device überschrieben werden, falls Zigbee2MQTT bzw. dessen Device-Definitionen zu große oder ungenaue Mired-Grenzen melden.
 - Reine Tunable-White-Leuchtmittel erhalten eine abgeleitete `color`-Variable, die den aktuellen Weißton als `~HexColor`-Farbwert darstellt.
-- Die Geräte-Konfiguration zeigt Visualisierungsoptionen nur noch an, wenn sie für die Instanz fachlich verfügbar sind.
+- Die Geräte-Konfiguration erhält einen neuen Visualisierungsbereich, der nur die für die jeweilige Instanz fachlich passenden Kacheloptionen anbietet.
 - Geräte-Instanzen erhalten eine Variablenverwaltung, mit der automatisch angelegte, nachgelieferte und gelöschte Variablen kontrolliert werden können.
 - Ein Wartungstool fuer erfahrene Anwender kann alte, nicht mehr durch aktuelle Exposes oder Payloads abgedeckte Zigbee2MQTT-Variablen im Dry-Run finden und nach ausdruecklicher Freigabe gezielt loeschen.
 - Composite-Exposes werden in der Variablenverwaltung nur mit den tatsächlich anlegbaren Untervariablen geführt, damit nicht bedienbare Composite-Eltern nicht als eigene Variable angeboten werden.
 - Geräte-Instanzen können Zigbee2MQTT-Geräteoptionen wie `transition`, `debounce`, `filtered_attributes`, `optimistic`, `retain` oder gerätespezifische `definition.options` direkt in der Instanz-Konfiguration anzeigen und setzen.
 - Geräte- und Gruppenoptionen nutzen typisierte Editoren für Boolean-, Enum-, Numeric-, Text-, Array- und Objektwerte; Attributfilter wie `filtered_attributes`, `filtered_cache` oder `debounce_ignore` bieten eine Auswahl bekannter Payload-Attribute.
-- Enum-basierte `state`-Variablen wie Rollladenbefehle senden wieder die originalen Zigbee2MQTT-Werte wie `OPEN`, `CLOSE` oder `STOP`; binäre Schalter bleiben bei `ON`/`OFF`.
+- Enum-basierte `state`-Variablen wie Rollladenbefehle senden die originalen Zigbee2MQTT-Werte wie `OPEN`, `CLOSE` oder `STOP`; binäre Schalter bleiben bei `ON`/`OFF`.
 - Der Abruf von Geräteinformationen wartet länger auf die Symcon-Extension und zeigt bei Erfolg oder Nichterreichbarkeit verständliche Meldungen im Formular.
-- Die Bridge unterstützt `bridge/request/device/options` über `Z2M_SetDeviceOptions()` und aktualisierte OTA-Funktionen für Downgrade, Scheduling, Unschedule und eigene OTA-URLs.
+- Die Bridge unterstützt `bridge/request/device/options` über `Z2M_SetDeviceOptions()` sowie zusätzliche OTA-Funktionen für Downgrade, Scheduling, Unschedule und eigene OTA-URLs.
 - Binding und Reporting können in der Geräte-Konfiguration über Endpoint-, Cluster- und Attributdaten gepflegt werden; vorhandene Bindings und Reportings werden aus dem Zigbee2MQTT-`bridge/devices` Cache gelesen und per **Endpoint-Daten aktualisieren** neu eingelesen.
 - Gruppen-Instanzen können Mitglieder inklusive automatisch gelisteter Endpoints verwalten, Zigbee2MQTT-Gruppenoptionen setzen und Szenen speichern, hinzufügen, abrufen, umbenennen oder löschen.
 - Gruppenbefehle zeigen bei nicht erreichbaren Geräten eine verständliche Meldung in der Konfiguration, statt nur die Zigbee2MQTT-Fehlermeldung durchzureichen.
