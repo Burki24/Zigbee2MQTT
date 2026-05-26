@@ -75,8 +75,8 @@ class Zigbee2MQTTDiscovery extends IPSModuleStrict
             case 'CheckMQTTBroker':
                 $Config = json_decode($value, true);
                 $this->SendDebug('Manuel CheckMQTTBroker', (string) $value, 0);
-                $Url = parse_url($Config['Url']);
-                if (empty($Url['host'])) {
+                $Url = \is_array($Config) ? parse_url((string) ($Config['Url'] ?? '')) : false;
+                if (!\is_array($Config) || !\is_array($Url) || empty($Url['host'])) {
                     $this->ManuelTopics = [];
                     $this->ManuelBrokerConfig = [];
                     $this->ReloadForm();

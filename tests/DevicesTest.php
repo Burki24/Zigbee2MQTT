@@ -199,6 +199,34 @@ class DevicesTest extends DumpInclude
         $this->assertSame(['state' => 'OFF'], $device->sentPayload);
     }
 
+    public function testCommandRejectsInvalidJsonPayloadWithoutTypeError(): void
+    {
+        $device = $this->createDeviceActionTestDouble();
+        $notices = [];
+
+        set_error_handler(static function (int $severity, string $message) use (&$notices): bool
+        {
+            if ($severity === E_USER_NOTICE) {
+                $notices[] = $message;
+                return true;
+            }
+
+            return false;
+        }, E_USER_NOTICE);
+
+        try {
+            $result = $device->Command('set', '{invalid-json');
+        } finally {
+            restore_error_handler();
+        }
+
+        $this->assertFalse($result);
+        $this->assertSame('', $device->sentTopic);
+        $this->assertSame([], $device->sentPayload);
+        $this->assertCount(1, $notices);
+        $this->assertStringContainsString('JSON', $notices[0]);
+    }
+
     public function testColorTemperatureActionRequiresExposeSupport(): void
     {
         $device = $this->createDeviceActionTestDouble();

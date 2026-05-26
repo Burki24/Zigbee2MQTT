@@ -18,14 +18,6 @@ trait MeteredSwitchTileHelper
     }
 
     /**
-     * Aktualisiert den Visualisierungstyp passend zur aktuellen Konfiguration und Variablenlage.
-     */
-    protected function UpdateMeteredSwitchTileVisualizationType(): void
-    {
-        $this->SetVisualizationType($this->ShouldUseMeteredSwitchTile() ? 1 : 0);
-    }
-
-    /**
      * Prueft, ob diese Instanz als Schaltaktor dargestellt werden kann.
      */
     protected function HasMeteredSwitchTileCapabilities(): bool

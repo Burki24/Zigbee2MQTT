@@ -33,6 +33,7 @@
             "Error writing JSON file.": "Fehler beim Schreiben der JSON-Datei.",
             "Error on create Expose Directory": "Fehler beim Erstellen des Expose-Verzeichnisses",
             "Transaction Data is locked": "Transaktionen Daten sind gesperrt",
+            "Command payload must be a valid JSON object or array.": "Command-Payload muss ein gültiges JSON-Objekt oder -Array sein.",
             "Control which variables may be created automatically. Existing variables are not deleted.": "Steuern Sie, welche Variablen automatisch erstellt werden dürfen. Bestehende Variablen werden nicht gelöscht.",
             "Variables": "Variablen",
             "Variable": "Variable",

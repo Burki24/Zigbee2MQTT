@@ -34,7 +34,12 @@ trait SendData
      */
     public function Command(string $topic, string $value): bool
     {
-        return $this->SendData('/' . $this->ReadPropertyString(self::MQTT_TOPIC) . '/' . $topic, json_decode($value, true), 0);
+        $payload = $this->DecodeCommandPayload($value);
+        if ($payload === null) {
+            return false;
+        }
+
+        return $this->SendData('/' . $this->ReadPropertyString(self::MQTT_TOPIC) . '/' . $topic, $payload, 0);
     }
 
     /**
@@ -46,7 +51,12 @@ trait SendData
      */
     public function CommandExt(string $topic, string $value): bool //ohne MQTTTopic
     {
-        return $this->SendData('/' . $topic, json_decode($value, true), 0);
+        $payload = $this->DecodeCommandPayload($value);
+        if ($payload === null) {
+            return false;
+        }
+
+        return $this->SendData('/' . $topic, $payload, 0);
     }
 
     /**
@@ -115,6 +125,21 @@ trait SendData
             }
         }
         return utf8_decode($Payload);
+    }
+
+    /**
+     * Dekodiert Command-Payloads robust, damit oeffentliche Z2M_Command-Aufrufe
+     * bei ungueltigem JSON nicht in einen TypeError laufen.
+     */
+    private function DecodeCommandPayload(string $value): ?array
+    {
+        $payload = json_decode($value, true);
+        if (\is_array($payload)) {
+            return $payload;
+        }
+
+        trigger_error($this->Translate('Command payload must be a valid JSON object or array.'), E_USER_NOTICE);
+        return null;
     }
 
     /**
