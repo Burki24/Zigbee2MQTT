@@ -330,24 +330,7 @@ trait DeviceFormHelper
     protected function RefreshBindingReportingInfoFromForm(): bool
     {
         $this->RefreshEndpointDataFromBridgeCache();
-
-        $endpointValues = $this->BuildEndpointFormValues();
-        $bindingValues = $this->BuildBindingOverviewFormValues();
-        $reportingValues = $this->BuildReportingOverviewFormValues();
-
-        $this->UpdateFormField('EndpointDataHint', 'visible', \count($endpointValues) === 0);
-        $this->UpdateFormField('EndpointList', 'values', json_encode($endpointValues));
-        $this->UpdateFormField('EndpointList', 'rowCount', min(10, max(4, \count($endpointValues) + 1)));
-        $this->UpdateFormField('BindingOverviewList', 'values', json_encode($bindingValues));
-        $this->UpdateFormField('BindingOverviewList', 'rowCount', min(10, max(4, \count($bindingValues) + 1)));
-        $this->UpdateFormField('ReportingOverviewList', 'values', json_encode($reportingValues));
-        $this->UpdateFormField('ReportingOverviewList', 'rowCount', min(10, max(4, \count($reportingValues) + 1)));
-        $this->UpdateFormField('BindingSourceEndpoint', 'options', json_encode($this->BuildBindingSourceEndpointOptions()));
-        $this->UpdateFormField('BindingTarget', 'options', json_encode($this->BuildBindingTargetOptions()));
-        $this->UpdateFormField('BindingClusters', 'options', json_encode($this->BuildBindingClusterOptions()));
-        $this->UpdateFormField('ReportingEndpoint', 'options', json_encode($this->BuildReportingEndpointOptions()));
-        $this->UpdateFormField('ReportingCluster', 'options', json_encode($this->BuildReportingClusterOptions()));
-        $this->UpdateFormField('ReportingAttribute', 'options', json_encode($this->BuildReportingAttributeOptions()));
+        $this->UpdateBindingReportingFormFields();
 
         return true;
     }
@@ -362,6 +345,37 @@ trait DeviceFormHelper
         if ($mergedEndpoints !== $currentEndpoints) {
             $this->WriteAttributeArray(self::ATTRIBUTE_DEVICE_ENDPOINTS, $mergedEndpoints);
         }
+    }
+
+    /**
+     * Aktualisiert alle dynamischen Binding/Reporting-Formularfelder.
+     */
+    private function UpdateBindingReportingFormFields(): void
+    {
+        $endpointValues = $this->BuildEndpointFormValues();
+        $bindingValues = $this->BuildBindingOverviewFormValues();
+        $reportingValues = $this->BuildReportingOverviewFormValues();
+
+        $this->UpdateFormField('EndpointDataHint', 'visible', \count($endpointValues) === 0);
+        $this->UpdateFormList('EndpointList', $endpointValues);
+        $this->UpdateFormList('BindingOverviewList', $bindingValues);
+        $this->UpdateFormList('ReportingOverviewList', $reportingValues);
+
+        $this->UpdateFormField('BindingSourceEndpoint', 'options', json_encode($this->BuildBindingSourceEndpointOptions()));
+        $this->UpdateFormField('BindingTarget', 'options', json_encode($this->BuildBindingTargetOptions()));
+        $this->UpdateFormField('BindingClusters', 'options', json_encode($this->BuildBindingClusterOptions()));
+        $this->UpdateFormField('ReportingEndpoint', 'options', json_encode($this->BuildReportingEndpointOptions()));
+        $this->UpdateFormField('ReportingCluster', 'options', json_encode($this->BuildReportingClusterOptions()));
+        $this->UpdateFormField('ReportingAttribute', 'options', json_encode($this->BuildReportingAttributeOptions()));
+    }
+
+    /**
+     * Aktualisiert Werte und Zeilenanzahl einer Formularliste.
+     */
+    private function UpdateFormList(string $name, array $values): void
+    {
+        $this->UpdateFormField($name, 'values', json_encode($values));
+        $this->UpdateFormField($name, 'rowCount', min(10, max(4, \count($values) + 1)));
     }
 
     /**

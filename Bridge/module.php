@@ -980,7 +980,7 @@ class Zigbee2MQTTBridge extends IPSModuleStrict
      *
      * @param string $DeviceName Friendly Name oder IEEE-Adresse.
      *
-     * @return string JSON-Objekt mit Endpoint-Daten oder leeres JSON-Objekt.
+     * @return string JSON-Daten mit Endpoint-Daten oder leeres JSON-Array.
      */
     public function GetCachedDeviceEndpoints(string $DeviceName): string
     {

@@ -372,29 +372,6 @@ trait VariablePresentationHelper
     }
 
     /**
-     * Setzt eine einfache Werteingabe fuer numerische Werte, die keinen Slider bekommen sollen.
-     */
-    private function ApplyNumericValueInputPresentation(string $ident, array $feature): void
-    {
-        if (!$this->SupportsValueInputPresentation()) {
-            $this->ResetCustomPresentation($ident);
-            return;
-        }
-
-        $variableID = $this->GetObjectIDByIdent($ident);
-        if ($variableID === false) {
-            return;
-        }
-
-        $unit = isset($feature['unit']) && \is_string($feature['unit']) ? $feature['unit'] : '';
-        IPS_SetVariableCustomPresentation($variableID, [
-            'PRESENTATION' => \constant('VARIABLE_PRESENTATION_VALUE_INPUT'),
-            'SUFFIX'       => $unit === '' ? '' : ' ' . $unit,
-            'MULTILINE'    => false
-        ]);
-    }
-
-    /**
      * Setzt fuer reine Temperaturmesswerte die native Symcon-Temperatur-Wertanzeige.
      */
     private function ApplyTemperatureValuePresentation(string $ident, array $feature): void
@@ -570,14 +547,6 @@ trait VariablePresentationHelper
     private function SupportsShutterPresentation(): bool
     {
         return \function_exists('IPS_SetVariableCustomPresentation') && \defined('VARIABLE_PRESENTATION_SHUTTER');
-    }
-
-    /**
-     * Prueft, ob Werteingabe-Darstellungen verfuegbar sind.
-     */
-    private function SupportsValueInputPresentation(): bool
-    {
-        return \function_exists('IPS_SetVariableCustomPresentation') && \defined('VARIABLE_PRESENTATION_VALUE_INPUT');
     }
 
     /**
