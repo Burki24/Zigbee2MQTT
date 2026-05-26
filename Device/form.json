@@ -736,6 +736,25 @@
             }
         },
         {
+            "name": "DeviceInfoRequestError",
+            "type": "PopupAlert",
+            "visible": false,
+            "popup": {
+                "closeCaption": "Close",
+                "items": [
+                    {
+                        "type": "Label",
+                        "bold": true,
+                        "caption": "Device information unavailable"
+                    },
+                    {
+                        "type": "Label",
+                        "caption": "Zigbee2MQTT did not answer the device information request. Please check whether Zigbee2MQTT is online and the Symcon extension is current, then try again."
+                    }
+                ]
+            }
+        },
+        {
             "type": "ExpansionPanel",
             "caption": "Expert Settings",
             "expanded": false,

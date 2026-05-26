@@ -6,6 +6,8 @@
             "Warning!": "Warnung!",
             "I understand": "Habe ich verstanden",
             "Please use this function carefully!\r\nAn incorrect IEEE address can lead to malfunctions.": "Bitte benutzen Sie diese Funktion mit Aufmerksamkeit!\r\nEine falsche IEEE Adresse kann zu Fehlfunktionen führen.",
+            "Device information unavailable": "Geräteinformationen nicht verfügbar",
+            "Zigbee2MQTT did not answer the device information request. Please check whether Zigbee2MQTT is online and the Symcon extension is current, then try again.": "Zigbee2MQTT hat nicht auf die Geräteinformations-Anfrage geantwortet. Bitte prüfen Sie, ob Zigbee2MQTT online ist und die Symcon-Extension aktuell ist, und versuchen Sie es erneut.",
             "Get Device Infos": "Geräteinformationen abrufen",
             "Change Group Id": "Gruppen-ID ändern",
             "Please use this function carefully!\r\nAn incorrect GroupId can lead to malfunctions.": "Bitte benutzen Sie diese Funktion mit Aufmerksamkeit!\r\nEine falsche Gruppen-ID kann zu Fehlfunktionen führen.",

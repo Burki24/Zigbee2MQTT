@@ -1407,11 +1407,15 @@ abstract class ModulBase extends \IPSModuleStrict
             $this->LogMessage($this->Translate('MQTTTopic not configured.'), KL_WARNING);
             return false;
         }
-        $Result = $this->SendData(
-            self::SYMCON_EXTENSION_REQUEST . static::$ExtensionTopic . $mqttTopic,
+        $topic = self::SYMCON_EXTENSION_REQUEST . static::$ExtensionTopic . $mqttTopic;
+        $Result = $this->SendDataQuiet(
+            $topic,
             [],
             self::TIMEOUT_SYMCON_EXTENSION_INFO
         );
+        if ($Result === false) {
+            $this->LogMessage(\sprintf($this->Translate('Zigbee2MQTT did not response on Topic %s'), $topic), KL_WARNING);
+        }
         return $Result;
     }
 

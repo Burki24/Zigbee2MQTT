@@ -86,6 +86,23 @@ trait SendData
     }
 
     /**
+     * Sendet eine Anfrage ohne technische Timeout-Notice.
+     */
+    protected function SendDataQuiet(string $Topic, array $Payload = [], int $Timeout = 5000): array|bool
+    {
+        set_error_handler(static function (): bool
+        {
+            return true;
+        }, E_USER_NOTICE);
+
+        try {
+            return $this->SendData($Topic, $Payload, $Timeout);
+        } finally {
+            restore_error_handler();
+        }
+    }
+
+    /**
      * Dekodiert Payloads nach IPSModuleStrict-Regel (HEX) und bleibt tolerant
      * gegen alte UTF-8 Test- oder Installationsdaten.
      */

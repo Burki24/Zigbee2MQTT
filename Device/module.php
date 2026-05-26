@@ -125,6 +125,12 @@ class Zigbee2MQTTDevice extends \Zigbee2MQTT\ModulBase
      */
     public function RequestAction(string $ident, mixed $value): void
     {
+        if ($ident == 'UpdateInfo') {
+            if (!$this->UpdateDeviceInfo()) {
+                $this->ShowDeviceInfoRequestError();
+            }
+            return;
+        }
         if ($ident == 'ShowIeeeEditWarning') {
             $this->UpdateFormField('IeeeWarning', 'visible', true);
             return;
@@ -243,6 +249,14 @@ class Zigbee2MQTTDevice extends \Zigbee2MQTT\ModulBase
         $this->WriteAttributeArray(parent::ATTRIBUTE_EXPOSES, $Result['exposes']);
         $this->mapExposesToVariables($Result['exposes']);
         return true;
+    }
+
+    /**
+     * Zeigt eine lesbare Meldung, wenn die Symcon-Extension nicht antwortet.
+     */
+    private function ShowDeviceInfoRequestError(): void
+    {
+        $this->UpdateFormField('DeviceInfoRequestError', 'visible', true);
     }
 
     /**
