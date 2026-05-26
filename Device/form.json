@@ -755,6 +755,25 @@
             }
         },
         {
+            "name": "DeviceInfoRequestSuccess",
+            "type": "PopupAlert",
+            "visible": false,
+            "popup": {
+                "closeCaption": "Close",
+                "items": [
+                    {
+                        "type": "Label",
+                        "bold": true,
+                        "caption": "Device information loaded"
+                    },
+                    {
+                        "type": "Label",
+                        "caption": "The device information was loaded successfully from Zigbee2MQTT."
+                    }
+                ]
+            }
+        },
+        {
             "type": "ExpansionPanel",
             "caption": "Expert Settings",
             "expanded": false,

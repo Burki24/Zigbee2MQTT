@@ -141,6 +141,38 @@ class DevicesTest extends DumpInclude
         $this->assertSame(true, $device->updatedFields['DeviceInfoRequestError']['visible']);
     }
 
+    public function testUpdateInfoShowsReadablePopupOnSuccess(): void
+    {
+        $device = new class(990007) extends Zigbee2MQTTDevice {
+            public array $updatedFields = [];
+            public bool $updateDeviceInfoCalled = false;
+
+            protected function UpdateDeviceInfo(): bool
+            {
+                $this->updateDeviceInfoCalled = true;
+                return true;
+            }
+
+            protected function UpdateFormField(string $Field, string $Parameter, mixed $Value): bool
+            {
+                $this->updatedFields[$Field][$Parameter] = $Value;
+                return true;
+            }
+
+            protected function SendDebug(string $Message, string $Data, int $Format): bool
+            {
+                return true;
+            }
+        };
+        $device->Create();
+
+        $device->RequestAction('UpdateInfo', true);
+
+        $this->assertTrue($device->updateDeviceInfoCalled);
+        $this->assertSame(true, $device->updatedFields['DeviceInfoRequestSuccess']['visible']);
+        $this->assertArrayNotHasKey('DeviceInfoRequestError', $device->updatedFields);
+    }
+
     public function testSwitchStateActionStillMapsBooleanToOnOff(): void
     {
         $device = $this->createDeviceActionTestDouble();

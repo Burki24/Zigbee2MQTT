@@ -10,6 +10,8 @@
             "List of missing translations": "Liste der fehlenden Übersetzungen",
             "Device information unavailable": "Geräteinformationen nicht verfügbar",
             "Zigbee2MQTT did not answer the device information request. Please check whether Zigbee2MQTT is online and the Symcon extension is current, then try again.": "Zigbee2MQTT hat nicht auf die Geräteinformations-Anfrage geantwortet. Bitte prüfen Sie, ob Zigbee2MQTT online ist und die Symcon-Extension aktuell ist, und versuchen Sie es erneut.",
+            "Device information loaded": "Geräteinformationen geladen",
+            "The device information was loaded successfully from Zigbee2MQTT.": "Die Geräteinformationen wurden erfolgreich von Zigbee2MQTT geladen.",
             "Expert Settings": "Experteneinstellungen",
             "Change IEEE Address": "IEEE Adresse ändern",
             "Warning!": "Warnung!",

@@ -128,6 +128,8 @@ class Zigbee2MQTTDevice extends \Zigbee2MQTT\ModulBase
         if ($ident == 'UpdateInfo') {
             if (!$this->UpdateDeviceInfo()) {
                 $this->ShowDeviceInfoRequestError();
+            } else {
+                $this->ShowDeviceInfoRequestSuccess();
             }
             return;
         }
@@ -257,6 +259,14 @@ class Zigbee2MQTTDevice extends \Zigbee2MQTT\ModulBase
     private function ShowDeviceInfoRequestError(): void
     {
         $this->UpdateFormField('DeviceInfoRequestError', 'visible', true);
+    }
+
+    /**
+     * Zeigt eine Erfolgsmeldung nach geladenen Geraeteinformationen.
+     */
+    private function ShowDeviceInfoRequestSuccess(): void
+    {
+        $this->UpdateFormField('DeviceInfoRequestSuccess', 'visible', true);
     }
 
     /**
