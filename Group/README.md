@@ -28,7 +28,7 @@
 ## 1. Funktionsumfang
 
 - Darstellung aller von Z2M gelieferten Werten der Gruppe in Symcon
-- Automatisches Erstellern der für die Variablen benötigten Variablenprofile gemäß den Daten aus Z2M
+- Automatisches Erstellen der für die Variablen benötigten Variablenprofile gemäß den Daten aus Z2M
 - Verwaltung von Gruppenmitgliedern inklusive Endpoint-Auswahl
 - Pflege von Zigbee2MQTT-Gruppenoptionen
 - Speichern, Abrufen, Umbenennen und Löschen von Szenen
@@ -52,7 +52,7 @@
 
    Hier als Beispiel die Gruppe `Bad/Beleuchtung/Deckenlicht`:  
 
-   ![Gruppen_datails](imgs/detail.jpg)
+   ![Gruppen_details](imgs/detail.jpg)
 
    Genauere Informationen gibt es direkt auf der Seite von Zigbee2mqtt: [Gerätegruppen](https://www.zigbee2mqtt.io/guide/configuration/devices-groups.html)  
 
@@ -63,7 +63,7 @@
 
 ### 4.2 Konfiguration
 
-   Die Konfiguration entspricht dem der einzelenen [Zigbee2MQTT-Geräte](../Device/README.md#4-konfiguration), mit der Außnahme das die IEEE-Adresse durch die Gruppen-Adresse ersetzt ist und es keine Geräte-Informationen gibt.
+   Die Konfiguration entspricht der Konfiguration der einzelnen [Zigbee2MQTT-Geräte](../Device/README.md#4-konfiguration), mit der Ausnahme, dass die IEEE-Adresse durch die Gruppen-Adresse ersetzt ist und es keine Geräte-Informationen gibt.
 
    ![Konfiguration Device](imgs/config.png)  
 
@@ -314,7 +314,7 @@ Szenen können aus dem aktuellen Gruppenstatus gespeichert, als vollständige JS
 
 ## 7. Aktionen
 
-**Grundsätzlich können alle bedienbaren Statusvariablen als Ziel einer [`Aktion`](https://www.symcon.de/service/dokumentation/konzepte/automationen/ablaufplaene/aktionen/) mit 'Auf Wert schalten' angesteuert werden, so das hier keine speziellen Aktionen benutzt werden müssen.**
+**Grundsätzlich können alle bedienbaren Statusvariablen als Ziel einer [`Aktion`](https://www.symcon.de/service/dokumentation/konzepte/automationen/ablaufplaene/aktionen/) mit 'Auf Wert schalten' angesteuert werden, so dass hier keine speziellen Aktionen benutzt werden müssen.**
 
 **Zusätzlich** gibt es Sonderfunktionen in Form von speziellen Aktionen, welche für die Zigbee2MQTT-Geräte und Gruppen Instanzen zur Verfügung stehen, wenn diese als Ziel einer Aktion ausgewählt wurden.
 

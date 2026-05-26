@@ -125,7 +125,7 @@ Weitere Schritte zur Ersteinrichtung sind unter dem [Zigbee2MQTT-Discovery](Disc
 >
 > - Die Version 5.0 ändert beim Update alle Ident aller Variablen welche zu einer ZigbeeMQTT-Instanz gehören.
 > - Diese Änderung betrifft nur User welche mit Scripten auf Variablen per Ident (z.B. Z2M_Brightness) und nicht per ObjektID (z.B. 12345) zugreifen.
-> - Die Variablen selbst bleiben dabei erhalten, so das sich hier keine ObjektIDs ändern, und entsprechend auch keine Änderungen an Ereignissen, Links, Automationen etc... ergeben.  
+> - Die Variablen selbst bleiben dabei erhalten, so dass sich hier keine ObjektIDs ändern, und entsprechend auch keine Änderungen an Ereignissen, Links, Automationen etc... ergeben.  
 
 ---
 
@@ -134,7 +134,7 @@ Weitere Schritte zur Ersteinrichtung sind unter dem [Zigbee2MQTT-Discovery](Disc
 >
 > Folgende Liste enthält alle Variablen wo zuvor eine Variable vom falschen Typ genutzt wurde.
 > Diese werden nicht migriert, sondern bleiben erhalten.
-> Es werden die neuen Variablen zusätzlich angelegt, so das hier anschließend manuell z.B. Links oder Ereignisse, angepasst werden müssen.
+> Es werden die neuen Variablen zusätzlich angelegt, so dass hier anschließend manuell z.B. Links oder Ereignisse, angepasst werden müssen.
 >
 > | Name                 | Ident Alt             | Type Alt | Ident Neu              | Typ neu |
 > | :------------------- | :-------------------- | :------- | :--------------------- | ------- |
@@ -218,13 +218,13 @@ Die Instanz-Konfiguration zeigt nur die Visualisierungsoptionen an, die für das
 
 Die eigenen HTML-SDK-Kacheln übernehmen Schrift- und Grundfarben vom aktiven Symcon Tile-Theme. Eigene Farben werden nur für Zustände wie Alarm, OK, Aktiv/Inaktiv oder Messwertverläufe verwendet.
 
-Details stehen in der [Dokumentation des Geräte-Moduls](Device/README.md#41-visualisierung-und-kacheln).
+Details stehen in der [Dokumentation des Geräte-Moduls](Device/README.md#42-visualisierung-und-kacheln).
 
 ### 4.2 Variablenverwaltung
 
 Geräte-Instanzen führen einen lokalen Variablenkatalog. Dadurch kann in der Instanz-Konfiguration gesteuert werden, welche bekannten Variablen automatisch angelegt werden dürfen. Vom Anwender gelöschte Variablen werden nicht automatisch wieder erzeugt und können später gezielt wieder angelegt werden.
 
-Details stehen in der [Dokumentation des Geräte-Moduls](Device/README.md#46-variablenverwaltung).
+Details stehen in der [Dokumentation des Geräte-Moduls](Device/README.md#47-variablenverwaltung).
 
 Geräte- und Gruppenoptionen aus Zigbee2MQTT können ebenfalls direkt in Symcon gepflegt werden. Soweit Zigbee2MQTT Typinformationen liefert oder das Modul die Option kennt, werden passende Editoren für Schalter, Auswahllisten, Zahlen, Text, JSON-Objekte und Attributlisten angezeigt.
 
@@ -258,6 +258,7 @@ Vor der Nutzung bitte die [Tool-Dokumentation](docs/tools/README.md) vollstaendi
 - Geräte-Instanzen können Zigbee2MQTT-Geräteoptionen wie `transition`, `debounce`, `filtered_attributes`, `optimistic`, `retain` oder gerätespezifische `definition.options` direkt in der Instanz-Konfiguration anzeigen und setzen.
 - Geräte- und Gruppenoptionen nutzen typisierte Editoren für Boolean-, Enum-, Numeric-, Text-, Array- und Objektwerte; Attributfilter wie `filtered_attributes`, `filtered_cache` oder `debounce_ignore` bieten eine Auswahl bekannter Payload-Attribute.
 - Enum-basierte `state`-Variablen wie Rollladenbefehle senden wieder die originalen Zigbee2MQTT-Werte wie `OPEN`, `CLOSE` oder `STOP`; binäre Schalter bleiben bei `ON`/`OFF`.
+- Der Abruf von Geräteinformationen wartet länger auf die Symcon-Extension und zeigt bei Erfolg oder Nichterreichbarkeit verständliche Meldungen im Formular.
 - Die Bridge unterstützt `bridge/request/device/options` über `Z2M_SetDeviceOptions()` und aktualisierte OTA-Funktionen für Downgrade, Scheduling, Unschedule und eigene OTA-URLs.
 - Binding und Reporting können in der Geräte-Konfiguration über Endpoint-, Cluster- und Attributdaten gepflegt werden; vorhandene Bindings und Reportings werden aus dem Zigbee2MQTT-`bridge/devices` Cache gelesen und per **Endpoint-Daten aktualisieren** neu eingelesen.
 - Gruppen-Instanzen können Mitglieder inklusive automatisch gelisteter Endpoints verwalten, Zigbee2MQTT-Gruppenoptionen setzen und Szenen speichern, hinzufügen, abrufen, umbenennen oder löschen.
