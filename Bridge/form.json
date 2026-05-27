@@ -629,7 +629,7 @@
         {
             "type": "ExpansionPanel",
             "name": "BridgeMaintenance",
-            "caption": "Maintenance",
+            "caption": "Zigbee2MQTT maintenance",
             "expanded": false,
             "items": [
                 {

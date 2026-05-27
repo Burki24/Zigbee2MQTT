@@ -102,6 +102,7 @@
             "Channel": "Kanal",
             "Select": "Auswählen",
             "Touchlink IEEE address and channel are required.": "Touchlink-IEEE-Adresse und Kanal sind erforderlich.",
+            "Zigbee2MQTT maintenance": "Zigbee2MQTT-Wartung",
             "Variable maintenance": "Variablen-Wartung",
             "Find Zigbee2MQTT variables that are no longer backed by current exposes or payload data. Archived or referenced variables are protected.": "Findet Zigbee2MQTT-Variablen, die nicht mehr durch aktuelle Exposes oder Payload-Daten abgedeckt sind. Archivierte oder referenzierte Variablen sind geschützt.",
             "Scan stale variables": "Verwaiste Variablen suchen",
