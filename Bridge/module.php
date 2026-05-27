@@ -687,6 +687,7 @@ class Zigbee2MQTTBridge extends IPSModuleStrict
      *
      * @param  string $GroupName
      * @param  string $DeviceName
+     * @param  string $Endpoint Optional Zigbee endpoint to add to the group.
      *
      * @return bool
      *
@@ -708,6 +709,8 @@ class Zigbee2MQTTBridge extends IPSModuleStrict
      *
      * @param  string $GroupName
      * @param  string $DeviceName
+     * @param  string $Endpoint Optional Zigbee endpoint to remove from the group.
+     * @param  bool $SkipDisableReporting Whether Zigbee2MQTT should keep reporting while removing the member.
      *
      * @return bool
      *

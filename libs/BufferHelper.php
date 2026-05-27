@@ -53,7 +53,7 @@ trait BufferHelper
      *
      * @access public
      * @param string $name PropertyName
-     * @param mixed Value of Name
+     * @param mixed $value Value of Name
      */
     public function __set(string $name, mixed $value): void
     {

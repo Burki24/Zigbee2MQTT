@@ -4,6 +4,9 @@ declare(strict_types=1);
 
 require_once dirname(__DIR__) . '/libs/ModulBase.php';
 
+/**
+ * Group instance for a Zigbee2MQTT group including members, options and scenes.
+ */
 class Zigbee2MQTTGroup extends \Zigbee2MQTT\ModulBase
 {
     private const GROUP_OPTION_DEFINITIONS = [

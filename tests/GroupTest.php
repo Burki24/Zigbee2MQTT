@@ -4,6 +4,9 @@ declare(strict_types=1);
 
 include_once __DIR__ . '/DumpInclude.php';
 
+/**
+ * Tests group configuration, member handling, options and scenes.
+ */
 class GroupTest extends DumpInclude
 {
     private const DEVICE_MODULE_ID = '{E5BB36C6-A70B-EB23-3716-9151A09AC8A2}';

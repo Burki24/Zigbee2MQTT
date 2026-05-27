@@ -48,6 +48,13 @@ file_put_contents(
 
 echo 'library.json updated: version=' . $library['version'] . ', build=' . $library['build'] . ', date=' . $library['date'] . PHP_EOL;
 
+/**
+ * Returns the number of commits in the given repository.
+ *
+ * @param string $repoRoot Absolute path to the Git repository root.
+ *
+ * @return int Commit count for HEAD.
+ */
 function getGitCommitCount(string $repoRoot): int
 {
     $command = 'git -C ' . escapeshellarg($repoRoot) . ' rev-list --count HEAD';

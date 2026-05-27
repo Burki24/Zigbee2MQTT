@@ -6,6 +6,9 @@ include_once __DIR__ . '/stubs/autoload.php';
 
 use PHPUnit\Framework\TestCase;
 
+/**
+ * Tests bridge requests, diagnostics and Zigbee2MQTT management actions.
+ */
 class BridgeTest extends TestCase
 {
     private const DEVICE_MODULE_ID = '{E5BB36C6-A70B-EB23-3716-9151A09AC8A2}';

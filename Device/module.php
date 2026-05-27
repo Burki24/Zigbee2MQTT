@@ -4,6 +4,9 @@ declare(strict_types=1);
 
 require_once dirname(__DIR__) . '/libs/ModulBase.php';
 
+/**
+ * Device instance for a single Zigbee2MQTT device.
+ */
 class Zigbee2MQTTDevice extends \Zigbee2MQTT\ModulBase
 {
     /** @var mixed $ExtensionTopic Topic für den ReceiveFilter*/

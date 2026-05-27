@@ -574,8 +574,8 @@ abstract class ModulBase extends \IPSModuleStrict
      * - Status-Variablen: ON/OFF und andere Zustände
      * - Standard-Variablen: Allgemeine Werteänderungen
      *
-     * @param string $ident Identifikator der Variable (z.B. 'state', 'UpdateInfo')
-     * @param mixed $value Neuer Wert für die Variable
+     * @param string $Ident Identifikator der Variable (z.B. 'state', 'UpdateInfo')
+     * @param mixed $Value Neuer Wert für die Variable
      *
      * @return void
      *
@@ -971,7 +971,7 @@ abstract class ModulBase extends \IPSModuleStrict
      * Ermöglicht es eine Farbe (INT) mit Transition zu setzen.
      *
      * @param  int $color
-     * @param  int $Transition
+     * @param  int $TransitionTime
      * @return bool
      */
     public function SetColorExt(int $color, int $TransitionTime): bool
@@ -1089,7 +1089,7 @@ abstract class ModulBase extends \IPSModuleStrict
      *                    Array: Spezielle Behandlung für Farben und Presets
      *                    Array: Andere Payloads werden nur von expliziten Sonderpfaden verarbeitet
      *
-     * @return void
+     * @return bool True, wenn der Wert verarbeitet wurde, sonst false.
      *
      * Beispiel:
      * ```php
@@ -2961,6 +2961,7 @@ abstract class ModulBase extends \IPSModuleStrict
      * @param string $Z2MMode Der Zigbee2MQTT-Modus, standardmäßig 'color'. Kann auch 'color_rgb' sein.
      *                        - 'color': Setzt den Farbwert im XY-Farbraum.
      *                        - 'color_rgb': Setzt den Farbwert im RGB-Modus (nur für 'cie' relevant).
+     * @param int|null $TransitionTime Optionale Übergangszeit in Sekunden.
      *
      * @return bool
      *
@@ -4836,7 +4837,7 @@ abstract class ModulBase extends \IPSModuleStrict
      * @param array $presets Array mit Preset-Definitionen. Jedes Preset enthält:
      *                       - 'name': Name des Presets (string)
      *                       - 'value': Wert des Presets (mixed)
-     * @param string $label Bezeichnung für die Variable
+     * @param string $property Property/Ident der Preset-Hauptvariable.
      * @param string $variableType Typ der Variable ('float' oder 'int')
      * @param array $feature Feature-Definition mit zusätzlichen Eigenschaften wie:
      *                       - 'property': Name der Eigenschaft
@@ -5122,7 +5123,7 @@ abstract class ModulBase extends \IPSModuleStrict
      * Diese Methode erstellt ein Variablenprofile. Das Profil enthält zwei Zustände,
      * die aus den vordefinierten Zustandsdefinitionen (`stateDefinitions`) abgeleitet werden.
      *
-     * @param string $ProfileName Der ProfileName, für den das Zustandsmuster erstellt werden soll.
+     * @param string $featureProperty Property, für die das Zustandsmuster erstellt werden soll.
      *
      * @return string|null Der Name des erstellten Profils oder null, wenn kein Zustandsmuster existiert.
      *

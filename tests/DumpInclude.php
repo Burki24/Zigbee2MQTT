@@ -6,6 +6,9 @@ include_once __DIR__ . '/stubs/autoload.php';
 
 use PHPUnit\Framework\TestCase;
 
+/**
+ * Shared test base for creating bridge, device and group instances from dumps.
+ */
 class DumpInclude extends TestCase
 {
     private $deviceModuleID = '{E5BB36C6-A70B-EB23-3716-9151A09AC8A2}';
