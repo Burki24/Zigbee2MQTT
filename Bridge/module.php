@@ -6,6 +6,7 @@ require_once dirname(__DIR__) . '/libs/SemaphoreHelper.php';
 require_once dirname(__DIR__) . '/libs/VariableProfileHelper.php';
 require_once dirname(__DIR__) . '/libs/MQTTHelper.php';
 require_once dirname(__DIR__) . '/libs/AttributeArrayHelper.php';
+require_once dirname(__DIR__) . '/libs/Maintenance/StaleVariableCleanupHelper.php';
 
 /**
  * Zigbee2MQTTBridge
@@ -56,6 +57,8 @@ class Zigbee2MQTTBridge extends IPSModuleStrict
     private const ATTRIBUTE_CONFIG_BLOCKLIST = 'ConfigBlocklist';
     private const ATTRIBUTE_CONFIG_PASSLIST = 'ConfigPasslist';
     private const ATTRIBUTE_PENDING_PASSLIST_CHANGE = 'PendingPasslistChange';
+    private const ATTRIBUTE_STALE_VARIABLE_SCAN = 'StaleVariableScan';
+    private const ATTRIBUTE_PENDING_STALE_VARIABLE_DELETE = 'PendingStaleVariableDelete';
     private const MAX_DIAGNOSTIC_ENTRIES = 50;
 
     /**
@@ -91,6 +94,8 @@ class Zigbee2MQTTBridge extends IPSModuleStrict
         $this->RegisterAttributeArray(self::ATTRIBUTE_CONFIG_BLOCKLIST, []);
         $this->RegisterAttributeArray(self::ATTRIBUTE_CONFIG_PASSLIST, []);
         $this->RegisterAttributeArray(self::ATTRIBUTE_PENDING_PASSLIST_CHANGE, []);
+        $this->RegisterAttributeArray(self::ATTRIBUTE_STALE_VARIABLE_SCAN, []);
+        $this->RegisterAttributeArray(self::ATTRIBUTE_PENDING_STALE_VARIABLE_DELETE, []);
     }
 
     /**
@@ -439,6 +444,15 @@ class Zigbee2MQTTBridge extends IPSModuleStrict
                 break;
             case 'ConfirmPendingPasslistChange':
                 $this->ApplyPendingPasslistChange();
+                break;
+            case 'ScanStaleVariables':
+                $this->ScanStaleVariablesFromForm();
+                break;
+            case 'RequestDeleteStaleVariable':
+                $this->RequestDeleteStaleVariableFromForm($value);
+                break;
+            case 'ConfirmDeleteStaleVariable':
+                $this->ConfirmPendingStaleVariableDelete();
                 break;
         }
     }
@@ -1652,8 +1666,256 @@ class Zigbee2MQTTBridge extends IPSModuleStrict
         $this->SetBridgeFormField($form, 'DiagnosticEventList', 'values', $this->BuildEventFormValues());
         $this->SetBridgeFormField($form, 'DiagnosticLogList', 'values', $this->BuildLogFormValues());
         $this->SetBridgeFormField($form, 'TouchlinkDeviceList', 'values', $this->BuildTouchlinkDeviceFormValues());
+        $staleVariableScan = $this->ReadStaleVariableScan();
+        $this->SetBridgeFormField($form, 'StaleVariableStatus', 'caption', $this->BuildStaleVariableStatusCaption());
+        $this->SetBridgeFormField($form, 'StaleVariableClearCandidates', 'values', $this->BuildStaleVariableClearCandidateFormValues($staleVariableScan));
+        $this->SetBridgeFormField($form, 'StaleVariableClearCandidates', 'rowCount', min(10, max(3, \count($staleVariableScan['clearCandidates'] ?? []) + 1)));
+        $this->SetBridgeFormField($form, 'StaleVariableReviewCandidates', 'values', $this->BuildStaleVariableReviewCandidateFormValues($staleVariableScan));
+        $this->SetBridgeFormField($form, 'StaleVariableReviewCandidates', 'rowCount', min(10, max(3, \count($staleVariableScan['reviewCandidates'] ?? []) + 1)));
+        $this->SetBridgeFormField($form, 'StaleVariableErrors', 'values', $this->BuildStaleVariableErrorFormValues($staleVariableScan));
+        $this->SetBridgeFormField($form, 'StaleVariableErrors', 'rowCount', min(8, max(2, \count($staleVariableScan['errors'] ?? []) + 1)));
 
         return $form;
+    }
+
+    /**
+     * Scans for stale Zigbee2MQTT variables and refreshes the bridge form lists.
+     */
+    private function ScanStaleVariablesFromForm(): void
+    {
+        $scan = \Zigbee2MQTT\Maintenance\StaleVariableCleanupHelper::Scan($this->GetStaleVariableCleanupOptions());
+        $this->WriteAttributeArray(self::ATTRIBUTE_STALE_VARIABLE_SCAN, $scan);
+        $this->UpdateStaleVariableFormLists($scan);
+    }
+
+    /**
+     * Opens a confirmation popup for a stale variable deletion.
+     */
+    private function RequestDeleteStaleVariableFromForm(mixed $value): bool
+    {
+        $selection = $this->DecodeBridgeFormPayload($value);
+        $variableID = (int) ($selection['variable_id'] ?? 0);
+        if ($variableID <= 0) {
+            $this->ShowStaleVariableCleanupMessage('No variable selected.', 'Please select a clear deletion candidate first.');
+            return false;
+        }
+
+        $row = $this->FindStaleVariableCandidate($variableID, false);
+        if ($row === null) {
+            $this->ShowStaleVariableCleanupMessage('Variable cannot be deleted.', 'The selected variable is no clear deletion candidate from the last scan.');
+            return false;
+        }
+
+        if (\Zigbee2MQTT\Maintenance\StaleVariableCleanupHelper::IsProtected($row)) {
+            $this->ShowStaleVariableCleanupMessage('Variable is protected.', 'Archived or referenced variables are not deleted from the bridge UI.');
+            return false;
+        }
+
+        $this->WriteAttributeArray(self::ATTRIBUTE_PENDING_STALE_VARIABLE_DELETE, $row);
+        $this->UpdateFormField(
+            'StaleVariableDeleteWarningText',
+            'caption',
+            sprintf(
+                $this->Translate('Delete variable %s (%s) from %s? This cannot be undone.'),
+                '#' . $row['variableID'],
+                $row['ident'],
+                $row['instance']
+            )
+        );
+        $this->UpdateFormField('StaleVariableDeleteWarning', 'visible', true);
+
+        return true;
+    }
+
+    /**
+     * Deletes the pending stale variable after confirmation and refreshes the lists.
+     */
+    private function ConfirmPendingStaleVariableDelete(): bool
+    {
+        $pending = $this->ReadAttributeArray(self::ATTRIBUTE_PENDING_STALE_VARIABLE_DELETE);
+        $variableID = (int) ($pending['variableID'] ?? 0);
+        $this->WriteAttributeArray(self::ATTRIBUTE_PENDING_STALE_VARIABLE_DELETE, []);
+        $this->UpdateFormField('StaleVariableDeleteWarning', 'visible', false);
+
+        if ($variableID <= 0) {
+            $this->ShowStaleVariableCleanupMessage('No variable selected.', 'Please select a clear deletion candidate first.');
+            return false;
+        }
+
+        $scan = \Zigbee2MQTT\Maintenance\StaleVariableCleanupHelper::Scan($this->GetStaleVariableCleanupOptions());
+        $deleteResult = \Zigbee2MQTT\Maintenance\StaleVariableCleanupHelper::DeleteSelected(
+            $scan,
+            [$variableID],
+            $this->GetStaleVariableCleanupOptions()
+        );
+
+        $updatedScan = \Zigbee2MQTT\Maintenance\StaleVariableCleanupHelper::Scan($this->GetStaleVariableCleanupOptions());
+        $this->WriteAttributeArray(self::ATTRIBUTE_STALE_VARIABLE_SCAN, $updatedScan);
+        $this->UpdateStaleVariableFormLists($updatedScan);
+
+        if (($deleteResult['deleted'] ?? []) !== []) {
+            $this->ShowStaleVariableCleanupMessage('Variable deleted.', 'The selected variable was deleted successfully.');
+            return true;
+        }
+
+        $skipped = $deleteResult['skipped'][0]['reason'] ?? 'The selected variable could not be deleted.';
+        $this->ShowStaleVariableCleanupMessage('Variable was not deleted.', (string) $skipped);
+        return false;
+    }
+
+    /**
+     * Returns cleanup options used by the bridge UI.
+     */
+    private function GetStaleVariableCleanupOptions(): array
+    {
+        return [
+            'includeGroups'              => true,
+            'showPayloadOnlyReview'      => true,
+            'protectArchivedVariables'   => true,
+            'protectReferencedVariables' => true,
+        ];
+    }
+
+    /**
+     * Returns the last stored stale variable scan result.
+     */
+    private function ReadStaleVariableScan(): array
+    {
+        $scan = $this->ReadAttributeArray(self::ATTRIBUTE_STALE_VARIABLE_SCAN);
+        return [
+            'instanceCount'    => (int) ($scan['instanceCount'] ?? 0),
+            'keptCount'        => (int) ($scan['keptCount'] ?? 0),
+            'clearCandidates'  => \is_array($scan['clearCandidates'] ?? null) ? $scan['clearCandidates'] : [],
+            'reviewCandidates' => \is_array($scan['reviewCandidates'] ?? null) ? $scan['reviewCandidates'] : [],
+            'errors'           => \is_array($scan['errors'] ?? null) ? $scan['errors'] : [],
+        ];
+    }
+
+    /**
+     * Builds the status caption for the stale variable maintenance area.
+     */
+    private function BuildStaleVariableStatusCaption(): string
+    {
+        $scan = $this->ReadStaleVariableScan();
+        if (($scan['instanceCount'] ?? 0) === 0
+            && ($scan['clearCandidates'] ?? []) === []
+            && ($scan['reviewCandidates'] ?? []) === []
+            && ($scan['errors'] ?? []) === []
+        ) {
+            return $this->Translate('No scan has been run yet.');
+        }
+
+        return sprintf(
+            $this->Translate('Checked instances: %d, clear candidates: %d, review candidates: %d'),
+            $scan['instanceCount'],
+            \count($scan['clearCandidates']),
+            \count($scan['reviewCandidates'])
+        );
+    }
+
+    /**
+     * Builds form rows for clear stale variable candidates.
+     */
+    private function BuildStaleVariableClearCandidateFormValues(?array $scan = null): array
+    {
+        $scan ??= $this->ReadStaleVariableScan();
+        return $this->BuildStaleVariableCandidateFormValues($scan['clearCandidates'] ?? [], true);
+    }
+
+    /**
+     * Builds form rows for payload-only review candidates.
+     */
+    private function BuildStaleVariableReviewCandidateFormValues(?array $scan = null): array
+    {
+        $scan ??= $this->ReadStaleVariableScan();
+        return $this->BuildStaleVariableCandidateFormValues($scan['reviewCandidates'] ?? [], false);
+    }
+
+    /**
+     * Builds form rows for scan errors and skipped instances.
+     */
+    private function BuildStaleVariableErrorFormValues(?array $scan = null): array
+    {
+        $scan ??= $this->ReadStaleVariableScan();
+        $values = [];
+        foreach (($scan['errors'] ?? []) as $error) {
+            $values[] = [
+                'instance' => (string) ($error['path'] ?? ''),
+                'message'  => (string) ($error['error'] ?? ''),
+            ];
+        }
+
+        return $values;
+    }
+
+    /**
+     * Builds generic candidate rows for a form list.
+     */
+    private function BuildStaleVariableCandidateFormValues(array $rows, bool $withAction): array
+    {
+        $values = [];
+        foreach ($rows as $row) {
+            if (!\is_array($row)) {
+                continue;
+            }
+
+            $protected = \Zigbee2MQTT\Maintenance\StaleVariableCleanupHelper::IsProtected($row);
+            $values[] = [
+                'variable_id' => (int) ($row['variableID'] ?? 0),
+                'instance'    => (string) ($row['instance'] ?? ''),
+                'variable'    => '#' . (int) ($row['variableID'] ?? 0) . ' ' . (string) ($row['name'] ?? ''),
+                'ident'       => (string) ($row['ident'] ?? ''),
+                'reason'      => (string) ($row['reason'] ?? ''),
+                'protection'  => \Zigbee2MQTT\Maintenance\StaleVariableCleanupHelper::FormatProtection($row),
+                'action'      => $withAction ? ($protected ? $this->Translate('Protected') : $this->Translate('Delete')) : '',
+            ];
+        }
+
+        return $values;
+    }
+
+    /**
+     * Finds a candidate from the stored scan result.
+     */
+    private function FindStaleVariableCandidate(int $variableID, bool $includeReview): ?array
+    {
+        $scan = $this->ReadStaleVariableScan();
+        $rows = $scan['clearCandidates'] ?? [];
+        if ($includeReview) {
+            $rows = array_merge($rows, $scan['reviewCandidates'] ?? []);
+        }
+
+        foreach ($rows as $row) {
+            if ((int) ($row['variableID'] ?? 0) === $variableID) {
+                return $row;
+            }
+        }
+
+        return null;
+    }
+
+    /**
+     * Refreshes all stale variable maintenance form fields.
+     */
+    private function UpdateStaleVariableFormLists(array $scan): void
+    {
+        $this->UpdateFormField('StaleVariableStatus', 'caption', $this->BuildStaleVariableStatusCaption());
+        $this->UpdateFormField('StaleVariableClearCandidates', 'values', json_encode($this->BuildStaleVariableClearCandidateFormValues($scan)));
+        $this->UpdateFormField('StaleVariableClearCandidates', 'rowCount', min(10, max(3, \count($scan['clearCandidates'] ?? []) + 1)));
+        $this->UpdateFormField('StaleVariableReviewCandidates', 'values', json_encode($this->BuildStaleVariableReviewCandidateFormValues($scan)));
+        $this->UpdateFormField('StaleVariableReviewCandidates', 'rowCount', min(10, max(3, \count($scan['reviewCandidates'] ?? []) + 1)));
+        $this->UpdateFormField('StaleVariableErrors', 'values', json_encode($this->BuildStaleVariableErrorFormValues($scan)));
+        $this->UpdateFormField('StaleVariableErrors', 'rowCount', min(8, max(2, \count($scan['errors'] ?? []) + 1)));
+    }
+
+    /**
+     * Shows an informational popup in the stale variable maintenance area.
+     */
+    private function ShowStaleVariableCleanupMessage(string $title, string $message): void
+    {
+        $this->UpdateFormField('StaleVariableMessageTitle', 'caption', $this->Translate($title));
+        $this->UpdateFormField('StaleVariableMessageText', 'caption', $this->Translate($message));
+        $this->UpdateFormField('StaleVariableMessage', 'visible', true);
     }
 
     /**

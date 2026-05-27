@@ -4,7 +4,9 @@
 
 `SymconCleanupStaleVariables.php` ist ein Wartungsscript fuer IP-Symcon. Es hilft dabei, alte Zigbee2MQTT-Variablen zu finden, die nicht mehr zu den aktuellen Exposes oder zum zuletzt bekannten Payload einer Zigbee2MQTT-Device- oder Gruppeninstanz passen.
 
-Das Tool ist nur fuer erfahrene Anwender gedacht. Es kann Variablen loeschen. Werden falsche Variablen geloescht, koennen Visualisierungen, Ereignisse, Scripte, Links oder Archivdaten betroffen sein. Standardmaessig laeuft das Script deshalb immer im Dry-Run und loescht nichts.
+Empfohlen ist die Variablen-Wartung in der Bridge-Konfiguration. Dort koennen klare Kandidaten direkt in Symcon geprueft und einzeln nach Popup-Bestaetigung geloescht werden. Archivierte oder referenzierte Variablen sind in dieser Oberflaeche geschuetzt.
+
+Dieses Script bleibt als Experten- und Notfallwerkzeug erhalten, zum Beispiel fuer sehr grosse Wartungslaeufe oder wenn eine Ausgabe ausserhalb der Bridge-Oberflaeche benoetigt wird. Es kann Variablen loeschen. Werden falsche Variablen geloescht, koennen Visualisierungen, Ereignisse, Scripte, Links oder Archivdaten betroffen sein. Standardmaessig laeuft das Script deshalb immer im Dry-Run und loescht nichts.
 
 ### Wofuer ist das Tool gedacht?
 

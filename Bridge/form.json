@@ -422,6 +422,190 @@
         },
         {
             "type": "ExpansionPanel",
+            "name": "VariableMaintenance",
+            "caption": "Variable maintenance",
+            "expanded": false,
+            "items": [
+                {
+                    "type": "Label",
+                    "caption": "Find Zigbee2MQTT variables that are no longer backed by current exposes or payload data. Archived or referenced variables are protected."
+                },
+                {
+                    "type": "RowLayout",
+                    "items": [
+                        {
+                            "type": "Button",
+                            "caption": "Scan stale variables",
+                            "onClick": "IPS_RequestAction($id, 'ScanStaleVariables', true);"
+                        },
+                        {
+                            "type": "Label",
+                            "name": "StaleVariableStatus",
+                            "caption": "No scan has been run yet."
+                        }
+                    ]
+                },
+                {
+                    "type": "List",
+                    "name": "StaleVariableClearCandidates",
+                    "caption": "Clear deletion candidates",
+                    "add": false,
+                    "delete": false,
+                    "rowCount": 3,
+                    "loadValuesFromConfiguration": false,
+                    "columns": [
+                        {
+                            "caption": "Instance",
+                            "name": "instance",
+                            "width": "auto",
+                            "quickFilter": true
+                        },
+                        {
+                            "caption": "Variable",
+                            "name": "variable",
+                            "width": "220px",
+                            "quickFilter": true
+                        },
+                        {
+                            "caption": "Ident",
+                            "name": "ident",
+                            "width": "180px",
+                            "quickFilter": true
+                        },
+                        {
+                            "caption": "Reason",
+                            "name": "reason",
+                            "width": "260px"
+                        },
+                        {
+                            "caption": "Protection",
+                            "name": "protection",
+                            "width": "160px"
+                        },
+                        {
+                            "caption": "Action",
+                            "name": "action",
+                            "width": "100px",
+                            "align": "center",
+                            "onClick": "IPS_RequestAction($id, 'RequestDeleteStaleVariable', json_encode(['variable_id' => $StaleVariableClearCandidates['variable_id']]));"
+                        }
+                    ],
+                    "values": []
+                },
+                {
+                    "type": "List",
+                    "name": "StaleVariableReviewCandidates",
+                    "caption": "Review candidates",
+                    "add": false,
+                    "delete": false,
+                    "rowCount": 3,
+                    "loadValuesFromConfiguration": false,
+                    "columns": [
+                        {
+                            "caption": "Instance",
+                            "name": "instance",
+                            "width": "auto",
+                            "quickFilter": true
+                        },
+                        {
+                            "caption": "Variable",
+                            "name": "variable",
+                            "width": "220px",
+                            "quickFilter": true
+                        },
+                        {
+                            "caption": "Ident",
+                            "name": "ident",
+                            "width": "180px",
+                            "quickFilter": true
+                        },
+                        {
+                            "caption": "Reason",
+                            "name": "reason",
+                            "width": "260px"
+                        },
+                        {
+                            "caption": "Protection",
+                            "name": "protection",
+                            "width": "160px"
+                        }
+                    ],
+                    "values": []
+                },
+                {
+                    "type": "List",
+                    "name": "StaleVariableErrors",
+                    "caption": "Scan hints",
+                    "add": false,
+                    "delete": false,
+                    "rowCount": 2,
+                    "loadValuesFromConfiguration": false,
+                    "columns": [
+                        {
+                            "caption": "Instance",
+                            "name": "instance",
+                            "width": "auto",
+                            "quickFilter": true
+                        },
+                        {
+                            "caption": "Message",
+                            "name": "message",
+                            "width": "auto"
+                        }
+                    ],
+                    "values": []
+                }
+            ]
+        },
+        {
+            "name": "StaleVariableDeleteWarning",
+            "type": "PopupAlert",
+            "visible": false,
+            "popup": {
+                "closeCaption": "Cancel",
+                "buttons": [
+                    {
+                        "caption": "Delete variable",
+                        "onClick": "IPS_RequestAction($id, 'ConfirmDeleteStaleVariable', true);"
+                    }
+                ],
+                "items": [
+                    {
+                        "type": "Label",
+                        "bold": true,
+                        "caption": "Delete variable?"
+                    },
+                    {
+                        "name": "StaleVariableDeleteWarningText",
+                        "type": "Label",
+                        "caption": "The selected variable will be deleted."
+                    }
+                ]
+            }
+        },
+        {
+            "name": "StaleVariableMessage",
+            "type": "PopupAlert",
+            "visible": false,
+            "popup": {
+                "closeCaption": "Close",
+                "items": [
+                    {
+                        "type": "Label",
+                        "name": "StaleVariableMessageTitle",
+                        "bold": true,
+                        "caption": "Variable maintenance"
+                    },
+                    {
+                        "name": "StaleVariableMessageText",
+                        "type": "Label",
+                        "caption": ""
+                    }
+                ]
+            }
+        },
+        {
+            "type": "ExpansionPanel",
             "name": "BridgeMaintenance",
             "caption": "Maintenance",
             "expanded": false,
