@@ -232,9 +232,7 @@ Geräte- und Gruppenoptionen aus Zigbee2MQTT können ebenfalls direkt in Symcon 
 
 Die [Bridge-Konfiguration](Bridge/README.md#4-konfiguration) enthält eine Variablen-Wartung. Sie sucht alte Zigbee2MQTT-Variablen, die nicht mehr durch aktuelle Exposes oder das zuletzt bekannte Payload abgedeckt sind, und trennt klare Löschkandidaten von Review-Kandidaten.
 
-Die Bridge-Oberfläche ist der empfohlene Weg: Archivierte oder referenzierte Variablen sind geschützt, Archivstatus und letzter Schreibzeitpunkt sind sichtbar, und jede Löschung betrifft genau eine Variable, die vorher per Popup bestätigt werden muss.
-
-Unter [docs/tools](docs/tools/README.md) liegt zusätzlich `SymconCleanupStaleVariables.php` als Experten-/Notfallwerkzeug. Dieses Script sollte nur verwendet werden, wenn die Bridge-Oberfläche nicht ausreicht. Vor größeren Löschläufen bitte ein aktuelles Symcon-Backup erstellen.
+Die Bridge-Oberfläche ist der unterstützte Weg: Archivierte oder referenzierte Variablen sind geschützt, Archivstatus und letzter Schreibzeitpunkt sind sichtbar, und jede Löschung betrifft genau eine Variable, die vorher per Popup bestätigt werden muss.
 
 ## 5. Changelog  
 
@@ -254,6 +252,7 @@ Unter [docs/tools](docs/tools/README.md) liegt zusätzlich `SymconCleanupStaleVa
 - Die Geräte-Konfiguration erhält einen neuen Visualisierungsbereich, der nur die für die jeweilige Instanz fachlich passenden Kacheloptionen anbietet.
 - Geräte-Instanzen erhalten eine Variablenverwaltung, mit der automatisch angelegte, nachgelieferte und gelöschte Variablen kontrolliert werden können.
 - Die Bridge erhält eine Variablen-Wartung, die alte, nicht mehr durch aktuelle Exposes oder Payloads abgedeckte Zigbee2MQTT-Variablen als klare Kandidaten oder Review-Kandidaten anzeigt und einzelne klare Kandidaten nach Bestätigung löschen kann.
+- Das frühere externe Script zur Bereinigung verwaister Variablen wurde entfernt; die Bridge-Variablen-Wartung ist der einzige unterstützte Weg für diese Aufgabe.
 - Composite-Exposes werden in der Variablenverwaltung nur mit den tatsächlich anlegbaren Untervariablen geführt, damit nicht bedienbare Composite-Eltern nicht als eigene Variable angeboten werden.
 - Geräte-Instanzen können Zigbee2MQTT-Geräteoptionen wie `transition`, `debounce`, `filtered_attributes`, `optimistic`, `retain` oder gerätespezifische `definition.options` direkt in der Instanz-Konfiguration anzeigen und setzen.
 - Geräte- und Gruppenoptionen nutzen typisierte Editoren für Boolean-, Enum-, Numeric-, Text-, Array- und Objektwerte; Attributfilter wie `filtered_attributes`, `filtered_cache` oder `debounce_ignore` bieten eine Auswahl bekannter Payload-Attribute.
