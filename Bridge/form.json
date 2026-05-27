@@ -473,9 +473,20 @@
                             "quickFilter": true
                         },
                         {
+                            "caption": "Archived",
+                            "name": "archived",
+                            "width": "90px",
+                            "align": "center"
+                        },
+                        {
+                            "caption": "Last written",
+                            "name": "last_update",
+                            "width": "150px"
+                        },
+                        {
                             "caption": "Reason",
                             "name": "reason",
-                            "width": "260px"
+                            "width": "240px"
                         },
                         {
                             "caption": "Protection",
@@ -520,9 +531,20 @@
                             "quickFilter": true
                         },
                         {
+                            "caption": "Archived",
+                            "name": "archived",
+                            "width": "90px",
+                            "align": "center"
+                        },
+                        {
+                            "caption": "Last written",
+                            "name": "last_update",
+                            "width": "150px"
+                        },
+                        {
                             "caption": "Reason",
                             "name": "reason",
-                            "width": "260px"
+                            "width": "240px"
                         },
                         {
                             "caption": "Protection",

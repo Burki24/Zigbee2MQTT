@@ -280,22 +280,42 @@ final class StaleVariableCleanupHelper
         $object = IPS_GetObject($variableID);
         $references = self::GetReferences($variableID);
         $row = [
-            'moduleType'  => $moduleType,
-            'instanceID'  => $instanceID,
-            'instance'    => self::GetObjectPath($instanceID),
-            'category'    => self::GetVariableCategoryPath($variableID),
-            'variableID'  => $variableID,
-            'ident'       => $ident,
-            'name'        => (string) ($object['ObjectName'] ?? ''),
-            'sources'     => $sources === [] ? '-' : implode(', ', $sources),
-            'archived'    => self::IsArchived($variableID, $archiveID),
-            'references'  => $references,
-            'reason'      => '',
+            'moduleType'   => $moduleType,
+            'instanceID'   => $instanceID,
+            'instance'     => self::GetObjectPath($instanceID),
+            'category'     => self::GetVariableCategoryPath($variableID),
+            'variableID'   => $variableID,
+            'ident'        => $ident,
+            'name'         => (string) ($object['ObjectName'] ?? ''),
+            'sources'      => $sources === [] ? '-' : implode(', ', $sources),
+            'archived'     => self::IsArchived($variableID, $archiveID),
+            'lastUpdated'  => self::GetVariableUpdatedTimestamp($variableID),
+            'references'   => $references,
+            'reason'       => '',
         ];
         $row['protected'] = self::IsProtected($row);
         $row['protection'] = self::FormatProtection($row);
 
         return $row;
+    }
+
+    private static function GetVariableUpdatedTimestamp(int $variableID): int
+    {
+        if (!\function_exists('IPS_GetVariable')) {
+            return 0;
+        }
+
+        try {
+            $variable = IPS_GetVariable($variableID);
+        } catch (\Throwable) {
+            return 0;
+        }
+
+        if (!\is_array($variable)) {
+            return 0;
+        }
+
+        return (int) ($variable['VariableUpdated'] ?? ($variable['VariableChanged'] ?? 0));
     }
 
     private static function BuildExpected(array $debugData): array

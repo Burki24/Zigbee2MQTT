@@ -1865,6 +1865,8 @@ class Zigbee2MQTTBridge extends IPSModuleStrict
                 'instance'    => (string) ($row['instance'] ?? ''),
                 'variable'    => '#' . (int) ($row['variableID'] ?? 0) . ' ' . (string) ($row['name'] ?? ''),
                 'ident'       => (string) ($row['ident'] ?? ''),
+                'archived'    => $this->Translate(($row['archived'] ?? false) ? 'Yes' : 'No'),
+                'last_update' => $this->FormatStaleVariableTimestamp((int) ($row['lastUpdated'] ?? 0)),
                 'reason'      => (string) ($row['reason'] ?? ''),
                 'protection'  => \Zigbee2MQTT\Maintenance\StaleVariableCleanupHelper::FormatProtection($row),
                 'action'      => $withAction ? ($protected ? $this->Translate('Protected') : $this->Translate('Delete')) : '',
@@ -1872,6 +1874,18 @@ class Zigbee2MQTTBridge extends IPSModuleStrict
         }
 
         return $values;
+    }
+
+    /**
+     * Formats a variable update timestamp for the maintenance form.
+     */
+    private function FormatStaleVariableTimestamp(int $timestamp): string
+    {
+        if ($timestamp <= 0) {
+            return '-';
+        }
+
+        return date('d.m.Y H:i:s', $timestamp);
     }
 
     /**
