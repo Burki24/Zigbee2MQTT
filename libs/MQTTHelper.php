@@ -80,6 +80,7 @@ trait SendData
 
         $this->SendDebug(__FUNCTION__ . ':Topic', $Topic, 0);
         $this->SendDebug(__FUNCTION__ . ':Payload', json_encode($Payload), 0);
+        $this->SendDebug(__FUNCTION__ . ':Timeout', (string) $Timeout, 0);
         $DataJSON = self::BuildRequest($this->ReadPropertyString(self::MQTT_BASE_TOPIC) . $Topic, $Payload);
         $this->SendDataToParent($DataJSON);
 
@@ -153,20 +154,43 @@ trait SendData
      */
     private function WaitForTransactionEnd(int $TransactionId, int $Timeout): array|false
     {
-        $Sleep = intdiv($Timeout, 1000);
-        for ($i = 0; $i < 1000; $i++) {
+        $Deadline = microtime(true) + ($Timeout / 1000);
+        $Sleep = max(10, min(250, intdiv($Timeout, 100)));
+
+        $this->SendDebug(
+            __FUNCTION__ . ':Start',
+            \sprintf('Transaction %d, Timeout %d ms, Sleep %d ms', $TransactionId, $Timeout, $Sleep),
+            0
+        );
+
+        while (microtime(true) < $Deadline) {
             $Buffer = $this->TransactionData;
             if (!isset($Buffer[$TransactionId])) {
+                $this->SendDebug(
+                    __FUNCTION__ . ':Abort',
+                    \sprintf('Transaction %d missing before timeout', $TransactionId),
+                    0
+                );
                 return false;
             }
             if (\count($Buffer[$TransactionId])) {
                 $this->RemoveTransaction($TransactionId);
                 unset($Buffer[$TransactionId]['transaction']);
+                $this->SendDebug(
+                    __FUNCTION__ . ':Done',
+                    \sprintf('Transaction %d finished', $TransactionId),
+                    0
+                );
                 return $Buffer[$TransactionId];
             }
             IPS_Sleep($Sleep);
         }
         $this->RemoveTransaction($TransactionId);
+        $this->SendDebug(
+            __FUNCTION__ . ':Timeout',
+            \sprintf('Transaction %d timed out after %d ms', $TransactionId, $Timeout),
+            0
+        );
         return false;
     }
 
