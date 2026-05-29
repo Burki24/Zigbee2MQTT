@@ -272,6 +272,9 @@ class Zigbee2MQTTBridge extends IPSModuleStrict
                     $this->UpdateTransaction($Payload);
                     break;
                 }
+                if (\is_array($Payload) && $this->UpdateTransactionByResponseTopic('/bridge/response/' . implode('/', $Topics), $Payload)) {
+                    break;
+                }
                 if (is_array($Topics) && isset($Topics[0])) {
                     if ($Topics[0] == 'networkmap') {
                         if ($Payload['status'] == 'ok') {

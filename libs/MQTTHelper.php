@@ -75,7 +75,7 @@ trait SendData
     protected function SendData(string $Topic, array $Payload = [], int $Timeout = 5000): array|bool
     {
         if ($Timeout) {
-            $TransactionId = $this->AddTransaction($Payload);
+            $TransactionId = $this->AddTransaction($Payload, $Topic);
         }
 
         $this->SendDebug(__FUNCTION__ . ':Topic', $Topic, 0);
@@ -165,6 +165,14 @@ trait SendData
 
         while (microtime(true) < $Deadline) {
             $Buffer = $this->TransactionData;
+            if (!\is_array($Buffer)) {
+                $this->SendDebug(
+                    __FUNCTION__ . ':Abort',
+                    \sprintf('Transaction buffer missing before timeout for transaction %d', $TransactionId),
+                    0
+                );
+                return false;
+            }
             if (!isset($Buffer[$TransactionId])) {
                 $this->SendDebug(
                     __FUNCTION__ . ':Abort',
@@ -173,15 +181,29 @@ trait SendData
                 );
                 return false;
             }
-            if (\count($Buffer[$TransactionId])) {
+            $Transaction = $Buffer[$TransactionId];
+            if (!\is_array($Transaction)) {
+                $this->SendDebug(
+                    __FUNCTION__ . ':Abort',
+                    \sprintf('Transaction %d has invalid buffer data', $TransactionId),
+                    0
+                );
+                return false;
+            }
+            if (\count($Transaction)) {
+                if (!$this->HasTransactionResult($Transaction)) {
+                    IPS_Sleep($Sleep);
+                    continue;
+                }
                 $this->RemoveTransaction($TransactionId);
-                unset($Buffer[$TransactionId]['transaction']);
+                $Result = $this->GetTransactionResult($Transaction);
+                unset($Result['transaction']);
                 $this->SendDebug(
                     __FUNCTION__ . ':Done',
                     \sprintf('Transaction %d finished', $TransactionId),
                     0
                 );
-                return $Buffer[$TransactionId];
+                return $Result;
             }
             IPS_Sleep($Sleep);
         }
@@ -200,9 +222,10 @@ trait SendData
      * Generiert eine TransactionId, fügt diese dem Payload hinzu und erzeugt einen Eintrag im Buffer TransactionData.
      *
      * @param  array $Payload MQTT Payload als Referenz
+     * @param  string $Topic Request-Topic zur Zuordnung von Antworten ohne TransactionId
      * @return int Erzeugte TransactionId
      */
-    private function AddTransaction(array &$Payload): int
+    private function AddTransaction(array &$Payload, string $Topic): int
     {
         if (!$this->lock('TransactionData')) {
             throw new \Exception($this->Translate('Transaction Data is locked'), E_USER_NOTICE);
@@ -210,7 +233,16 @@ trait SendData
         $TransactionId = mt_rand(1, 10000);
         $Payload['transaction'] = $TransactionId;
         $TransactionData = $this->TransactionData;
-        $TransactionData[$TransactionId] = [];
+        if (!\is_array($TransactionData)) {
+            $TransactionData = [];
+        }
+        $TransactionData[$TransactionId] = [
+            '__meta'   => [
+                'requestTopic'  => self::NormalizeTransactionTopic($Topic),
+                'responseTopic' => self::GetResponseTopicForRequest($Topic)
+            ],
+            '__result' => null
+        ];
         $this->TransactionData = $TransactionData;
         $this->unlock('TransactionData');
         return $TransactionId;
@@ -230,13 +262,121 @@ trait SendData
             throw new \Exception($this->Translate('Transaction Data is locked'), E_USER_NOTICE);
         }
         $TransactionData = $this->TransactionData;
+        if (!\is_array($TransactionData)) {
+            $TransactionData = [];
+        }
         if (isset($TransactionData[$Data['transaction']])) {
-            $TransactionData[$Data['transaction']] = $Data;
+            $TransactionData[$Data['transaction']] = $this->SetTransactionResult($TransactionData[$Data['transaction']], $Data);
             $this->TransactionData = $TransactionData;
             $this->unlock('TransactionData');
             return;
         }
         $this->unlock('TransactionData');
+    }
+
+    /**
+     * Aktualisiert eine offene Transaktion ueber das Response-Topic.
+     *
+     * Einige Zigbee2MQTT-Antworten, z.B. Backup-Downloads, enthalten keine
+     * TransactionId. In diesem Fall wird die Antwort ueber das erwartete
+     * bridge/response-Topic der offenen Anfrage zugeordnet.
+     *
+     * @param string $ResponseTopic MQTT-Response-Topic relativ zum Base Topic.
+     * @param array  $Data         Payload welches im Buffer abgelegt werden soll.
+     *
+     * @return bool true, wenn eine offene Transaktion gefunden wurde.
+     */
+    private function UpdateTransactionByResponseTopic(string $ResponseTopic, array $Data): bool
+    {
+        $ResponseTopic = self::NormalizeTransactionTopic($ResponseTopic);
+
+        if (!$this->lock('TransactionData')) {
+            throw new \Exception($this->Translate('Transaction Data is locked'), E_USER_NOTICE);
+        }
+
+        $TransactionData = $this->TransactionData;
+        if (!\is_array($TransactionData)) {
+            $TransactionData = [];
+        }
+        foreach ($TransactionData as $TransactionId => $Transaction) {
+            if (!\is_array($Transaction)) {
+                continue;
+            }
+
+            $Meta = $Transaction['__meta'] ?? null;
+            if (!\is_array($Meta) || (($Meta['responseTopic'] ?? '') !== $ResponseTopic)) {
+                continue;
+            }
+
+            $Data['transaction'] = (int) $TransactionId;
+            $TransactionData[$TransactionId] = $this->SetTransactionResult($Transaction, $Data);
+            $this->TransactionData = $TransactionData;
+            $this->unlock('TransactionData');
+            $this->SendDebug(
+                __FUNCTION__,
+                \sprintf('Transaction %d matched by response topic %s', $TransactionId, $ResponseTopic),
+                0
+            );
+            return true;
+        }
+
+        $this->unlock('TransactionData');
+        $this->SendDebug(__FUNCTION__, \sprintf('No pending transaction for response topic %s', $ResponseTopic), 0);
+        return false;
+    }
+
+    /**
+     * Speichert das Ergebnis, ohne die Metadaten der Transaktion zu verlieren.
+     */
+    private function SetTransactionResult(array $Transaction, array $Data): array
+    {
+        if (array_key_exists('__meta', $Transaction)) {
+            $Transaction['__result'] = $Data;
+            return $Transaction;
+        }
+
+        return $Data;
+    }
+
+    /**
+     * Prueft, ob eine Transaktion bereits ein Ergebnis enthaelt.
+     */
+    private function HasTransactionResult(array $Transaction): bool
+    {
+        if (array_key_exists('__result', $Transaction)) {
+            return \is_array($Transaction['__result']);
+        }
+
+        return \count($Transaction) > 0;
+    }
+
+    /**
+     * Liefert das gespeicherte Ergebnis einer Transaktion.
+     */
+    private function GetTransactionResult(array $Transaction): array
+    {
+        if (isset($Transaction['__result']) && \is_array($Transaction['__result'])) {
+            return $Transaction['__result'];
+        }
+
+        return $Transaction;
+    }
+
+    /**
+     * Ermittelt das erwartete Response-Topic fuer ein Request-Topic.
+     */
+    private static function GetResponseTopicForRequest(string $Topic): string
+    {
+        $Topic = self::NormalizeTransactionTopic($Topic);
+        return str_replace('/request/', '/response/', $Topic);
+    }
+
+    /**
+     * Normalisiert MQTT-Topics fuer robuste Vergleiche.
+     */
+    private static function NormalizeTransactionTopic(string $Topic): string
+    {
+        return '/' . trim($Topic, '/');
     }
 
     /**
@@ -253,6 +393,9 @@ trait SendData
             throw new \Exception($this->Translate('Transaction Data is locked'), E_USER_NOTICE);
         }
         $TransactionData = $this->TransactionData;
+        if (!\is_array($TransactionData)) {
+            $TransactionData = [];
+        }
         unset($TransactionData[$TransactionId]);
         $this->TransactionData = $TransactionData;
         $this->unlock('TransactionData');
