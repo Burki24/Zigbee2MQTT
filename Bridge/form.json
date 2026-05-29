@@ -634,13 +634,12 @@
             "items": [
                 {
                     "type": "Label",
-                    "caption": "Create a Zigbee2MQTT data folder backup. The download can take up to five minutes for large Zigbee2MQTT data folders."
+                    "caption": "Create a Zigbee2MQTT data folder backup. The backup can take up to five minutes for large Zigbee2MQTT data folders and is saved on the Symcon server."
                 },
                 {
                     "type": "Button",
-                    "caption": "Download backup",
-                    "download": "zigbee2mqtt-backup.zip",
-                    "onClick": "echo base64_decode(Z2M_CreateBackup($id));"
+                    "caption": "Create backup file",
+                    "onClick": "IPS_RequestAction($id, 'CreateBackupFile', true);"
                 },
                 {
                     "type": "Label",
@@ -737,6 +736,27 @@
         {
             "caption": "Testcenter",
             "type": "TestCenter"
+        },
+        {
+            "name": "BackupMessage",
+            "type": "PopupAlert",
+            "visible": false,
+            "popup": {
+                "closeCaption": "Close",
+                "items": [
+                    {
+                        "type": "Label",
+                        "name": "BackupMessageTitle",
+                        "bold": true,
+                        "caption": "Backup"
+                    },
+                    {
+                        "name": "BackupMessageText",
+                        "type": "Label",
+                        "caption": ""
+                    }
+                ]
+            }
         },
         {
             "type": "Label",

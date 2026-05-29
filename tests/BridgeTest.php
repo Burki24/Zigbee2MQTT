@@ -460,6 +460,21 @@ class BridgeTest extends TestCase
         $this->assertSame(300000, $bridge->lastTimeout);
     }
 
+    public function testCreateBackupFileStoresDecodedZip(): void
+    {
+        $bridge = $this->createBridgeTestDouble([
+            'data' => [
+                'zip' => base64_encode('ZIP-CONTENT')
+            ]
+        ]);
+
+        $file = $bridge->CreateBackupFile();
+        $this->assertFileExists($file);
+        $this->assertSame('ZIP-CONTENT', file_get_contents($file));
+        $this->assertStringContainsString('IPSZigbee2MQTT', $file);
+        @unlink($file);
+    }
+
     public function testAddInstallCodeUsesInstallCodeRequest(): void
     {
         $bridge = $this->createBridgeTestDouble([

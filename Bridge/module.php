@@ -230,7 +230,7 @@ class Zigbee2MQTTBridge extends IPSModuleStrict
         if (empty($BaseTopic)) {
             return '';
         }
-        $this->SendDebug('ReceiveData', $JSONString, 0);
+        $this->SendLimitedDebug('ReceiveData', $JSONString, 0);
         $Buffer = json_decode($JSONString, true);
         if (!isset($Buffer['Topic'])) {
             return '';
@@ -242,7 +242,7 @@ class Zigbee2MQTTBridge extends IPSModuleStrict
         $Topic = array_shift($Topics);
         $this->SendDebug('MQTT Topic', $Topic, 0);
         $payloadJson = self::DecodePayload($Buffer['Payload']);
-        $this->SendDebug('MQTT Payload', $payloadJson, 0);
+        $this->SendLimitedDebug('MQTT Payload', $payloadJson, 0);
         $Payload = json_decode($payloadJson, true);
         switch ($Topic) {
             case 'logging':
@@ -413,6 +413,9 @@ class Zigbee2MQTTBridge extends IPSModuleStrict
                 break;
             case 'ClearBridgeDiagnostics':
                 $this->ClearBridgeDiagnostics();
+                break;
+            case 'CreateBackupFile':
+                $this->CreateBackupFileFromForm();
                 break;
             case 'TouchlinkScan':
                 $this->TouchlinkScan();
@@ -1177,18 +1180,43 @@ class Zigbee2MQTTBridge extends IPSModuleStrict
      */
     public function CreateBackup(): string
     {
-        $data = $this->SendCheckedBridgeRequest('/bridge/request/backup', [], self::TIMEOUT_ZIGBEE_BACKUP_REQUEST);
+        $data = $this->RequestBackupData();
         if ($data === false) {
             return '';
         }
 
-        if (isset($data['zip_file']) && \is_string($data['zip_file']) && is_file($data['zip_file'])) {
-            $zip = file_get_contents($data['zip_file']);
-            @unlink($data['zip_file']);
-            return \is_string($zip) ? $zip : '';
+        return $this->ReadBackupBase64FromData($data);
+    }
+
+    /**
+     * Erstellt ein Zigbee2MQTT-Backup und speichert es als ZIP-Datei im Symcon-Benutzerverzeichnis.
+     *
+     * @return string Absoluter Dateipfad oder leer bei Fehler.
+     */
+    public function CreateBackupFile(): string
+    {
+        $data = $this->RequestBackupData();
+        if ($data === false) {
+            return '';
         }
 
-        return (string) ($data['zip'] ?? '');
+        $base64 = $this->ReadBackupBase64FromData($data);
+        if ($base64 === '') {
+            return '';
+        }
+
+        $zip = base64_decode($base64, true);
+        if (!\is_string($zip)) {
+            return '';
+        }
+
+        $directory = $this->GetBackupDirectory();
+        if (!$this->EnsureDirectory($directory)) {
+            return '';
+        }
+
+        $filename = $directory . DIRECTORY_SEPARATOR . 'zigbee2mqtt-backup-' . date('Ymd-His') . '.zip';
+        return file_put_contents($filename, $zip, LOCK_EX) === false ? '' : $filename;
     }
 
     /**
@@ -1516,6 +1544,72 @@ class Zigbee2MQTTBridge extends IPSModuleStrict
         }
 
         return parent::SetValue($Ident, $Value);
+    }
+
+    /**
+     * Erstellt ein Backup aus der Form und zeigt nur einen kurzen Status an.
+     */
+    private function CreateBackupFileFromForm(): bool
+    {
+        $filename = $this->CreateBackupFile();
+        if ($filename === '') {
+            $this->ShowBackupMessage(
+                $this->Translate('Backup failed'),
+                $this->Translate('No backup could be created. Please check the bridge debug log.')
+            );
+            return false;
+        }
+
+        $this->ShowBackupMessage($this->Translate('Backup created'), $this->Translate('Backup saved to:') . ' ' . $filename);
+        return true;
+    }
+
+    /**
+     * Fragt Zigbee2MQTT nach einem Backup.
+     */
+    private function RequestBackupData(): array|false
+    {
+        return $this->SendCheckedBridgeRequest('/bridge/request/backup', [], self::TIMEOUT_ZIGBEE_BACKUP_REQUEST);
+    }
+
+    /**
+     * Liest die Base64-kodierten Backupdaten aus der Antwort und entfernt temporaere Dateien.
+     */
+    private function ReadBackupBase64FromData(array $data): string
+    {
+        if (isset($data['zip_file']) && \is_string($data['zip_file']) && is_file($data['zip_file'])) {
+            $zip = file_get_contents($data['zip_file']);
+            @unlink($data['zip_file']);
+            return \is_string($zip) ? $zip : '';
+        }
+
+        return (string) ($data['zip'] ?? '');
+    }
+
+    /**
+     * Zeigt das Ergebnis der Backup-Erstellung im Formular an.
+     */
+    private function ShowBackupMessage(string $title, string $message): void
+    {
+        $this->UpdateFormField('BackupMessageTitle', 'caption', $title);
+        $this->UpdateFormField('BackupMessageText', 'caption', $message);
+        $this->UpdateFormField('BackupMessage', 'visible', true);
+    }
+
+    /**
+     * Liefert das Zielverzeichnis fuer lokal abgelegte Backups.
+     */
+    private function GetBackupDirectory(): string
+    {
+        return rtrim(IPS_GetKernelDir(), '\\/') . DIRECTORY_SEPARATOR . 'user' . DIRECTORY_SEPARATOR . 'IPSZigbee2MQTT' . DIRECTORY_SEPARATOR . 'backups';
+    }
+
+    /**
+     * Legt ein Verzeichnis bei Bedarf an.
+     */
+    private function EnsureDirectory(string $directory): bool
+    {
+        return is_dir($directory) || @mkdir($directory, 0777, true);
     }
 
     /**

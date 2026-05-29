@@ -12,6 +12,28 @@ use PHPUnit\Framework\TestCase;
  */
 class MQTTHelperTest extends TestCase
 {
+    public function testLargeDebugOutputIsTruncated(): void
+    {
+        $helper = new class() {
+            use \Zigbee2MQTT\SendData {
+                SendLimitedDebug as public limitedDebug;
+            }
+
+            public array $debugMessages = [];
+
+            public function SendDebug(string $message, mixed $data, int $format): void
+            {
+                $this->debugMessages[$message][] = (string) $data;
+            }
+        };
+
+        $helper->limitedDebug('LargePayload', str_repeat('A', 200), 0, 50);
+
+        $this->assertArrayHasKey('LargePayload', $helper->debugMessages);
+        $this->assertStringContainsString('truncated, original length 200 bytes', $helper->debugMessages['LargePayload'][0]);
+        $this->assertLessThan(120, \strlen($helper->debugMessages['LargePayload'][0]));
+    }
+
     public function testResponseWithoutTransactionIsMatchedByResponseTopic(): void
     {
         $helper = new class() {

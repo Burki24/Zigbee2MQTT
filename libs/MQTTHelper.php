@@ -79,14 +79,14 @@ trait SendData
         }
 
         $this->SendDebug(__FUNCTION__ . ':Topic', $Topic, 0);
-        $this->SendDebug(__FUNCTION__ . ':Payload', json_encode($Payload), 0);
+        $this->SendLimitedDebug(__FUNCTION__ . ':Payload', json_encode($Payload), 0);
         $this->SendDebug(__FUNCTION__ . ':Timeout', (string) $Timeout, 0);
         $DataJSON = self::BuildRequest($this->ReadPropertyString(self::MQTT_BASE_TOPIC) . $Topic, $Payload);
         $this->SendDataToParent($DataJSON);
 
         if ($Timeout) {
             $Result = $this->WaitForTransactionEnd($TransactionId, $Timeout);
-            $this->SendDebug(__FUNCTION__ . ' :Result', json_encode($Result), 0);
+            $this->SendLimitedDebug(__FUNCTION__ . ' :Result', json_encode($Result), 0);
             if ($Result === false) {
                 trigger_error(\sprintf($this->Translate('Zigbee2MQTT did not response on Topic %s'), $Topic), E_USER_NOTICE);
                 return false;
@@ -134,6 +134,27 @@ trait SendData
     protected function ClearTransactionData(): void
     {
         $this->TransactionData = [];
+    }
+
+    /**
+     * Schreibt Debug-Ausgaben gekuerzt, damit grosse MQTT-Nachrichten den Symcon-Ausgabepuffer nicht sprengen.
+     */
+    protected function SendLimitedDebug(string $Message, mixed $Data, int $Format, int $Limit = 8192): bool
+    {
+        if (!\is_string($Data)) {
+            $Data = json_encode($Data);
+        }
+        if (!\is_string($Data)) {
+            $Data = '';
+        }
+
+        $Length = \strlen($Data);
+        if ($Length > $Limit) {
+            $Data = substr($Data, 0, $Limit) . \sprintf("\n... truncated, original length %d bytes", $Length);
+        }
+
+        $this->SendDebug($Message, $Data, $Format);
+        return true;
     }
 
     /**
