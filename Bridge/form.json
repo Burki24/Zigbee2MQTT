@@ -634,7 +634,7 @@
             "items": [
                 {
                     "type": "Label",
-                    "caption": "Create a Zigbee2MQTT data folder backup. The downloaded file contains the Base64 ZIP returned by Zigbee2MQTT decoded as ZIP."
+                    "caption": "Create a Zigbee2MQTT data folder backup. The download can take up to five minutes for large Zigbee2MQTT data folders."
                 },
                 {
                     "type": "Button",

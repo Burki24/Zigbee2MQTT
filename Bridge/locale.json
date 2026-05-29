@@ -88,7 +88,7 @@
             "The IEEE address must start with 0x and contain 16 hexadecimal characters.": "Die IEEE-Adresse muss mit 0x beginnen und 16 hexadezimale Zeichen enthalten.",
             "Device list must be a JSON array.": "Geräteliste muss ein JSON-Array sein.",
             "Maintenance": "Wartung",
-            "Create a Zigbee2MQTT data folder backup. The downloaded file contains the Base64 ZIP returned by Zigbee2MQTT decoded as ZIP.": "Erstellt ein Backup des Zigbee2MQTT data-Ordners. Die heruntergeladene Datei enthält das von Zigbee2MQTT gelieferte Base64-ZIP als dekodierte ZIP-Datei.",
+            "Create a Zigbee2MQTT data folder backup. The download can take up to five minutes for large Zigbee2MQTT data folders.": "Erstellt ein Backup des Zigbee2MQTT data-Ordners. Der Download kann bei großen Zigbee2MQTT data-Ordnern bis zu fünf Minuten dauern.",
             "Download backup": "Backup herunterladen",
             "Add an install code for Zigbee 3.0 devices. The code is sent once and not stored in Symcon.": "Fügt einen Install-Code für Zigbee-3.0-Geräte hinzu. Der Code wird einmalig gesendet und nicht in Symcon gespeichert.",
             "Install code": "Install-Code",

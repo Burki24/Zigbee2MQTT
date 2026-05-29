@@ -447,7 +447,7 @@ class BridgeTest extends TestCase
         $this->assertSame('WklHQkVFMk1RVFQuUk9DS1M=', $bridge->CreateBackup());
         $this->assertSame('/bridge/request/backup', $bridge->lastTopic);
         $this->assertSame([], $bridge->lastPayload);
-        $this->assertSame(30000, $bridge->lastTimeout);
+        $this->assertSame(300000, $bridge->lastTimeout);
     }
 
     public function testAddInstallCodeUsesInstallCodeRequest(): void

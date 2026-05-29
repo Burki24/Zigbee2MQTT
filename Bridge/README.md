@@ -460,7 +460,7 @@ Leert die gesammelten Bridge-Events, Warnungen/Fehler und Gerätediagnosen. Die 
 string Z2M_CreateBackup(int $InstanzID);
 ```
 
-Erstellt über `bridge/request/backup` ein Zigbee2MQTT-Backup und gibt das von Zigbee2MQTT gelieferte Base64-kodierte ZIP zurück. Im Bridge-Wartungsbereich wird dieser Rückgabewert für den Download als ZIP dekodiert.
+Erstellt über `bridge/request/backup` ein Zigbee2MQTT-Backup und gibt das von Zigbee2MQTT gelieferte Base64-kodierte ZIP zurück. Im Bridge-Wartungsbereich wird dieser Rückgabewert für den Download als ZIP dekodiert. Da große Zigbee2MQTT-Data-Verzeichnisse länger benötigen können, wartet der Backup-Request bis zu fünf Minuten auf die Antwort von Zigbee2MQTT.
 
 ---
 

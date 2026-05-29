@@ -1174,7 +1174,7 @@ class Zigbee2MQTTBridge extends IPSModuleStrict
      */
     public function CreateBackup(): string
     {
-        $data = $this->SendCheckedBridgeRequest('/bridge/request/backup', [], 30000);
+        $data = $this->SendCheckedBridgeRequest('/bridge/request/backup', [], self::TIMEOUT_ZIGBEE_BACKUP_REQUEST);
         if ($data === false) {
             return '';
         }
