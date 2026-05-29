@@ -567,10 +567,16 @@ class Zigbee2MQTTConfigurator extends IPSModuleStrict
     public function getDevices(): array
     {
         $Result = @$this->SendData(self::SYMCON_EXTENSION_LIST_REQUEST . 'getDevices');
-        if ($Result) {
+        if (\is_array($Result) && \is_array($Result['list'] ?? null) && $Result['list'] !== []) {
             return $Result['list'];
         }
-        return [];
+
+        $Devices = $this->ReadCachedNetworkDevicesFromBridge();
+        if ($Devices !== []) {
+            $this->SendDebug('getDevices:Fallback', 'Bridge cache: ' . \count($Devices) . ' devices', 0);
+        }
+
+        return $Devices;
     }
 
     /**
@@ -583,7 +589,7 @@ class Zigbee2MQTTConfigurator extends IPSModuleStrict
     public function getGroups(): array
     {
         $Result = @$this->SendData(self::SYMCON_EXTENSION_LIST_REQUEST . 'getGroups');
-        if ($Result) {
+        if (\is_array($Result) && \is_array($Result['list'] ?? null)) {
             return $Result['list'];
         }
         return [];
@@ -612,6 +618,80 @@ class Zigbee2MQTTConfigurator extends IPSModuleStrict
             return $Result['status'] == 'ok';
         }
         return false;
+    }
+
+    /**
+     * Liest bekannte Geraete aus dem Bridge-Cache, falls die SymconExtension-Liste nicht antwortet.
+     */
+    private function ReadCachedNetworkDevicesFromBridge(): array
+    {
+        $BridgeID = $this->FindMatchingBridgeInstanceID();
+        if ($BridgeID === false || !\function_exists('Z2M_GetCachedNetworkDevices')) {
+            return [];
+        }
+
+        $Result = @\Z2M_GetCachedNetworkDevices($BridgeID);
+        if (!\is_string($Result) || $Result === '') {
+            return [];
+        }
+
+        $Decoded = json_decode($Result, true);
+        if (!\is_array($Decoded)) {
+            return [];
+        }
+
+        $Devices = [];
+        foreach ($Decoded as $Device) {
+            if (!\is_array($Device)) {
+                continue;
+            }
+
+            $Normalized = $this->NormalizeCachedNetworkDevice($Device);
+            if ($Normalized['friendly_name'] === '' && $Normalized['ieeeAddr'] === '') {
+                continue;
+            }
+
+            $Devices[] = $Normalized;
+        }
+
+        return $Devices;
+    }
+
+    /**
+     * Normalisiert Bridge-Cache-Daten auf das Format der SymconExtension-Geraeteliste.
+     */
+    private function NormalizeCachedNetworkDevice(array $Device): array
+    {
+        $FriendlyName = (string) ($Device['friendly_name'] ?? $Device['friendlyName'] ?? '');
+        $IeeeAddress = (string) ($Device['ieeeAddr'] ?? $Device['ieee_address'] ?? $Device['ieeeAddress'] ?? '');
+
+        return [
+            'ieeeAddr'       => $IeeeAddress,
+            'friendly_name'  => $FriendlyName,
+            'type'           => (string) ($Device['type'] ?? ''),
+            'networkAddress' => $Device['networkAddress'] ?? $Device['network_address'] ?? '',
+            'vendor'         => (string) ($Device['vendor'] ?? ''),
+            'modelID'        => (string) ($Device['modelID'] ?? $Device['model_id'] ?? $Device['model'] ?? ''),
+            'description'    => (string) ($Device['description'] ?? ''),
+            'powerSource'    => (string) ($Device['powerSource'] ?? $Device['power_source'] ?? '')
+        ];
+    }
+
+    /**
+     * Findet die Bridge-Instanz mit gleichem MQTT-Basistopic.
+     */
+    private function FindMatchingBridgeInstanceID(): int|false
+    {
+        $BridgeIDs = $this->GetIPSInstancesByBaseTopic(
+            self::GUID_MODULE_BRIDGE,
+            $this->ReadPropertyString(self::MQTT_BASE_TOPIC)
+        );
+
+        if ($BridgeIDs === []) {
+            return false;
+        }
+
+        return (int) array_key_first($BridgeIDs);
     }
 
     /**

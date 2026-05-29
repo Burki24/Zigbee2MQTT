@@ -2478,14 +2478,7 @@ class Zigbee2MQTTBridge extends IPSModuleStrict
 
             $row = $this->BuildDeviceDiagnosticRow($device);
             if (($row['status'] ?? '') !== 'Coordinator') {
-                $networkDevices[] = [
-                    'friendly_name' => $row['friendly_name'],
-                    'ieee_address'  => $row['ieee_address'],
-                    'model'         => $row['model'],
-                    'vendor'        => $row['vendor'],
-                    'type'          => $row['status'],
-                    'endpoints'     => \is_array($device['endpoints'] ?? null) ? $device['endpoints'] : []
-                ];
+                $networkDevices[] = $this->BuildCachedNetworkDeviceRow($device, $row);
             }
             if (($device['supported'] ?? true) === false || (\array_key_exists('definition', $device) && $device['definition'] === null)) {
                 $unsupported[] = $row;
@@ -2527,6 +2520,31 @@ class Zigbee2MQTTBridge extends IPSModuleStrict
             'model'         => (string) ($definition['model'] ?? $device['model'] ?? ''),
             'vendor'        => (string) ($definition['vendor'] ?? $device['vendor'] ?? ''),
             'status'        => (string) ($device['type'] ?? '')
+        ];
+    }
+
+    /**
+     * Erstellt eine Cache-Zeile fuer den Konfigurator und lokale Auswahlfelder.
+     */
+    private function BuildCachedNetworkDeviceRow(array $device, array $diagnosticRow): array
+    {
+        $definition = \is_array($device['definition'] ?? null) ? $device['definition'] : [];
+        $friendlyName = (string) ($device['friendly_name'] ?? $device['friendlyName'] ?? $diagnosticRow['friendly_name'] ?? '');
+        $ieeeAddress = (string) ($device['ieee_address'] ?? $device['ieeeAddr'] ?? $diagnosticRow['ieee_address'] ?? '');
+
+        return [
+            'friendly_name'    => $friendlyName,
+            'ieee_address'     => $ieeeAddress,
+            'ieeeAddr'         => $ieeeAddress,
+            'networkAddress'   => $device['networkAddress'] ?? $device['network_address'] ?? '',
+            'type'             => (string) ($device['type'] ?? $diagnosticRow['status'] ?? ''),
+            'model'            => (string) ($definition['model'] ?? $device['model'] ?? $diagnosticRow['model'] ?? ''),
+            'vendor'           => (string) ($definition['vendor'] ?? $device['vendor'] ?? $diagnosticRow['vendor'] ?? ''),
+            'description'      => (string) ($definition['description'] ?? $device['description'] ?? ''),
+            'manufacturerName' => (string) ($device['manufacturerName'] ?? $device['manufacturer_name'] ?? ''),
+            'powerSource'      => (string) ($device['powerSource'] ?? $device['power_source'] ?? ''),
+            'modelID'          => (string) ($device['modelID'] ?? $device['model_id'] ?? $definition['model'] ?? $device['model'] ?? ''),
+            'endpoints'        => \is_array($device['endpoints'] ?? null) ? $device['endpoints'] : []
         ];
     }
 

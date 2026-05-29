@@ -387,6 +387,9 @@ class BridgeTest extends TestCase
                 [
                     'friendly_name'       => 'interviewing',
                     'ieee_address'        => '0x2222',
+                    'networkAddress'      => 12345,
+                    'modelID'             => 'TS011F',
+                    'powerSource'         => 'Mains',
                     'supported'           => true,
                     'interview_completed' => false,
                     'endpoints'           => [
@@ -411,6 +414,14 @@ class BridgeTest extends TestCase
         $this->assertSame('interviewing', $bridge->readDiagnosticAttribute('DiagnosticInterviewDevices')[0]['friendly_name']);
         $this->assertContains('unsupported', array_column($bridge->readDiagnosticAttribute('NetworkDevices'), 'friendly_name'));
         $this->assertContains('0x1111', array_column($bridge->readDiagnosticAttribute('NetworkDevices'), 'ieee_address'));
+        $this->assertContains('0x2222', array_column($bridge->readDiagnosticAttribute('NetworkDevices'), 'ieeeAddr'));
+        $networkDevices = $bridge->readDiagnosticAttribute('NetworkDevices');
+        $interviewingCacheRows = array_values(array_filter(
+            $networkDevices,
+            static fn (array $device): bool => ($device['friendly_name'] ?? '') === 'interviewing'
+        ));
+        $this->assertSame(12345, $interviewingCacheRows[0]['networkAddress']);
+        $this->assertSame('TS011F', $interviewingCacheRows[0]['modelID']);
 
         $cachedEndpoints = json_decode($bridge->GetCachedDeviceEndpoints('interviewing'), true);
         $this->assertSame('genOnOff', $cachedEndpoints['1']['bindings'][0]['cluster']);
