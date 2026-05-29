@@ -21,7 +21,6 @@ class MQTTHelperTest extends TestCase
             }
 
             public array $TransactionData = [];
-            public array $Multi_TransactionData = [];
             public array $sentRequests = [];
             public array $debugMessages = [];
 
@@ -61,16 +60,17 @@ class MQTTHelperTest extends TestCase
             }
         };
 
-        $this->assertSame([
-            'status' => 'ok',
-            'data'   => [
-                'zip' => 'BACKUP'
-            ]
-        ], $helper->sendMqttData('/bridge/request/backup', [], 300000));
+        $result = $helper->sendMqttData('/bridge/request/backup', [], 300000);
+        $this->assertIsArray($result);
+        $this->assertSame('ok', $result['status']);
+        $this->assertArrayHasKey('zip_file', $result['data']);
+        $this->assertArrayNotHasKey('zip', $result['data']);
 
         $requestPayload = json_decode(hex2bin($helper->sentRequests[0]['Payload']) ?: '', true);
         $this->assertIsArray($requestPayload);
         $this->assertArrayHasKey('transaction', $requestPayload);
         $this->assertSame('300000', $helper->debugMessages['SendData:Timeout'][0]);
+        $this->assertSame('BACKUP', file_get_contents($result['data']['zip_file']));
+        @unlink($result['data']['zip_file']);
     }
 }

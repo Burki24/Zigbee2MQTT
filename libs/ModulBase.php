@@ -32,7 +32,6 @@ require_once __DIR__ . '/ColorHelper.php';
  * @property bool $BUFFER_PROCESSING_MIGRATION Zugriff auf den Buffer für MQTT Nachrichten nicht verarbeiten
  * @property string $lastPayload Zugriff auf den Buffer welcher das Letzte Payload enthält (für Download-Button)
  * @property array $missingTranslations Zugriff auf den Buffer welcher ein array von fehlenden Übersetzungen enthält (für Download-Button)
- * @property array $Multi_TransactionData Zugriff auf den gesplitteten Transaction-Buffer
  */
 abstract class ModulBase extends \IPSModuleStrict
 {
@@ -1294,8 +1293,7 @@ abstract class ModulBase extends \IPSModuleStrict
             'lastPayload',
             'missingTranslations',
             'brightnessConfig',
-            'TransactionData',
-            'Multi_TransactionData'       => [],
+            'TransactionData'             => [],
             default                       => false
         };
     }

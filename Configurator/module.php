@@ -55,7 +55,7 @@ class Zigbee2MQTTConfigurator extends IPSModuleStrict
         parent::Create();
         $this->RegisterPropertyString(self::MQTT_BASE_TOPIC, '');
         // Init Buffers
-        $this->TransactionData = [];
+        $this->ClearTransactionData();
     }
 
     /**
@@ -73,6 +73,8 @@ class Zigbee2MQTTConfigurator extends IPSModuleStrict
      */
     public function ApplyChanges(): void
     {
+        $this->ClearTransactionData();
+
         //Never delete this line!
         parent::ApplyChanges();
 

@@ -1182,6 +1182,12 @@ class Zigbee2MQTTBridge extends IPSModuleStrict
             return '';
         }
 
+        if (isset($data['zip_file']) && \is_string($data['zip_file']) && is_file($data['zip_file'])) {
+            $zip = file_get_contents($data['zip_file']);
+            @unlink($data['zip_file']);
+            return \is_string($zip) ? $zip : '';
+        }
+
         return (string) ($data['zip'] ?? '');
     }
 
