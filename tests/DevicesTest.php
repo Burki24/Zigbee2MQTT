@@ -847,6 +847,18 @@ class DevicesTest extends DumpInclude
         $this->assertSame('Keine Reportings vorhanden', $reportingList['values'][0]['attribute']);
     }
 
+    public function testBindingTargetOptionsDoNotRequestLiveLists(): void
+    {
+        $device = $this->createDeviceOptionFormTestDouble();
+
+        $method = new \ReflectionMethod($device, 'BuildBindingTargetOptions');
+        $method->setAccessible(true);
+        $options = $method->invoke($device);
+
+        $this->assertIsArray($options);
+        $this->assertSame('', $device->sentTopic);
+    }
+
     public function testBindingClusterSelectionUpdatesForSelectedEndpoint(): void
     {
         $device = $this->createDeviceOptionFormTestDouble();

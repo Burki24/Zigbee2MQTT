@@ -1026,6 +1026,17 @@ class Zigbee2MQTTBridge extends IPSModuleStrict
     }
 
     /**
+     * Liefert die aus bridge/devices bekannten Geraete aus dem Bridge-Cache.
+     *
+     * @return string JSON-Liste der gecachten Geraete oder leeres JSON-Array.
+     */
+    public function GetCachedNetworkDevices(): string
+    {
+        $json = json_encode($this->ReadAttributeArray(self::ATTRIBUTE_NETWORK_DEVICES), JSON_UNESCAPED_SLASHES | JSON_UNESCAPED_UNICODE);
+        return \is_string($json) ? $json : '[]';
+    }
+
+    /**
      * ConfigureReporting
      *
      * @param string $DeviceName            Friendly Name oder IEEE-Adresse.

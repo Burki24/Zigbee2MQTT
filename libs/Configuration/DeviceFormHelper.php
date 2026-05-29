@@ -29,6 +29,317 @@ trait DeviceFormHelper
     }
 
     /**
+     * Uebernimmt eine Zeile aus der Optionsliste in die Eingabefelder.
+     */
+    protected function SelectDeviceOptionFromForm(mixed $value): bool
+    {
+        $selection = $this->DecodeDeviceOptionFormPayload($value);
+        if ($selection === null) {
+            return false;
+        }
+
+        $this->UpdateFormField('DeviceOptionName', 'value', $selection['name'] ?? '');
+        $this->ConfigureDeviceOptionEditor((string) ($selection['name'] ?? ''), (string) ($selection['value'] ?? ''));
+
+        return true;
+    }
+
+    /**
+     * Speichert eine einzelne Geraeteoption in Zigbee2MQTT.
+     */
+    protected function ApplyDeviceOptionFromForm(mixed $value): bool
+    {
+        $selection = $this->DecodeDeviceOptionFormPayload($value);
+        if ($selection === null) {
+            return false;
+        }
+
+        $name = trim((string) ($selection['name'] ?? ''));
+        if ($name === '') {
+            trigger_error($this->Translate('No device option selected.'), E_USER_NOTICE);
+            return false;
+        }
+        if ($this->ShouldSkipDeviceOption($name)) {
+            trigger_error($this->Translate('This device option must be changed through a dedicated Zigbee2MQTT function.'), E_USER_NOTICE);
+            return false;
+        }
+
+        try {
+            $parsedValue = $this->ParseDeviceOptionValue($name, $this->ResolveDeviceOptionRawValue($name, $selection));
+        } catch (\InvalidArgumentException $e) {
+            trigger_error($this->Translate($e->getMessage()), E_USER_NOTICE);
+            return false;
+        }
+
+        if (!$this->SendDeviceOptionsRequest([$name => $parsedValue])) {
+            return false;
+        }
+
+        $options = $this->ReadAttributeArray(self::ATTRIBUTE_DEVICE_OPTIONS);
+        $options[$name] = $parsedValue;
+        $this->WriteAttributeArray(self::ATTRIBUTE_DEVICE_OPTIONS, $options);
+        if ($name === 'filtered_attributes' && \is_array($parsedValue)) {
+            $this->WriteAttributeArray(self::ATTRIBUTE_FILTERED, $parsedValue);
+        }
+
+        $values = $this->BuildDeviceOptionFormValues();
+        $this->UpdateFormField('DeviceOptionList', 'values', json_encode($values));
+
+        return true;
+    }
+
+    /**
+     * Fuehrt ein Binding aus.
+     */
+    protected function ApplyBindingFromForm(mixed $value): bool
+    {
+        return $this->ApplyBindingRequestFromForm($value, false);
+    }
+
+    /**
+     * Entfernt ein Binding.
+     */
+    protected function ApplyUnbindingFromForm(mixed $value): bool
+    {
+        return $this->ApplyBindingRequestFromForm($value, true);
+    }
+
+    /**
+     * Entfernt alle Bindings dieses Geraets.
+     */
+    protected function ClearBindingsFromForm(): bool
+    {
+        return $this->CallMatchingBridgeFunction('ClearBinds', [$this->ReadPropertyString(self::MQTT_TOPIC)]) === true;
+    }
+
+    /**
+     * Aktualisiert Endpoint-, Binding- und Reporting-Daten aus dem bridge/devices-Cache.
+     */
+    protected function RefreshBindingReportingInfoFromForm(): bool
+    {
+        $this->RefreshEndpointDataFromBridgeCache();
+        $this->UpdateBindingReportingFormFields();
+
+        return true;
+    }
+
+    /**
+     * Aktualisiert die Cluster-Auswahl bei Wechsel des Quell-Endpoints oder Ziels.
+     */
+    protected function UpdateBindingClustersFromForm(mixed $value): bool
+    {
+        $selection = $this->DecodeDeviceOptionFormPayload($value);
+        if ($selection === null) {
+            return false;
+        }
+
+        $endpoint = trim((string) ($selection['endpoint'] ?? ''));
+        $target = trim((string) ($selection['target'] ?? ''));
+        $currentCluster = trim((string) ($selection['cluster'] ?? ''));
+        $options = $this->BuildBindingClusterOptions($endpoint, $target);
+        $selectedCluster = $this->ResolveBindingClusterSelection($currentCluster, $options);
+
+        $this->UpdateFormField('BindingClusters', 'options', json_encode($options));
+        $this->UpdateFormField('BindingClusters', 'value', $selectedCluster);
+
+        return true;
+    }
+
+    /**
+     * Aktualisiert die Reporting-Cluster- und Attributauswahl bei Wechsel von Endpoint oder Cluster.
+     */
+    protected function UpdateReportingSelectionFromForm(mixed $value): bool
+    {
+        $selection = $this->DecodeDeviceOptionFormPayload($value);
+        if ($selection === null) {
+            return false;
+        }
+
+        $endpoint = trim((string) ($selection['endpoint'] ?? ''));
+        $currentCluster = trim((string) ($selection['cluster'] ?? ''));
+        $currentAttribute = trim((string) ($selection['attribute'] ?? ''));
+
+        $clusterOptions = $this->BuildReportingClusterOptions($endpoint);
+        $selectedCluster = $this->ResolveSelectOptionValue($currentCluster, $clusterOptions);
+        $attributeOptions = $this->BuildReportingAttributeOptions($endpoint, $selectedCluster);
+        $selectedAttribute = $this->ResolveSelectOptionValue($currentAttribute, $attributeOptions);
+
+        $this->UpdateFormField('ReportingCluster', 'options', json_encode($clusterOptions));
+        $this->UpdateFormField('ReportingCluster', 'value', $selectedCluster);
+        $this->UpdateFormField('ReportingAttribute', 'options', json_encode($attributeOptions));
+        $this->UpdateFormField('ReportingAttribute', 'value', $selectedAttribute);
+
+        return true;
+    }
+
+    /**
+     * Konfiguriert Zigbee-Reporting fuer ein Attribut.
+     */
+    protected function ConfigureReportingFromForm(mixed $value): bool
+    {
+        $selection = $this->DecodeDeviceOptionFormPayload($value);
+        if ($selection === null) {
+            return false;
+        }
+
+        $endpoint = trim((string) ($selection['endpoint'] ?? ''));
+        $cluster = trim((string) ($selection['cluster'] ?? ''));
+        $attribute = trim((string) ($selection['attribute'] ?? ''));
+        if ($cluster === '' || $attribute === '') {
+            trigger_error($this->Translate('Cluster and attribute are required.'), E_USER_NOTICE);
+            return false;
+        }
+
+        return $this->CallMatchingBridgeFunction('ConfigureReporting', [
+            $this->ReadPropertyString(self::MQTT_TOPIC),
+            $endpoint,
+            $cluster,
+            $attribute,
+            (int) ($selection['minimum'] ?? 0),
+            (int) ($selection['maximum'] ?? 65535),
+            (string) ($selection['change'] ?? ''),
+            (string) ($selection['options'] ?? '')
+        ]) === true;
+    }
+
+    /**
+     * Liest Zigbee-Reporting fuer ein Attribut und zeigt die Antwort in der Form.
+     */
+    protected function ReadReportingFromForm(mixed $value): bool
+    {
+        $selection = $this->DecodeDeviceOptionFormPayload($value);
+        if ($selection === null) {
+            return false;
+        }
+
+        $endpoint = trim((string) ($selection['endpoint'] ?? ''));
+        $cluster = trim((string) ($selection['cluster'] ?? ''));
+        $attribute = trim((string) ($selection['attribute'] ?? ''));
+        if ($cluster === '' || $attribute === '') {
+            trigger_error($this->Translate('Cluster and attribute are required.'), E_USER_NOTICE);
+            return false;
+        }
+
+        $result = $this->CallMatchingBridgeFunction('ReadReporting', [
+            $this->ReadPropertyString(self::MQTT_TOPIC),
+            $endpoint,
+            $cluster,
+            json_encode([$attribute], JSON_UNESCAPED_SLASHES | JSON_UNESCAPED_UNICODE),
+            ''
+        ]);
+        if (!\is_string($result) || $result === '') {
+            return false;
+        }
+
+        $this->UpdateFormField('ReportingResult', 'visible', true);
+        $this->UpdateFormField('ReportingResult', 'caption', $this->Translate('Reporting result:') . ' ' . $result);
+
+        return true;
+    }
+
+    /**
+     * Fuegt ein Attribut in einen Listen-Editor ein.
+     */
+    protected function AddDeviceOptionAttributeFromForm(mixed $value): bool
+    {
+        $selection = $this->DecodeDeviceOptionFormPayload($value);
+        if ($selection === null) {
+            return false;
+        }
+
+        $attribute = trim((string) ($selection['attribute'] ?? ''));
+        $selected = $this->DecodeDeviceOptionAttributeSelection((string) ($selection['value'] ?? '[]'));
+        if ($attribute !== '' && !\in_array($attribute, $selected, true)) {
+            $selected[] = $attribute;
+        }
+
+        $this->UpdateDeviceOptionAttributeEditor($selected);
+        return true;
+    }
+
+    /**
+     * Entfernt ein Attribut aus einem Listen-Editor.
+     */
+    protected function RemoveDeviceOptionAttributeFromForm(mixed $value): bool
+    {
+        $selection = $this->DecodeDeviceOptionFormPayload($value);
+        if ($selection === null) {
+            return false;
+        }
+
+        $attribute = trim((string) ($selection['attribute'] ?? ''));
+        $selected = array_values(array_filter(
+            $this->DecodeDeviceOptionAttributeSelection((string) ($selection['value'] ?? '[]')),
+            static fn (string $entry): bool => $entry !== $attribute
+        ));
+
+        $this->UpdateDeviceOptionAttributeEditor($selected);
+        return true;
+    }
+
+    /**
+     * Ruft eine Funktion der passenden Bridge-Instanz auf.
+     */
+    protected function CallMatchingBridgeFunction(string $function, array $arguments): mixed
+    {
+        $bridgeID = $this->FindMatchingBridgeInstanceID();
+        $functionName = 'Z2M_' . $function;
+        if ($bridgeID === false || !\function_exists($functionName)) {
+            trigger_error($this->Translate('No matching bridge instance found.'), E_USER_NOTICE);
+            return false;
+        }
+
+        return $functionName($bridgeID, ...$arguments);
+    }
+
+    /**
+     * Ergaenzt Endpoint-Daten um den Bridge-Cache aus bridge/devices.
+     */
+    protected function MergeBridgeCachedDeviceEndpoints(array $endpoints): array
+    {
+        $cachedEndpoints = $this->ReadBridgeCachedDeviceEndpoints();
+        if ($cachedEndpoints === []) {
+            return $endpoints;
+        }
+
+        return $this->MergeEndpointCollections($endpoints, $cachedEndpoints);
+    }
+
+    /**
+     * Liest gecachte Endpoint-Daten von der Bridge, ohne beim Fehlen eine Notice zu erzeugen.
+     */
+    protected function ReadBridgeCachedDeviceEndpoints(): array
+    {
+        $bridgeID = $this->FindMatchingBridgeInstanceID();
+        if ($bridgeID === false || !\function_exists('Z2M_GetCachedDeviceEndpoints')) {
+            return [];
+        }
+
+        $result = \Z2M_GetCachedDeviceEndpoints($bridgeID, $this->ReadPropertyString(self::MQTT_TOPIC));
+        if (!\is_string($result) || $result === '') {
+            return [];
+        }
+
+        $decoded = json_decode($result, true);
+        return \is_array($decoded) ? $decoded : [];
+    }
+
+    /**
+     * Findet die Bridge-Instanz zum gleichen MQTT-Basistopic.
+     */
+    protected function FindMatchingBridgeInstanceID(): int|false
+    {
+        $baseTopic = $this->ReadPropertyString(self::MQTT_BASE_TOPIC);
+        foreach (IPS_GetInstanceListByModuleID(self::GUID_MODULE_BRIDGE) as $bridgeID) {
+            if (@IPS_GetProperty($bridgeID, self::MQTT_BASE_TOPIC) === $baseTopic) {
+                return $bridgeID;
+            }
+        }
+
+        return false;
+    }
+
+    /**
      * Setzt Geraetebild, Geraetelink und Debug-Downloadnamen.
      */
     private function ConfigureDeviceFormHeader(array &$form): void
@@ -241,101 +552,6 @@ trait DeviceFormHelper
     }
 
     /**
-     * Uebernimmt eine Zeile aus der Optionsliste in die Eingabefelder.
-     */
-    protected function SelectDeviceOptionFromForm(mixed $value): bool
-    {
-        $selection = $this->DecodeDeviceOptionFormPayload($value);
-        if ($selection === null) {
-            return false;
-        }
-
-        $this->UpdateFormField('DeviceOptionName', 'value', $selection['name'] ?? '');
-        $this->ConfigureDeviceOptionEditor((string) ($selection['name'] ?? ''), (string) ($selection['value'] ?? ''));
-
-        return true;
-    }
-
-    /**
-     * Speichert eine einzelne Geraeteoption in Zigbee2MQTT.
-     */
-    protected function ApplyDeviceOptionFromForm(mixed $value): bool
-    {
-        $selection = $this->DecodeDeviceOptionFormPayload($value);
-        if ($selection === null) {
-            return false;
-        }
-
-        $name = trim((string) ($selection['name'] ?? ''));
-        if ($name === '') {
-            trigger_error($this->Translate('No device option selected.'), E_USER_NOTICE);
-            return false;
-        }
-        if ($this->ShouldSkipDeviceOption($name)) {
-            trigger_error($this->Translate('This device option must be changed through a dedicated Zigbee2MQTT function.'), E_USER_NOTICE);
-            return false;
-        }
-
-        try {
-            $parsedValue = $this->ParseDeviceOptionValue($name, $this->ResolveDeviceOptionRawValue($name, $selection));
-        } catch (\InvalidArgumentException $e) {
-            trigger_error($this->Translate($e->getMessage()), E_USER_NOTICE);
-            return false;
-        }
-
-        if (!$this->SendDeviceOptionsRequest([$name => $parsedValue])) {
-            return false;
-        }
-
-        $options = $this->ReadAttributeArray(self::ATTRIBUTE_DEVICE_OPTIONS);
-        $options[$name] = $parsedValue;
-        $this->WriteAttributeArray(self::ATTRIBUTE_DEVICE_OPTIONS, $options);
-        if ($name === 'filtered_attributes' && \is_array($parsedValue)) {
-            $this->WriteAttributeArray(self::ATTRIBUTE_FILTERED, $parsedValue);
-        }
-
-        $values = $this->BuildDeviceOptionFormValues();
-        $this->UpdateFormField('DeviceOptionList', 'values', json_encode($values));
-
-        return true;
-    }
-
-    /**
-     * Fuehrt ein Binding aus.
-     */
-    protected function ApplyBindingFromForm(mixed $value): bool
-    {
-        return $this->ApplyBindingRequestFromForm($value, false);
-    }
-
-    /**
-     * Entfernt ein Binding.
-     */
-    protected function ApplyUnbindingFromForm(mixed $value): bool
-    {
-        return $this->ApplyBindingRequestFromForm($value, true);
-    }
-
-    /**
-     * Entfernt alle Bindings dieses Geraets.
-     */
-    protected function ClearBindingsFromForm(): bool
-    {
-        return $this->CallMatchingBridgeFunction('ClearBinds', [$this->ReadPropertyString(self::MQTT_TOPIC)]) === true;
-    }
-
-    /**
-     * Aktualisiert Endpoint-, Binding- und Reporting-Daten aus dem bridge/devices-Cache.
-     */
-    protected function RefreshBindingReportingInfoFromForm(): bool
-    {
-        $this->RefreshEndpointDataFromBridgeCache();
-        $this->UpdateBindingReportingFormFields();
-
-        return true;
-    }
-
-    /**
      * Aktualisiert nur die Endpoint-Daten aus dem Bridge-Cache.
      */
     private function RefreshEndpointDataFromBridgeCache(): void
@@ -376,120 +592,6 @@ trait DeviceFormHelper
     {
         $this->UpdateFormField($name, 'values', json_encode($values));
         $this->UpdateFormField($name, 'rowCount', min(10, max(4, \count($values) + 1)));
-    }
-
-    /**
-     * Aktualisiert die Cluster-Auswahl bei Wechsel des Quell-Endpoints oder Ziels.
-     */
-    protected function UpdateBindingClustersFromForm(mixed $value): bool
-    {
-        $selection = $this->DecodeDeviceOptionFormPayload($value);
-        if ($selection === null) {
-            return false;
-        }
-
-        $endpoint = trim((string) ($selection['endpoint'] ?? ''));
-        $target = trim((string) ($selection['target'] ?? ''));
-        $currentCluster = trim((string) ($selection['cluster'] ?? ''));
-        $options = $this->BuildBindingClusterOptions($endpoint, $target);
-        $selectedCluster = $this->ResolveBindingClusterSelection($currentCluster, $options);
-
-        $this->UpdateFormField('BindingClusters', 'options', json_encode($options));
-        $this->UpdateFormField('BindingClusters', 'value', $selectedCluster);
-
-        return true;
-    }
-
-    /**
-     * Aktualisiert die Reporting-Cluster- und Attributauswahl bei Wechsel von Endpoint oder Cluster.
-     */
-    protected function UpdateReportingSelectionFromForm(mixed $value): bool
-    {
-        $selection = $this->DecodeDeviceOptionFormPayload($value);
-        if ($selection === null) {
-            return false;
-        }
-
-        $endpoint = trim((string) ($selection['endpoint'] ?? ''));
-        $currentCluster = trim((string) ($selection['cluster'] ?? ''));
-        $currentAttribute = trim((string) ($selection['attribute'] ?? ''));
-
-        $clusterOptions = $this->BuildReportingClusterOptions($endpoint);
-        $selectedCluster = $this->ResolveSelectOptionValue($currentCluster, $clusterOptions);
-        $attributeOptions = $this->BuildReportingAttributeOptions($endpoint, $selectedCluster);
-        $selectedAttribute = $this->ResolveSelectOptionValue($currentAttribute, $attributeOptions);
-
-        $this->UpdateFormField('ReportingCluster', 'options', json_encode($clusterOptions));
-        $this->UpdateFormField('ReportingCluster', 'value', $selectedCluster);
-        $this->UpdateFormField('ReportingAttribute', 'options', json_encode($attributeOptions));
-        $this->UpdateFormField('ReportingAttribute', 'value', $selectedAttribute);
-
-        return true;
-    }
-
-    /**
-     * Konfiguriert Zigbee-Reporting fuer ein Attribut.
-     */
-    protected function ConfigureReportingFromForm(mixed $value): bool
-    {
-        $selection = $this->DecodeDeviceOptionFormPayload($value);
-        if ($selection === null) {
-            return false;
-        }
-
-        $endpoint = trim((string) ($selection['endpoint'] ?? ''));
-        $cluster = trim((string) ($selection['cluster'] ?? ''));
-        $attribute = trim((string) ($selection['attribute'] ?? ''));
-        if ($cluster === '' || $attribute === '') {
-            trigger_error($this->Translate('Cluster and attribute are required.'), E_USER_NOTICE);
-            return false;
-        }
-
-        return $this->CallMatchingBridgeFunction('ConfigureReporting', [
-            $this->ReadPropertyString(self::MQTT_TOPIC),
-            $endpoint,
-            $cluster,
-            $attribute,
-            (int) ($selection['minimum'] ?? 0),
-            (int) ($selection['maximum'] ?? 65535),
-            (string) ($selection['change'] ?? ''),
-            (string) ($selection['options'] ?? '')
-        ]) === true;
-    }
-
-    /**
-     * Liest Zigbee-Reporting fuer ein Attribut und zeigt die Antwort in der Form.
-     */
-    protected function ReadReportingFromForm(mixed $value): bool
-    {
-        $selection = $this->DecodeDeviceOptionFormPayload($value);
-        if ($selection === null) {
-            return false;
-        }
-
-        $endpoint = trim((string) ($selection['endpoint'] ?? ''));
-        $cluster = trim((string) ($selection['cluster'] ?? ''));
-        $attribute = trim((string) ($selection['attribute'] ?? ''));
-        if ($cluster === '' || $attribute === '') {
-            trigger_error($this->Translate('Cluster and attribute are required.'), E_USER_NOTICE);
-            return false;
-        }
-
-        $result = $this->CallMatchingBridgeFunction('ReadReporting', [
-            $this->ReadPropertyString(self::MQTT_TOPIC),
-            $endpoint,
-            $cluster,
-            json_encode([$attribute], JSON_UNESCAPED_SLASHES | JSON_UNESCAPED_UNICODE),
-            ''
-        ]);
-        if (!\is_string($result) || $result === '') {
-            return false;
-        }
-
-        $this->UpdateFormField('ReportingResult', 'visible', true);
-        $this->UpdateFormField('ReportingResult', 'caption', $this->Translate('Reporting result:') . ' ' . $result);
-
-        return true;
     }
 
     /**
@@ -827,10 +929,9 @@ trait DeviceFormHelper
     {
         $targets = [];
         foreach ([
+            $this->LoadBindingTargetDevicesFromBridgeCache(),
             $this->LoadBindingTargetDevicesFromInstances(),
-            $this->LoadBindingTargetGroupsFromInstances(),
-            $this->LoadBindingTargetDevicesFromExtension(),
-            $this->LoadBindingTargetGroupsFromExtension()
+            $this->LoadBindingTargetGroupsFromInstances()
         ] as $source) {
             foreach ($source as $target) {
                 $value = trim((string) ($target['value'] ?? ''));
@@ -1041,6 +1142,11 @@ trait DeviceFormHelper
      */
     private function ReadBindingTargetDeviceList(): array
     {
+        $cachedDevices = $this->ReadBindingTargetCachedDeviceList();
+        if ($cachedDevices !== []) {
+            return $cachedDevices;
+        }
+
         $result = @$this->SendData(self::SYMCON_EXTENSION_LIST_REQUEST . 'getDevices', [], 2500);
         if (!\is_array($result) || !\is_array($result['list'] ?? null)) {
             return [];
@@ -1456,11 +1562,11 @@ trait DeviceFormHelper
                 'batteryPercentageRemaining',
                 'batteryAlarmState'
             ],
-            'genOnOff' => ['onOff'],
+            'genOnOff'     => ['onOff'],
             'genLevelCtrl' => ['currentLevel'],
             'genAnalogInput',
             'genBinaryInput',
-            'genMultistateInput' => ['presentValue'],
+            'genMultistateInput'     => ['presentValue'],
             'closuresWindowCovering' => [
                 'currentPositionLiftPercentage',
                 'currentPositionTiltPercentage',
@@ -1476,12 +1582,12 @@ trait DeviceFormHelper
             ],
             'msIlluminanceMeasurement',
             'msTemperatureMeasurement',
-            'msFlowMeasurement' => ['measuredValue'],
+            'msFlowMeasurement'     => ['measuredValue'],
             'msPressureMeasurement' => ['measuredValue', 'scaledValue'],
-            'msRelativeHumidity' => ['measuredValue'],
-            'msOccupancySensing' => ['occupancy'],
-            'ssIasZone' => ['zoneStatus'],
-            'seMetering' => [
+            'msRelativeHumidity'    => ['measuredValue'],
+            'msOccupancySensing'    => ['occupancy'],
+            'ssIasZone'             => ['zoneStatus'],
+            'seMetering'            => [
                 'currentSummDelivered',
                 'currentSummReceived',
                 'instantaneousDemand',
@@ -1599,22 +1705,13 @@ trait DeviceFormHelper
     }
 
     /**
-     * Fragt Zigbee2MQTT nach bekannten Geraeten als Binding-Ziele.
+     * Liest bekannte Geraete aus dem Bridge-Cache als Binding-Ziele.
      */
-    private function LoadBindingTargetDevicesFromExtension(): array
+    private function LoadBindingTargetDevicesFromBridgeCache(): array
     {
-        if (!$this->HasActiveParent()) {
-            return [];
-        }
-
         $currentTopic = $this->ReadPropertyString(self::MQTT_TOPIC);
-        $result = @$this->SendData(self::SYMCON_EXTENSION_LIST_REQUEST . 'getDevices', [], 2500);
-        if (!\is_array($result) || !\is_array($result['list'] ?? null)) {
-            return [];
-        }
-
         $targets = [];
-        foreach ($result['list'] as $device) {
+        foreach ($this->ReadBindingTargetCachedDeviceList() as $device) {
             if (!\is_array($device) || ($device['type'] ?? '') === 'Coordinator') {
                 continue;
             }
@@ -1634,37 +1731,22 @@ trait DeviceFormHelper
     }
 
     /**
-     * Fragt Zigbee2MQTT nach bekannten Gruppen als Binding-Ziele.
+     * Liest bekannte Geraete aus dem Bridge-Cache.
      */
-    private function LoadBindingTargetGroupsFromExtension(): array
+    private function ReadBindingTargetCachedDeviceList(): array
     {
-        if (!$this->HasActiveParent()) {
+        $bridgeID = $this->FindMatchingBridgeInstanceID();
+        if ($bridgeID === false || !\function_exists('Z2M_GetCachedNetworkDevices')) {
             return [];
         }
 
-        $result = @$this->SendData(self::SYMCON_EXTENSION_LIST_REQUEST . 'getGroups', [], 2500);
-        if (!\is_array($result) || !\is_array($result['list'] ?? null)) {
+        $result = \Z2M_GetCachedNetworkDevices($bridgeID);
+        if (!\is_string($result) || $result === '') {
             return [];
         }
 
-        $targets = [];
-        foreach ($result['list'] as $group) {
-            if (!\is_array($group)) {
-                continue;
-            }
-
-            $topic = trim((string) ($group['friendly_name'] ?? ''));
-            if ($topic === '') {
-                continue;
-            }
-
-            $targets[] = [
-                'caption' => $this->BuildBindingTargetCaption('Group', $topic, ''),
-                'value'   => $topic
-            ];
-        }
-
-        return $targets;
+        $decoded = json_decode($result, true);
+        return \is_array($decoded) ? $decoded : [];
     }
 
     /**
@@ -1882,10 +1964,10 @@ trait DeviceFormHelper
         }
 
         return match ($editor) {
-            'boolean'   => $selection['boolean'] ?? $selection['value'] ?? false,
-            'select'    => (string) ($selection['selection'] ?? $selection['value'] ?? ''),
+            'boolean'    => $selection['boolean'] ?? $selection['value'] ?? false,
+            'select'     => (string) ($selection['selection'] ?? $selection['value'] ?? ''),
             'attributes' => (string) ($selection['value'] ?? '[]'),
-            default     => (string) ($selection['value'] ?? '')
+            default      => (string) ($selection['value'] ?? '')
         };
     }
 
@@ -1960,46 +2042,6 @@ trait DeviceFormHelper
         }
 
         return $rawValue;
-    }
-
-    /**
-     * Fuegt ein Attribut in einen Listen-Editor ein.
-     */
-    protected function AddDeviceOptionAttributeFromForm(mixed $value): bool
-    {
-        $selection = $this->DecodeDeviceOptionFormPayload($value);
-        if ($selection === null) {
-            return false;
-        }
-
-        $attribute = trim((string) ($selection['attribute'] ?? ''));
-        $selected = $this->DecodeDeviceOptionAttributeSelection((string) ($selection['value'] ?? '[]'));
-        if ($attribute !== '' && !\in_array($attribute, $selected, true)) {
-            $selected[] = $attribute;
-        }
-
-        $this->UpdateDeviceOptionAttributeEditor($selected);
-        return true;
-    }
-
-    /**
-     * Entfernt ein Attribut aus einem Listen-Editor.
-     */
-    protected function RemoveDeviceOptionAttributeFromForm(mixed $value): bool
-    {
-        $selection = $this->DecodeDeviceOptionFormPayload($value);
-        if ($selection === null) {
-            return false;
-        }
-
-        $attribute = trim((string) ($selection['attribute'] ?? ''));
-        $selected = array_values(array_filter(
-            $this->DecodeDeviceOptionAttributeSelection((string) ($selection['value'] ?? '[]')),
-            static fn (string $entry): bool => $entry !== $attribute
-        ));
-
-        $this->UpdateDeviceOptionAttributeEditor($selected);
-        return true;
     }
 
     /**
@@ -2238,53 +2280,6 @@ trait DeviceFormHelper
     }
 
     /**
-     * Ruft eine Funktion der passenden Bridge-Instanz auf.
-     */
-    protected function CallMatchingBridgeFunction(string $function, array $arguments): mixed
-    {
-        $bridgeID = $this->FindMatchingBridgeInstanceID();
-        $functionName = 'Z2M_' . $function;
-        if ($bridgeID === false || !\function_exists($functionName)) {
-            trigger_error($this->Translate('No matching bridge instance found.'), E_USER_NOTICE);
-            return false;
-        }
-
-        return $functionName($bridgeID, ...$arguments);
-    }
-
-    /**
-     * Ergaenzt Endpoint-Daten um den Bridge-Cache aus bridge/devices.
-     */
-    protected function MergeBridgeCachedDeviceEndpoints(array $endpoints): array
-    {
-        $cachedEndpoints = $this->ReadBridgeCachedDeviceEndpoints();
-        if ($cachedEndpoints === []) {
-            return $endpoints;
-        }
-
-        return $this->MergeEndpointCollections($endpoints, $cachedEndpoints);
-    }
-
-    /**
-     * Liest gecachte Endpoint-Daten von der Bridge, ohne beim Fehlen eine Notice zu erzeugen.
-     */
-    protected function ReadBridgeCachedDeviceEndpoints(): array
-    {
-        $bridgeID = $this->FindMatchingBridgeInstanceID();
-        if ($bridgeID === false || !\function_exists('Z2M_GetCachedDeviceEndpoints')) {
-            return [];
-        }
-
-        $result = \Z2M_GetCachedDeviceEndpoints($bridgeID, $this->ReadPropertyString(self::MQTT_TOPIC));
-        if (!\is_string($result) || $result === '') {
-            return [];
-        }
-
-        $decoded = json_decode($result, true);
-        return \is_array($decoded) ? $decoded : [];
-    }
-
-    /**
      * Fuehrt zwei Endpoint-Listen anhand ihrer Endpoint-ID zusammen.
      */
     private function MergeEndpointCollections(array $primary, array $fallback): array
@@ -2369,21 +2364,6 @@ trait DeviceFormHelper
     }
 
     /**
-     * Findet die Bridge-Instanz zum gleichen MQTT-Basistopic.
-     */
-    protected function FindMatchingBridgeInstanceID(): int|false
-    {
-        $baseTopic = $this->ReadPropertyString(self::MQTT_BASE_TOPIC);
-        foreach (IPS_GetInstanceListByModuleID(self::GUID_MODULE_BRIDGE) as $bridgeID) {
-            if (@IPS_GetProperty($bridgeID, self::MQTT_BASE_TOPIC) === $baseTopic) {
-                return $bridgeID;
-            }
-        }
-
-        return false;
-    }
-
-    /**
      * Normalisiert Z2M- und Formular-Typbezeichnungen.
      */
     private function NormalizeDeviceOptionType(string $type): string
@@ -2403,7 +2383,7 @@ trait DeviceFormHelper
             'enum',
             'select' => 'enum',
             'string',
-            'text' => 'text',
+            'text'  => 'text',
             default => 'mixed'
         };
     }
