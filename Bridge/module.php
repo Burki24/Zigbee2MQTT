@@ -80,7 +80,7 @@ class Zigbee2MQTTBridge extends IPSModuleStrict
         $this->installedZhVersion = 0;
         $this->ExtensionFilename = '';
         $this->ConfigLastSeen = 'epoch';
-        $this->TransactionData = [];
+        $this->ClearTransactionData();
         $this->ConfigPermitJoin = false;
 
         $this->RegisterAttributeArray(self::ATTRIBUTE_DIAGNOSTIC_HEALTH, []);
@@ -127,7 +127,7 @@ class Zigbee2MQTTBridge extends IPSModuleStrict
     public function ApplyChanges(): void
     {
         // Empty TransactionQueue
-        $this->TransactionData = [];
+        $this->ClearTransactionData();
 
         //Never delete this line!
         parent::ApplyChanges();
@@ -2807,7 +2807,7 @@ class Zigbee2MQTTBridge extends IPSModuleStrict
             trigger_error((string) $Result['error'], E_USER_NOTICE);
             return false;
         }
-        if (($Result['status'] ?? '') !== 'ok') {
+        if (isset($Result['status']) && $Result['status'] !== 'ok') {
             trigger_error(sprintf($this->Translate('Zigbee2MQTT request failed on Topic %s'), $Topic), E_USER_NOTICE);
             return false;
         }

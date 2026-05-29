@@ -438,8 +438,7 @@ class BridgeTest extends TestCase
     public function testCreateBackupReturnsBase64Zip(): void
     {
         $bridge = $this->createBridgeTestDouble([
-            'status' => 'ok',
-            'data'   => [
+            'data' => [
                 'zip' => 'WklHQkVFMk1RVFQuUk9DS1M='
             ]
         ]);

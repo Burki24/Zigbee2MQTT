@@ -7,7 +7,8 @@ namespace Zigbee2MQTT;
 require_once __DIR__ . '/ModuleConstants.php';
 
 /**
- * @property array $TransactionData Array welches in einem Instanz-Buffer abgelegt wird und aktuelle Anfragen und Antworten von/zur Z2M Bridge enthält
+ * @property array $TransactionData Legacy-Buffer fuer aktuelle Anfragen und Antworten von/zur Z2M Bridge
+ * @property array $Multi_TransactionData Gesplitteter Buffer fuer aktuelle Anfragen und Antworten von/zur Z2M Bridge
  */
 trait SendData
 {
@@ -129,6 +130,14 @@ trait SendData
     }
 
     /**
+     * Leert den Transaction-Buffer inklusive Legacy-Buffer.
+     */
+    protected function ClearTransactionData(): void
+    {
+        $this->SetTransactionDataBuffer([]);
+    }
+
+    /**
      * Dekodiert Command-Payloads robust, damit oeffentliche Z2M_Command-Aufrufe
      * bei ungueltigem JSON nicht in einen TypeError laufen.
      */
@@ -164,15 +173,7 @@ trait SendData
         );
 
         while (microtime(true) < $Deadline) {
-            $Buffer = $this->TransactionData;
-            if (!\is_array($Buffer)) {
-                $this->SendDebug(
-                    __FUNCTION__ . ':Abort',
-                    \sprintf('Transaction buffer missing before timeout for transaction %d', $TransactionId),
-                    0
-                );
-                return false;
-            }
+            $Buffer = $this->GetTransactionDataBuffer();
             if (!isset($Buffer[$TransactionId])) {
                 $this->SendDebug(
                     __FUNCTION__ . ':Abort',
@@ -232,10 +233,7 @@ trait SendData
         }
         $TransactionId = mt_rand(1, 10000);
         $Payload['transaction'] = $TransactionId;
-        $TransactionData = $this->TransactionData;
-        if (!\is_array($TransactionData)) {
-            $TransactionData = [];
-        }
+        $TransactionData = $this->GetTransactionDataBuffer();
         $TransactionData[$TransactionId] = [
             '__meta'   => [
                 'requestTopic'  => self::NormalizeTransactionTopic($Topic),
@@ -243,7 +241,7 @@ trait SendData
             ],
             '__result' => null
         ];
-        $this->TransactionData = $TransactionData;
+        $this->SetTransactionDataBuffer($TransactionData);
         $this->unlock('TransactionData');
         return $TransactionId;
     }
@@ -261,13 +259,10 @@ trait SendData
         if (!$this->lock('TransactionData')) {
             throw new \Exception($this->Translate('Transaction Data is locked'), E_USER_NOTICE);
         }
-        $TransactionData = $this->TransactionData;
-        if (!\is_array($TransactionData)) {
-            $TransactionData = [];
-        }
+        $TransactionData = $this->GetTransactionDataBuffer();
         if (isset($TransactionData[$Data['transaction']])) {
             $TransactionData[$Data['transaction']] = $this->SetTransactionResult($TransactionData[$Data['transaction']], $Data);
-            $this->TransactionData = $TransactionData;
+            $this->SetTransactionDataBuffer($TransactionData);
             $this->unlock('TransactionData');
             return;
         }
@@ -294,10 +289,7 @@ trait SendData
             throw new \Exception($this->Translate('Transaction Data is locked'), E_USER_NOTICE);
         }
 
-        $TransactionData = $this->TransactionData;
-        if (!\is_array($TransactionData)) {
-            $TransactionData = [];
-        }
+        $TransactionData = $this->GetTransactionDataBuffer();
         foreach ($TransactionData as $TransactionId => $Transaction) {
             if (!\is_array($Transaction)) {
                 continue;
@@ -310,7 +302,7 @@ trait SendData
 
             $Data['transaction'] = (int) $TransactionId;
             $TransactionData[$TransactionId] = $this->SetTransactionResult($Transaction, $Data);
-            $this->TransactionData = $TransactionData;
+            $this->SetTransactionDataBuffer($TransactionData);
             $this->unlock('TransactionData');
             $this->SendDebug(
                 __FUNCTION__,
@@ -380,6 +372,35 @@ trait SendData
     }
 
     /**
+     * Liest Transaktionen aus dem gesplitteten Buffer und faellt bei alten
+     * Installationen auf den Legacy-Buffer zurueck.
+     */
+    private function GetTransactionDataBuffer(): array
+    {
+        $TransactionData = $this->Multi_TransactionData;
+        if (\is_array($TransactionData)) {
+            return $TransactionData;
+        }
+
+        $LegacyTransactionData = $this->TransactionData;
+        if (\is_array($LegacyTransactionData)) {
+            return $LegacyTransactionData;
+        }
+
+        return [];
+    }
+
+    /**
+     * Speichert Transaktionen im gesplitteten Buffer, damit grosse Antworten
+     * wie Backup-ZIPs den Symcon-Buffer nicht ungueltig machen.
+     */
+    private function SetTransactionDataBuffer(array $TransactionData): void
+    {
+        $this->Multi_TransactionData = $TransactionData;
+        $this->TransactionData = [];
+    }
+
+    /**
      * RemoveTransaction
      *
      * Entfernt den Eintrag der TransactionId aus dem Buffer TransactionData.
@@ -392,12 +413,9 @@ trait SendData
         if (!$this->lock('TransactionData')) {
             throw new \Exception($this->Translate('Transaction Data is locked'), E_USER_NOTICE);
         }
-        $TransactionData = $this->TransactionData;
-        if (!\is_array($TransactionData)) {
-            $TransactionData = [];
-        }
+        $TransactionData = $this->GetTransactionDataBuffer();
         unset($TransactionData[$TransactionId]);
-        $this->TransactionData = $TransactionData;
+        $this->SetTransactionDataBuffer($TransactionData);
         $this->unlock('TransactionData');
     }
 

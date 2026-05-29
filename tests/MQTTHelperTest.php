@@ -21,6 +21,7 @@ class MQTTHelperTest extends TestCase
             }
 
             public array $TransactionData = [];
+            public array $Multi_TransactionData = [];
             public array $sentRequests = [];
             public array $debugMessages = [];
 

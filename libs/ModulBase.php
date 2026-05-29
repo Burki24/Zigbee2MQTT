@@ -32,6 +32,7 @@ require_once __DIR__ . '/ColorHelper.php';
  * @property bool $BUFFER_PROCESSING_MIGRATION Zugriff auf den Buffer für MQTT Nachrichten nicht verarbeiten
  * @property string $lastPayload Zugriff auf den Buffer welcher das Letzte Payload enthält (für Download-Button)
  * @property array $missingTranslations Zugriff auf den Buffer welcher ein array von fehlenden Übersetzungen enthält (für Download-Button)
+ * @property array $Multi_TransactionData Zugriff auf den gesplitteten Transaction-Buffer
  */
 abstract class ModulBase extends \IPSModuleStrict
 {
@@ -443,7 +444,7 @@ abstract class ModulBase extends \IPSModuleStrict
         // Init Buffers
         $this->BUFFER_MQTT_SUSPENDED = true;
         $this->BUFFER_PROCESSING_MIGRATION = false;
-        $this->TransactionData = [];
+        $this->ClearTransactionData();
         $this->lastPayload = [];
         $this->missingTranslations = [];
 
@@ -498,7 +499,7 @@ abstract class ModulBase extends \IPSModuleStrict
 
         $BaseTopic = $this->ReadPropertyString(self::MQTT_BASE_TOPIC);
         $MQTTTopic = $this->ReadPropertyString(self::MQTT_TOPIC);
-        $this->TransactionData = [];
+        $this->ClearTransactionData();
         if (empty($BaseTopic) || empty($MQTTTopic)) {
             $this->SetStatus(IS_INACTIVE);
             $this->SetReceiveDataFilter('NOTHING_TO_RECEIVE'); //block all
@@ -1292,7 +1293,9 @@ abstract class ModulBase extends \IPSModuleStrict
             'BUFFER_PROCESSING_MIGRATION' => true,
             'lastPayload',
             'missingTranslations',
-            'brightnessConfig'            => [],
+            'brightnessConfig',
+            'TransactionData',
+            'Multi_TransactionData'       => [],
             default                       => false
         };
     }
