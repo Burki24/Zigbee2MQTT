@@ -63,6 +63,8 @@ class Zigbee2MQTTBridge extends IPSModuleStrict
     private const ATTRIBUTE_OTA_UPDATE_RESULTS = 'OTAUpdateResults';
     private const ATTRIBUTE_PENDING_OTA_UPDATE = 'PendingOTAUpdate';
     private const ATTRIBUTE_OTA_PENDING_REQUESTS = 'OTAPendingRequests';
+    private const ATTRIBUTE_OTA_MONITORED_DEVICES = 'OTAMonitoredDevices';
+    private const ATTRIBUTE_OTA_MONITORED_VARIABLES = 'OTAMonitoredVariables';
     private const MAX_DIAGNOSTIC_ENTRIES = 50;
     private const MAX_OTA_RESULT_ENTRIES = 25;
     private const OTA_CHECK_RESULT_LIFETIME = 300;
@@ -107,6 +109,8 @@ class Zigbee2MQTTBridge extends IPSModuleStrict
         $this->RegisterAttributeArray(self::ATTRIBUTE_OTA_UPDATE_RESULTS, []);
         $this->RegisterAttributeArray(self::ATTRIBUTE_PENDING_OTA_UPDATE, []);
         $this->RegisterAttributeArray(self::ATTRIBUTE_OTA_PENDING_REQUESTS, []);
+        $this->RegisterAttributeArray(self::ATTRIBUTE_OTA_MONITORED_DEVICES, []);
+        $this->RegisterAttributeArray(self::ATTRIBUTE_OTA_MONITORED_VARIABLES, []);
     }
 
     /**
@@ -202,6 +206,26 @@ class Zigbee2MQTTBridge extends IPSModuleStrict
                     @$this->InstallSymconExtension();
                 }
             }
+        }
+        $this->SynchronizeOTAMessageSubscriptions();
+    }
+
+    /**
+     * Aktualisiert die OTA-Übersicht bei Änderungen an beobachteten Device-Variablen.
+     */
+    public function MessageSink(int $TimeStamp, int $SenderID, int $Message, array $Data): void
+    {
+        if ($Message === VM_UPDATE && \in_array($SenderID, $this->ReadAttributeArray(self::ATTRIBUTE_OTA_MONITORED_VARIABLES), true)) {
+            $this->UpdateOTAFormLists();
+            return;
+        }
+
+        if (
+            \in_array($Message, [OM_CHILDADDED, OM_CHILDREMOVED], true) &&
+            \in_array($SenderID, $this->ReadAttributeArray(self::ATTRIBUTE_OTA_MONITORED_DEVICES), true)
+        ) {
+            $this->SynchronizeOTAMessageSubscriptions();
+            $this->UpdateOTAFormLists();
         }
     }
 
@@ -1912,6 +1936,7 @@ class Zigbee2MQTTBridge extends IPSModuleStrict
      */
     private function BuildBridgeConfigurationForm(array $form): array
     {
+        $this->SynchronizeOTAMessageSubscriptions();
         $availableDevices = $this->BuildNetworkSecurityAvailableDeviceFormValues();
         $this->SetBridgeFormField($form, 'NetworkSecurityAvailableDeviceList', 'values', $availableDevices);
         $this->SetBridgeFormField($form, 'NetworkSecurityAvailableDeviceList', 'rowCount', min(10, max(4, \count($availableDevices) + 1)));
@@ -2198,6 +2223,7 @@ class Zigbee2MQTTBridge extends IPSModuleStrict
      */
     private function UpdateOTAFormLists(): void
     {
+        $this->SynchronizeOTAMessageSubscriptions();
         $rows = $this->BuildOTADeviceRows();
         $availableRows = $this->FilterOTADeviceRowsByState($rows, ['available']);
         $activeRows = $this->FilterOTADeviceRowsByState($rows, ['requested', 'scheduled', 'updating']);
@@ -2209,6 +2235,72 @@ class Zigbee2MQTTBridge extends IPSModuleStrict
         $this->UpdateFormField('OTAActiveUpdates', 'values', json_encode($this->BuildOTAActiveUpdateFormValues($activeRows)));
         $this->UpdateFormField('OTAActiveUpdates', 'rowCount', min(8, max(3, \count($activeRows) + 1)));
         $this->UpdateFormField('OTAUpdateResults', 'values', json_encode($this->BuildOTAUpdateResultFormValues()));
+    }
+
+    /**
+     * Beobachtet OTA-Variablen und neue Kinder der zugehörigen Device-Instanzen.
+     */
+    private function SynchronizeOTAMessageSubscriptions(): void
+    {
+        $baseTopic = $this->ReadPropertyString(self::MQTT_BASE_TOPIC);
+        $deviceIDs = [];
+        $variableIDs = [];
+        if ($baseTopic !== '') {
+            $networkDevices = $this->BuildOTANetworkDeviceMap();
+            foreach (IPS_GetInstanceListByModuleID(self::GUID_MODULE_DEVICE) as $instanceID) {
+                if (@IPS_GetProperty($instanceID, self::MQTT_BASE_TOPIC) !== $baseTopic) {
+                    continue;
+                }
+
+                $otaVariableIDs = [];
+                foreach (IPS_GetChildrenIDs($instanceID) as $childID) {
+                    if (!IPS_ObjectExists($childID)) {
+                        continue;
+                    }
+
+                    $object = IPS_GetObject($childID);
+                    if ($object['ObjectType'] === OBJECTTYPE_VARIABLE && str_starts_with((string) $object['ObjectIdent'], 'update__')) {
+                        $otaVariableIDs[] = $childID;
+                    }
+                }
+
+                $deviceName = trim((string) @IPS_GetProperty($instanceID, self::MQTT_TOPIC), '/');
+                $ieeeAddress = strtolower((string) @IPS_GetProperty($instanceID, 'IEEE'));
+                $networkDevice = $networkDevices[$deviceName] ?? $networkDevices[$ieeeAddress] ?? [];
+                if (!(bool) ($networkDevice['supports_ota'] ?? false) && $otaVariableIDs === []) {
+                    continue;
+                }
+
+                $deviceIDs[] = $instanceID;
+                array_push($variableIDs, ...$otaVariableIDs);
+            }
+        }
+
+        sort($deviceIDs);
+        sort($variableIDs);
+        $previousDeviceIDs = $this->ReadAttributeArray(self::ATTRIBUTE_OTA_MONITORED_DEVICES);
+        $previousVariableIDs = $this->ReadAttributeArray(self::ATTRIBUTE_OTA_MONITORED_VARIABLES);
+        foreach (array_diff($previousDeviceIDs, $deviceIDs) as $instanceID) {
+            $this->UnregisterMessage((int) $instanceID, OM_CHILDADDED);
+            $this->UnregisterMessage((int) $instanceID, OM_CHILDREMOVED);
+        }
+        foreach (array_diff($previousVariableIDs, $variableIDs) as $variableID) {
+            $this->UnregisterMessage((int) $variableID, VM_UPDATE);
+        }
+        foreach (array_diff($deviceIDs, $previousDeviceIDs) as $instanceID) {
+            $this->RegisterMessage((int) $instanceID, OM_CHILDADDED);
+            $this->RegisterMessage((int) $instanceID, OM_CHILDREMOVED);
+        }
+        foreach (array_diff($variableIDs, $previousVariableIDs) as $variableID) {
+            $this->RegisterMessage((int) $variableID, VM_UPDATE);
+        }
+
+        if ($previousDeviceIDs !== $deviceIDs) {
+            $this->WriteAttributeArray(self::ATTRIBUTE_OTA_MONITORED_DEVICES, $deviceIDs);
+        }
+        if ($previousVariableIDs !== $variableIDs) {
+            $this->WriteAttributeArray(self::ATTRIBUTE_OTA_MONITORED_VARIABLES, $variableIDs);
+        }
     }
 
     /**
@@ -3286,6 +3378,7 @@ class Zigbee2MQTTBridge extends IPSModuleStrict
         $this->WriteAttributeArray(self::ATTRIBUTE_NETWORK_DEVICES, $networkDevices);
         $this->WriteAttributeArray(self::ATTRIBUTE_DIAGNOSTIC_UNSUPPORTED_DEVICES, $unsupported);
         $this->WriteAttributeArray(self::ATTRIBUTE_DIAGNOSTIC_INTERVIEW_DEVICES, $interviewIssues);
+        $this->UpdateOTAFormLists();
     }
 
     /**

@@ -258,6 +258,32 @@ class BridgeTest extends TestCase
         $this->assertSame('idle', $this->readOTADeviceState($bridge));
     }
 
+    public function testBridgeOTAVariableUpdatesRefreshOpenFormAutomatically(): void
+    {
+        $bridge = $this->createBridgeTestDouble(true);
+        $bridge->setBaseTopicForTest('zigbee2mqtt');
+        $deviceID = $this->createConfiguredOTACapableDevice($bridge);
+        $stateID = IPS_CreateVariable(VARIABLETYPE_STRING);
+        IPS_SetParent($stateID, $deviceID);
+        IPS_SetIdent($stateID, 'update__state');
+        SetValue($stateID, 'updating');
+
+        $bridge->RequestAction('RefreshOTAStatus', true);
+        $progressID = IPS_CreateVariable(VARIABLETYPE_FLOAT);
+        IPS_SetParent($progressID, $deviceID);
+        IPS_SetIdent($progressID, 'update__progress');
+        SetValue($progressID, 1.1);
+        $bridge->MessageSink(0, $deviceID, OM_CHILDADDED, [$progressID]);
+        $this->assertContains($progressID, $bridge->readDiagnosticAttribute('OTAMonitoredVariables'));
+
+        $bridge->updatedFields = [];
+        SetValue($progressID, 12.5);
+        $bridge->MessageSink(0, $progressID, VM_UPDATE, [12.5, true, 1.1, time()]);
+        $values = json_decode($bridge->updatedFields['OTAActiveUpdates']['values'], true);
+
+        $this->assertSame('12,5 %', $values[0]['progress']);
+    }
+
     public function testSetDeviceOptionsUsesDeviceOptionsBridgeRequest(): void
     {
         $bridge = $this->createBridgeTestDouble([
