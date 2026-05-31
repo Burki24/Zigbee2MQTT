@@ -101,6 +101,8 @@ Der Bereich **Zigbee2MQTT-Wartung** stellt Werkzeuge für administrative Aufgabe
 
 Install-Codes können einmalig gesendet oder mit einer frei wählbaren Bezeichnung lokal in der Bridge-Instanz gespeichert und später erneut gesendet werden. An Zigbee2MQTT wird dabei ausschließlich der eigentliche Install-Code übertragen. Die Liste zeigt gespeicherte Codes nur maskiert an. Beim Bearbeiten kann das Code-Feld leer bleiben, wenn lediglich die Bezeichnung geändert werden soll.
 
+![Install-Codes](imgs/install-codes.png)
+
 > [!WARNING]
 > Gespeicherte Install-Codes sind sensible Daten. Die Maskierung schützt nur vor einem versehentlichen Ablesen in der Bridge-Konfiguration. Die Codes werden nicht verschlüsselt in einem privaten Bridge-Attribut gespeichert und können deshalb auch Bestandteil von Symcon-Backups sein. Speichern Sie Codes nur auf entsprechend geschützten Symcon-Systemen.
 
