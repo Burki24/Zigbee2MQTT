@@ -454,18 +454,6 @@ Leert die gesammelten Bridge-Events, Warnungen/Fehler und Gerätediagnosen. Die 
 
 ---
 
-### Z2M_CreateBackup <!-- omit in toc -->
-
-```php
-string Z2M_CreateBackup(int $InstanzID);
-```
-
-Erstellt über `bridge/request/backup` ein Zigbee2MQTT-Backup und gibt das von Zigbee2MQTT gelieferte Base64-kodierte ZIP zurück. Diese Funktion bleibt für eigene Skripte erhalten. Für die Bridge-Konfiguration wird wegen der Symcon-Ausgabegrenze stattdessen `Z2M_CreateBackupFile()` genutzt.
-
-Da große Zigbee2MQTT-Data-Verzeichnisse länger benötigen können, wartet der Backup-Request bis zu fünf Minuten auf die Antwort von Zigbee2MQTT.
-
----
-
 ### Z2M_CreateBackupFile <!-- omit in toc -->
 
 ```php
@@ -476,7 +464,9 @@ Erstellt ein Zigbee2MQTT-Backup und speichert es als ZIP-Datei auf dem Symcon-Se
 
 Der Bridge-Wartungsbereich nutzt diese Funktion über die Schaltfläche **Backup-Datei erstellen**. Nach erfolgreicher Erstellung zeigt ein Popup den vollständigen Speicherpfad der ZIP-Datei an.
 
-Direkte Formular-Downloads sind in Symcon durch den Ausgabepuffer begrenzt. Größere Zigbee2MQTT-Backups können sonst mit `Output-Buffer exceeds Limit` abbrechen.
+Da große Zigbee2MQTT-Data-Verzeichnisse länger benötigen können, wartet der Backup-Request bis zu fünf Minuten auf die Antwort von Zigbee2MQTT.
+
+Die Backupdaten werden intern dateibasiert verarbeitet. Eine öffentliche Base64-Rückgabe und direkte Formular-Downloads werden bewusst nicht angeboten: Größere Zigbee2MQTT-Backups können sonst durch die Symcon-Ausgabegrenze mit `Output-Buffer exceeds Limit` abbrechen.
 
 ---
 

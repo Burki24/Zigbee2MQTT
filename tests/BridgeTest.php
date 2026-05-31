@@ -446,20 +446,6 @@ class BridgeTest extends TestCase
         $this->assertSame(['0x000b57fffec6a5b3'], $bridge->readDiagnosticAttribute('ConfigPasslist'));
     }
 
-    public function testCreateBackupReturnsBase64Zip(): void
-    {
-        $bridge = $this->createBridgeTestDouble([
-            'data' => [
-                'zip' => 'WklHQkVFMk1RVFQuUk9DS1M='
-            ]
-        ]);
-
-        $this->assertSame('WklHQkVFMk1RVFQuUk9DS1M=', $bridge->CreateBackup());
-        $this->assertSame('/bridge/request/backup', $bridge->lastTopic);
-        $this->assertSame([], $bridge->lastPayload);
-        $this->assertSame(300000, $bridge->lastTimeout);
-    }
-
     public function testCreateBackupFileStoresDecodedZip(): void
     {
         $bridge = $this->createBridgeTestDouble([
@@ -472,7 +458,49 @@ class BridgeTest extends TestCase
         $this->assertFileExists($file);
         $this->assertSame('ZIP-CONTENT', file_get_contents($file));
         $this->assertStringContainsString('IPSZigbee2MQTT', $file);
+        $this->assertSame('/bridge/request/backup', $bridge->lastTopic);
+        $this->assertSame([], $bridge->lastPayload);
+        $this->assertSame(300000, $bridge->lastTimeout);
         @unlink($file);
+    }
+
+    public function testCreateBackupFileStreamsTemporaryBase64FileAndRemovesIt(): void
+    {
+        $temporaryDirectory = sys_get_temp_dir() . DIRECTORY_SEPARATOR . 'IPSZigbee2MQTT';
+        @mkdir($temporaryDirectory, 0777, true);
+        $temporaryFile = tempnam($temporaryDirectory, 'backup-test-');
+        $this->assertIsString($temporaryFile);
+        $content = str_repeat('STREAMED-ZIP-CONTENT', 1000);
+        file_put_contents($temporaryFile, base64_encode($content));
+
+        $bridge = $this->createBridgeTestDouble([
+            'data' => [
+                'zip_file' => $temporaryFile
+            ]
+        ]);
+
+        $file = $bridge->CreateBackupFile();
+        $this->assertFileExists($file);
+        $this->assertSame($content, file_get_contents($file));
+        $this->assertFileDoesNotExist($temporaryFile);
+        @unlink($file);
+    }
+
+    public function testCreateBackupFileRejectsTemporaryFileOutsideTransactionDirectory(): void
+    {
+        $temporaryFile = tempnam(sys_get_temp_dir(), 'IPSZigbee2MQTT-test-');
+        $this->assertIsString($temporaryFile);
+        file_put_contents($temporaryFile, base64_encode('UNTRUSTED-ZIP-CONTENT'));
+
+        $bridge = $this->createBridgeTestDouble([
+            'data' => [
+                'zip_file' => $temporaryFile
+            ]
+        ]);
+
+        $this->assertSame('', $bridge->CreateBackupFile());
+        $this->assertFileExists($temporaryFile);
+        @unlink($temporaryFile);
     }
 
     public function testAddInstallCodeUsesInstallCodeRequest(): void

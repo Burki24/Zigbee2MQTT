@@ -266,7 +266,7 @@ Die Bridge-Oberfläche ist der unterstützte Weg: Archivierte oder referenzierte
 - Gruppenbefehle zeigen bei nicht erreichbaren Geräten eine verständliche Meldung in der Konfiguration, statt nur die Zigbee2MQTT-Fehlermeldung durchzureichen.
 - Die Bridge enthält einen Diagnosebereich für Health Check, Coordinator Check, Bridge-Events, Warnungen/Fehler sowie nicht unterstützte oder unvollständig interviewte Geräte.
 - Die Bridge kann globale Zigbee2MQTT-Blocklist und -Passlist verwalten; die Geräteauswahl nutzt bekannte Z2M-Geräte sowie vorhandene Device-Instanzen, Passlist-Änderungen werden wegen der restriktiven Wirkung mit einer Sicherheitsabfrage geschützt.
-- Die Bridge bietet Wartungsfunktionen für Zigbee2MQTT-Backups, Zigbee-3.0-Install-Codes und Touchlink-Scan/Identify/Factory-Reset. Backups aus der Konfiguration werden wegen der Symcon-Ausgabegrenze als ZIP-Datei unter `user/IPSZigbee2MQTT/backups` gespeichert.
+- Die Bridge bietet Wartungsfunktionen für Zigbee2MQTT-Backups, Zigbee-3.0-Install-Codes und Touchlink-Scan/Identify/Factory-Reset. Backups werden wegen der Symcon-Ausgabegrenze chunkweise als ZIP-Datei unter `user/IPSZigbee2MQTT/backups` gespeichert; eine öffentliche Base64-Rückgabe wird bewusst nicht angeboten.
 - Temperatur-Visualisierungen können einen konfigurierbaren Fallback-Bereich nutzen, wenn Zigbee2MQTT keine `value_min`/`value_max` Werte liefert.
 - Mindestversion auf IP-Symcon 9.0 angehoben, da das Modul auf `IPSModuleStrict` basiert.
 - Interne Struktur der Visualisierungs- und Variablenregistrierung refaktoriert, ohne die öffentlichen Modul-Funktionen zu ändern.
