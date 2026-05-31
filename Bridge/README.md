@@ -99,6 +99,11 @@ Die Variablen-Wartung ist der unterstützte Weg, um alte Zigbee2MQTT-Variablen a
 
 Der Bereich **Zigbee2MQTT-Wartung** stellt Werkzeuge für administrative Aufgaben bereit. Backups werden als ZIP-Datei auf dem Symcon-Server gespeichert. Zusätzlich können Zigbee-3.0-Install-Codes gesendet und Touchlink-Scan, Identify sowie Factory-Reset ausgeführt werden.
 
+Install-Codes können einmalig gesendet oder mit einer frei wählbaren Bezeichnung lokal in der Bridge-Instanz gespeichert und später erneut gesendet werden. An Zigbee2MQTT wird dabei ausschließlich der eigentliche Install-Code übertragen. Die Liste zeigt gespeicherte Codes nur maskiert an. Beim Bearbeiten kann das Code-Feld leer bleiben, wenn lediglich die Bezeichnung geändert werden soll.
+
+> [!WARNING]
+> Gespeicherte Install-Codes sind sensible Daten. Die Maskierung schützt nur vor einem versehentlichen Ablesen in der Bridge-Konfiguration. Die Codes werden nicht verschlüsselt in einem privaten Bridge-Attribut gespeichert und können deshalb auch Bestandteil von Symcon-Backups sein. Speichern Sie Codes nur auf entsprechend geschützten Symcon-Systemen.
+
 Touchlink-Scan und Touchlink-Factory-Reset können die Zigbee-Kommunikation kurzfristig stören. Ein Factory-Reset ohne ausgewähltes Ziel kann das nächste per Touchlink erreichbare Gerät zurücksetzen und sollte daher nur bewusst genutzt werden.
 
 ## 6. Statusvariablen
@@ -506,7 +511,9 @@ Die Backupdaten werden intern dateibasiert verarbeitet. Eine öffentliche Base64
 bool Z2M_AddInstallCode(int $InstanzID, string $Code);
 ```
 
-Sendet einen Zigbee-3.0-Install-Code an Zigbee2MQTT. Der Code wird nicht in Symcon gespeichert.
+Sendet einen Zigbee-3.0-Install-Code einmalig an Zigbee2MQTT. Der Code wird durch diese PHP-Funktion nicht in Symcon gespeichert.
+
+Die Bridge-Konfiguration bietet zusätzlich einen optionalen lokalen Install-Code-Katalog mit Bezeichnung, maskierter Anzeige sowie Aktionen zum erneuten Senden, Bearbeiten und bestätigten Löschen. Das Speichern in diesem Katalog erfolgt ausschließlich über die Bridge-Konfiguration.
 
 ---
 

@@ -83,6 +83,39 @@ class MQTTHelperTest extends TestCase
         $this->assertLessThan(120, \strlen($helper->debugMessages['LargePayload'][0]));
     }
 
+    public function testSensitiveDataIsSentButRedactedFromDebugOutput(): void
+    {
+        $helper = new class() {
+            use \Zigbee2MQTT\SendData {
+                SendSensitiveData as public sendSensitiveMqttData;
+            }
+
+            public array $debugMessages = [];
+            public array $sentRequests = [];
+
+            public function ReadPropertyString(string $name): string
+            {
+                return 'zigbee2mqtt';
+            }
+
+            public function SendDebug(string $message, mixed $data, int $format): void
+            {
+                $this->debugMessages[$message][] = (string) $data;
+            }
+
+            public function SendDataToParent(string $data): void
+            {
+                $this->sentRequests[] = json_decode($data, true);
+            }
+        };
+
+        $this->assertTrue($helper->sendSensitiveMqttData('/bridge/request/install_code/add', ['value' => 'SECRET'], 0));
+        $requestPayload = json_decode(hex2bin($helper->sentRequests[0]['Payload']) ?: '', true);
+        $this->assertSame(['value' => 'SECRET'], $requestPayload);
+        $this->assertSame('[redacted]', $helper->debugMessages['SendSensitiveData:Payload'][0]);
+        $this->assertStringNotContainsString('SECRET', json_encode($helper->debugMessages));
+    }
+
     public function testResponseWithoutTransactionIsMatchedByResponseTopic(): void
     {
         $helper = new class() {

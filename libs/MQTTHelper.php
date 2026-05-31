@@ -74,26 +74,15 @@ trait SendData
      */
     protected function SendData(string $Topic, array $Payload = [], int $Timeout = 5000): array|bool
     {
-        if ($Timeout) {
-            $TransactionId = $this->AddTransaction($Payload, $Topic);
-        }
+        return $this->SendDataInternal($Topic, $Payload, $Timeout, false);
+    }
 
-        $this->SendDebug(__FUNCTION__ . ':Topic', $Topic, 0);
-        $this->SendLimitedDebug(__FUNCTION__ . ':Payload', json_encode($Payload), 0);
-        $this->SendDebug(__FUNCTION__ . ':Timeout', (string) $Timeout, 0);
-        $DataJSON = self::BuildRequest($this->ReadPropertyString(self::MQTT_BASE_TOPIC) . $Topic, $Payload);
-        $this->SendDataToParent($DataJSON);
-
-        if ($Timeout) {
-            $Result = $this->WaitForTransactionEnd($TransactionId, $Timeout);
-            $this->SendLimitedDebug(__FUNCTION__ . ' :Result', json_encode($Result), 0);
-            if ($Result === false) {
-                trigger_error(\sprintf($this->Translate('Zigbee2MQTT did not response on Topic %s'), $Topic), E_USER_NOTICE);
-                return false;
-            }
-            return $Result;
-        }
-        return true;
+    /**
+     * Sendet sensible Daten an den Parent, ohne den Payload im Debug-Protokoll offenzulegen.
+     */
+    protected function SendSensitiveData(string $Topic, array $Payload = [], int $Timeout = 5000): array|bool
+    {
+        return $this->SendDataInternal($Topic, $Payload, $Timeout, true);
     }
 
     /**
@@ -154,6 +143,34 @@ trait SendData
         }
 
         $this->SendDebug($Message, $Data, $Format);
+        return true;
+    }
+
+    /**
+     * Sendet eine MQTT-Nachricht an den Parent und wartet optional auf die Antwort.
+     */
+    private function SendDataInternal(string $Topic, array $Payload, int $Timeout, bool $Sensitive): array|bool
+    {
+        if ($Timeout) {
+            $TransactionId = $this->AddTransaction($Payload, $Topic);
+        }
+
+        $DebugMethod = $Sensitive ? 'SendSensitiveData' : 'SendData';
+        $this->SendDebug($DebugMethod . ':Topic', $Topic, 0);
+        $this->SendLimitedDebug($DebugMethod . ':Payload', $Sensitive ? '[redacted]' : json_encode($Payload), 0);
+        $this->SendDebug($DebugMethod . ':Timeout', (string) $Timeout, 0);
+        $DataJSON = self::BuildRequest($this->ReadPropertyString(self::MQTT_BASE_TOPIC) . $Topic, $Payload);
+        $this->SendDataToParent($DataJSON);
+
+        if ($Timeout) {
+            $Result = $this->WaitForTransactionEnd($TransactionId, $Timeout);
+            $this->SendLimitedDebug($DebugMethod . ' :Result', $Sensitive ? '[redacted]' : json_encode($Result), 0);
+            if ($Result === false) {
+                trigger_error(\sprintf($this->Translate('Zigbee2MQTT did not response on Topic %s'), $Topic), E_USER_NOTICE);
+                return false;
+            }
+            return $Result;
+        }
         return true;
     }
 

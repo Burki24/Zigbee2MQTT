@@ -65,6 +65,8 @@ class Zigbee2MQTTBridge extends IPSModuleStrict
     private const ATTRIBUTE_OTA_PENDING_REQUESTS = 'OTAPendingRequests';
     private const ATTRIBUTE_OTA_MONITORED_DEVICES = 'OTAMonitoredDevices';
     private const ATTRIBUTE_OTA_MONITORED_VARIABLES = 'OTAMonitoredVariables';
+    private const ATTRIBUTE_INSTALL_CODE_CATALOG = 'InstallCodeCatalog';
+    private const ATTRIBUTE_PENDING_INSTALL_CODE_DELETE = 'PendingInstallCodeDelete';
     private const MAX_DIAGNOSTIC_ENTRIES = 50;
     private const MAX_OTA_RESULT_ENTRIES = 25;
     private const OTA_CHECK_RESULT_LIFETIME = 300;
@@ -111,6 +113,8 @@ class Zigbee2MQTTBridge extends IPSModuleStrict
         $this->RegisterAttributeArray(self::ATTRIBUTE_OTA_PENDING_REQUESTS, []);
         $this->RegisterAttributeArray(self::ATTRIBUTE_OTA_MONITORED_DEVICES, []);
         $this->RegisterAttributeArray(self::ATTRIBUTE_OTA_MONITORED_VARIABLES, []);
+        $this->RegisterAttributeArray(self::ATTRIBUTE_INSTALL_CODE_CATALOG, []);
+        $this->RegisterAttributeArray(self::ATTRIBUTE_PENDING_INSTALL_CODE_DELETE, []);
     }
 
     /**
@@ -454,6 +458,24 @@ class Zigbee2MQTTBridge extends IPSModuleStrict
                 break;
             case 'CreateBackupFile':
                 $this->CreateBackupFileFromForm();
+                break;
+            case 'SendInstallCode':
+                $this->SendInstallCodeFromForm($value);
+                break;
+            case 'SaveInstallCode':
+                $this->SaveInstallCodeFromForm($value);
+                break;
+            case 'SelectStoredInstallCode':
+                $this->SelectStoredInstallCodeFromForm($value);
+                break;
+            case 'SendStoredInstallCode':
+                $this->SendStoredInstallCodeFromForm($value);
+                break;
+            case 'RequestDeleteStoredInstallCode':
+                $this->RequestDeleteStoredInstallCodeFromForm($value);
+                break;
+            case 'ConfirmDeleteStoredInstallCode':
+                $this->ConfirmPendingStoredInstallCodeDelete();
                 break;
             case 'TouchlinkScan':
                 $this->TouchlinkScan();
@@ -1270,7 +1292,7 @@ class Zigbee2MQTTBridge extends IPSModuleStrict
             return false;
         }
 
-        return $this->SendCheckedBridgeRequest('/bridge/request/install_code/add', ['value' => $Code]) !== false;
+        return $this->SendCheckedSensitiveBridgeRequest('/bridge/request/install_code/add', ['value' => $Code]) !== false;
     }
 
     /**
@@ -1580,6 +1602,285 @@ class Zigbee2MQTTBridge extends IPSModuleStrict
         }
 
         return parent::SetValue($Ident, $Value);
+    }
+
+    /**
+     * Sendet einen Install-Code aus dem Bridge-Formular einmalig an Zigbee2MQTT.
+     */
+    private function SendInstallCodeFromForm(mixed $value): bool
+    {
+        $selection = $this->DecodeBridgeFormPayload($value);
+        $code = trim((string) ($selection['code'] ?? ''));
+        if ($code === '') {
+            $this->ShowInstallCodeMessage('Input required', 'Install code is required.');
+            return false;
+        }
+
+        if (!$this->AddInstallCode($code)) {
+            $this->ShowInstallCodeMessage('Install code could not be sent', 'Zigbee2MQTT did not accept the install code.');
+            return false;
+        }
+
+        $this->ClearInstallCodeEditor();
+        $this->ShowInstallCodeMessage('Install code sent', 'The install code was sent to Zigbee2MQTT.');
+        return true;
+    }
+
+    /**
+     * Speichert einen Install-Code lokal und sendet ihn anschliessend an Zigbee2MQTT.
+     */
+    private function SaveInstallCodeFromForm(mixed $value): bool
+    {
+        $selection = $this->DecodeBridgeFormPayload($value);
+        $id = trim((string) ($selection['id'] ?? ''));
+        $label = trim((string) ($selection['label'] ?? ''));
+        $code = trim((string) ($selection['code'] ?? ''));
+        if ($label === '') {
+            $this->ShowInstallCodeMessage('Input required', 'A label is required for stored install codes.');
+            return false;
+        }
+
+        $catalog = $this->ReadAttributeArray(self::ATTRIBUTE_INSTALL_CODE_CATALOG);
+        $existingIndex = $this->FindStoredInstallCodeIndex($catalog, $id);
+        if ($existingIndex !== null) {
+            if ($code === '') {
+                $code = (string) ($catalog[$existingIndex]['code'] ?? '');
+            }
+            $catalog[$existingIndex] = [
+                'id'    => $id,
+                'label' => $label,
+                'code'  => $code
+            ];
+        } else {
+            if ($code === '') {
+                $this->ShowInstallCodeMessage('Input required', 'Install code is required.');
+                return false;
+            }
+            $catalog[] = [
+                'id'    => bin2hex(random_bytes(8)),
+                'label' => $label,
+                'code'  => $code
+            ];
+        }
+
+        $this->WriteAttributeArray(self::ATTRIBUTE_INSTALL_CODE_CATALOG, $this->NormalizeStoredInstallCodeCatalog($catalog));
+        $this->UpdateStoredInstallCodeFormList();
+        $this->ClearInstallCodeEditor();
+
+        if (!$this->AddInstallCode($code)) {
+            $this->ShowInstallCodeMessage('Install code saved', 'The install code was saved locally but could not be sent to Zigbee2MQTT.');
+            return false;
+        }
+
+        $this->ShowInstallCodeMessage('Install code saved', 'The install code was saved locally and sent to Zigbee2MQTT.');
+        return true;
+    }
+
+    /**
+     * Uebernimmt einen gespeicherten Install-Code zur Bearbeitung in das Formular.
+     */
+    private function SelectStoredInstallCodeFromForm(mixed $value): bool
+    {
+        $selection = $this->DecodeBridgeFormPayload($value);
+        $entry = $this->FindStoredInstallCode((string) ($selection['id'] ?? ''));
+        if ($entry === null) {
+            $this->ShowInstallCodeMessage('Install code not found', 'The selected stored install code no longer exists.');
+            return false;
+        }
+
+        $this->UpdateFormField('InstallCodeCatalogID', 'value', (string) $entry['id']);
+        $this->UpdateFormField('InstallCodeLabel', 'value', (string) $entry['label']);
+        $this->UpdateFormField('InstallCode', 'value', '');
+        $this->UpdateFormField('InstallCodeEditorHint', 'visible', true);
+        return true;
+    }
+
+    /**
+     * Sendet einen lokal gespeicherten Install-Code erneut.
+     */
+    private function SendStoredInstallCodeFromForm(mixed $value): bool
+    {
+        $selection = $this->DecodeBridgeFormPayload($value);
+        $entry = $this->FindStoredInstallCode((string) ($selection['id'] ?? ''));
+        if ($entry === null) {
+            $this->ShowInstallCodeMessage('Install code not found', 'The selected stored install code no longer exists.');
+            return false;
+        }
+
+        if (!$this->AddInstallCode((string) $entry['code'])) {
+            $this->ShowInstallCodeMessage('Install code could not be sent', 'Zigbee2MQTT did not accept the install code.');
+            return false;
+        }
+
+        $this->ShowInstallCodeMessage('Install code sent', 'The install code was sent to Zigbee2MQTT.');
+        return true;
+    }
+
+    /**
+     * Oeffnet den Bestaetigungsdialog zum Loeschen eines gespeicherten Install-Codes.
+     */
+    private function RequestDeleteStoredInstallCodeFromForm(mixed $value): bool
+    {
+        $selection = $this->DecodeBridgeFormPayload($value);
+        $entry = $this->FindStoredInstallCode((string) ($selection['id'] ?? ''));
+        if ($entry === null) {
+            $this->ShowInstallCodeMessage('Install code not found', 'The selected stored install code no longer exists.');
+            return false;
+        }
+
+        $this->WriteAttributeArray(self::ATTRIBUTE_PENDING_INSTALL_CODE_DELETE, $entry);
+        $this->UpdateFormField(
+            'InstallCodeDeleteWarningText',
+            'caption',
+            \sprintf($this->Translate('Delete stored install code "%s"? This cannot be undone.'), (string) $entry['label'])
+        );
+        $this->UpdateFormField('InstallCodeDeleteWarning', 'visible', true);
+        return true;
+    }
+
+    /**
+     * Loescht den zuvor ausgewaehlten Install-Code nach Bestaetigung.
+     */
+    private function ConfirmPendingStoredInstallCodeDelete(): bool
+    {
+        $pending = $this->ReadAttributeArray(self::ATTRIBUTE_PENDING_INSTALL_CODE_DELETE);
+        $id = (string) ($pending['id'] ?? '');
+        $this->WriteAttributeArray(self::ATTRIBUTE_PENDING_INSTALL_CODE_DELETE, []);
+        $this->UpdateFormField('InstallCodeDeleteWarning', 'visible', false);
+        if ($id === '') {
+            $this->ShowInstallCodeMessage('Install code not found', 'The selected stored install code no longer exists.');
+            return false;
+        }
+
+        if ($this->FindStoredInstallCode($id) === null) {
+            $this->ShowInstallCodeMessage('Install code not found', 'The selected stored install code no longer exists.');
+            return false;
+        }
+
+        $catalog = array_values(array_filter(
+            $this->ReadAttributeArray(self::ATTRIBUTE_INSTALL_CODE_CATALOG),
+            static fn (mixed $entry): bool => !\is_array($entry) || (string) ($entry['id'] ?? '') !== $id
+        ));
+        $this->WriteAttributeArray(self::ATTRIBUTE_INSTALL_CODE_CATALOG, $this->NormalizeStoredInstallCodeCatalog($catalog));
+        $this->UpdateStoredInstallCodeFormList();
+        $this->ClearInstallCodeEditor();
+        $this->ShowInstallCodeMessage('Install code deleted', 'The stored install code was deleted.');
+        return true;
+    }
+
+    /**
+     * Liefert einen gespeicherten Install-Code anhand seiner internen ID.
+     */
+    private function FindStoredInstallCode(string $id): ?array
+    {
+        $catalog = $this->NormalizeStoredInstallCodeCatalog($this->ReadAttributeArray(self::ATTRIBUTE_INSTALL_CODE_CATALOG));
+        $index = $this->FindStoredInstallCodeIndex($catalog, trim($id));
+        return $index === null ? null : $catalog[$index];
+    }
+
+    /**
+     * Liefert den Index eines gespeicherten Install-Codes.
+     */
+    private function FindStoredInstallCodeIndex(array $catalog, string $id): ?int
+    {
+        if ($id === '') {
+            return null;
+        }
+        foreach ($catalog as $index => $entry) {
+            if (\is_array($entry) && (string) ($entry['id'] ?? '') === $id) {
+                return $index;
+            }
+        }
+
+        return null;
+    }
+
+    /**
+     * Bereinigt den gespeicherten Install-Code-Katalog.
+     */
+    private function NormalizeStoredInstallCodeCatalog(array $catalog): array
+    {
+        $normalized = [];
+        foreach ($catalog as $entry) {
+            if (!\is_array($entry)) {
+                continue;
+            }
+            $id = trim((string) ($entry['id'] ?? ''));
+            $label = trim((string) ($entry['label'] ?? ''));
+            $code = trim((string) ($entry['code'] ?? ''));
+            if ($id === '' || $label === '' || $code === '') {
+                continue;
+            }
+            $normalized[] = [
+                'id'    => $id,
+                'label' => $label,
+                'code'  => $code
+            ];
+        }
+
+        usort($normalized, static fn (array $left, array $right): int => strcasecmp($left['label'], $right['label']));
+        return $normalized;
+    }
+
+    /**
+     * Baut die maskierten Listenzeilen fuer das Bridge-Formular.
+     */
+    private function BuildStoredInstallCodeFormValues(): array
+    {
+        $values = [];
+        foreach ($this->NormalizeStoredInstallCodeCatalog($this->ReadAttributeArray(self::ATTRIBUTE_INSTALL_CODE_CATALOG)) as $entry) {
+            $values[] = [
+                'id'          => $entry['id'],
+                'label'       => $entry['label'],
+                'masked_code' => $this->MaskInstallCode((string) $entry['code']),
+                'send'        => $this->Translate('Send'),
+                'edit'        => $this->Translate('Edit'),
+                'delete'      => $this->Translate('Delete')
+            ];
+        }
+
+        return $values;
+    }
+
+    /**
+     * Maskiert einen Install-Code fuer die Anzeige.
+     */
+    private function MaskInstallCode(string $code): string
+    {
+        $length = \strlen($code);
+        $visibleLength = min(4, $length);
+        return str_repeat('*', max(4, $length - $visibleLength)) . substr($code, -$visibleLength);
+    }
+
+    /**
+     * Aktualisiert die Install-Code-Liste in der geoeffneten Bridge-Konfiguration.
+     */
+    private function UpdateStoredInstallCodeFormList(): void
+    {
+        $values = $this->BuildStoredInstallCodeFormValues();
+        $this->UpdateFormField('StoredInstallCodeList', 'values', json_encode($values));
+        $this->UpdateFormField('StoredInstallCodeList', 'rowCount', min(8, max(3, \count($values) + 1)));
+    }
+
+    /**
+     * Leert den Install-Code-Editor.
+     */
+    private function ClearInstallCodeEditor(): void
+    {
+        $this->UpdateFormField('InstallCodeCatalogID', 'value', '');
+        $this->UpdateFormField('InstallCodeLabel', 'value', '');
+        $this->UpdateFormField('InstallCode', 'value', '');
+        $this->UpdateFormField('InstallCodeEditorHint', 'visible', false);
+    }
+
+    /**
+     * Zeigt eine Install-Code-Rueckmeldung im Formular an.
+     */
+    private function ShowInstallCodeMessage(string $title, string $message): void
+    {
+        $this->UpdateFormField('InstallCodeMessageTitle', 'caption', $this->Translate($title));
+        $this->UpdateFormField('InstallCodeMessageText', 'caption', $this->Translate($message));
+        $this->UpdateFormField('InstallCodeMessage', 'visible', true);
     }
 
     /**
@@ -1949,6 +2250,9 @@ class Zigbee2MQTTBridge extends IPSModuleStrict
         $this->SetBridgeFormField($form, 'DiagnosticInterviewDevicesList', 'values', $this->BuildDeviceDiagnosticFormValues(self::ATTRIBUTE_DIAGNOSTIC_INTERVIEW_DEVICES));
         $this->SetBridgeFormField($form, 'DiagnosticEventList', 'values', $this->BuildEventFormValues());
         $this->SetBridgeFormField($form, 'DiagnosticLogList', 'values', $this->BuildLogFormValues());
+        $storedInstallCodes = $this->BuildStoredInstallCodeFormValues();
+        $this->SetBridgeFormField($form, 'StoredInstallCodeList', 'values', $storedInstallCodes);
+        $this->SetBridgeFormField($form, 'StoredInstallCodeList', 'rowCount', min(8, max(3, \count($storedInstallCodes) + 1)));
         $this->SetBridgeFormField($form, 'TouchlinkDeviceList', 'values', $this->BuildTouchlinkDeviceFormValues());
         $otaRows = $this->BuildOTADeviceRows();
         $this->SetBridgeFormField($form, 'OTAStatus', 'caption', $this->BuildOTAStatusCaption($otaRows));
@@ -3704,7 +4008,22 @@ class Zigbee2MQTTBridge extends IPSModuleStrict
      */
     private function SendCheckedBridgeRequest(string $Topic, array $Payload = [], int $Timeout = 5000): array|false
     {
-        $Result = $this->SendData($Topic, $Payload, $Timeout);
+        return $this->ValidateCheckedBridgeResponse($Topic, $this->SendData($Topic, $Payload, $Timeout));
+    }
+
+    /**
+     * Sendet einen sensiblen Bridge-Request und maskiert dessen Payload im Debug-Protokoll.
+     */
+    private function SendCheckedSensitiveBridgeRequest(string $Topic, array $Payload = [], int $Timeout = 5000): array|false
+    {
+        return $this->ValidateCheckedBridgeResponse($Topic, $this->SendSensitiveData($Topic, $Payload, $Timeout), true);
+    }
+
+    /**
+     * Wertet die Antwort eines Bridge-Requests einheitlich aus.
+     */
+    private function ValidateCheckedBridgeResponse(string $Topic, array|bool $Result, bool $Sensitive = false): array|false
+    {
         if ($Result === false) {
             return false;
         }
@@ -3712,7 +4031,12 @@ class Zigbee2MQTTBridge extends IPSModuleStrict
             return [];
         }
         if (isset($Result['error'])) {
-            trigger_error((string) $Result['error'], E_USER_NOTICE);
+            trigger_error(
+                $Sensitive
+                    ? sprintf($this->Translate('Zigbee2MQTT request failed on Topic %s'), $Topic)
+                    : (string) $Result['error'],
+                E_USER_NOTICE
+            );
             return false;
         }
         if (isset($Result['status']) && $Result['status'] !== 'ok') {

@@ -878,22 +878,93 @@
                 },
                 {
                     "type": "Label",
-                    "caption": "Add an install code for Zigbee 3.0 devices. The code is sent once and not stored in Symcon."
+                    "caption": "Send a Zigbee 3.0 install code once or store it locally for later reuse. Only the install code is sent to Zigbee2MQTT."
+                },
+                {
+                    "type": "Label",
+                    "bold": true,
+                    "caption": "Stored install codes are sensitive data. They are masked in this form but stored locally in the Bridge instance and may be included in Symcon backups."
                 },
                 {
                     "type": "RowLayout",
                     "items": [
                         {
                             "type": "ValidationTextBox",
+                            "name": "InstallCodeCatalogID",
+                            "caption": "Internal ID",
+                            "visible": false
+                        },
+                        {
+                            "type": "ValidationTextBox",
+                            "name": "InstallCodeLabel",
+                            "caption": "Label"
+                        },
+                        {
+                            "type": "PasswordTextBox",
                             "name": "InstallCode",
                             "caption": "Install code"
                         },
                         {
                             "type": "Button",
-                            "caption": "Add install code",
-                            "onClick": "echo Z2M_AddInstallCode($id, $InstallCode) ? 'OK' : 'ERROR';"
+                            "caption": "Send once",
+                            "onClick": "IPS_RequestAction($id, 'SendInstallCode', json_encode(['code' => $InstallCode]));"
+                        },
+                        {
+                            "type": "Button",
+                            "caption": "Save and send",
+                            "onClick": "IPS_RequestAction($id, 'SaveInstallCode', json_encode(['id' => $InstallCodeCatalogID, 'label' => $InstallCodeLabel, 'code' => $InstallCode]));"
                         }
                     ]
+                },
+                {
+                    "type": "Label",
+                    "name": "InstallCodeEditorHint",
+                    "caption": "Leave the install code empty while editing to keep the stored value.",
+                    "visible": false
+                },
+                {
+                    "type": "List",
+                    "name": "StoredInstallCodeList",
+                    "caption": "Stored install codes",
+                    "add": false,
+                    "delete": false,
+                    "rowCount": 3,
+                    "loadValuesFromConfiguration": false,
+                    "columns": [
+                        {
+                            "caption": "Label",
+                            "name": "label",
+                            "width": "auto",
+                            "quickFilter": true
+                        },
+                        {
+                            "caption": "Install code",
+                            "name": "masked_code",
+                            "width": "220px"
+                        },
+                        {
+                            "caption": "Action",
+                            "name": "send",
+                            "width": "90px",
+                            "align": "center",
+                            "onClick": "IPS_RequestAction($id, 'SendStoredInstallCode', json_encode(['id' => $StoredInstallCodeList['id']]));"
+                        },
+                        {
+                            "caption": "Action",
+                            "name": "edit",
+                            "width": "90px",
+                            "align": "center",
+                            "onClick": "IPS_RequestAction($id, 'SelectStoredInstallCode', json_encode(['id' => $StoredInstallCodeList['id']]));"
+                        },
+                        {
+                            "caption": "Action",
+                            "name": "delete",
+                            "width": "90px",
+                            "align": "center",
+                            "onClick": "IPS_RequestAction($id, 'RequestDeleteStoredInstallCode', json_encode(['id' => $StoredInstallCodeList['id']]));"
+                        }
+                    ],
+                    "values": []
                 },
                 {
                     "type": "Label",
@@ -967,6 +1038,53 @@
                     ]
                 }
             ]
+        },
+        {
+            "name": "InstallCodeDeleteWarning",
+            "type": "PopupAlert",
+            "visible": false,
+            "popup": {
+                "closeCaption": "Cancel",
+                "buttons": [
+                    {
+                        "caption": "Delete install code",
+                        "onClick": "IPS_RequestAction($id, 'ConfirmDeleteStoredInstallCode', true);"
+                    }
+                ],
+                "items": [
+                    {
+                        "type": "Label",
+                        "bold": true,
+                        "caption": "Delete stored install code?"
+                    },
+                    {
+                        "name": "InstallCodeDeleteWarningText",
+                        "type": "Label",
+                        "caption": "The selected stored install code will be deleted."
+                    }
+                ]
+            }
+        },
+        {
+            "name": "InstallCodeMessage",
+            "type": "PopupAlert",
+            "visible": false,
+            "popup": {
+                "closeCaption": "Close",
+                "items": [
+                    {
+                        "type": "Label",
+                        "name": "InstallCodeMessageTitle",
+                        "bold": true,
+                        "caption": "Install code"
+                    },
+                    {
+                        "name": "InstallCodeMessageText",
+                        "type": "Label",
+                        "caption": ""
+                    }
+                ]
+            }
         },
         {
             "caption": "Testcenter",

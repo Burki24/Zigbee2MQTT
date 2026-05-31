@@ -673,6 +673,7 @@ class BridgeTest extends TestCase
         $this->assertSame('/bridge/request/install_code/add', $bridge->lastTopic);
         $this->assertSame(['value' => 'INSTALLCODE'], $bridge->lastPayload);
         $this->assertSame(5000, $bridge->lastTimeout);
+        $this->assertTrue($bridge->lastSensitive);
     }
 
     public function testAddInstallCodeRejectsEmptyCode(): void
@@ -681,6 +682,96 @@ class BridgeTest extends TestCase
 
         $this->assertFalse(@$bridge->AddInstallCode(''));
         $this->assertSame('', $bridge->lastTopic);
+    }
+
+    public function testAddInstallCodeDoesNotExposeSensitiveBridgeError(): void
+    {
+        $bridge = $this->createBridgeTestDouble([
+            'error' => 'SECRET-INSTALL-CODE could not be used'
+        ]);
+        $message = '';
+        set_error_handler(static function (int $severity, string $error) use (&$message): bool
+        {
+            $message = $error;
+            return true;
+        }, E_USER_NOTICE);
+
+        try {
+            $this->assertFalse($bridge->AddInstallCode('SECRET-INSTALL-CODE'));
+        } finally {
+            restore_error_handler();
+        }
+
+        $this->assertSame('Zigbee2MQTT request failed on Topic /bridge/request/install_code/add', $message);
+        $this->assertStringNotContainsString('SECRET-INSTALL-CODE', $message);
+    }
+
+    public function testInstallCodeCatalogStoresMaskedCodeAndSendsCode(): void
+    {
+        $bridge = $this->createBridgeTestDouble([
+            'status' => 'ok',
+            'data'   => []
+        ]);
+
+        $bridge->RequestAction('SaveInstallCode', json_encode([
+            'id'    => '',
+            'label' => 'Bosch thermostat',
+            'code'  => 'SECRET-INSTALL-CODE'
+        ]));
+
+        $catalog = $bridge->readDiagnosticAttribute('InstallCodeCatalog');
+        $this->assertCount(1, $catalog);
+        $this->assertSame('Bosch thermostat', $catalog[0]['label']);
+        $this->assertSame('SECRET-INSTALL-CODE', $catalog[0]['code']);
+        $this->assertSame('/bridge/request/install_code/add', $bridge->lastTopic);
+        $this->assertSame(['value' => 'SECRET-INSTALL-CODE'], $bridge->lastPayload);
+        $this->assertTrue($bridge->lastSensitive);
+
+        $values = json_decode($bridge->updatedFields['StoredInstallCodeList']['values'], true);
+        $this->assertSame('***************CODE', $values[0]['masked_code']);
+        $this->assertStringNotContainsString('SECRET', json_encode($values));
+    }
+
+    public function testInstallCodeCatalogEditKeepsStoredCodeWhenEditorIsEmpty(): void
+    {
+        $bridge = $this->createBridgeTestDouble([
+            'status' => 'ok',
+            'data'   => []
+        ]);
+        $bridge->writeDiagnosticAttribute('InstallCodeCatalog', [[
+            'id'    => 'stored-code',
+            'label' => 'Old label',
+            'code'  => 'SECRET'
+        ]]);
+
+        $bridge->RequestAction('SaveInstallCode', json_encode([
+            'id'    => 'stored-code',
+            'label' => 'New label',
+            'code'  => ''
+        ]));
+
+        $catalog = $bridge->readDiagnosticAttribute('InstallCodeCatalog');
+        $this->assertSame('New label', $catalog[0]['label']);
+        $this->assertSame('SECRET', $catalog[0]['code']);
+        $this->assertSame(['value' => 'SECRET'], $bridge->lastPayload);
+    }
+
+    public function testStoredInstallCodeDeletionRequiresConfirmation(): void
+    {
+        $bridge = $this->createBridgeTestDouble(true);
+        $bridge->writeDiagnosticAttribute('InstallCodeCatalog', [[
+            'id'    => 'stored-code',
+            'label' => 'Bosch thermostat',
+            'code'  => 'SECRET'
+        ]]);
+
+        $bridge->RequestAction('RequestDeleteStoredInstallCode', json_encode(['id' => 'stored-code']));
+        $this->assertCount(1, $bridge->readDiagnosticAttribute('InstallCodeCatalog'));
+        $this->assertTrue($bridge->updatedFields['InstallCodeDeleteWarning']['visible']);
+
+        $bridge->RequestAction('ConfirmDeleteStoredInstallCode', true);
+        $this->assertSame([], $bridge->readDiagnosticAttribute('InstallCodeCatalog'));
+        $this->assertFalse($bridge->updatedFields['InstallCodeDeleteWarning']['visible']);
     }
 
     public function testTouchlinkScanStoresFoundDevices(): void
@@ -862,6 +953,7 @@ class BridgeTest extends TestCase
             public string $lastTopic = '';
             public array $lastPayload = [];
             public int $lastTimeout = -1;
+            public bool $lastSensitive = false;
             public array $updatedFields = [];
             private string $testBaseTopic = '';
 
@@ -875,6 +967,17 @@ class BridgeTest extends TestCase
                 $this->lastTopic = $Topic;
                 $this->lastPayload = $Payload;
                 $this->lastTimeout = $Timeout;
+                $this->lastSensitive = false;
+
+                return $this->result;
+            }
+
+            protected function SendSensitiveData(string $Topic, array $Payload = [], int $Timeout = 5000): array|bool
+            {
+                $this->lastTopic = $Topic;
+                $this->lastPayload = $Payload;
+                $this->lastTimeout = $Timeout;
+                $this->lastSensitive = true;
 
                 return $this->result;
             }
