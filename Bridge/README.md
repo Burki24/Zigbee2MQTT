@@ -21,6 +21,9 @@
   - [5.3 OTA-Updates](#53-ota-updates)
   - [5.4 Variablen-Wartung](#54-variablen-wartung)
   - [5.5 Zigbee2MQTT-Wartung](#55-zigbee2mqtt-wartung)
+    - [5.5.1 Backup](#551-backup)
+    - [5.5.2 Install-Codes](#552-install-codes)
+    - [5.5.3 Touchlink](#553-touchlink)
 - [6. Statusvariablen](#6-statusvariablen)
 - [7. PHP-Funktionsreferenz](#7-php-funktionsreferenz)
 - [8. Aktionen](#8-aktionen)
@@ -99,12 +102,20 @@ Die Variablen-Wartung ist der unterstützte Weg, um alte Zigbee2MQTT-Variablen a
 
 Der Bereich **Zigbee2MQTT-Wartung** stellt Werkzeuge für administrative Aufgaben bereit. Backups werden als ZIP-Datei auf dem Symcon-Server gespeichert. Zusätzlich können Zigbee-3.0-Install-Codes gesendet und Touchlink-Scan, Identify sowie Factory-Reset ausgeführt werden.
 
+#### 5.5.1 Backup
+
+Über **Backup-Datei erstellen** wird ein Backup des Zigbee2MQTT-Datenordners erstellt und als ZIP-Datei auf dem Symcon-Server gespeichert. Bei großen Datenordnern kann die Erstellung bis zu fünf Minuten dauern.
+
+#### 5.5.2 Install-Codes
+
 Install-Codes können einmalig gesendet oder mit einer frei wählbaren Bezeichnung lokal in der Bridge-Instanz gespeichert und später erneut gesendet werden. An Zigbee2MQTT wird dabei ausschließlich der eigentliche Install-Code übertragen. Die Liste zeigt gespeicherte Codes nur maskiert an. Beim Bearbeiten kann das Code-Feld leer bleiben, wenn lediglich die Bezeichnung geändert werden soll.
 
 ![Install-Codes](imgs/install-codes.png)
 
 > [!WARNING]
 > Gespeicherte Install-Codes sind sensible Daten. Die Maskierung schützt nur vor einem versehentlichen Ablesen in der Bridge-Konfiguration. Die Codes werden nicht verschlüsselt in einem privaten Bridge-Attribut gespeichert und können deshalb auch Bestandteil von Symcon-Backups sein. Speichern Sie Codes nur auf entsprechend geschützten Symcon-Systemen.
+
+#### 5.5.3 Touchlink
 
 Touchlink-Scan und Touchlink-Factory-Reset können die Zigbee-Kommunikation kurzfristig stören. Ein Factory-Reset ohne ausgewähltes Ziel kann das nächste per Touchlink erreichbare Gerät zurücksetzen und sollte daher nur bewusst genutzt werden.
 
