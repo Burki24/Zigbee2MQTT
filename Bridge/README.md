@@ -73,6 +73,8 @@ Touchlink-Scan und Touchlink-Factory-Reset können die Zigbee-Kommunikation kurz
 
 Die OTA-Verwaltung liest den Zustand aus den von Zigbee2MQTT gelieferten Gerätevariablen. Über **Update prüfen** wird ein einzelnes Gerät aktiv geprüft. Verfügbare Updates können direkt gestartet oder für die nächste OTA-Anfrage des Geräts geplant werden. Batteriegeräte müssen vor Prüfung oder Planung eventuell aufgeweckt werden. Ein direkt gestartetes Update dauert laut Zigbee2MQTT abhängig von Gerät, Einstellungen und Netzwerkstabilität etwa 10 bis 100 Minuten. Deshalb erlaubt die Bridge immer nur ein aktives Update gleichzeitig. Über **Status aktualisieren** werden Fortschritt und Restzeit neu aus den Geräteinstanzen eingelesen. Später eintreffende Erfolgs- oder Fehlermeldungen speichert die Bridge zusätzlich im Ergebnisverlauf.
 
+![OTA-Updates](imgs/ota-updates.png)
+
 Die Variablen-Wartung ist der unterstützte Weg, um alte Zigbee2MQTT-Variablen aufzuräumen. Über **Verwaiste Variablen suchen** werden klare Löschkandidaten, Review-Kandidaten und Hinweise getrennt angezeigt. Die Listen zeigen zusätzlich, ob eine Variable archiviert ist und wann sie zuletzt beschrieben wurde. Archivierte oder von anderen Symcon-Objekten referenzierte Variablen werden in der Bridge-Oberfläche nicht gelöscht. Jeder Löschvorgang betrifft genau eine Variable und muss über ein Popup bestätigt werden.
 
 ![Variablen-Wartung](imgs/variable-maintenance.png)
