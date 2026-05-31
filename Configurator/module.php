@@ -473,7 +473,7 @@ class Zigbee2MQTTConfigurator extends IPSModuleStrict
             $valuesGroups[] = [
                 'name'                  => IPS_GetName($instanceID),
                 'id'                    => $valueId++,
-                'parent'                => $this->AddParentElement($valueId, $valuesDevices, $Location, self::$GroupValues),
+                'parent'                => $this->AddParentElement($valueId, $valuesGroups, $Location, self::$GroupValues),
                 'instanceID'            => $instanceID,
                 'ID'                    => $ID,
                 'topic'                 => $Topic,
@@ -487,7 +487,7 @@ class Zigbee2MQTTConfigurator extends IPSModuleStrict
             $valuesGroups[] = [
                 'name'                  => IPS_GetName($instanceID),
                 'id'                    => $valueId++,
-                'parent'                => $this->AddParentElement($valueId, $valuesDevices, $Location, self::$DeviceValues),
+                'parent'                => $this->AddParentElement($valueId, $valuesGroups, $Location, self::$GroupValues),
                 'instanceID'            => $instanceID,
                 'ID'                    => @IPS_GetProperty($instanceID, 'GroupId'),
                 'topic'                 => $Topic,
@@ -536,7 +536,7 @@ class Zigbee2MQTTConfigurator extends IPSModuleStrict
         if (empty($BaseTopic)) {
             return '';
         }
-        $this->SendDebug('ReceiveData', $JSONString, 0);
+        $this->SendLimitedDebug('ReceiveData', $JSONString, 0);
         $Buffer = json_decode($JSONString, true);
         if (!isset($Buffer['Topic'])) {
             return '';
@@ -549,10 +549,14 @@ class Zigbee2MQTTConfigurator extends IPSModuleStrict
         }
         $this->SendDebug('MQTT Topic', $ReceiveTopic, 0);
         $payloadJson = self::DecodePayload($Buffer['Payload']);
-        $this->SendDebug('MQTT Payload', $payloadJson, 0);
+        $this->SendLimitedDebug('MQTT Payload', $payloadJson, 0);
         $Payload = json_decode($payloadJson, true);
         if (isset($Payload['transaction'])) {
             $this->UpdateTransaction($Payload);
+            return '';
+        }
+        if (\is_array($Payload)) {
+            $this->UpdateTransactionByResponseTopic(substr($ReceiveTopic, \strlen($BaseTopic)), $Payload);
         }
         return '';
     }
@@ -566,17 +570,18 @@ class Zigbee2MQTTConfigurator extends IPSModuleStrict
      */
     public function getDevices(): array
     {
+        $Devices = $this->ReadCachedNetworkDevicesFromBridge();
+        if ($Devices !== []) {
+            $this->SendDebug('getDevices:Cache', 'Bridge cache: ' . \count($Devices) . ' devices', 0);
+            return $Devices;
+        }
+
         $Result = @$this->SendData(self::SYMCON_EXTENSION_LIST_REQUEST . 'getDevices');
-        if (\is_array($Result) && \is_array($Result['list'] ?? null) && $Result['list'] !== []) {
+        if (\is_array($Result) && \is_array($Result['list'] ?? null)) {
             return $Result['list'];
         }
 
-        $Devices = $this->ReadCachedNetworkDevicesFromBridge();
-        if ($Devices !== []) {
-            $this->SendDebug('getDevices:Fallback', 'Bridge cache: ' . \count($Devices) . ' devices', 0);
-        }
-
-        return $Devices;
+        return [];
     }
 
     /**

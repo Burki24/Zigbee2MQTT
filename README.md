@@ -261,6 +261,7 @@ Die Bridge-Oberfläche ist der unterstützte Weg: Archivierte oder referenzierte
 - Die Bridge unterstützt `bridge/request/device/options` über `Z2M_SetDeviceOptions()` sowie zusätzliche OTA-Funktionen für Downgrade, Scheduling, Unschedule und eigene OTA-URLs.
 - Binding und Reporting können in der Geräte-Konfiguration über Endpoint-, Cluster- und Attributdaten gepflegt werden; vorhandene Bindings und Reportings werden aus dem Zigbee2MQTT-`bridge/devices` Cache gelesen und per **Endpoint-Daten aktualisieren** neu eingelesen.
 - Das Öffnen der Geräte-Konfiguration wurde beschleunigt, da Binding-Zielauswahlen nicht mehr bei jedem Formularaufbau live über die Symcon-Extension geladen werden.
+- Der Konfigurator nutzt für die Geräteliste bevorzugt den Bridge-Cache, ordnet Extension-Antworten bei Bedarf über das Response-Topic zu und erzeugt Gruppenordner wieder innerhalb der korrekten Gruppenliste.
 - Gruppen-Instanzen können Mitglieder inklusive automatisch gelisteter Endpoints verwalten, Zigbee2MQTT-Gruppenoptionen setzen und Szenen speichern, hinzufügen, abrufen, umbenennen oder löschen.
 - Gruppenbefehle zeigen bei nicht erreichbaren Geräten eine verständliche Meldung in der Konfiguration, statt nur die Zigbee2MQTT-Fehlermeldung durchzureichen.
 - Die Bridge enthält einen Diagnosebereich für Health Check, Coordinator Check, Bridge-Events, Warnungen/Fehler sowie nicht unterstützte oder unvollständig interviewte Geräte.

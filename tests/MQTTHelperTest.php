@@ -12,6 +12,55 @@ use PHPUnit\Framework\TestCase;
  */
 class MQTTHelperTest extends TestCase
 {
+    public function testExtensionListResponseWithoutTransactionIsMatchedByResponseTopic(): void
+    {
+        $helper = new class() {
+            use \Zigbee2MQTT\SendData {
+                SendData as public sendMqttData;
+                UpdateTransactionByResponseTopic as public completeByResponseTopic;
+            }
+
+            public array $TransactionData = [];
+
+            public function lock(string $name): bool
+            {
+                return true;
+            }
+
+            public function unlock(string $name): void
+            {
+            }
+
+            public function ReadPropertyString(string $name): string
+            {
+                return 'zigbee2mqtt';
+            }
+
+            public function SendDebug(string $message, mixed $data, int $format): void
+            {
+            }
+
+            public function SendDataToParent(string $data): void
+            {
+                $this->completeByResponseTopic('/SymconExtension/lists/response/getDevices', [
+                    'list' => [
+                        ['friendly_name' => 'Test device']
+                    ]
+                ]);
+            }
+
+            public function Translate(string $text): string
+            {
+                return $text;
+            }
+        };
+
+        $result = $helper->sendMqttData('/SymconExtension/lists/request/getDevices');
+
+        $this->assertIsArray($result);
+        $this->assertSame('Test device', $result['list'][0]['friendly_name']);
+    }
+
     public function testLargeDebugOutputIsTruncated(): void
     {
         $helper = new class() {
