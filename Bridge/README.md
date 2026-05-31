@@ -474,7 +474,9 @@ string Z2M_CreateBackupFile(int $InstanzID);
 
 Erstellt ein Zigbee2MQTT-Backup und speichert es als ZIP-Datei auf dem Symcon-Server unter `user/IPSZigbee2MQTT/backups`. Der Rückgabewert ist der absolute Dateipfad oder ein leerer String bei Fehler.
 
-Der Bridge-Wartungsbereich nutzt diese Funktion, weil direkte Formular-Downloads in Symcon durch den Ausgabepuffer begrenzt sind und größere Zigbee2MQTT-Backups sonst mit `Output-Buffer exceeds Limit` abbrechen können.
+Der Bridge-Wartungsbereich nutzt diese Funktion über die Schaltfläche **Backup-Datei erstellen**. Nach erfolgreicher Erstellung zeigt ein Popup den vollständigen Speicherpfad der ZIP-Datei an.
+
+Direkte Formular-Downloads sind in Symcon durch den Ausgabepuffer begrenzt. Größere Zigbee2MQTT-Backups können sonst mit `Output-Buffer exceeds Limit` abbrechen.
 
 ---
 
