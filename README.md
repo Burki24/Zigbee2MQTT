@@ -238,40 +238,71 @@ Die Bridge-Oberfläche ist der unterstützte Weg: Archivierte oder referenzierte
 
 **Version 6.00:**
 
-- Moderne HTML-SDK-Kacheln für Heizungen, Schaltaktoren mit Messwerten, Sensoren, Sicherheitsgeräte, Fenstergriffe und Aktionsgeräte ergänzt.
-- Rollladen/Jalousien verwenden die native Symcon-Shutter-Darstellung; neue Spezialkacheln werden nur dort ergänzt, wo die Exposes eine zusammengefasste Ansicht wirklich benötigen.
-- Die Sicherheits-Kachel unterstützt zusätzliche Kontakt-/Alarm-Exposes wie `opening_state`, `alarm_state` und Sirenenwerte.
-- Heizungs-Kacheln zeigen Ist- und Solltemperatur ohne Ringslider und bedienen die Solltemperatur per Plus-/Minus-Tasten sowie pro Instanz konfigurierbare Presets.
-- Schaltaktoren mit Messwerten unterstützen archivierte Messwerte direkt in der Kachel als Graphen, inklusive erweiterter Werte wie Frequenz, Leistungsfaktor, Schein-/Blindleistung und erzeugter Energie.
-- Mehrkanal-Schaltaktoren können mehrere Schaltausgänge in einer Kachel darstellen.
-- Eigene Kacheln übernehmen Grundfarben und Schrift aus dem aktiven Symcon Tile-Theme, damit Hell-/Dunkelmodus einheitlich dargestellt werden.
-- Temperatur-, Farbtemperatur-, Enum- und Numeric-Exposes erhalten passendere moderne Tile-Darstellungen, soweit die Exposes die nötigen Werte liefern.
+Die Änderungen sind anhand der funktionalen Commits chronologisch gegliedert. Automatisch erzeugte Metadaten-Commits sowie reine Screenshot-Korrekturen werden nicht einzeln aufgeführt.
+
+### 10. bis 15. Mai 2026: IPSModuleStrict und moderne Tile-Visualisierung
+
+- Sämtliche Module wurden auf `IPSModuleStrict` migriert. Die Mindestversion wurde abschließend auf IP-Symcon 9.0 angehoben.
+- Numeric-, Enum-, Temperatur- und Farbtemperatur-Exposes erhalten passendere moderne Tile-Darstellungen, soweit die Exposes die dafür notwendigen Werte liefern.
 - Die Kelvin-Farbtemperaturvariable `color_temp_kelvin` nutzt den aus dem Zigbee2MQTT-Mired-Bereich berechneten Kelvin-Bereich für die Symcon-Standardkachel Beleuchtung.
-- Der Kelvin-Bereich der Farbtemperatur kann je Device überschrieben werden, falls Zigbee2MQTT bzw. dessen Device-Definitionen zu große oder ungenaue Mired-Grenzen melden.
+- Moderne HTML-SDK-Kacheln wurden schrittweise für Heizungen, Schaltaktoren mit Messwerten, Sensoren, Sicherheitsgeräte, Fenstergriffe und Aktionsgeräte ergänzt.
+- Heizungs-Kacheln zeigen Ist- und Solltemperatur ohne Ringslider und bedienen die Solltemperatur per Plus-/Minus-Tasten. Später kamen breitere Preset-Tasten und pro Instanz konfigurierbare Solltemperaturen hinzu.
+- Schaltaktoren mit Messwerten zeigen Energie, Leistung, Spannung und Strom in einer eigenen Ansicht. Archivierte Werte können direkt aus der Kachel als Graphen geöffnet werden.
+- Mehrkanal-Schaltaktoren können mehrere Schaltausgänge in einer gemeinsamen Kachel darstellen. Der Messwertbereich unterstützt auch Frequenz, Leistungsfaktor, Schein-/Blindleistung und erzeugte Energie.
+- Sensor-Kacheln unterstützen Temperatur, Luftfeuchtigkeit, Bodenfeuchtigkeit, Helligkeit und Batterie. Bei Pflanzensensoren kann `soil_moisture` als Hauptwert vor der Temperatur dargestellt werden.
+- Rollladen und Jalousien verwenden die native Symcon-Shutter-Darstellung. Spezialkacheln werden nur dort ergänzt, wo Exposes eine zusammengefasste Ansicht wirklich benötigen.
+- Diagramm-Schaltflächen in Messwert-Kacheln werden nur für tatsächlich archivierte Variablen angezeigt.
+
+### 16. bis 18. Mai 2026: Struktur, Visualisierungsverwaltung und Variablenkatalog
+
+- Die Visualisierungslogik wurde in wiederverwendbare Helper und einen eigenen Verzeichnisbaum unter `libs/Visualization` aufgeteilt.
+- Die Verarbeitung in `ModulBase` wurde schrittweise für `RequestAction()`, Payloads, Standardvariablen, Sondervariablen, Farbaktionen, Wertkonvertierung, Presets, Profile und Variablenregistrierung refaktoriert.
+- Die Geräte-Konfiguration erhielt einen Visualisierungsbereich, der nur die für die jeweilige Instanz fachlich passenden Kacheloptionen anbietet.
+- Temperatur-Visualisierungen können einen konfigurierbaren Fallback-Bereich verwenden, wenn Zigbee2MQTT keine Werte für `value_min` und `value_max` liefert.
+- Geräte-Instanzen erhielten einen lokalen Variablenkatalog. Anwender können steuern, welche bekannten Variablen automatisch angelegt werden dürfen. Gelöschte Variablen werden nicht ungefragt erneut erzeugt und können später gezielt wieder freigegeben werden.
+- Composite-Exposes werden nur mit tatsächlich anlegbaren Untervariablen geführt. Nicht bedienbare Composite-Eltern erscheinen nicht mehr als eigenständige Variable.
+- Automatische Versions- und Build-Anpassungen wurden für neue Commits eingerichtet.
+
+### 19. bis 21. Mai 2026: Geräte-, Gruppen- und Bridge-Funktionen
+
+- Bridge-Requests und Antworten wurden vereinheitlicht und robuster ausgewertet.
+- Die Bridge unterstützt zusätzliche OTA-Befehle für Downgrade, Scheduling, Unschedule und eigene OTA-URLs.
+- Geräte-Instanzen können Zigbee2MQTT-Geräteoptionen wie `transition`, `debounce`, `filtered_attributes`, `optimistic`, `retain` oder gerätespezifische `definition.options` direkt in der Konfiguration anzeigen und setzen.
+- Binding und Reporting können in der Geräte-Konfiguration über Endpoint-, Cluster- und Attributdaten gepflegt werden.
 - Reine Tunable-White-Leuchtmittel erhalten eine abgeleitete `color`-Variable, die den aktuellen Weißton als `~HexColor`-Farbwert darstellt.
-- Die Geräte-Konfiguration erhält einen neuen Visualisierungsbereich, der nur die für die jeweilige Instanz fachlich passenden Kacheloptionen anbietet.
-- Geräte-Instanzen erhalten eine Variablenverwaltung, mit der automatisch angelegte, nachgelieferte und gelöschte Variablen kontrolliert werden können.
-- Die Bridge erhält eine Variablen-Wartung, die alte, nicht mehr durch aktuelle Exposes oder Payloads abgedeckte Zigbee2MQTT-Variablen als klare Kandidaten oder Review-Kandidaten anzeigt und einzelne klare Kandidaten nach Bestätigung löschen kann.
-- Das frühere externe Script zur Bereinigung verwaister Variablen wurde entfernt; die Bridge-Variablen-Wartung ist der einzige unterstützte Weg für diese Aufgabe.
-- Composite-Exposes werden in der Variablenverwaltung nur mit den tatsächlich anlegbaren Untervariablen geführt, damit nicht bedienbare Composite-Eltern nicht als eigene Variable angeboten werden.
-- Geräte-Instanzen können Zigbee2MQTT-Geräteoptionen wie `transition`, `debounce`, `filtered_attributes`, `optimistic`, `retain` oder gerätespezifische `definition.options` direkt in der Instanz-Konfiguration anzeigen und setzen.
-- Geräte- und Gruppenoptionen nutzen typisierte Editoren für Boolean-, Enum-, Numeric-, Text-, Array- und Objektwerte; Attributfilter wie `filtered_attributes`, `filtered_cache` oder `debounce_ignore` bieten eine Auswahl bekannter Payload-Attribute.
-- Enum-basierte `state`-Variablen wie Rollladenbefehle senden die originalen Zigbee2MQTT-Werte wie `OPEN`, `CLOSE` oder `STOP`; binäre Schalter bleiben bei `ON`/`OFF`.
-- Der Abruf von Geräteinformationen wartet länger auf die Symcon-Extension und zeigt bei Erfolg oder Nichterreichbarkeit verständliche Meldungen im Formular.
-- Die Bridge unterstützt `bridge/request/device/options` über `Z2M_SetDeviceOptions()` sowie zusätzliche OTA-Funktionen für Downgrade, Scheduling, Unschedule und eigene OTA-URLs.
-- Die Bridge erhält eine zentrale OTA-Verwaltung: OTA-fähige Geräte können einzeln geprüft, verfügbare Updates gestartet oder geplant und laufende Updates über Fortschritt, Restzeit sowie einen Ergebnisverlauf verfolgt werden. Zum Schutz des Zigbee-Netzes startet die Oberfläche immer nur ein aktives Update gleichzeitig.
-- Die OTA-Restzeitvariable `update__remaining` nutzt die native Symcon-Dauerdarstellung für den von Zigbee2MQTT gelieferten Sekundenwert; bereits vorhandene Variablen werden beim Anwenden der Instanzkonfiguration aktualisiert.
-- Binding und Reporting können in der Geräte-Konfiguration über Endpoint-, Cluster- und Attributdaten gepflegt werden; vorhandene Bindings und Reportings werden aus dem Zigbee2MQTT-`bridge/devices` Cache gelesen und per **Endpoint-Daten aktualisieren** neu eingelesen.
+- Der Kelvin-Bereich der Farbtemperatur kann pro Device überschrieben werden, falls Zigbee2MQTT beziehungsweise dessen Device-Definitionen ungenaue Mired-Grenzen melden.
+- Gruppen-Instanzen können Mitglieder einschließlich Endpoints verwalten, Gruppenoptionen setzen und Szenen speichern, hinzufügen, abrufen, umbenennen oder löschen.
+- Die Bridge erhielt einen Diagnosebereich für Health Check, Coordinator Check, Bridge-Events, Warnungen und Fehler sowie nicht unterstützte oder unvollständig interviewte Geräte.
+- Die Bridge-Wartung erhielt Zigbee2MQTT-Backups, einmaliges Senden von Zigbee-3.0-Install-Codes sowie Touchlink-Scan, Identify und Factory-Reset.
+- Sicherheits-Kacheln unterstützen zusätzliche Kontakt- und Alarm-Exposes wie `opening_state`, `alarm_state`, Präsenz-, Sirenen-, Leck-, Gas- und Rauchmelderwerte.
+- Eigene Kacheln übernehmen Grundfarben, Schriftfarben und Schriftgrößen vom aktiven Symcon Tile-Theme, damit Hell- und Dunkelmodus mit den Standardkacheln übereinstimmen.
+- Fehlende Properties und Attribute werden während Modulupdates tolerant behandelt, damit Bestandsinstanzen sauber migrieren.
+
+### 23. bis 26. Mai 2026: Komfort, Sicherheit und Binding/Reporting
+
+- Gruppenmitglieder lassen sich über filterbare Gerätelisten und automatisch erkannte Endpoints auswählen. Nicht erreichbare Geräte erzeugen ein verständliches Popup.
+- Geräte- und Gruppenoptionen verwenden typisierte Editoren für Boolean-, Enum-, Numeric-, Text-, Array- und Objektwerte. Attributfilter wie `filtered_attributes`, `filtered_cache` oder `debounce_ignore` bieten bekannte Payload-Attribute zur Auswahl an.
+- Enum-basierte `state`-Variablen wie Rollladenbefehle senden ihre originalen Zigbee2MQTT-Werte wie `OPEN`, `CLOSE` und `STOP`. Binäre Schalter bleiben bei `ON` und `OFF`.
+- Die Bridge kann globale Zigbee2MQTT-Blocklist und -Passlist verwalten. Die Auswahl nutzt bekannte Zigbee2MQTT-Geräte sowie vorhandene Device-Instanzen. Passlist-Änderungen werden wegen ihrer restriktiven Wirkung mit einer Sicherheitsabfrage geschützt.
+- Farbtemperatur-Funktionen werden nur angeboten, wenn das Gerät tatsächlich ein passendes Expose liefert.
+- Vorhandene Bindings und Reportings werden aus dem Zigbee2MQTT-`bridge/devices`-Cache gelesen und übersichtlich dargestellt. Die Bearbeitung erhielt Zielauswahl, unterstützte Cluster, Attributauswahl und besser dimensionierte Tabellen.
+- Über **Endpoint-Daten aktualisieren** können Binding- und Reporting-Daten bewusst neu eingelesen werden.
 - Das Öffnen der Geräte-Konfiguration wurde beschleunigt, da Binding-Zielauswahlen nicht mehr bei jedem Formularaufbau live über die Symcon-Extension geladen werden.
-- Der Konfigurator nutzt für die Geräteliste bevorzugt den Bridge-Cache, ordnet Extension-Antworten bei Bedarf über das Response-Topic zu und erzeugt Gruppenordner wieder innerhalb der korrekten Gruppenliste.
-- Gruppen-Instanzen können Mitglieder inklusive automatisch gelisteter Endpoints verwalten, Zigbee2MQTT-Gruppenoptionen setzen und Szenen speichern, hinzufügen, abrufen, umbenennen oder löschen.
-- Gruppenbefehle zeigen bei nicht erreichbaren Geräten eine verständliche Meldung in der Konfiguration, statt nur die Zigbee2MQTT-Fehlermeldung durchzureichen.
-- Die Bridge enthält einen Diagnosebereich für Health Check, Coordinator Check, Bridge-Events, Warnungen/Fehler sowie nicht unterstützte oder unvollständig interviewte Geräte.
-- Die Bridge kann globale Zigbee2MQTT-Blocklist und -Passlist verwalten; die Geräteauswahl nutzt bekannte Z2M-Geräte sowie vorhandene Device-Instanzen, Passlist-Änderungen werden wegen der restriktiven Wirkung mit einer Sicherheitsabfrage geschützt.
-- Die Bridge bietet Wartungsfunktionen für Zigbee2MQTT-Backups, Zigbee-3.0-Install-Codes und Touchlink-Scan/Identify/Factory-Reset. Install-Codes können optional mit einer Bezeichnung lokal gespeichert, maskiert angezeigt und später erneut gesendet werden. Backups werden wegen der Symcon-Ausgabegrenze chunkweise als ZIP-Datei unter `user/IPSZigbee2MQTT/backups` gespeichert; eine öffentliche Base64-Rückgabe wird bewusst nicht angeboten.
-- Temperatur-Visualisierungen können einen konfigurierbaren Fallback-Bereich nutzen, wenn Zigbee2MQTT keine `value_min`/`value_max` Werte liefert.
-- Mindestversion auf IP-Symcon 9.0 angehoben, da das Modul auf `IPSModuleStrict` basiert.
-- Interne Struktur der Visualisierungs- und Variablenregistrierung refaktoriert, ohne die öffentlichen Modul-Funktionen zu ändern.
+- Der Abruf von Geräteinformationen wartet länger auf die Symcon-Extension und zeigt bei Erfolg oder Nichterreichbarkeit verständliche Rückmeldungen im Formular.
+- Übersetzungen, PHPDocs, READMEs und Screenshots wurden für die neuen Gerätefunktionen vollständig überarbeitet.
+- Command-Payloads werden robuster validiert; nicht mehr verwendeter Tile-Code wurde entfernt.
+
+### 27. bis 31. Mai 2026: Bridge-Wartung, Stabilität und zentrale OTA-Verwaltung
+
+- Die Bridge erhielt eine Variablen-Wartung. Sie trennt verwaiste Variablen in klare Löschkandidaten und Review-Kandidaten, schützt archivierte oder referenzierte Variablen und löscht einzelne Kandidaten erst nach Bestätigung.
+- Das zwischenzeitlich vorhandene externe Bereinigungsscript wurde entfernt. Die Bridge-Variablen-Wartung ist der einzige unterstützte Weg zum Aufräumen verwaister Variablen.
+- Konfigurator und Geräteformulare laden schneller und nutzen bevorzugt den Bridge-Cache. Extension-Antworten ohne Transaction-ID werden bei Bedarf über das Response-Topic zugeordnet.
+- Die MQTT-Transaktionsverwaltung wurde deadline-basiert und stabiler aufgebaut. Lange Bridge-Antworten wie Zigbee2MQTT-Backups blockieren nicht mehr durch zu kurze Wartezeiten oder instabile Buffer.
+- Zigbee2MQTT-Backups werden wegen der Symcon-Ausgabegrenze chunkweise als ZIP-Datei unter `user/IPSZigbee2MQTT/backups` gespeichert. Eine öffentliche Base64-Rückgabe wird bewusst nicht angeboten.
+- Die Bridge erhielt eine zentrale OTA-Verwaltung. OTA-fähige Geräte können geprüft, verfügbare Updates gestartet oder geplant und laufende Updates mit Fortschritt, Restzeit und Ergebnisverlauf verfolgt werden. Zum Schutz des Zigbee-Netzes startet die Oberfläche nur ein aktives Update gleichzeitig.
+- OTA-Fortschritte werden automatisch aktualisiert. Die Restzeitvariable `update__remaining` nutzt für den von Zigbee2MQTT gelieferten Sekundenwert die native Symcon-Dauerdarstellung.
+- Die Bridge-Wartung erhielt einen optionalen lokalen Install-Code-Katalog. Install-Codes können mit einer Bezeichnung gespeichert, maskiert angezeigt, erneut gesendet, bearbeitet und nach Bestätigung gelöscht werden. Sensible MQTT-Payloads und Antworten erscheinen nicht im Debug-Protokoll.
+- Die Bridge-Dokumentation wurde in eigene Funktionsblöcke für Diagnose, Netzwerksicherheit, OTA-Updates, Variablen-Wartung sowie Zigbee2MQTT-Wartung mit Backup, Install-Codes und Touchlink gegliedert.
 
 **Version 5.42:**  
 
