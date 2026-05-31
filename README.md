@@ -16,7 +16,8 @@ Anbindung von [zigbee2mqtt](https://www.zigbee2mqtt.io) an IP-Symcon.
 - [3. Installation](#3-installation)
   - [3.1 Neuinstallation](#31-neuinstallation)
   - [3.2 Update von Modul Version 4.5 auf 5.x](#32-update-von-modul-version-45-auf-5x)
-  - [3.3 Installation der IP-Symcon Extension in Zigbee2MQTT](#33-installation-der-ip-symcon-extension-in-zigbee2mqtt)
+  - [3.3 Update von Modul Version 5.42 auf 6.0](#33-update-von-modul-version-542-auf-60)
+  - [3.4 Installation der IP-Symcon Extension in Zigbee2MQTT](#34-installation-der-ip-symcon-extension-in-zigbee2mqtt)
 - [4. Konfiguration in IP-Symcon](#4-konfiguration-in-ip-symcon)
   - [4.1 Tile-Visualisierung](#41-tile-visualisierung)
   - [4.2 Variablenverwaltung](#42-variablenverwaltung)
@@ -67,9 +68,9 @@ Weitere Schritte zur Ersteinrichtung sind unter dem [Zigbee2MQTT-Discovery](Disc
 
 ### I. Vorbereitung <!-- omit in toc -->
 
-- Bevor das Update über den Modul-Store durchgeführt werden kann, ist sicherzustellen das zuvor mindestens die Version 4.6 der [Extension in Zigbee2MQTT](#33-installation-der-ip-symcon-extension-in-zigbee2mqtt) installiert ist.
+- Bevor das Update über den Modul-Store durchgeführt werden kann, ist sicherzustellen das zuvor mindestens die Version 4.6 der [Extension in Zigbee2MQTT](#34-installation-der-ip-symcon-extension-in-zigbee2mqtt) installiert ist.
 - Diese wird automatisch ab Version 4.5 durch die [Bridge-Instanz](Bridge/README.md)  installiert, sofern diese Instanz angelegt wurde.
-- Alternativ muss die benötigte [Extension in Zigbee2MQTT](#33-installation-der-ip-symcon-extension-in-zigbee2mqtt) manuell ein Update auf Version 4.6 erhalten.
+- Alternativ muss die benötigte [Extension in Zigbee2MQTT](#34-installation-der-ip-symcon-extension-in-zigbee2mqtt) manuell ein Update auf Version 4.6 erhalten.
 
 > [!CAUTION]  
 > Ohne aktuelle Extension wird das Modul Update mit Fehlermeldungen durchgeführt, welche zu unerwarteten Fehlverhalten führen kann.
@@ -148,11 +149,77 @@ Weitere Schritte zur Ersteinrichtung sind unter dem [Zigbee2MQTT-Discovery](Disc
 
 - Ein Update auf Zigbee2MQTT Version 2.0 oder neuer kann nach dem Update des Moduls durchgeführt werden.  
 - Hierzu sind die Anleitungen unter [zigbee2mqtt.io](https://www.zigbee2mqtt.io/guide/installation/) zu beachten.
-- In Symcon sollte eine [Bridge-Instanz](Bridge/README.md) eingerichtet sein, damit beim Update automatisch die korrekte [Extension in Zigbee2MQTT](#33-installation-der-ip-symcon-extension-in-zigbee2mqtt) installiert wird.  
+- In Symcon sollte eine [Bridge-Instanz](Bridge/README.md) eingerichtet sein, damit beim Update automatisch die korrekte [Extension in Zigbee2MQTT](#34-installation-der-ip-symcon-extension-in-zigbee2mqtt) installiert wird.
 
 ---
 
-### 3.3 Installation der IP-Symcon Extension in Zigbee2MQTT
+### 3.3 Update von Modul Version 5.42 auf 6.0
+
+> [!IMPORTANT]
+> **Version 6.0 benötigt mindestens IP-Symcon 9.0. Vor dem Update ist ein vollständiges Symcon-Backup zu erstellen. Ein Downgrade auf Version 5.42 sollte nur durch Wiederherstellung dieses Backups erfolgen.**
+
+Version 6.0 migriert die Module auf `IPSModuleStrict` und erweitert Geräte-, Gruppen- und Bridge-Instanzen deutlich. Bestehende Variablen werden beim Update nicht automatisch gelöscht. Objekt-IDs vorhandener Variablen bleiben erhalten. Trotzdem sollten die folgenden Schritte beachtet werden.
+
+#### I. Vorbereitung <!-- omit in toc -->
+
+1. **IP-Symcon-Version prüfen**
+   Vor dem Modulupdate muss IP-Symcon mindestens in Version 9.0 installiert sein.
+
+2. **Symcon-Backup erstellen**
+   Vor dem Update ist ein vollständiges Symcon-Backup anzulegen. Dies ist insbesondere erforderlich, falls auf Version 5.42 zurückgewechselt werden soll.
+
+3. **Bridge-Instanz kontrollieren**
+   Es sollte eine eingerichtete und erreichbare [Bridge-Instanz](Bridge/README.md) vorhanden sein. Das MQTT-Basistopic muss stimmen und Zigbee2MQTT muss laufen. Die Bridge aktualisiert die benötigte Symcon-Extension normalerweise automatisch.
+
+4. **Meldungsfenster öffnen**
+   Während des Updates sollte das Fenster [Meldungen](https://www.symcon.de/de/service/dokumentation/komponenten/verwaltungskonsole/meldungen/) geöffnet bleiben. So lassen sich eventuelle Hinweise während der Migration nachvollziehen.
+
+#### II. Modulupdate <!-- omit in toc -->
+
+Das Update kann anschließend über den [Modul-Store](https://www.symcon.de/de/service/dokumentation/komponenten/verwaltungskonsole/module-store/) durchgeführt werden.
+
+Während des Updates können vorübergehend Warnungen auftreten, wenn andere Symcon-Module zeitgleich auf Zigbee2MQTT-Instanzen zugreifen, deren Konfiguration gerade neu angewendet wird. Bleiben Meldungen nach Abschluss bestehen, sind die Bridge-Instanz und die betroffenen Geräteinstanzen erneut zu öffnen und anzuwenden.
+
+#### III. Symcon-Extension prüfen <!-- omit in toc -->
+
+Nach dem Update ist die Bridge-Konfiguration zu öffnen. Dort muss **Symcon-Erweiterung ist aktuell** angezeigt werden. Version 6.0 benötigt die Symcon-Extension in Version `6.02`.
+
+Die Bridge installiert beziehungsweise aktualisiert die Extension im Normalfall automatisch. Falls Zigbee2MQTT während des Modulupdates nicht erreichbar war oder keine Bridge-Instanz existiert, muss die Extension später über die Bridge oder anhand der [manuellen Anleitung](#34-installation-der-ip-symcon-extension-in-zigbee2mqtt) aktualisiert werden.
+
+> [!CAUTION]
+> Wenn mehrere alte Symcon-Extensions gleichzeitig in Zigbee2MQTT hinterlegt sind, müssen Dubletten manuell entfernt werden. Mehrere aktive Erweiterungen können zu doppelten Antworten und Fehlverhalten führen.
+
+#### IV. Bestehende Geräte kontrollieren <!-- omit in toc -->
+
+1. **Visualisierung prüfen**
+   Passende Geräte erhalten automatisch moderne Tile-Darstellungen oder HTML-SDK-Kacheln. Das verändert die Darstellung, nicht die vorhandenen Automationen. Falls eine automatisch gewählte Spezialkachel nicht gewünscht ist, kann sie in der jeweiligen Geräteinstanz unter **Visualisierung** deaktiviert werden.
+
+2. **Farbtemperatur bei Leuchtmitteln prüfen**
+   Der Kelvin-Bereich wird aus den von Zigbee2MQTT gelieferten Exposes berechnet. Einige Zigbee2MQTT-Device-Definitionen melden ungenaue Grenzen. Bei betroffenen Leuchtmitteln kann der Kelvin-Bereich in der Geräteinstanz unter **Farbtemperatur-Visualisierung** korrigiert werden.
+
+3. **Neue Variablen beachten**
+   Version 6.0 kann zusätzliche Variablen aus neuen oder präziser ausgewerteten Exposes sowie aus nachgelieferten Payloads anlegen. Bestehende Variablen werden dabei nicht automatisch entfernt.
+
+4. **Variablenverwaltung beachten**
+   Geräteinstanzen führen ab Version 6.0 einen lokalen Variablenkatalog. Wird eine bekannte Variable künftig manuell gelöscht, legt das Modul sie nicht ungefragt erneut an. Unter **Variablen** kann sie gezielt wieder angelegt oder für die automatische Anlage freigegeben werden.
+
+5. **Skripte und Automationen prüfen**
+   Die bisher dokumentierten Bridge-Funktionen bleiben verfügbar. Erweiterte Funktionen verwenden zusätzliche optionale Parameter. Trotzdem sollten eigene Skripte geprüft werden, wenn sie Variablenprofile, Darstellungen oder den exakten Bestand der automatisch angelegten Variablen auswerten.
+
+#### V. Optionale neue Funktionen bewusst verwenden <!-- omit in toc -->
+
+Die folgenden Funktionen werden durch das Update nur bereitgestellt und verändern bestehende Installationen nicht automatisch:
+
+- **Variablen-Wartung:** Die Bridge kann verwaiste Variablen suchen. Es wird nichts automatisch gelöscht. Löschkandidaten sollten einzeln geprüft und nur bewusst entfernt werden.
+- **Binding und Reporting:** Bestehende Bindings bleiben erhalten. Für eine aktuelle Anzeige in einer Geräteinstanz zunächst **Endpoint-Daten aktualisieren** verwenden. Batteriegeräte müssen gegebenenfalls aufgeweckt werden.
+- **Blocklist und Passlist:** Die Passlist ist restriktiv und kann Geräte aus dem Zigbee-Netz entfernen, wenn diese nicht enthalten sind. Änderungen deshalb nur mit Bedacht durchführen.
+- **Zigbee2MQTT-Backup:** Erstellte ZIP-Dateien werden unter `user/IPSZigbee2MQTT/backups` auf dem Symcon-Server gespeichert und nicht direkt im Browser heruntergeladen.
+- **Install-Code-Katalog:** Gespeicherte Install-Codes werden maskiert dargestellt, liegen aber nicht verschlüsselt in einem Bridge-Attribut und können deshalb auch Bestandteil von Symcon-Backups sein.
+- **OTA-Updates:** Zum Schutz des Zigbee-Netzes immer nur ein aktives OTA-Update gleichzeitig durchführen. Batteriegeräte müssen eventuell vor einer Prüfung oder Planung aufgeweckt werden.
+
+---
+
+### 3.4 Installation der IP-Symcon Extension in Zigbee2MQTT
 
 Für den fehlerfreien Betrieb des Moduls wird eine Erweiterung (Extension) in Zigbee2MQTT benötigt.
 

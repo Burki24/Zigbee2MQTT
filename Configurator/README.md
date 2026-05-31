@@ -34,7 +34,7 @@ Mit dieser Instanz werden die Geräte und Gruppen aus Zigbee2MQTT ausgelesen und
 
 ## 3. Verwendung der Instanzen
 
-Wird beim ersten öffnen der Instanz eine Fehlermeldung angezeigt, dass keine Geräte gefunden wurden, so ist die benötigte [Extension in Zigbee2MQTT](../README.md#33-installation-der-ip-symcon-extension-in-zigbee2mqtt) nicht installiert.  
+Wird beim ersten öffnen der Instanz eine Fehlermeldung angezeigt, dass keine Geräte gefunden wurden, so ist die benötigte [Extension in Zigbee2MQTT](../README.md#34-installation-der-ip-symcon-extension-in-zigbee2mqtt) nicht installiert.
 Über den Button `Bridge-Instanz erstellen` kann eine fehlende Instanz erstellt werden, welche automatisch die Erweiterung installiert.  
 Anschließend wird der Konfigurator neu geladen.  
 ![bridge_install](imgs/bridge_install.png)  
