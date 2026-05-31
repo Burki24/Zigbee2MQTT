@@ -59,7 +59,14 @@ class Zigbee2MQTTBridge extends IPSModuleStrict
     private const ATTRIBUTE_PENDING_PASSLIST_CHANGE = 'PendingPasslistChange';
     private const ATTRIBUTE_STALE_VARIABLE_SCAN = 'StaleVariableScan';
     private const ATTRIBUTE_PENDING_STALE_VARIABLE_DELETE = 'PendingStaleVariableDelete';
+    private const ATTRIBUTE_OTA_CHECK_RESULTS = 'OTACheckResults';
+    private const ATTRIBUTE_OTA_UPDATE_RESULTS = 'OTAUpdateResults';
+    private const ATTRIBUTE_PENDING_OTA_UPDATE = 'PendingOTAUpdate';
+    private const ATTRIBUTE_OTA_PENDING_REQUESTS = 'OTAPendingRequests';
     private const MAX_DIAGNOSTIC_ENTRIES = 50;
+    private const MAX_OTA_RESULT_ENTRIES = 25;
+    private const OTA_CHECK_RESULT_LIFETIME = 300;
+    private const OTA_PENDING_REQUEST_LIFETIME = 300;
 
     /**
      * Create
@@ -96,6 +103,10 @@ class Zigbee2MQTTBridge extends IPSModuleStrict
         $this->RegisterAttributeArray(self::ATTRIBUTE_PENDING_PASSLIST_CHANGE, []);
         $this->RegisterAttributeArray(self::ATTRIBUTE_STALE_VARIABLE_SCAN, []);
         $this->RegisterAttributeArray(self::ATTRIBUTE_PENDING_STALE_VARIABLE_DELETE, []);
+        $this->RegisterAttributeArray(self::ATTRIBUTE_OTA_CHECK_RESULTS, []);
+        $this->RegisterAttributeArray(self::ATTRIBUTE_OTA_UPDATE_RESULTS, []);
+        $this->RegisterAttributeArray(self::ATTRIBUTE_PENDING_OTA_UPDATE, []);
+        $this->RegisterAttributeArray(self::ATTRIBUTE_OTA_PENDING_REQUESTS, []);
     }
 
     /**
@@ -273,6 +284,9 @@ class Zigbee2MQTTBridge extends IPSModuleStrict
                     break;
                 }
                 if (\is_array($Payload) && $this->UpdateTransactionByResponseTopic('/bridge/response/' . implode('/', $Topics), $Payload)) {
+                    break;
+                }
+                if (\is_array($Payload) && $this->HandleOTAUpdateResponse($Payload, $Topics)) {
                     break;
                 }
                 if (is_array($Topics) && isset($Topics[0])) {
@@ -459,6 +473,24 @@ class Zigbee2MQTTBridge extends IPSModuleStrict
                 break;
             case 'ConfirmDeleteStaleVariable':
                 $this->ConfirmPendingStaleVariableDelete();
+                break;
+            case 'RefreshOTAStatus':
+                $this->UpdateOTAFormLists();
+                break;
+            case 'CheckOTAUpdate':
+                $this->CheckOTAUpdateFromForm($value);
+                break;
+            case 'RequestOTAUpdate':
+                $this->RequestOTAUpdateFromForm($value);
+                break;
+            case 'ConfirmOTAUpdate':
+                $this->ConfirmPendingOTAUpdate();
+                break;
+            case 'ScheduleOTAUpdate':
+                $this->ScheduleOTAUpdateFromForm($value);
+                break;
+            case 'UnscheduleOTAUpdate':
+                $this->UnscheduleOTAUpdateFromForm($value);
                 break;
         }
     }
@@ -1893,6 +1925,17 @@ class Zigbee2MQTTBridge extends IPSModuleStrict
         $this->SetBridgeFormField($form, 'DiagnosticEventList', 'values', $this->BuildEventFormValues());
         $this->SetBridgeFormField($form, 'DiagnosticLogList', 'values', $this->BuildLogFormValues());
         $this->SetBridgeFormField($form, 'TouchlinkDeviceList', 'values', $this->BuildTouchlinkDeviceFormValues());
+        $otaRows = $this->BuildOTADeviceRows();
+        $this->SetBridgeFormField($form, 'OTAStatus', 'caption', $this->BuildOTAStatusCaption($otaRows));
+        $this->SetBridgeFormField($form, 'OTAKnownDevices', 'values', $this->BuildOTAKnownDeviceFormValues($otaRows));
+        $this->SetBridgeFormField($form, 'OTAKnownDevices', 'rowCount', min(10, max(3, \count($otaRows) + 1)));
+        $availableOTARows = $this->FilterOTADeviceRowsByState($otaRows, ['available']);
+        $this->SetBridgeFormField($form, 'OTAAvailableUpdates', 'values', $this->BuildOTAAvailableUpdateFormValues($availableOTARows));
+        $this->SetBridgeFormField($form, 'OTAAvailableUpdates', 'rowCount', min(8, max(3, \count($availableOTARows) + 1)));
+        $activeOTARows = $this->FilterOTADeviceRowsByState($otaRows, ['requested', 'scheduled', 'updating']);
+        $this->SetBridgeFormField($form, 'OTAActiveUpdates', 'values', $this->BuildOTAActiveUpdateFormValues($activeOTARows));
+        $this->SetBridgeFormField($form, 'OTAActiveUpdates', 'rowCount', min(8, max(3, \count($activeOTARows) + 1)));
+        $this->SetBridgeFormField($form, 'OTAUpdateResults', 'values', $this->BuildOTAUpdateResultFormValues());
         $staleVariableScan = $this->ReadStaleVariableScan();
         $this->SetBridgeFormField($form, 'StaleVariableStatus', 'caption', $this->BuildStaleVariableStatusCaption());
         $this->SetBridgeFormField($form, 'StaleVariableClearCandidates', 'values', $this->BuildStaleVariableClearCandidateFormValues($staleVariableScan));
@@ -1903,6 +1946,546 @@ class Zigbee2MQTTBridge extends IPSModuleStrict
         $this->SetBridgeFormField($form, 'StaleVariableErrors', 'rowCount', min(8, max(2, \count($staleVariableScan['errors'] ?? []) + 1)));
 
         return $form;
+    }
+
+    /**
+     * Baut die OTA-Statuszeilen aus den vorhandenen Device-Instanzen auf.
+     */
+    private function BuildOTADeviceRows(): array
+    {
+        $baseTopic = $this->ReadPropertyString(self::MQTT_BASE_TOPIC);
+        if ($baseTopic === '') {
+            return [];
+        }
+
+        $networkDevices = $this->BuildOTANetworkDeviceMap();
+        $checkResults = $this->ReadAttributeArray(self::ATTRIBUTE_OTA_CHECK_RESULTS);
+        $pendingRequests = $this->ReadActiveOTAPendingRequests();
+        $rows = [];
+        foreach (IPS_GetInstanceListByModuleID(self::GUID_MODULE_DEVICE) as $instanceID) {
+            if (@IPS_GetProperty($instanceID, self::MQTT_BASE_TOPIC) !== $baseTopic) {
+                continue;
+            }
+
+            $deviceName = trim((string) @IPS_GetProperty($instanceID, self::MQTT_TOPIC), '/');
+            if ($deviceName === '') {
+                continue;
+            }
+
+            $ieeeAddress = strtolower((string) @IPS_GetProperty($instanceID, 'IEEE'));
+            $networkDevice = $networkDevices[$deviceName] ?? $networkDevices[$ieeeAddress] ?? [];
+            $hasOTAVariables = $this->HasOTADeviceVariables($instanceID);
+            if (!(bool) ($networkDevice['supports_ota'] ?? false) && !$hasOTAVariables) {
+                continue;
+            }
+
+            $state = strtolower((string) $this->ReadOTADeviceVariable($instanceID, 'update__state', ''));
+            $checkResult = \is_array($checkResults[$deviceName] ?? null) ? $checkResults[$deviceName] : [];
+            $hasRecentCheckResult = (int) ($checkResult['checked_at'] ?? 0) >= time() - self::OTA_CHECK_RESULT_LIFETIME;
+            if (($pendingRequests[$deviceName] ?? null) !== null && $state !== 'updating') {
+                $state = 'requested';
+            } elseif ($state !== 'updating' && $hasRecentCheckResult) {
+                $state = (string) ($checkResult['state'] ?? ((bool) ($checkResult['update_available'] ?? false) ? 'available' : 'idle'));
+            } elseif ($state === '') {
+                $state = 'unknown';
+            }
+
+            $rows[] = [
+                'instance_id'       => $instanceID,
+                'instance'          => $this->GetOTAInstanceCaption($instanceID),
+                'device_name'       => $deviceName,
+                'model'             => (string) ($networkDevice['model'] ?? ''),
+                'power_source'      => (string) ($networkDevice['powerSource'] ?? ''),
+                'state'             => $state,
+                'installed_version' => $this->FormatOTAValue($this->ReadOTADeviceVariable($instanceID, 'update__installed_version', '')),
+                'latest_version'    => $this->FormatOTAValue($this->ReadOTADeviceVariable($instanceID, 'update__latest_version', '')),
+                'progress'          => $this->FormatOTAProgress($this->ReadOTADeviceVariable($instanceID, 'update__progress', '')),
+                'remaining'         => $this->FormatOTARemaining($this->ReadOTADeviceVariable($instanceID, 'update__remaining', '')),
+            ];
+        }
+
+        usort($rows, static fn (array $left, array $right): int => strnatcasecmp($left['instance'], $right['instance']));
+        return $rows;
+    }
+
+    /**
+     * Baut eine nach Friendly Name und IEEE-Adresse indizierte OTA-Geraeteliste.
+     */
+    private function BuildOTANetworkDeviceMap(): array
+    {
+        $devices = [];
+        foreach ($this->ReadAttributeArray(self::ATTRIBUTE_NETWORK_DEVICES) as $device) {
+            if (!\is_array($device)) {
+                continue;
+            }
+
+            $friendlyName = trim((string) ($device['friendly_name'] ?? ''), '/');
+            $ieeeAddress = strtolower((string) ($device['ieee_address'] ?? $device['ieeeAddr'] ?? ''));
+            if ($friendlyName !== '') {
+                $devices[$friendlyName] = $device;
+            }
+            if ($ieeeAddress !== '') {
+                $devices[$ieeeAddress] = $device;
+            }
+        }
+
+        return $devices;
+    }
+
+    /**
+     * Prueft, ob eine Device-Instanz OTA-Statusvariablen besitzt.
+     */
+    private function HasOTADeviceVariables(int $instanceID): bool
+    {
+        foreach (['update__state', 'update__installed_version', 'update__latest_version'] as $ident) {
+            if (@IPS_GetObjectIDByIdent($ident, $instanceID) !== false) {
+                return true;
+            }
+        }
+
+        return false;
+    }
+
+    /**
+     * Liest eine optionale OTA-Variable einer Device-Instanz.
+     */
+    private function ReadOTADeviceVariable(int $instanceID, string $ident, mixed $default): mixed
+    {
+        $variableID = @IPS_GetObjectIDByIdent($ident, $instanceID);
+        if ($variableID === false) {
+            return $default;
+        }
+
+        return GetValue($variableID);
+    }
+
+    /**
+     * Baut den Anzeigenamen einer Device-Instanz auf.
+     */
+    private function GetOTAInstanceCaption(int $instanceID): string
+    {
+        $location = \function_exists('IPS_GetLocation') ? (string) @IPS_GetLocation($instanceID) : '';
+        return $location !== '' ? $location : (string) @IPS_GetName($instanceID);
+    }
+
+    /**
+     * Formatiert einen einfachen OTA-Wert.
+     */
+    private function FormatOTAValue(mixed $value): string
+    {
+        return $value === '' || $value === null ? '-' : (string) $value;
+    }
+
+    /**
+     * Formatiert den OTA-Fortschritt.
+     */
+    private function FormatOTAProgress(mixed $value): string
+    {
+        if ($value === '' || $value === null || !is_numeric($value)) {
+            return '-';
+        }
+
+        return rtrim(rtrim(number_format((float) $value, 1, ',', ''), '0'), ',') . ' %';
+    }
+
+    /**
+     * Formatiert die OTA-Restzeit.
+     */
+    private function FormatOTARemaining(mixed $value): string
+    {
+        if ($value === '' || $value === null || !is_numeric($value)) {
+            return '-';
+        }
+
+        $seconds = max(0, (int) $value);
+        if ($seconds < 60) {
+            return $seconds . ' s';
+        }
+
+        return intdiv($seconds, 60) . ' min';
+    }
+
+    /**
+     * Filtert OTA-Zeilen nach Status.
+     */
+    private function FilterOTADeviceRowsByState(array $rows, array $states): array
+    {
+        return array_values(array_filter(
+            $rows,
+            static fn (array $row): bool => \in_array((string) ($row['state'] ?? ''), $states, true)
+        ));
+    }
+
+    /**
+     * Baut die OTA-Uebersichtszeilen fuer alle bekannten OTA-Geraete auf.
+     */
+    private function BuildOTAKnownDeviceFormValues(array $rows): array
+    {
+        $values = [];
+        foreach ($rows as $row) {
+            $values[] = array_merge($row, [
+                'state_caption' => $this->TranslateOTAState((string) ($row['state'] ?? 'unknown')),
+                'action'        => $this->Translate('Check update')
+            ]);
+        }
+
+        return $values;
+    }
+
+    /**
+     * Baut die OTA-Uebersichtszeilen fuer verfuegbare Updates auf.
+     */
+    private function BuildOTAAvailableUpdateFormValues(array $rows): array
+    {
+        $values = [];
+        foreach ($rows as $row) {
+            $values[] = array_merge($row, [
+                'state_caption'   => $this->TranslateOTAState((string) ($row['state'] ?? 'unknown')),
+                'update_action'   => $this->Translate('Start update'),
+                'schedule_action' => $this->Translate('Schedule')
+            ]);
+        }
+
+        return $values;
+    }
+
+    /**
+     * Baut die OTA-Uebersichtszeilen fuer laufende und geplante Updates auf.
+     */
+    private function BuildOTAActiveUpdateFormValues(array $rows): array
+    {
+        $values = [];
+        foreach ($rows as $row) {
+            $values[] = array_merge($row, [
+                'state_caption' => $this->TranslateOTAState((string) ($row['state'] ?? 'unknown')),
+                'action'        => ($row['state'] ?? '') === 'scheduled' ? $this->Translate('Unschedule') : ''
+            ]);
+        }
+
+        return $values;
+    }
+
+    /**
+     * Baut den Statushinweis fuer die OTA-Zentrale.
+     */
+    private function BuildOTAStatusCaption(array $rows): string
+    {
+        return sprintf(
+            $this->Translate('Known OTA devices: %d, available updates: %d, active or scheduled: %d'),
+            \count($rows),
+            \count($this->FilterOTADeviceRowsByState($rows, ['available'])),
+            \count($this->FilterOTADeviceRowsByState($rows, ['requested', 'scheduled', 'updating']))
+        );
+    }
+
+    /**
+     * Uebersetzt einen OTA-Status fuer die Bridge-Oberflaeche.
+     */
+    private function TranslateOTAState(string $state): string
+    {
+        return $this->Translate(match ($state) {
+            'available' => 'Available',
+            'requested' => 'Requested',
+            'scheduled' => 'Scheduled',
+            'updating'  => 'Updating',
+            'idle'      => 'Idle',
+            default     => 'Unknown'
+        });
+    }
+
+    /**
+     * Aktualisiert alle OTA-Listen der Bridge-Konfiguration.
+     */
+    private function UpdateOTAFormLists(): void
+    {
+        $rows = $this->BuildOTADeviceRows();
+        $availableRows = $this->FilterOTADeviceRowsByState($rows, ['available']);
+        $activeRows = $this->FilterOTADeviceRowsByState($rows, ['requested', 'scheduled', 'updating']);
+        $this->UpdateFormField('OTAStatus', 'caption', $this->BuildOTAStatusCaption($rows));
+        $this->UpdateFormField('OTAKnownDevices', 'values', json_encode($this->BuildOTAKnownDeviceFormValues($rows)));
+        $this->UpdateFormField('OTAKnownDevices', 'rowCount', min(10, max(3, \count($rows) + 1)));
+        $this->UpdateFormField('OTAAvailableUpdates', 'values', json_encode($this->BuildOTAAvailableUpdateFormValues($availableRows)));
+        $this->UpdateFormField('OTAAvailableUpdates', 'rowCount', min(8, max(3, \count($availableRows) + 1)));
+        $this->UpdateFormField('OTAActiveUpdates', 'values', json_encode($this->BuildOTAActiveUpdateFormValues($activeRows)));
+        $this->UpdateFormField('OTAActiveUpdates', 'rowCount', min(8, max(3, \count($activeRows) + 1)));
+        $this->UpdateFormField('OTAUpdateResults', 'values', json_encode($this->BuildOTAUpdateResultFormValues()));
+    }
+
+    /**
+     * Prueft ein einzelnes Geraet auf ein OTA-Update und aktualisiert die Liste.
+     */
+    private function CheckOTAUpdateFromForm(mixed $value): bool
+    {
+        $row = $this->ResolveOTADeviceRow($value);
+        if ($row === null) {
+            return false;
+        }
+
+        $result = $this->SendDataQuiet('/bridge/request/device/ota_update/check', ['id' => $row['device_name']], 10000);
+        if (!\is_array($result) || isset($result['error']) || (($result['status'] ?? 'ok') !== 'ok')) {
+            $this->ShowOTAMessage('OTA check failed', 'Zigbee2MQTT did not return a successful OTA check result. Battery devices may need to be woken up first.');
+            return false;
+        }
+
+        $data = \is_array($result['data'] ?? null) ? $result['data'] : [];
+        $available = (bool) ($data['update_available'] ?? $data['updateAvailable'] ?? false);
+        $this->StoreOTACheckResult($row['device_name'], $available, $available ? 'available' : 'idle');
+        $this->UpdateOTAFormLists();
+        $this->ShowOTAMessage(
+            $available ? 'OTA update available' : 'No OTA update available',
+            $available ? 'Zigbee2MQTT reports an available OTA update for the selected device.' : 'Zigbee2MQTT reports no available OTA update for the selected device.'
+        );
+
+        return true;
+    }
+
+    /**
+     * Oeffnet die Sicherheitsabfrage fuer ein OTA-Update.
+     */
+    private function RequestOTAUpdateFromForm(mixed $value): bool
+    {
+        $row = $this->ResolveOTADeviceRow($value);
+        if ($row === null) {
+            return false;
+        }
+
+        if (($row['state'] ?? '') !== 'available') {
+            $this->ShowOTAMessage('OTA update cannot be started', 'The selected device does not currently report an available OTA update.');
+            return false;
+        }
+        if ($this->HasRunningOTAUpdate()) {
+            $this->ShowOTAMessage('OTA update cannot be started', 'Another OTA update is already running. Please wait until it has finished.');
+            return false;
+        }
+
+        $this->WriteAttributeArray(self::ATTRIBUTE_PENDING_OTA_UPDATE, $row);
+        $this->UpdateFormField(
+            'OTAUpdateWarningText',
+            'caption',
+            sprintf(
+                $this->Translate('Start OTA update for %s? The device can be unavailable for a longer period and may restart.'),
+                $row['instance']
+            )
+        );
+        $this->UpdateFormField('OTAUpdateWarning', 'visible', true);
+        return true;
+    }
+
+    /**
+     * Startet das zuvor bestaetigte OTA-Update.
+     */
+    private function ConfirmPendingOTAUpdate(): bool
+    {
+        $pending = $this->ReadAttributeArray(self::ATTRIBUTE_PENDING_OTA_UPDATE);
+        $this->WriteAttributeArray(self::ATTRIBUTE_PENDING_OTA_UPDATE, []);
+        $this->UpdateFormField('OTAUpdateWarning', 'visible', false);
+        $row = $this->ResolveOTADeviceRow($pending);
+        if ($row === null) {
+            return false;
+        }
+
+        if (($row['state'] ?? '') !== 'available') {
+            $this->ShowOTAMessage('OTA update cannot be started', 'The selected device does not currently report an available OTA update.');
+            return false;
+        }
+        if ($this->HasRunningOTAUpdate()) {
+            $this->ShowOTAMessage('OTA update cannot be started', 'Another OTA update is already running. Please wait until it has finished.');
+            return false;
+        }
+        if (!$this->PerformOTAUpdate($row['device_name'])) {
+            $this->ShowOTAMessage('OTA update could not be submitted', 'Zigbee2MQTT did not accept the OTA update request.');
+            return false;
+        }
+
+        $requests = $this->ReadActiveOTAPendingRequests();
+        $requests[$row['device_name']] = [
+            'instance_id'  => $row['instance_id'],
+            'requested_at' => time()
+        ];
+        $this->WriteAttributeArray(self::ATTRIBUTE_OTA_PENDING_REQUESTS, $requests);
+        $this->UpdateOTAFormLists();
+        $this->ShowOTAMessage('OTA update submitted', 'The OTA update was submitted to Zigbee2MQTT. Use Refresh status to read the current progress.');
+        return true;
+    }
+
+    /**
+     * Plant ein OTA-Update fuer das ausgewaehlte Geraet.
+     */
+    private function ScheduleOTAUpdateFromForm(mixed $value): bool
+    {
+        $row = $this->ResolveOTADeviceRow($value);
+        if ($row === null) {
+            return false;
+        }
+        if (($row['state'] ?? '') !== 'available') {
+            $this->ShowOTAMessage('OTA update could not be scheduled', 'The selected device does not currently report an available OTA update.');
+            return false;
+        }
+        if (!$this->ScheduleOTAUpdate($row['device_name'])) {
+            $this->ShowOTAMessage('OTA update could not be scheduled', 'Zigbee2MQTT did not accept the OTA schedule request. Battery devices may need to be woken up first.');
+            return false;
+        }
+
+        $this->StoreOTACheckResult($row['device_name'], false, 'scheduled');
+        $this->UpdateOTAFormLists();
+        $this->ShowOTAMessage('OTA update scheduled', 'The OTA update was scheduled for the selected device.');
+        return true;
+    }
+
+    /**
+     * Hebt eine OTA-Planung fuer das ausgewaehlte Geraet auf.
+     */
+    private function UnscheduleOTAUpdateFromForm(mixed $value): bool
+    {
+        $row = $this->ResolveOTADeviceRow($value);
+        if ($row === null) {
+            return false;
+        }
+        if (($row['state'] ?? '') !== 'scheduled') {
+            $this->ShowOTAMessage('OTA schedule could not be removed', 'The selected device does not currently report a scheduled OTA update.');
+            return false;
+        }
+        if (!$this->UnscheduleOTAUpdate($row['device_name'])) {
+            $this->ShowOTAMessage('OTA schedule could not be removed', 'Zigbee2MQTT did not accept the OTA unschedule request.');
+            return false;
+        }
+
+        $this->StoreOTACheckResult($row['device_name'], false, 'idle');
+        $this->UpdateOTAFormLists();
+        $this->ShowOTAMessage('OTA schedule removed', 'The OTA schedule was removed for the selected device.');
+        return true;
+    }
+
+    /**
+     * Loest eine Formularauswahl gegen die bekannten OTA-Geraete auf.
+     */
+    private function ResolveOTADeviceRow(mixed $value): ?array
+    {
+        $selection = \is_array($value) ? $value : $this->DecodeBridgeFormPayload($value);
+        $instanceID = (int) ($selection['instance_id'] ?? 0);
+        foreach ($this->BuildOTADeviceRows() as $row) {
+            if ((int) ($row['instance_id'] ?? 0) === $instanceID) {
+                return $row;
+            }
+        }
+
+        $this->ShowOTAMessage('OTA device not found', 'The selected OTA device is no longer available in this bridge instance.');
+        return null;
+    }
+
+    /**
+     * Prueft, ob bereits ein OTA-Update aktiv ist.
+     */
+    private function HasRunningOTAUpdate(): bool
+    {
+        return $this->FilterOTADeviceRowsByState($this->BuildOTADeviceRows(), ['requested', 'updating']) !== [];
+    }
+
+    /**
+     * Liest noch relevante unmittelbar gestartete OTA-Requests.
+     */
+    private function ReadActiveOTAPendingRequests(): array
+    {
+        $requests = $this->ReadAttributeArray(self::ATTRIBUTE_OTA_PENDING_REQUESTS);
+        $minimumTimestamp = time() - self::OTA_PENDING_REQUEST_LIFETIME;
+        $activeRequests = array_filter(
+            $requests,
+            static fn (mixed $request): bool => \is_array($request) && (int) ($request['requested_at'] ?? 0) >= $minimumTimestamp
+        );
+        if ($activeRequests !== $requests) {
+            $this->WriteAttributeArray(self::ATTRIBUTE_OTA_PENDING_REQUESTS, $activeRequests);
+        }
+
+        return $activeRequests;
+    }
+
+    /**
+     * Speichert einen kurzlebigen OTA-Zustand aus einer direkten Bridge-Antwort.
+     */
+    private function StoreOTACheckResult(string $deviceName, bool $updateAvailable, string $state): void
+    {
+        $checks = $this->ReadAttributeArray(self::ATTRIBUTE_OTA_CHECK_RESULTS);
+        $checks[$deviceName] = [
+            'checked_at'       => time(),
+            'update_available' => $updateAvailable,
+            'state'            => $state
+        ];
+        $this->WriteAttributeArray(self::ATTRIBUTE_OTA_CHECK_RESULTS, $checks);
+    }
+
+    /**
+     * Verarbeitet die spaete Abschlussantwort eines asynchronen OTA-Updates.
+     */
+    private function HandleOTAUpdateResponse(array $payload, array $topics): bool
+    {
+        if (!\in_array(implode('/', $topics), ['device/ota_update/update', 'device/ota_update/update/downgrade'], true)) {
+            return false;
+        }
+
+        $data = \is_array($payload['data'] ?? null) ? $payload['data'] : [];
+        $deviceName = (string) ($data['id'] ?? $payload['id'] ?? '');
+        $success = ($payload['status'] ?? '') === 'ok';
+        $message = $success
+            ? $this->Translate('The OTA update completed successfully.')
+            : (string) ($payload['error'] ?? $data['error'] ?? $this->Translate('Zigbee2MQTT reported an OTA update error.'));
+        $this->AppendOTAUpdateResult([
+            'time'        => time(),
+            'device_name' => $deviceName,
+            'status'      => $success ? 'successful' : 'failed',
+            'message'     => $message
+        ]);
+
+        $requests = $this->ReadAttributeArray(self::ATTRIBUTE_OTA_PENDING_REQUESTS);
+        unset($requests[$deviceName]);
+        $this->WriteAttributeArray(self::ATTRIBUTE_OTA_PENDING_REQUESTS, $requests);
+        $checks = $this->ReadAttributeArray(self::ATTRIBUTE_OTA_CHECK_RESULTS);
+        unset($checks[$deviceName]);
+        $this->WriteAttributeArray(self::ATTRIBUTE_OTA_CHECK_RESULTS, $checks);
+        $this->UpdateOTAFormLists();
+        $this->ShowOTAMessage($success ? 'OTA update successful' : 'OTA update failed', $message);
+        return true;
+    }
+
+    /**
+     * Speichert ein OTA-Abschlussergebnis als Ringpuffer.
+     */
+    private function AppendOTAUpdateResult(array $result): void
+    {
+        $results = $this->ReadAttributeArray(self::ATTRIBUTE_OTA_UPDATE_RESULTS);
+        array_unshift($results, $result);
+        $this->WriteAttributeArray(self::ATTRIBUTE_OTA_UPDATE_RESULTS, \array_slice($results, 0, self::MAX_OTA_RESULT_ENTRIES));
+    }
+
+    /**
+     * Baut die OTA-Ergebnisliste fuer das Formular auf.
+     */
+    private function BuildOTAUpdateResultFormValues(): array
+    {
+        $values = [];
+        foreach ($this->ReadAttributeArray(self::ATTRIBUTE_OTA_UPDATE_RESULTS) as $result) {
+            if (!\is_array($result)) {
+                continue;
+            }
+
+            $values[] = [
+                'time'        => date('d.m.Y H:i:s', (int) ($result['time'] ?? 0)),
+                'device_name' => (string) ($result['device_name'] ?? ''),
+                'status'      => $this->Translate(($result['status'] ?? '') === 'successful' ? 'Successful' : 'Failed'),
+                'message'     => (string) ($result['message'] ?? '')
+            ];
+        }
+
+        return $values;
+    }
+
+    /**
+     * Zeigt eine OTA-Rueckmeldung in der Bridge-Konfiguration an.
+     */
+    private function ShowOTAMessage(string $title, string $message): void
+    {
+        $this->UpdateFormField('OTAMessageTitle', 'caption', $this->Translate($title));
+        $this->UpdateFormField('OTAMessageText', 'caption', $this->Translate($message));
+        $this->UpdateFormField('OTAMessage', 'visible', true);
     }
 
     /**
@@ -2748,6 +3331,7 @@ class Zigbee2MQTTBridge extends IPSModuleStrict
             'model'            => (string) ($definition['model'] ?? $device['model'] ?? $diagnosticRow['model'] ?? ''),
             'vendor'           => (string) ($definition['vendor'] ?? $device['vendor'] ?? $diagnosticRow['vendor'] ?? ''),
             'description'      => (string) ($definition['description'] ?? $device['description'] ?? ''),
+            'supports_ota'     => (bool) ($definition['supports_ota'] ?? $device['supports_ota'] ?? false),
             'manufacturerName' => (string) ($device['manufacturerName'] ?? $device['manufacturer_name'] ?? ''),
             'powerSource'      => (string) ($device['powerSource'] ?? $device['power_source'] ?? ''),
             'modelID'          => (string) ($device['modelID'] ?? $device['model_id'] ?? $definition['model'] ?? $device['model'] ?? ''),

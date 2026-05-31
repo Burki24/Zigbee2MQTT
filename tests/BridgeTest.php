@@ -127,6 +127,137 @@ class BridgeTest extends TestCase
         $this->assertSame(5000, $bridge->lastTimeout);
     }
 
+    public function testReceiveDataStoresOTAUpdateCapabilityInNetworkCache(): void
+    {
+        $bridge = $this->createBridgeTestDouble(true);
+        $bridge->setBaseTopicForTest('zigbee2mqtt');
+
+        $bridge->ReceiveData(json_encode([
+            'Topic'   => 'zigbee2mqtt/bridge/devices',
+            'Payload' => bin2hex(json_encode([
+                [
+                    'friendly_name' => 'ota-device',
+                    'ieee_address'  => '0x1234',
+                    'definition'    => [
+                        'model'        => 'OTA-DEVICE',
+                        'supports_ota' => true
+                    ]
+                ]
+            ]))
+        ]));
+
+        $this->assertTrue($bridge->readDiagnosticAttribute('NetworkDevices')[0]['supports_ota']);
+    }
+
+    public function testReceiveDataStoresAsyncOTAUpdateResult(): void
+    {
+        $bridge = $this->createBridgeTestDouble(true);
+        $bridge->setBaseTopicForTest('zigbee2mqtt');
+
+        $bridge->ReceiveData(json_encode([
+            'Topic'   => 'zigbee2mqtt/bridge/response/device/ota_update/update',
+            'Payload' => bin2hex(json_encode([
+                'status' => 'ok',
+                'data'   => [
+                    'id' => 'ota-device'
+                ]
+            ]))
+        ]));
+
+        $result = $bridge->readDiagnosticAttribute('OTAUpdateResults')[0];
+        $this->assertSame('ota-device', $result['device_name']);
+        $this->assertSame('successful', $result['status']);
+        $this->assertTrue($bridge->updatedFields['OTAMessage']['visible']);
+    }
+
+    public function testOTADeviceRowsUseCachedCapabilityAndConfiguredDeviceInstance(): void
+    {
+        $bridge = $this->createBridgeTestDouble(true);
+        $bridge->setBaseTopicForTest('zigbee2mqtt');
+        $bridge->ReceiveData(json_encode([
+            'Topic'   => 'zigbee2mqtt/bridge/devices',
+            'Payload' => bin2hex(json_encode([
+                [
+                    'friendly_name' => 'Kitchen/Light',
+                    'ieee_address'  => '0x000b57fffec6a5b2',
+                    'definition'    => [
+                        'model'        => 'OTA-LIGHT',
+                        'supports_ota' => true
+                    ]
+                ]
+            ]))
+        ]));
+
+        $deviceID = IPS_CreateInstance(self::DEVICE_MODULE_ID);
+        IPS_SetConfiguration($deviceID, json_encode([
+            'MQTTBaseTopic' => 'zigbee2mqtt',
+            'MQTTTopic'     => 'Kitchen/Light',
+            'IEEE'          => '0x000b57fffec6a5b2'
+        ]));
+        IPS_ApplyChanges($deviceID);
+
+        $method = new ReflectionMethod(Zigbee2MQTTBridge::class, 'BuildOTADeviceRows');
+        $values = $method->invoke($bridge);
+
+        $this->assertCount(1, $values);
+        $this->assertSame('Kitchen/Light', $values[0]['device_name']);
+        $this->assertSame('OTA-LIGHT', $values[0]['model']);
+        $this->assertSame('unknown', $values[0]['state']);
+    }
+
+    public function testBridgeOTAUpdateActionRequiresConfirmationAndStartsAsyncRequest(): void
+    {
+        $bridge = $this->createBridgeTestDouble(true);
+        $bridge->setBaseTopicForTest('zigbee2mqtt');
+        $deviceID = $this->createConfiguredOTACapableDevice($bridge);
+        $bridge->writeDiagnosticAttribute('OTACheckResults', [
+            'Kitchen/Light' => [
+                'checked_at'       => time(),
+                'update_available' => true
+            ]
+        ]);
+
+        $bridge->RequestAction('RequestOTAUpdate', json_encode(['instance_id' => $deviceID]));
+        $this->assertTrue($bridge->updatedFields['OTAUpdateWarning']['visible']);
+        $this->assertSame('', $bridge->lastTopic);
+
+        $bridge->RequestAction('ConfirmOTAUpdate', true);
+        $this->assertSame('/bridge/request/device/ota_update/update', $bridge->lastTopic);
+        $this->assertSame(['id' => 'Kitchen/Light'], $bridge->lastPayload);
+        $this->assertSame(0, $bridge->lastTimeout);
+        $this->assertTrue($bridge->updatedFields['OTAMessage']['visible']);
+    }
+
+    public function testBridgeOTAScheduleActionsRefreshCachedStateImmediately(): void
+    {
+        $bridge = $this->createBridgeTestDouble([
+            'status' => 'ok',
+            'data'   => ['id' => 'Kitchen/Light']
+        ]);
+        $bridge->setBaseTopicForTest('zigbee2mqtt');
+        $deviceID = $this->createConfiguredOTACapableDevice($bridge);
+        $bridge->writeDiagnosticAttribute('OTACheckResults', [
+            'Kitchen/Light' => [
+                'checked_at'       => time(),
+                'update_available' => true,
+                'state'            => 'available'
+            ]
+        ]);
+
+        $bridge->RequestAction('ScheduleOTAUpdate', json_encode(['instance_id' => $deviceID]));
+        $this->assertSame('/bridge/request/device/ota_update/schedule', $bridge->lastTopic);
+        $this->assertSame('scheduled', $this->readOTADeviceState($bridge));
+
+        $stateID = IPS_CreateVariable(VARIABLETYPE_STRING);
+        IPS_SetParent($stateID, $deviceID);
+        IPS_SetIdent($stateID, 'update__state');
+        SetValue($stateID, 'scheduled');
+
+        $bridge->RequestAction('UnscheduleOTAUpdate', json_encode(['instance_id' => $deviceID]));
+        $this->assertSame('/bridge/request/device/ota_update/unschedule', $bridge->lastTopic);
+        $this->assertSame('idle', $this->readOTADeviceState($bridge));
+    }
+
     public function testSetDeviceOptionsUsesDeviceOptionsBridgeRequest(): void
     {
         $bridge = $this->createBridgeTestDouble([
@@ -727,6 +858,11 @@ class BridgeTest extends TestCase
                 return $this->ReadAttributeArray($name);
             }
 
+            public function writeDiagnosticAttribute(string $name, array $value): void
+            {
+                $this->WriteAttributeArray($name, $value);
+            }
+
             public function setBaseTopicForTest(string $baseTopic): void
             {
                 $this->testBaseTopic = $baseTopic;
@@ -759,5 +895,37 @@ class BridgeTest extends TestCase
         };
         $bridge->Create();
         return $bridge;
+    }
+
+    private function createConfiguredOTACapableDevice(Zigbee2MQTTBridge $bridge): int
+    {
+        $bridge->ReceiveData(json_encode([
+            'Topic'   => 'zigbee2mqtt/bridge/devices',
+            'Payload' => bin2hex(json_encode([
+                [
+                    'friendly_name' => 'Kitchen/Light',
+                    'ieee_address'  => '0x000b57fffec6a5b2',
+                    'definition'    => [
+                        'model'        => 'OTA-LIGHT',
+                        'supports_ota' => true
+                    ]
+                ]
+            ]))
+        ]));
+
+        $deviceID = IPS_CreateInstance(self::DEVICE_MODULE_ID);
+        IPS_SetConfiguration($deviceID, json_encode([
+            'MQTTBaseTopic' => 'zigbee2mqtt',
+            'MQTTTopic'     => 'Kitchen/Light',
+            'IEEE'          => '0x000b57fffec6a5b2'
+        ]));
+        IPS_ApplyChanges($deviceID);
+        return $deviceID;
+    }
+
+    private function readOTADeviceState(Zigbee2MQTTBridge $bridge): string
+    {
+        $method = new ReflectionMethod(Zigbee2MQTTBridge::class, 'BuildOTADeviceRows');
+        return $method->invoke($bridge)[0]['state'];
     }
 }

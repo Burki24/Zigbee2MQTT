@@ -422,6 +422,241 @@
         },
         {
             "type": "ExpansionPanel",
+            "name": "OTAUpdates",
+            "caption": "OTA updates",
+            "expanded": false,
+            "items": [
+                {
+                    "type": "Label",
+                    "caption": "Manage Zigbee2MQTT OTA updates centrally. Run only one active update at a time. Battery devices may need to be woken up before checks or scheduling."
+                },
+                {
+                    "type": "RowLayout",
+                    "items": [
+                        {
+                            "type": "Button",
+                            "caption": "Refresh status",
+                            "onClick": "IPS_RequestAction($id, 'RefreshOTAStatus', true);"
+                        },
+                        {
+                            "type": "Label",
+                            "name": "OTAStatus",
+                            "caption": "Known OTA devices: 0, available updates: 0, active or scheduled: 0"
+                        }
+                    ]
+                },
+                {
+                    "type": "List",
+                    "name": "OTAKnownDevices",
+                    "caption": "Known OTA devices",
+                    "add": false,
+                    "delete": false,
+                    "rowCount": 3,
+                    "loadValuesFromConfiguration": false,
+                    "columns": [
+                        {
+                            "caption": "Instance",
+                            "name": "instance",
+                            "width": "auto",
+                            "quickFilter": true
+                        },
+                        {
+                            "caption": "Model",
+                            "name": "model",
+                            "width": "150px",
+                            "quickFilter": true
+                        },
+                        {
+                            "caption": "Installed version",
+                            "name": "installed_version",
+                            "width": "140px"
+                        },
+                        {
+                            "caption": "Latest version",
+                            "name": "latest_version",
+                            "width": "140px"
+                        },
+                        {
+                            "caption": "Status",
+                            "name": "state_caption",
+                            "width": "120px"
+                        },
+                        {
+                            "caption": "Action",
+                            "name": "action",
+                            "width": "130px",
+                            "align": "center",
+                            "onClick": "IPS_RequestAction($id, 'CheckOTAUpdate', json_encode(['instance_id' => $OTAKnownDevices['instance_id']]));"
+                        }
+                    ],
+                    "values": []
+                },
+                {
+                    "type": "List",
+                    "name": "OTAAvailableUpdates",
+                    "caption": "Available OTA updates",
+                    "add": false,
+                    "delete": false,
+                    "rowCount": 3,
+                    "loadValuesFromConfiguration": false,
+                    "columns": [
+                        {
+                            "caption": "Instance",
+                            "name": "instance",
+                            "width": "auto",
+                            "quickFilter": true
+                        },
+                        {
+                            "caption": "Installed version",
+                            "name": "installed_version",
+                            "width": "140px"
+                        },
+                        {
+                            "caption": "Latest version",
+                            "name": "latest_version",
+                            "width": "140px"
+                        },
+                        {
+                            "caption": "Action",
+                            "name": "update_action",
+                            "width": "130px",
+                            "align": "center",
+                            "onClick": "IPS_RequestAction($id, 'RequestOTAUpdate', json_encode(['instance_id' => $OTAAvailableUpdates['instance_id']]));"
+                        },
+                        {
+                            "caption": "Action",
+                            "name": "schedule_action",
+                            "width": "130px",
+                            "align": "center",
+                            "onClick": "IPS_RequestAction($id, 'ScheduleOTAUpdate', json_encode(['instance_id' => $OTAAvailableUpdates['instance_id']]));"
+                        }
+                    ],
+                    "values": []
+                },
+                {
+                    "type": "List",
+                    "name": "OTAActiveUpdates",
+                    "caption": "Active and scheduled OTA updates",
+                    "add": false,
+                    "delete": false,
+                    "rowCount": 3,
+                    "loadValuesFromConfiguration": false,
+                    "columns": [
+                        {
+                            "caption": "Instance",
+                            "name": "instance",
+                            "width": "auto",
+                            "quickFilter": true
+                        },
+                        {
+                            "caption": "Status",
+                            "name": "state_caption",
+                            "width": "130px"
+                        },
+                        {
+                            "caption": "Progress",
+                            "name": "progress",
+                            "width": "100px"
+                        },
+                        {
+                            "caption": "Remaining",
+                            "name": "remaining",
+                            "width": "100px"
+                        },
+                        {
+                            "caption": "Action",
+                            "name": "action",
+                            "width": "130px",
+                            "align": "center",
+                            "onClick": "IPS_RequestAction($id, 'UnscheduleOTAUpdate', json_encode(['instance_id' => $OTAActiveUpdates['instance_id']]));"
+                        }
+                    ],
+                    "values": []
+                },
+                {
+                    "type": "List",
+                    "name": "OTAUpdateResults",
+                    "caption": "Last OTA update results",
+                    "add": false,
+                    "delete": false,
+                    "rowCount": 4,
+                    "loadValuesFromConfiguration": false,
+                    "columns": [
+                        {
+                            "caption": "Time",
+                            "name": "time",
+                            "width": "150px"
+                        },
+                        {
+                            "caption": "Device",
+                            "name": "device_name",
+                            "width": "280px",
+                            "quickFilter": true
+                        },
+                        {
+                            "caption": "Status",
+                            "name": "status",
+                            "width": "120px"
+                        },
+                        {
+                            "caption": "Message",
+                            "name": "message",
+                            "width": "auto"
+                        }
+                    ],
+                    "values": []
+                }
+            ]
+        },
+        {
+            "name": "OTAUpdateWarning",
+            "type": "PopupAlert",
+            "visible": false,
+            "popup": {
+                "closeCaption": "Cancel",
+                "buttons": [
+                    {
+                        "caption": "Start update",
+                        "onClick": "IPS_RequestAction($id, 'ConfirmOTAUpdate', true);"
+                    }
+                ],
+                "items": [
+                    {
+                        "type": "Label",
+                        "bold": true,
+                        "caption": "Start OTA update?"
+                    },
+                    {
+                        "name": "OTAUpdateWarningText",
+                        "type": "Label",
+                        "caption": "The device may be unavailable during the OTA update."
+                    }
+                ]
+            }
+        },
+        {
+            "name": "OTAMessage",
+            "type": "PopupAlert",
+            "visible": false,
+            "popup": {
+                "closeCaption": "Close",
+                "items": [
+                    {
+                        "type": "Label",
+                        "name": "OTAMessageTitle",
+                        "bold": true,
+                        "caption": "OTA updates"
+                    },
+                    {
+                        "name": "OTAMessageText",
+                        "type": "Label",
+                        "caption": ""
+                    }
+                ]
+            }
+        },
+        {
+            "type": "ExpansionPanel",
             "name": "VariableMaintenance",
             "caption": "Variable maintenance",
             "expanded": false,

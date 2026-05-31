@@ -259,6 +259,7 @@ Die Bridge-Oberfläche ist der unterstützte Weg: Archivierte oder referenzierte
 - Enum-basierte `state`-Variablen wie Rollladenbefehle senden die originalen Zigbee2MQTT-Werte wie `OPEN`, `CLOSE` oder `STOP`; binäre Schalter bleiben bei `ON`/`OFF`.
 - Der Abruf von Geräteinformationen wartet länger auf die Symcon-Extension und zeigt bei Erfolg oder Nichterreichbarkeit verständliche Meldungen im Formular.
 - Die Bridge unterstützt `bridge/request/device/options` über `Z2M_SetDeviceOptions()` sowie zusätzliche OTA-Funktionen für Downgrade, Scheduling, Unschedule und eigene OTA-URLs.
+- Die Bridge erhält eine zentrale OTA-Verwaltung: OTA-fähige Geräte können einzeln geprüft, verfügbare Updates gestartet oder geplant und laufende Updates über Fortschritt, Restzeit sowie einen Ergebnisverlauf verfolgt werden. Zum Schutz des Zigbee-Netzes startet die Oberfläche immer nur ein aktives Update gleichzeitig.
 - Binding und Reporting können in der Geräte-Konfiguration über Endpoint-, Cluster- und Attributdaten gepflegt werden; vorhandene Bindings und Reportings werden aus dem Zigbee2MQTT-`bridge/devices` Cache gelesen und per **Endpoint-Daten aktualisieren** neu eingelesen.
 - Das Öffnen der Geräte-Konfiguration wurde beschleunigt, da Binding-Zielauswahlen nicht mehr bei jedem Formularaufbau live über die Symcon-Extension geladen werden.
 - Der Konfigurator nutzt für die Geräteliste bevorzugt den Bridge-Cache, ordnet Extension-Antworten bei Bedarf über das Response-Topic zu und erzeugt Gruppenordner wieder innerhalb der korrekten Gruppenliste.
