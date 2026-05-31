@@ -1209,6 +1209,37 @@ class DevicesTest extends DumpInclude
         $this->assertFormItemHidden($form, 'DisableWindowHandleTile');
     }
 
+    public function testOTARemainingUsesDurationPresentation(): void
+    {
+        [$iid, $Debug] = $this->createTestInstance('BMCT-SLZ.json');
+        $interface = IPS\InstanceManager::getInstanceInterface($iid);
+        $topic = $Debug['Config']['MQTTBaseTopic'] . '/' . $Debug['Config']['MQTTTopic'];
+
+        $interface->ReceiveData(self::buildMqttRequest($topic, [
+            'update' => [
+                'state'     => 'updating',
+                'progress'  => 3.2,
+                'remaining' => 3285
+            ]
+        ]));
+
+        $remainingID = IPS_GetObjectIDByIdent('update__remaining', $iid);
+        $this->assertNotFalse($remainingID);
+        $this->assertSame(3285.0, GetValue($remainingID));
+
+        $presentation = IPS_GetVariable($remainingID)['VariableCustomPresentation'];
+        $this->assertSame(VARIABLE_PRESENTATION_DURATION, $presentation['PRESENTATION']);
+        $this->assertSame(0, $presentation['COUNTDOWN_TYPE']);
+        $this->assertSame(2, $presentation['FORMAT']);
+        $this->assertFalse($presentation['MILLISECONDS']);
+
+        IPS_SetVariableCustomPresentation($remainingID, []);
+        IPS_ApplyChanges($iid);
+
+        $presentation = IPS_GetVariable($remainingID)['VariableCustomPresentation'];
+        $this->assertSame(VARIABLE_PRESENTATION_DURATION, $presentation['PRESENTATION']);
+    }
+
     public function testS4SW001P8EUMeteredSwitchShowsExtendedMeasurements()
     {
         [$iid] = $this->createTestInstance('S4SW-001P8EU.json');

@@ -515,6 +515,7 @@ abstract class ModulBase extends \IPSModuleStrict
         $this->SetStatus(IS_ACTIVE);
         $this->RefreshExposeVariableCatalog();
         $this->RefreshColorTemperaturePresentation();
+        $this->ApplyDurationPresentation('update__remaining');
         $this->UpdateCustomTileVisualizationType();
     }
 
@@ -4961,6 +4962,9 @@ abstract class ModulBase extends \IPSModuleStrict
 
         // Zentrale EnableAction-Prüfung für spezielle Variable
         $this->checkAndEnableAction($ident, $feature);
+        if ($ident === 'update__remaining') {
+            $this->ApplyDurationPresentation($ident);
+        }
 
         return;
     }

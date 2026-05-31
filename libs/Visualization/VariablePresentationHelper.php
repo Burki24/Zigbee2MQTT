@@ -77,6 +77,33 @@ trait VariablePresentationHelper
     }
 
     /**
+     * Setzt fuer Sekundenwerte eine lesbare Dauerdarstellung.
+     */
+    protected function ApplyDurationPresentation(string $ident): void
+    {
+        if (!$this->SupportsDurationPresentation()) {
+            return;
+        }
+
+        $variableID = $this->GetObjectIDByIdent($ident);
+        if ($variableID === false) {
+            return;
+        }
+
+        $variable = IPS_GetVariable($variableID);
+        if (($variable['VariableAction'] ?? 0) !== 0 || ($variable['VariableCustomAction'] ?? 0) !== 0) {
+            return;
+        }
+
+        IPS_SetVariableCustomPresentation($variableID, [
+            'PRESENTATION'   => \constant('VARIABLE_PRESENTATION_DURATION'),
+            'COUNTDOWN_TYPE' => 0,
+            'FORMAT'         => 2,
+            'MILLISECONDS'   => false
+        ]);
+    }
+
+    /**
      * Sucht das color_temp-Feature rekursiv in einem Expose-Baum.
      */
     private function FindColorTemperatureFeature(array $features): ?array
@@ -547,6 +574,14 @@ trait VariablePresentationHelper
     private function SupportsShutterPresentation(): bool
     {
         return \function_exists('IPS_SetVariableCustomPresentation') && \defined('VARIABLE_PRESENTATION_SHUTTER');
+    }
+
+    /**
+     * Prueft, ob Dauerdarstellungen verfuegbar sind.
+     */
+    private function SupportsDurationPresentation(): bool
+    {
+        return \function_exists('IPS_SetVariableCustomPresentation') && \defined('VARIABLE_PRESENTATION_DURATION');
     }
 
     /**
