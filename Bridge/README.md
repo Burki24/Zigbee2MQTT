@@ -15,6 +15,11 @@
 - [2. Voraussetzungen](#2-voraussetzungen)
 - [3. Software-Installation](#3-software-installation)
 - [4. Konfiguration](#4-konfiguration)
+  - [4.1 Diagnose](#41-diagnose)
+  - [4.2 Netzwerksicherheit](#42-netzwerksicherheit)
+  - [4.3 OTA-Updates](#43-ota-updates)
+  - [4.4 Variablen-Wartung](#44-variablen-wartung)
+  - [4.5 Zigbee2MQTT-Wartung](#45-zigbee2mqtt-wartung)
 - [5. Statusvariablen](#5-statusvariablen)
 - [6. PHP-Funktionsreferenz](#6-php-funktionsreferenz)
 - [7. Aktionen](#7-aktionen)
@@ -67,17 +72,31 @@ Zusätzlich enthält die Bridge-Konfiguration folgende Verwaltungsbereiche:
 | Variablen-Wartung | Sucht alte Zigbee2MQTT-Variablen, die nicht mehr zu aktuellen Exposes oder Payloads passen, und löscht einzelne klare Kandidaten erst nach Bestätigung. |
 | Zigbee2MQTT-Wartung | Erstellt ein Zigbee2MQTT-Backup als ZIP-Datei auf dem Symcon-Server, sendet Zigbee-3.0-Install-Codes und bietet Touchlink-Scan, Identify und Factory-Reset an. |
 
+### 4.1 Diagnose
+
+Der Diagnosebereich bündelt zentrale Prüfungen für die Zigbee2MQTT-Installation. Er führt Health Check und Coordinator Check aus, fordert die Netzwerkkarte an und zeigt auffällige Zustände wie fehlende Router, nicht unterstützte Geräte, Interview-Probleme, Bridge-Events sowie Warnungen und Fehler an.
+
+### 4.2 Netzwerksicherheit
+
 Die `blocklist` blockiert Geräte anhand ihrer IEEE-Adresse. Die `passlist` ist restriktiver: Zigbee2MQTT entfernt Geräte aus dem Netzwerk, die nicht in der Passlist stehen. Deshalb verlangt die Bridge-Konfiguration vor Passlist-Änderungen eine Bestätigung. Die Geräteauswahl wird als filterbare Liste aus bereits empfangenen Zigbee2MQTT-Gerätedaten, vorhandenen Device-Instanzen mit gleicher Bridge und bei Bedarf aus der Symcon-Extension aufgebaut.
 
-Touchlink-Scan und Touchlink-Factory-Reset können die Zigbee-Kommunikation kurzfristig stören. Ein Factory-Reset ohne ausgewähltes Ziel kann das nächste per Touchlink erreichbare Gerät zurücksetzen und sollte daher nur bewusst genutzt werden.
+### 4.3 OTA-Updates
 
 Die OTA-Verwaltung liest den Zustand aus den von Zigbee2MQTT gelieferten Gerätevariablen. Über **Update prüfen** wird ein einzelnes Gerät aktiv geprüft. Verfügbare Updates können direkt gestartet oder für die nächste OTA-Anfrage des Geräts geplant werden. Batteriegeräte müssen vor Prüfung oder Planung eventuell aufgeweckt werden. Ein direkt gestartetes Update dauert laut Zigbee2MQTT abhängig von Gerät, Einstellungen und Netzwerkstabilität etwa 10 bis 100 Minuten. Deshalb erlaubt die Bridge immer nur ein aktives Update gleichzeitig. Während eines Updates werden Fortschritt und Restzeit in der geöffneten Bridge-Konfiguration automatisch aktualisiert. Über **Status aktualisieren** können die Werte zusätzlich manuell neu aus den Geräteinstanzen eingelesen werden. Später eintreffende Erfolgs- oder Fehlermeldungen speichert die Bridge zusätzlich im Ergebnisverlauf.
 
 ![OTA-Updates](imgs/ota-updates.png)
 
+### 4.4 Variablen-Wartung
+
 Die Variablen-Wartung ist der unterstützte Weg, um alte Zigbee2MQTT-Variablen aufzuräumen. Über **Verwaiste Variablen suchen** werden klare Löschkandidaten, Review-Kandidaten und Hinweise getrennt angezeigt. Die Listen zeigen zusätzlich, ob eine Variable archiviert ist und wann sie zuletzt beschrieben wurde. Archivierte oder von anderen Symcon-Objekten referenzierte Variablen werden in der Bridge-Oberfläche nicht gelöscht. Jeder Löschvorgang betrifft genau eine Variable und muss über ein Popup bestätigt werden.
 
 ![Variablen-Wartung](imgs/variable-maintenance.png)
+
+### 4.5 Zigbee2MQTT-Wartung
+
+Der Bereich **Zigbee2MQTT-Wartung** stellt Werkzeuge für administrative Aufgaben bereit. Backups werden als ZIP-Datei auf dem Symcon-Server gespeichert. Zusätzlich können Zigbee-3.0-Install-Codes gesendet und Touchlink-Scan, Identify sowie Factory-Reset ausgeführt werden.
+
+Touchlink-Scan und Touchlink-Factory-Reset können die Zigbee-Kommunikation kurzfristig stören. Ein Factory-Reset ohne ausgewähltes Ziel kann das nächste per Touchlink erreichbare Gerät zurücksetzen und sollte daher nur bewusst genutzt werden.
 
 ## 5. Statusvariablen
 
