@@ -15,15 +15,16 @@
 - [2. Voraussetzungen](#2-voraussetzungen)
 - [3. Software-Installation](#3-software-installation)
 - [4. Konfiguration](#4-konfiguration)
-  - [4.1 Diagnose](#41-diagnose)
-  - [4.2 Netzwerksicherheit](#42-netzwerksicherheit)
-  - [4.3 OTA-Updates](#43-ota-updates)
-  - [4.4 Variablen-Wartung](#44-variablen-wartung)
-  - [4.5 Zigbee2MQTT-Wartung](#45-zigbee2mqtt-wartung)
-- [5. Statusvariablen](#5-statusvariablen)
-- [6. PHP-Funktionsreferenz](#6-php-funktionsreferenz)
-- [7. Aktionen](#7-aktionen)
-- [8. Anhang](#8-anhang)
+- [5. Bridge-Funktionen](#5-bridge-funktionen)
+  - [5.1 Diagnose](#51-diagnose)
+  - [5.2 Netzwerksicherheit](#52-netzwerksicherheit)
+  - [5.3 OTA-Updates](#53-ota-updates)
+  - [5.4 Variablen-Wartung](#54-variablen-wartung)
+  - [5.5 Zigbee2MQTT-Wartung](#55-zigbee2mqtt-wartung)
+- [6. Statusvariablen](#6-statusvariablen)
+- [7. PHP-Funktionsreferenz](#7-php-funktionsreferenz)
+- [8. Aktionen](#8-aktionen)
+- [9. Anhang](#9-anhang)
   - [1. Changelog](#1-changelog)
   - [2. Spenden](#2-spenden)
   - [3. Lizenz](#3-lizenz)
@@ -62,7 +63,9 @@
 | **3**      | **last_seen**       | In Z2M muss die Einstellung `last_seen` auf den Wert `epoch` eingerichtet sein, da es sonst zu Fehlermeldungen bei den Variablen `Zuletzt gesehen` kommt.       |
 | **4**      | **Testcenter**      | Hier sind die Schaltbaren Statusvariablen aufgeführt, so kann z.B. der Netzwerkbeitritt aktiviert werden.                                                       |
 
-Zusätzlich enthält die Bridge-Konfiguration folgende Verwaltungsbereiche:
+## 5. Bridge-Funktionen
+
+Zusätzlich zu den Grundeinstellungen enthält die Bridge folgende Funktionsbereiche:
 
 | Bereich | Beschreibung |
 | ------- | ------------ |
@@ -72,33 +75,33 @@ Zusätzlich enthält die Bridge-Konfiguration folgende Verwaltungsbereiche:
 | Variablen-Wartung | Sucht alte Zigbee2MQTT-Variablen, die nicht mehr zu aktuellen Exposes oder Payloads passen, und löscht einzelne klare Kandidaten erst nach Bestätigung. |
 | Zigbee2MQTT-Wartung | Erstellt ein Zigbee2MQTT-Backup als ZIP-Datei auf dem Symcon-Server, sendet Zigbee-3.0-Install-Codes und bietet Touchlink-Scan, Identify und Factory-Reset an. |
 
-### 4.1 Diagnose
+### 5.1 Diagnose
 
 Der Diagnosebereich bündelt zentrale Prüfungen für die Zigbee2MQTT-Installation. Er führt Health Check und Coordinator Check aus, fordert die Netzwerkkarte an und zeigt auffällige Zustände wie fehlende Router, nicht unterstützte Geräte, Interview-Probleme, Bridge-Events sowie Warnungen und Fehler an.
 
-### 4.2 Netzwerksicherheit
+### 5.2 Netzwerksicherheit
 
 Die `blocklist` blockiert Geräte anhand ihrer IEEE-Adresse. Die `passlist` ist restriktiver: Zigbee2MQTT entfernt Geräte aus dem Netzwerk, die nicht in der Passlist stehen. Deshalb verlangt die Bridge-Konfiguration vor Passlist-Änderungen eine Bestätigung. Die Geräteauswahl wird als filterbare Liste aus bereits empfangenen Zigbee2MQTT-Gerätedaten, vorhandenen Device-Instanzen mit gleicher Bridge und bei Bedarf aus der Symcon-Extension aufgebaut.
 
-### 4.3 OTA-Updates
+### 5.3 OTA-Updates
 
 Die OTA-Verwaltung liest den Zustand aus den von Zigbee2MQTT gelieferten Gerätevariablen. Über **Update prüfen** wird ein einzelnes Gerät aktiv geprüft. Verfügbare Updates können direkt gestartet oder für die nächste OTA-Anfrage des Geräts geplant werden. Batteriegeräte müssen vor Prüfung oder Planung eventuell aufgeweckt werden. Ein direkt gestartetes Update dauert laut Zigbee2MQTT abhängig von Gerät, Einstellungen und Netzwerkstabilität etwa 10 bis 100 Minuten. Deshalb erlaubt die Bridge immer nur ein aktives Update gleichzeitig. Während eines Updates werden Fortschritt und Restzeit in der geöffneten Bridge-Konfiguration automatisch aktualisiert. Über **Status aktualisieren** können die Werte zusätzlich manuell neu aus den Geräteinstanzen eingelesen werden. Später eintreffende Erfolgs- oder Fehlermeldungen speichert die Bridge zusätzlich im Ergebnisverlauf.
 
 ![OTA-Updates](imgs/ota-updates.png)
 
-### 4.4 Variablen-Wartung
+### 5.4 Variablen-Wartung
 
 Die Variablen-Wartung ist der unterstützte Weg, um alte Zigbee2MQTT-Variablen aufzuräumen. Über **Verwaiste Variablen suchen** werden klare Löschkandidaten, Review-Kandidaten und Hinweise getrennt angezeigt. Die Listen zeigen zusätzlich, ob eine Variable archiviert ist und wann sie zuletzt beschrieben wurde. Archivierte oder von anderen Symcon-Objekten referenzierte Variablen werden in der Bridge-Oberfläche nicht gelöscht. Jeder Löschvorgang betrifft genau eine Variable und muss über ein Popup bestätigt werden.
 
 ![Variablen-Wartung](imgs/variable-maintenance.png)
 
-### 4.5 Zigbee2MQTT-Wartung
+### 5.5 Zigbee2MQTT-Wartung
 
 Der Bereich **Zigbee2MQTT-Wartung** stellt Werkzeuge für administrative Aufgaben bereit. Backups werden als ZIP-Datei auf dem Symcon-Server gespeichert. Zusätzlich können Zigbee-3.0-Install-Codes gesendet und Touchlink-Scan, Identify sowie Factory-Reset ausgeführt werden.
 
 Touchlink-Scan und Touchlink-Factory-Reset können die Zigbee-Kommunikation kurzfristig stören. Ein Factory-Reset ohne ausgewähltes Ziel kann das nächste per Touchlink erreichbare Gerät zurücksetzen und sollte daher nur bewusst genutzt werden.
 
-## 5. Statusvariablen
+## 6. Statusvariablen
 
 | Name                               | Typ     | Profil              | Beschreibung                                 |
 | ---------------------------------- | ------- | ------------------- | -------------------------------------------- |
@@ -115,7 +118,7 @@ Touchlink-Scan und Touchlink-Factory-Reset können die Zigbee-Kommunikation kurz
 | Zigbee Herdsman Converters Version | string  |                     | Version des Zigbee Herdsman Converters       |
 | Zigbee Herdsman Version            | string  |                     | Version vom Zigbee Herdsman-Modul            |
 
-## 6. PHP-Funktionsreferenz
+## 7. PHP-Funktionsreferenz
 
 Die Bridge-Funktionen senden Zigbee2MQTT-Requests an das `bridge/request/...` Topic und werten die Antwort von Zigbee2MQTT aus.
 Bei einer erfolgreichen Antwort wird `true` zurückgegeben, bei einem Fehler oder Timeout `false`.
@@ -699,11 +702,11 @@ bool Z2M_UnscheduleOTAUpdate(int $InstanzID, string $DeviceName);
 
 Hebt eine geplante OTA-Aktualisierung oder ein geplantes OTA-Downgrade für das angegebene Gerät wieder auf.
 
-## 7. Aktionen
+## 8. Aktionen
 
 Keine Aktionen verfügbar.
 
-## 8. Anhang
+## 9. Anhang
 
 ### 1. Changelog
 

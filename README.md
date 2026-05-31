@@ -230,7 +230,7 @@ Geräte- und Gruppenoptionen aus Zigbee2MQTT können ebenfalls direkt in Symcon 
 
 ### 4.3 Wartung verwaister Variablen
 
-Die [Bridge-Konfiguration](Bridge/README.md#44-variablen-wartung) enthält eine Variablen-Wartung. Sie sucht alte Zigbee2MQTT-Variablen, die nicht mehr durch aktuelle Exposes oder das zuletzt bekannte Payload abgedeckt sind, und trennt klare Löschkandidaten von Review-Kandidaten.
+Die [Bridge-Funktionen](Bridge/README.md#54-variablen-wartung) enthalten eine Variablen-Wartung. Sie sucht alte Zigbee2MQTT-Variablen, die nicht mehr durch aktuelle Exposes oder das zuletzt bekannte Payload abgedeckt sind, und trennt klare Löschkandidaten von Review-Kandidaten.
 
 Die Bridge-Oberfläche ist der unterstützte Weg: Archivierte oder referenzierte Variablen sind geschützt, Archivstatus und letzter Schreibzeitpunkt sind sichtbar, und jede Löschung betrifft genau eine Variable, die vorher per Popup bestätigt werden muss.
 
