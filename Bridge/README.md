@@ -96,6 +96,8 @@ Die OTA-Verwaltung liest den Zustand aus den von Zigbee2MQTT gelieferten Geräte
 
 Die Variablen-Wartung ist der unterstützte Weg, um alte Zigbee2MQTT-Variablen aufzuräumen. Über **Verwaiste Variablen suchen** werden klare Löschkandidaten, Review-Kandidaten und Hinweise getrennt angezeigt. Die Listen zeigen zusätzlich, ob eine Variable archiviert ist und wann sie zuletzt beschrieben wurde. Archivierte oder von anderen Symcon-Objekten referenzierte Variablen werden in der Bridge-Oberfläche nicht gelöscht. Jeder Löschvorgang betrifft genau eine Variable und muss über ein Popup bestätigt werden.
 
+Bei OTA-fähigen Geräten bleiben stabile Update-Metadaten wie installierte Version, neueste Version und Status geschützt. Fortschritt und verbleibende Dauer sind hingegen temporäre Werte und werden nur berücksichtigt, solange Zigbee2MQTT sie im aktuellen Payload liefert. Dadurch bleiben bei Geräten ohne OTA-Fähigkeit keine historischen Update-Reste dauerhaft geschützt.
+
 ![Variablen-Wartung](imgs/variable-maintenance.png)
 
 ### 5.5 Zigbee2MQTT-Wartung

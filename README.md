@@ -182,7 +182,7 @@ Während des Updates können vorübergehend Warnungen auftreten, wenn andere Sym
 
 #### III. Symcon-Extension prüfen <!-- omit in toc -->
 
-Nach dem Update ist die Bridge-Konfiguration zu öffnen. Dort muss **Symcon-Erweiterung ist aktuell** angezeigt werden. Version 6.0 benötigt die Symcon-Extension in Version `6.02`.
+Nach dem Update ist die Bridge-Konfiguration zu öffnen. Dort muss **Symcon-Erweiterung ist aktuell** angezeigt werden. Version 6.0 benötigt die Symcon-Extension in Version `6.03`.
 
 Die Bridge installiert beziehungsweise aktualisiert die Extension im Normalfall automatisch. Falls Zigbee2MQTT während des Modulupdates nicht erreichbar war oder keine Bridge-Instanz existiert, muss die Extension später über die Bridge oder anhand der [manuellen Anleitung](#34-installation-der-ip-symcon-extension-in-zigbee2mqtt) aktualisiert werden.
 
@@ -378,7 +378,7 @@ Die Änderungen sind anhand der funktionalen Commits chronologisch gegliedert. A
 - Bestehende Übergangsaktionen werden nur noch für Zigbee2MQTT-Geräte und -Gruppen angeboten. Die Aktionen sind in Symcon als zielspezifisch kategorisiert und erhielten ergänzte Beschreibungen sowie Übersetzungen.
 - Farbübergänge werden für reine Tunable-White-Leuchtmittel nicht als native RGB-Befehle versendet. Deren abgeleitete Farbvariable bleibt eine reine Visualisierungsdarstellung.
 - Übersetzungen verwenden während eines laufenden Modul-Updates einen sicheren Originaltext-Fallback. Kurzzeitig noch nicht verfügbare Sprachdateien oder Instanzschnittstellen unterbrechen dadurch keine OTA-Formularaktualisierung mehr.
-- Geräte- und Bridge-Formulare erhielten gezielte Aktualisieren-Schaltflächen für den Variablenkatalog, verfügbare Netzwerksicherheitsgeräte und bekannte OTA-Geräte. Der manuelle Variablen-Refresh baut den Device-Katalog neu aus aktuellen Exposes und dem zuletzt empfangenen Geräte-Payload auf. Historische fachfremde Einträge einschließlich nicht mehr gelieferter OTA-Werte verschwinden aus der Liste, ohne vorhandene Symcon-Variablen zu löschen. Diese bleiben für eine kontrollierte Prüfung über die Bridge-Variablenwartung erhalten.
+- Geräte- und Bridge-Formulare erhielten gezielte Aktualisieren-Schaltflächen für den Variablenkatalog, verfügbare Netzwerksicherheitsgeräte und bekannte OTA-Geräte. Der manuelle Variablen-Refresh baut den Device-Katalog neu aus aktuellen Exposes und dem zuletzt empfangenen Geräte-Payload auf. Historische fachfremde Einträge verschwinden aus der Liste, ohne vorhandene Symcon-Variablen zu löschen. Bei laut Zigbee2MQTT OTA-fähigen Geräten bleiben stabile OTA-Metadaten erhalten; temporäre Fortschrittswerte werden nur geführt, solange Zigbee2MQTT sie aktuell liefert. Bestehende Symcon-Variablen bleiben für eine kontrollierte Prüfung über die Bridge-Variablenwartung erhalten.
 
 **Version 5.42:**  
 

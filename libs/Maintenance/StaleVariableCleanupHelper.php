@@ -23,15 +23,11 @@ final class StaleVariableCleanupHelper
     private const ALWAYS_KEEP_IDENTS = [
         'device_status',
         'last_seen',
-        'update',
         'Z2M_ActionTransaction',
         'Z2M_ActionTransTime',
         'Z2M_XAxis',
         'Z2M_YAxis',
         'Z2M_ZAxis',
-    ];
-    private const ALWAYS_KEEP_IDENT_PREFIXES = [
-        'update__',
     ];
 
     private static ?array $referenceIndex = null;
@@ -324,6 +320,7 @@ final class StaleVariableCleanupHelper
         $capabilities = [
             'color_temp'   => false,
             'native_color' => false,
+            'supports_ota' => (bool) ($debugData['SupportsOTA'] ?? false),
         ];
 
         foreach (($debugData['Exposes'] ?? []) as $expose) {
@@ -333,7 +330,19 @@ final class StaleVariableCleanupHelper
         }
 
         foreach (self::FlattenPayload((array) ($debugData['LastPayload'] ?? [])) as $ident => $_value) {
+            if (self::IsOTAIdent((string) $ident)
+                && (!($capabilities['supports_ota'] ?? false) || self::IsTransientOTAIdent((string) $ident))
+            ) {
+                continue;
+            }
+
             self::AddExpected($expected, (string) $ident, 'payload');
+        }
+
+        foreach (self::FlattenPayload((array) ($debugData['LatestPayload'] ?? [])) as $ident => $_value) {
+            if (self::IsOTAIdent((string) $ident)) {
+                self::AddExpected($expected, (string) $ident, 'payload');
+            }
         }
 
         if (($capabilities['color_temp'] ?? false) && !($capabilities['native_color'] ?? false)) {
@@ -457,17 +466,17 @@ final class StaleVariableCleanupHelper
 
     private static function IsAlwaysKeepIdent(string $ident): bool
     {
-        if (\in_array($ident, self::ALWAYS_KEEP_IDENTS, true)) {
-            return true;
-        }
+        return \in_array($ident, self::ALWAYS_KEEP_IDENTS, true);
+    }
 
-        foreach (self::ALWAYS_KEEP_IDENT_PREFIXES as $prefix) {
-            if (str_starts_with($ident, $prefix)) {
-                return true;
-            }
-        }
+    private static function IsOTAIdent(string $ident): bool
+    {
+        return $ident === 'update' || str_starts_with($ident, 'update__');
+    }
 
-        return false;
+    private static function IsTransientOTAIdent(string $ident): bool
+    {
+        return \in_array($ident, ['update__progress', 'update__remaining'], true);
     }
 
     private static function IsColorComposite(array $feature): bool

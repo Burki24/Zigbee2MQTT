@@ -543,6 +543,10 @@ trait VariableCatalogHelper
      */
     private function IsVariableCatalogEntryCurrentlyValid(string $ident, mixed $entry, array $validIdents): bool
     {
+        if ($this->IsPersistentOTAVariableIdent($ident) && $this->IsDeviceOTACapable()) {
+            return true;
+        }
+
         if (str_ends_with($ident, '_presets')) {
             return isset($validIdents[substr($ident, 0, -8)]);
         }
@@ -562,6 +566,27 @@ trait VariableCatalogHelper
         }
 
         return false;
+    }
+
+    /**
+     * Prueft, ob ein OTA-Wert bei OTA-faehigen Geraeten dauerhaft sichtbar bleiben darf.
+     *
+     * Fortschritt und Restzeit sind bewusst ausgenommen, da Zigbee2MQTT sie nur
+     * waehrend eines laufenden Updates veroeffentlicht.
+     */
+    private function IsPersistentOTAVariableIdent(string $ident): bool
+    {
+        return ($ident === 'update' || str_starts_with($ident, 'update__'))
+            && !\in_array($ident, ['update__progress', 'update__remaining'], true);
+    }
+
+    /**
+     * Ermittelt die OTA-Faehigkeit aus Geraeteattribut oder Bridge-Cache.
+     */
+    private function IsDeviceOTACapable(): bool
+    {
+        return $this->ReadAttributeBooleanSafe(self::ATTRIBUTE_DEVICE_SUPPORTS_OTA, false)
+            || $this->ReadBridgeCachedDeviceSupportsOTA() === true;
     }
 
     /**

@@ -250,6 +250,7 @@ class Zigbee2MQTTDevice extends \Zigbee2MQTT\ModulBase
         $endpoints = \is_array($Result['endpoints'] ?? null) ? $Result['endpoints'] : [];
         $this->WriteAttributeArray(parent::ATTRIBUTE_DEVICE_ENDPOINTS, $this->MergeBridgeCachedDeviceEndpoints($endpoints));
         $this->WriteAttributeArray(parent::ATTRIBUTE_FILTERED, \is_array($filteredAttributes) ? $filteredAttributes : []);
+        $this->WriteAttributeBoolean(parent::ATTRIBUTE_DEVICE_SUPPORTS_OTA, (bool) ($Result['supports_ota'] ?? false));
 
         $this->WriteAttributeArray(parent::ATTRIBUTE_EXPOSES, $Result['exposes']);
         $this->mapExposesToVariables($Result['exposes']);

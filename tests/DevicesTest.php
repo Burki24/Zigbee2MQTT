@@ -403,6 +403,24 @@ class DevicesTest extends DumpInclude
         $this->assertArrayHasKey('power', $catalog);
     }
 
+    public function testVariableSelectionRefreshKeepsPersistentOTAMetadataOnlyForOTACapableDevices(): void
+    {
+        [$iid, $Debug] = $this->createTestInstance('BMCT-SLZ.json');
+        $interface = IPS\InstanceManager::getInstanceInterface($iid);
+        $topic = $Debug['Config']['MQTTBaseTopic'] . '/' . $Debug['Config']['MQTTTopic'];
+        $this->writeStubAttributeBoolean($iid, 'DeviceSupportsOTA', true);
+        $interface->ReceiveData(self::buildMqttRequest($topic, ['power' => 1.5]));
+
+        IPS_RequestAction($iid, 'RefreshVariableSelection', true);
+
+        $catalog = $this->readStubAttributeArray($iid, 'VariableCatalog');
+        $this->assertArrayHasKey('update__installed_version', $catalog);
+        $this->assertArrayHasKey('update__latest_version', $catalog);
+        $this->assertArrayHasKey('update__state', $catalog);
+        $this->assertArrayNotHasKey('update__progress', $catalog);
+        $this->assertArrayNotHasKey('update__remaining', $catalog);
+    }
+
     public function testMissingNewSchemaValuesAreIgnoredDuringModuleUpdateWindow(): void
     {
         [$iid, $Debug] = $this->createTestInstance('RTCGQ01LM.json');
@@ -427,7 +445,8 @@ class DevicesTest extends DumpInclude
         $this->removeStubAttributes($iid, [
             'VariableCatalog',
             'DisabledVariables',
-            'DeletedVariables'
+            'DeletedVariables',
+            'DeviceSupportsOTA'
         ]);
 
         $payload = $Debug['LastPayload'];
@@ -1562,6 +1581,19 @@ class DevicesTest extends DumpInclude
         $attributes = $attributeProperty->getValue($module);
         $this->assertArrayHasKey($name, $attributes, 'Attribute not found: ' . $name);
         $attributes[$name]['Current'] = json_encode($value);
+        $attributeProperty->setValue($module, $attributes);
+    }
+
+    private function writeStubAttributeBoolean(int $iid, string $name, bool $value): void
+    {
+        $module = $this->getStubModule($iid);
+        $reflection = new \ReflectionClass(IPSModule::class);
+        $attributeProperty = $reflection->getProperty('attributes');
+        $attributeProperty->setAccessible(true);
+
+        $attributes = $attributeProperty->getValue($module);
+        $this->assertArrayHasKey($name, $attributes, 'Attribute not found: ' . $name);
+        $attributes[$name]['Current'] = $value;
         $attributeProperty->setValue($module, $attributes);
     }
 

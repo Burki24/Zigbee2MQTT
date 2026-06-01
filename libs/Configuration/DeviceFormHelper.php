@@ -325,6 +325,45 @@ trait DeviceFormHelper
     }
 
     /**
+     * Liest die OTA-Faehigkeit des aktuellen Geraets aus dem Bridge-Cache.
+     */
+    protected function ReadBridgeCachedDeviceSupportsOTA(): ?bool
+    {
+        $bridgeID = $this->FindMatchingBridgeInstanceID();
+        if ($bridgeID === false || !\function_exists('Z2M_GetCachedNetworkDevices')) {
+            return null;
+        }
+
+        $result = \Z2M_GetCachedNetworkDevices($bridgeID);
+        if (!\is_string($result) || $result === '') {
+            return null;
+        }
+
+        $devices = json_decode($result, true);
+        if (!\is_array($devices)) {
+            return null;
+        }
+
+        $topic = $this->ReadPropertyString(self::MQTT_TOPIC);
+        $ieeeAddress = trim($this->ReadPropertyStringSafe('IEEE', ''));
+        foreach ($devices as $device) {
+            if (!\is_array($device)) {
+                continue;
+            }
+
+            $friendlyName = (string) ($device['friendly_name'] ?? $device['friendlyName'] ?? '');
+            $cachedIEEEAddress = trim((string) ($device['ieee_address'] ?? $device['ieeeAddr'] ?? ''));
+            if ($friendlyName === $topic
+                || ($ieeeAddress !== '' && strcasecmp($cachedIEEEAddress, $ieeeAddress) === 0)
+            ) {
+                return (bool) ($device['supports_ota'] ?? false);
+            }
+        }
+
+        return null;
+    }
+
+    /**
      * Findet die Bridge-Instanz zum gleichen MQTT-Basistopic.
      */
     protected function FindMatchingBridgeInstanceID(): int|false

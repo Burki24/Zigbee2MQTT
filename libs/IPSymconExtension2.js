@@ -1,6 +1,6 @@
 /*
  IPSymconExtension
- Version: 6.02
+ Version: 6.03
 */
 
 class MyLogger {
@@ -144,6 +144,7 @@ class IPSymconExtension {
             options: options,
             definition_options: definition.options ?? [],
             filtered_attributes: options.filtered_attributes ?? [],
+            supports_ota: definition.supports_ota ?? false,
         };
     }
 

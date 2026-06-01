@@ -436,6 +436,7 @@ abstract class ModulBase extends \IPSModuleStrict
         $this->RegisterAttributeArray(self::ATTRIBUTE_DEVICE_OPTIONS, []);
         $this->RegisterAttributeArray(self::ATTRIBUTE_DEVICE_OPTION_DEFINITIONS, []);
         $this->RegisterAttributeArray(self::ATTRIBUTE_DEVICE_ENDPOINTS, []);
+        $this->RegisterAttributeBoolean(self::ATTRIBUTE_DEVICE_SUPPORTS_OTA, false);
         $this->RegisterAttributeArray(self::ATTRIBUTE_VARIABLE_CATALOG, []);
         $this->RegisterAttributeArray(self::ATTRIBUTE_DISABLED_VARIABLES, []);
         $this->RegisterAttributeArray(self::ATTRIBUTE_DELETED_VARIABLES, []);
@@ -1004,6 +1005,8 @@ abstract class ModulBase extends \IPSModuleStrict
         $DebugData['Config'] = json_decode(IPS_GetConfiguration($this->InstanceID), true);
         $DebugData['Exposes'] = $this->ReadAttributeArray(self::ATTRIBUTE_EXPOSES);
         $DebugData['LastPayload'] = $this->lastPayload;
+        $DebugData['LatestPayload'] = $this->latestPayload;
+        $DebugData['SupportsOTA'] = $this->IsDeviceOTACapable();
         $DebugData['Childs'] = [];
         $DebugData['Profile'] = [];
         foreach (IPS_GetChildrenIDs($this->InstanceID) as $childID) {
@@ -1047,6 +1050,32 @@ abstract class ModulBase extends \IPSModuleStrict
     protected function ReadPropertyFloatSafe(string $name, float $default): float
     {
         return (float) $this->ReadPropertySafe(fn (): float => $this->ReadPropertyFloat($name), $default);
+    }
+
+    /**
+     * Liest eine String-Property mit Defaultwert fuer Update-/Migrationsfenster.
+     */
+    protected function ReadPropertyStringSafe(string $name, string $default): string
+    {
+        return (string) $this->ReadPropertySafe(fn (): string => $this->ReadPropertyString($name), $default);
+    }
+
+    /**
+     * Liest ein boolesches Attribut mit Defaultwert fuer Update-/Migrationsfenster.
+     */
+    protected function ReadAttributeBooleanSafe(string $name, bool $default): bool
+    {
+        set_error_handler(static function (): bool
+        {
+            return true;
+        });
+        try {
+            return $this->ReadAttributeBoolean($name);
+        } catch (\Throwable) {
+            return $default;
+        } finally {
+            restore_error_handler();
+        }
     }
 
     /**

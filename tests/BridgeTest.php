@@ -293,6 +293,51 @@ class BridgeTest extends TestCase
         $this->assertSame('Unknown', $method->invoke($bridge, 'unexpected'));
     }
 
+    public function testStaleVariableCleanupKeepsOnlyRelevantOTAMetadata(): void
+    {
+        $this->createBridgeTestDouble(true);
+        $method = new ReflectionMethod(\Zigbee2MQTT\Maintenance\StaleVariableCleanupHelper::class, 'BuildExpected');
+
+        [$otaExpected] = $method->invoke(null, [
+            'SupportsOTA' => true,
+            'LastPayload' => [
+                'update' => [
+                    'installed_version' => 1,
+                    'latest_version'    => 2,
+                    'state'             => 'idle',
+                    'progress'          => 12.5,
+                    'remaining'         => 60
+                ]
+            ],
+            'LatestPayload' => []
+        ]);
+        $this->assertArrayHasKey('update__installed_version', $otaExpected);
+        $this->assertArrayHasKey('update__latest_version', $otaExpected);
+        $this->assertArrayHasKey('update__state', $otaExpected);
+        $this->assertArrayNotHasKey('update__progress', $otaExpected);
+        $this->assertArrayNotHasKey('update__remaining', $otaExpected);
+
+        [$nonOTAExpected] = $method->invoke(null, [
+            'SupportsOTA' => false,
+            'LastPayload' => [
+                'update' => [
+                    'installed_version' => 1,
+                    'latest_version'    => 2
+                ]
+            ],
+            'LatestPayload' => []
+        ]);
+        $this->assertArrayNotHasKey('update__installed_version', $nonOTAExpected);
+        $this->assertArrayNotHasKey('update__latest_version', $nonOTAExpected);
+
+        [$currentExpected] = $method->invoke(null, [
+            'SupportsOTA'   => false,
+            'LastPayload'   => [],
+            'LatestPayload' => ['update' => ['progress' => 33.3]]
+        ]);
+        $this->assertArrayHasKey('update__progress', $currentExpected);
+    }
+
     public function testSetDeviceOptionsUsesDeviceOptionsBridgeRequest(): void
     {
         $bridge = $this->createBridgeTestDouble([
