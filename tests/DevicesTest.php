@@ -372,6 +372,52 @@ class DevicesTest extends DumpInclude
         $this->assertSame('Z2M.dewpoint', IPS_GetVariable($dewpointID)['VariableProfile']);
     }
 
+    public function testVariableSelectionCreatesBinaryAndEnumVariablesWithIncompleteFeatureIdentity(): void
+    {
+        [$iid] = $this->createTestInstance('RTCGQ01LM.json');
+        $catalog = $this->readStubAttributeArray($iid, 'VariableCatalog');
+        $catalog['generated_binary'] = [
+            'ident'     => 'generated_binary',
+            'property'  => 'generated_binary',
+            'label'     => 'Generated Binary',
+            'source'    => 'payload',
+            'type'      => 'binary',
+            'created'   => false,
+            'lastValue' => 'LOCK',
+            'feature'   => [
+                'property'  => 'generated_binary',
+                'type'      => 'binary',
+                'value_on'  => 'LOCK',
+                'value_off' => 'UNLOCK'
+            ]
+        ];
+        $catalog['generated_enum'] = [
+            'ident'     => 'generated_enum',
+            'property'  => 'generated_enum',
+            'label'     => 'Generated Enum',
+            'source'    => 'payload',
+            'type'      => 'enum',
+            'created'   => false,
+            'lastValue' => 'local',
+            'feature'   => [
+                'name'   => 'generated_enum',
+                'type'   => 'enum',
+                'values' => ['local', 'remote']
+            ]
+        ];
+        $this->writeStubAttributeArray($iid, 'VariableCatalog', $catalog);
+
+        IPS_RequestAction($iid, 'ToggleVariableCreation', 'generated_binary');
+        IPS_RequestAction($iid, 'ToggleVariableCreation', 'generated_enum');
+
+        $binaryID = @IPS_GetObjectIDByIdent('generated_binary', $iid);
+        $enumID = @IPS_GetObjectIDByIdent('generated_enum', $iid);
+        $this->assertNotFalse($binaryID);
+        $this->assertNotFalse($enumID);
+        $this->assertSame('Z2M.generated_binary', IPS_GetVariable($binaryID)['VariableProfile']);
+        $this->assertStringStartsWith('Z2M.generated_enum.', IPS_GetVariable($enumID)['VariableProfile']);
+    }
+
     public function testVariableSelectionRefreshRemovesHistoricalEntriesWithoutDeletingVariables(): void
     {
         [$iid, $Debug] = $this->createTestInstance('BMCT-SLZ.json');

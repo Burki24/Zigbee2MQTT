@@ -3444,6 +3444,7 @@ abstract class ModulBase extends \IPSModuleStrict
      */
     private function registerVariableProfile(array $expose): string
     {
+        $expose = self::normalizeExposeFeatureIdentity($expose);
         $type = (string) ($expose['type'] ?? '');
         $property = $this->getExposeProperty($expose);
         $ProfileName = $this->getExposeProfileName($property);
@@ -3480,6 +3481,32 @@ abstract class ModulBase extends \IPSModuleStrict
     private function getExposeProperty(array $expose): string
     {
         return (string) ($expose['property'] ?? $expose['name'] ?? '');
+    }
+
+    /**
+     * Ergaenzt fehlende Expose-Kennungen typunabhaengig.
+     *
+     * Von Zigbee2MQTT berechnete oder nachgelieferte Werte koennen nur
+     * `property` oder nur `name` enthalten. Nach der Normalisierung koennen
+     * alle Profil- und Variablenpfade beide Schluessel sicher verwenden.
+     *
+     * @param array $feature Expose- oder Payload-Definition.
+     *
+     * @return array Definition mit ergaenzter Property und ergaenztem Namen.
+     */
+    private static function normalizeExposeFeatureIdentity(array $feature): array
+    {
+        $property = trim((string) ($feature['property'] ?? ''));
+        $name = trim((string) ($feature['name'] ?? ''));
+        if ($property === '' && $name !== '') {
+            $feature['property'] = $name;
+            $property = $name;
+        }
+        if ($name === '' && $property !== '') {
+            $feature['name'] = $property;
+        }
+
+        return $feature;
     }
 
     /**
@@ -3809,6 +3836,7 @@ abstract class ModulBase extends \IPSModuleStrict
      */
     private function handleProfileType(string $type, array $expose, string $ProfileName): string
     {
+        $expose = self::normalizeExposeFeatureIdentity($expose);
         $this->SendDebug(__FUNCTION__, 'Processing type: ' . $type . ' for profile: ' . $ProfileName, 0);
         $this->SendDebug(__FUNCTION__, 'Expose data: ' . json_encode($expose), 0);
 
@@ -3963,6 +3991,7 @@ abstract class ModulBase extends \IPSModuleStrict
      */
     private function registerNumericProfile(array $expose): array
     {
+        $expose = self::normalizeExposeFeatureIdentity($expose);
         // Frühe Typ-Bestimmung
         $type = $expose['type'] ?? '';
         $feature = $expose['property'] ?? '';
@@ -4341,6 +4370,9 @@ abstract class ModulBase extends \IPSModuleStrict
             return;
         }
 
+        if (\is_array($feature)) {
+            $feature = self::normalizeExposeFeatureIdentity($feature);
+        }
         $featureProperty = \is_array($feature) ? (string) ($feature['property'] ?? '') : (string) $feature;
 
         // Frühe Validierung der Property
