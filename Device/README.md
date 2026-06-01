@@ -269,7 +269,7 @@ Die Instanz merkt sich alle aus Exposes, Payloads und Systemmeldungen bekannten 
 
 ![Variablenverwaltung](imgs/variablenverwaltung.png)
 
-Über **Variablen aktualisieren** wird die Liste bewusst neu aus den aktuellen Exposes, dem zuletzt empfangenen Geräte-Payload und den tatsächlich vorhandenen Variablen aufgebaut. Dadurch verschwinden historische reine Payload-Einträge, die das Gerät nicht mehr liefert. Vorhandene Variablen und ausdrücklich deaktivierte oder gelöschte Einträge bleiben erhalten.
+Über **Variablen aktualisieren** wird die Liste bewusst neu aus den aktuellen Exposes und dem zuletzt empfangenen Geräte-Payload aufgebaut. Dadurch verschwinden historische Einträge, die das Gerät nicht mehr liefert. Die zugehörigen Symcon-Variablen werden dabei nicht gelöscht und können anschließend kontrolliert über die Variablen-Wartung der Bridge geprüft werden. Ausdrücklich deaktivierte oder gelöschte Einträge bleiben erhalten, solange sie weiterhin fachlich zum aktuellen Gerät gehören.
 
 Die wichtigsten Zustände in der Liste sind:
 

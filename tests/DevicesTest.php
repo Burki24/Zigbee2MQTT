@@ -346,7 +346,7 @@ class DevicesTest extends DumpInclude
         $this->assertNotFalse(@IPS_GetObjectIDByIdent('power', $iid), 'Re-enabled variable should be created again.');
     }
 
-    public function testVariableSelectionRefreshRemovesHistoricalPayloadEntriesAndKeepsUserDecisions(): void
+    public function testVariableSelectionRefreshRemovesHistoricalEntriesWithoutDeletingVariables(): void
     {
         [$iid] = $this->createTestInstance('BMCT-SLZ.json');
         $catalog = $this->readStubAttributeArray($iid, 'VariableCatalog');
@@ -358,22 +358,36 @@ class DevicesTest extends DumpInclude
             'type'     => 'numeric',
             'created'  => false
         ];
-        $catalog['disabled_payload'] = [
-            'ident'    => 'disabled_payload',
-            'property' => 'disabled_payload',
-            'label'    => 'Disabled Payload',
+        $catalog['stale_existing'] = [
+            'ident'    => 'stale_existing',
+            'property' => 'stale_existing',
+            'label'    => 'Stale Existing',
+            'source'   => 'payload',
+            'type'     => 'numeric',
+            'created'  => true
+        ];
+        $catalog['update__progress'] = [
+            'ident'    => 'update__progress',
+            'property' => 'update__progress',
+            'label'    => 'Update Progress',
             'source'   => 'payload',
             'type'     => 'numeric',
             'created'  => false
         ];
         $this->writeStubAttributeArray($iid, 'VariableCatalog', $catalog);
-        $this->writeStubAttributeArray($iid, 'DisabledVariables', ['disabled_payload']);
+        $this->writeStubAttributeArray($iid, 'DisabledVariables', ['stale_existing']);
+        $staleVariableID = IPS_CreateVariable(VARIABLETYPE_FLOAT);
+        IPS_SetParent($staleVariableID, $iid);
+        IPS_SetIdent($staleVariableID, 'stale_existing');
 
         IPS_RequestAction($iid, 'RefreshVariableSelection', true);
 
         $catalog = $this->readStubAttributeArray($iid, 'VariableCatalog');
         $this->assertArrayNotHasKey('stale_payload', $catalog);
-        $this->assertArrayHasKey('disabled_payload', $catalog);
+        $this->assertArrayNotHasKey('stale_existing', $catalog);
+        $this->assertNotFalse(@IPS_GetObjectIDByIdent('stale_existing', $iid));
+        $this->assertSame([], $this->readStubAttributeArray($iid, 'DisabledVariables'));
+        $this->assertArrayHasKey('update__progress', $catalog);
         $this->assertArrayHasKey('power', $catalog);
     }
 

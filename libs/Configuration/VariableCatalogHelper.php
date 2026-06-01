@@ -80,9 +80,9 @@ trait VariableCatalogHelper
     /**
      * Bereinigt den lokalen Katalog fuer die manuell ausgelöste Formularaktualisierung.
      *
-     * Vorhandene Variablen und explizite Anwenderentscheidungen bleiben erhalten.
-     * Historische reine Payload-Einträge werden entfernt, wenn sie weder in den
-     * aktuellen Exposes noch im zuletzt empfangenen Geräte-Payload vorkommen.
+     * Vorhandene Symcon-Variablen werden nicht geloescht. Historische Katalogeintraege
+     * werden aber entfernt, wenn sie weder in den aktuellen Exposes noch im zuletzt
+     * empfangenen Geraete-Payload vorkommen und keine gueltigen Sonderwerte sind.
      */
     protected function RefreshVariableSelectionFromForm(): void
     {
@@ -407,6 +407,7 @@ trait VariableCatalogHelper
     private function RefreshVariableCatalog(): void
     {
         $this->RefreshExposeVariableCatalog();
+        $validIdents = array_fill_keys($this->CollectCurrentVariableCatalogIdents(), true);
 
         foreach (IPS_GetChildrenIDs($this->InstanceID) as $childID) {
             $object = IPS_GetObject($childID);
@@ -420,10 +421,13 @@ trait VariableCatalogHelper
             }
 
             $catalog = $this->ReadAttributeArray(self::ATTRIBUTE_VARIABLE_CATALOG);
-            if (!isset($catalog[$ident])) {
+            if (!isset($catalog[$ident]) && isset($validIdents[$ident])) {
                 $this->RememberVariableDefinition($ident, ['property' => $ident], 'existing');
+                $catalog = $this->ReadAttributeArray(self::ATTRIBUTE_VARIABLE_CATALOG);
             }
-            $this->MarkVariableCreated($ident);
+            if (isset($catalog[$ident])) {
+                $this->MarkVariableCreated($ident);
+            }
         }
 
         $this->RefreshDeletedVariableCatalogState();
@@ -440,14 +444,13 @@ trait VariableCatalogHelper
 
         foreach ($catalog as $ident => $entry) {
             $ident = (string) $ident;
-            if (isset($validIdents[$ident])
-                || $this->GetObjectIDByIdent($ident) !== false
-                || $this->IsVariableCreationSuppressed($ident)
-            ) {
+            if (isset($validIdents[$ident]) || $this->IsVariableCatalogEntryCurrentlyValid($ident, $entry, $validIdents)) {
                 continue;
             }
 
             unset($catalog[$ident]);
+            $this->RemoveVariableFromAttributeList(self::ATTRIBUTE_DISABLED_VARIABLES, $ident);
+            $this->RemoveVariableFromAttributeList(self::ATTRIBUTE_DELETED_VARIABLES, $ident);
             $changed = true;
         }
 
@@ -457,7 +460,7 @@ trait VariableCatalogHelper
     }
 
     /**
-     * Liefert die aktuell belegten Idents aus Exposes, letztem Einzel-Payload und Objektbaum.
+     * Liefert die aktuell belegten Idents aus Exposes und letztem Einzel-Payload.
      *
      * @return array<int,string>
      */
@@ -477,19 +480,45 @@ trait VariableCatalogHelper
             }
         }
 
-        foreach (IPS_GetChildrenIDs($this->InstanceID) as $childID) {
-            $object = IPS_GetObject($childID);
-            if (($object['ObjectType'] ?? -1) !== OBJECTTYPE_VARIABLE) {
-                continue;
-            }
-
-            $ident = $this->NormalizeVariableIdent((string) ($object['ObjectIdent'] ?? ''));
-            if ($ident !== '') {
-                $idents[] = $ident;
-            }
+        foreach ($this->ReadAttributeArray(self::ATTRIBUTE_FILTERED) as $ident) {
+            $idents[] = $this->NormalizeVariableIdent((string) $ident);
         }
 
         return array_values(array_unique(array_filter($idents)));
+    }
+
+    /**
+     * Erhaelt gueltige Sonder-, Preset- und abgeleitete Variablen im Katalog.
+     */
+    private function IsVariableCatalogEntryCurrentlyValid(string $ident, mixed $entry, array $validIdents): bool
+    {
+        if ($ident === 'device_status'
+            || $ident === 'last_seen'
+            || $ident === 'update'
+            || str_starts_with($ident, 'update__')
+        ) {
+            return true;
+        }
+
+        if (str_ends_with($ident, '_presets')) {
+            return isset($validIdents[substr($ident, 0, -8)]);
+        }
+
+        if (!\is_array($entry) || ($entry['source'] ?? '') !== 'derived') {
+            return false;
+        }
+
+        if ($ident === 'color_temp_kelvin') {
+            return isset($validIdents['color_temp']);
+        }
+        if ($ident === 'color') {
+            return isset($validIdents['color']) || isset($validIdents['color_temp']);
+        }
+        if (\in_array($ident, ['color_hs', 'color_rgb'], true)) {
+            return isset($validIdents['color']);
+        }
+
+        return false;
     }
 
     /**
