@@ -30,7 +30,8 @@ require_once __DIR__ . '/ColorHelper.php';
  * direkt typsichere Werte, Arrays und Objekte in einem Instanz-Buffer schreiben und lesen können.
  * @property bool $BUFFER_MQTT_SUSPENDED Zugriff auf den Buffer für laufende Migration
  * @property bool $BUFFER_PROCESSING_MIGRATION Zugriff auf den Buffer für MQTT Nachrichten nicht verarbeiten
- * @property string $lastPayload Zugriff auf den Buffer welcher das Letzte Payload enthält (für Download-Button)
+ * @property array $lastPayload Zugriff auf den Buffer welcher die zusammengeführten Payload-Werte enthält (für Download-Button)
+ * @property array $latestPayload Zugriff auf den Buffer welcher das zuletzt empfangene Geräte-Payload enthält
  * @property array $missingTranslations Zugriff auf den Buffer welcher ein array von fehlenden Übersetzungen enthält (für Download-Button)
  */
 abstract class ModulBase extends \IPSModuleStrict
@@ -445,6 +446,7 @@ abstract class ModulBase extends \IPSModuleStrict
         $this->BUFFER_PROCESSING_MIGRATION = false;
         $this->ClearTransactionData();
         $this->lastPayload = [];
+        $this->latestPayload = [];
         $this->missingTranslations = [];
 
         // Legacy exposes directory creation is no longer used.
@@ -1297,6 +1299,7 @@ abstract class ModulBase extends \IPSModuleStrict
             'BUFFER_MQTT_SUSPENDED',
             'BUFFER_PROCESSING_MIGRATION' => true,
             'lastPayload',
+            'latestPayload',
             'missingTranslations',
             'brightnessConfig',
             'TransactionData'             => [],
@@ -1571,6 +1574,11 @@ abstract class ModulBase extends \IPSModuleStrict
         if ($ident == 'ToggleVariableCreation') {
             $this->SendDebug(__FUNCTION__, 'Verarbeite ToggleVariableCreation: ' . (string) $value, 0);
             return $this->ToggleVariableCreation((string) $value);
+        }
+        if ($ident == 'RefreshVariableSelection') {
+            $this->SendDebug(__FUNCTION__, 'Aktualisiere Variablenkatalog aus aktuellen Gerätedaten', 0);
+            $this->RefreshVariableSelectionFromForm();
+            return true;
         }
 
         return $this->handleVariableRequestAction($ident, $value);
@@ -1914,6 +1922,7 @@ abstract class ModulBase extends \IPSModuleStrict
             unset($payload['exposes']);
         }
 
+        $this->latestPayload = $payload;
         $this->lastPayload = $this->lastPayload + $payload;
 
         // Verschachtelte Strukturen flach machen

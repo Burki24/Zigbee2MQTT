@@ -346,6 +346,37 @@ class DevicesTest extends DumpInclude
         $this->assertNotFalse(@IPS_GetObjectIDByIdent('power', $iid), 'Re-enabled variable should be created again.');
     }
 
+    public function testVariableSelectionRefreshRemovesHistoricalPayloadEntriesAndKeepsUserDecisions(): void
+    {
+        [$iid] = $this->createTestInstance('BMCT-SLZ.json');
+        $catalog = $this->readStubAttributeArray($iid, 'VariableCatalog');
+        $catalog['stale_payload'] = [
+            'ident'    => 'stale_payload',
+            'property' => 'stale_payload',
+            'label'    => 'Stale Payload',
+            'source'   => 'payload',
+            'type'     => 'numeric',
+            'created'  => false
+        ];
+        $catalog['disabled_payload'] = [
+            'ident'    => 'disabled_payload',
+            'property' => 'disabled_payload',
+            'label'    => 'Disabled Payload',
+            'source'   => 'payload',
+            'type'     => 'numeric',
+            'created'  => false
+        ];
+        $this->writeStubAttributeArray($iid, 'VariableCatalog', $catalog);
+        $this->writeStubAttributeArray($iid, 'DisabledVariables', ['disabled_payload']);
+
+        IPS_RequestAction($iid, 'RefreshVariableSelection', true);
+
+        $catalog = $this->readStubAttributeArray($iid, 'VariableCatalog');
+        $this->assertArrayNotHasKey('stale_payload', $catalog);
+        $this->assertArrayHasKey('disabled_payload', $catalog);
+        $this->assertArrayHasKey('power', $catalog);
+    }
+
     public function testMissingNewSchemaValuesAreIgnoredDuringModuleUpdateWindow(): void
     {
         [$iid, $Debug] = $this->createTestInstance('RTCGQ01LM.json');

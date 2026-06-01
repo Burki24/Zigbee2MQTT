@@ -41,6 +41,11 @@
                     "caption": "Manage Zigbee2MQTT blocklist and passlist. The passlist is restrictive: Zigbee2MQTT removes devices that are not included."
                 },
                 {
+                    "type": "Button",
+                    "caption": "Refresh available devices",
+                    "onClick": "IPS_RequestAction($id, 'RefreshNetworkSecurityAvailableDevices', true);"
+                },
+                {
                     "type": "List",
                     "name": "NetworkSecurityAvailableDeviceList",
                     "caption": "Available devices",
@@ -444,6 +449,11 @@
                             "caption": "Known OTA devices: 0, available updates: 0, active or scheduled: 0"
                         }
                     ]
+                },
+                {
+                    "type": "Button",
+                    "caption": "Refresh known OTA devices",
+                    "onClick": "IPS_RequestAction($id, 'RefreshOTAStatus', true);"
                 },
                 {
                     "type": "List",

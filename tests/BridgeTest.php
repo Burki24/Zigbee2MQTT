@@ -385,6 +385,25 @@ class BridgeTest extends TestCase
         $this->assertStringContainsString('Kitchen/Light', implode("\n", array_column($values, 'device')));
     }
 
+    public function testRefreshNetworkSecurityAvailableDevicesUpdatesOpenForm(): void
+    {
+        $bridge = $this->createBridgeTestDouble(true);
+        $bridge->setBaseTopicForTest('zigbee2mqtt');
+        $deviceID = IPS_CreateInstance(self::DEVICE_MODULE_ID);
+        IPS_SetConfiguration($deviceID, json_encode([
+            'MQTTBaseTopic' => 'zigbee2mqtt',
+            'MQTTTopic'     => 'Kitchen/Light',
+            'IEEE'          => '0x000b57fffec6a5b2'
+        ]));
+        IPS_ApplyChanges($deviceID);
+
+        $bridge->RequestAction('RefreshNetworkSecurityAvailableDevices', true);
+
+        $values = json_decode($bridge->updatedFields['NetworkSecurityAvailableDeviceList']['values'], true);
+        $this->assertContains('0x000b57fffec6a5b2', array_column($values, 'ieee_address'));
+        $this->assertSame(4, $bridge->updatedFields['NetworkSecurityAvailableDeviceList']['rowCount']);
+    }
+
     public function testSelectNetworkSecurityDeviceUpdatesSelectedFields(): void
     {
         $bridge = $this->createBridgeTestDouble(true);

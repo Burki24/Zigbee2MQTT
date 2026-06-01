@@ -78,6 +78,22 @@ trait VariableCatalogHelper
     }
 
     /**
+     * Bereinigt den lokalen Katalog fuer die manuell ausgelöste Formularaktualisierung.
+     *
+     * Vorhandene Variablen und explizite Anwenderentscheidungen bleiben erhalten.
+     * Historische reine Payload-Einträge werden entfernt, wenn sie weder in den
+     * aktuellen Exposes noch im zuletzt empfangenen Geräte-Payload vorkommen.
+     */
+    protected function RefreshVariableSelectionFromForm(): void
+    {
+        $this->RemoveStaleVariableCatalogEntries();
+        $values = $this->BuildVariableSelectionFormValues();
+        $this->UpdateFormField('VariableSelectionSettings', 'visible', \count($values) > 0);
+        $this->UpdateFormField('VariableSelectionList', 'values', json_encode($values));
+        $this->UpdateFormField('VariableSelectionList', 'rowCount', min(12, max(4, \count($values) + 1)));
+    }
+
+    /**
      * Normalisiert ein Zigbee2MQTT-Property auf einen Symcon-Ident.
      */
     private function NormalizeVariableIdent(string $ident): string
@@ -411,6 +427,69 @@ trait VariableCatalogHelper
         }
 
         $this->RefreshDeletedVariableCatalogState();
+    }
+
+    /**
+     * Entfernt veraltete reine Katalogeinträge nach einer bewussten Benutzeraktion.
+     */
+    private function RemoveStaleVariableCatalogEntries(): void
+    {
+        $validIdents = array_fill_keys($this->CollectCurrentVariableCatalogIdents(), true);
+        $catalog = $this->ReadAttributeArray(self::ATTRIBUTE_VARIABLE_CATALOG);
+        $changed = false;
+
+        foreach ($catalog as $ident => $entry) {
+            $ident = (string) $ident;
+            if (isset($validIdents[$ident])
+                || $this->GetObjectIDByIdent($ident) !== false
+                || $this->IsVariableCreationSuppressed($ident)
+            ) {
+                continue;
+            }
+
+            unset($catalog[$ident]);
+            $changed = true;
+        }
+
+        if ($changed) {
+            $this->WriteAttributeArray(self::ATTRIBUTE_VARIABLE_CATALOG, $catalog);
+        }
+    }
+
+    /**
+     * Liefert die aktuell belegten Idents aus Exposes, letztem Einzel-Payload und Objektbaum.
+     *
+     * @return array<int,string>
+     */
+    private function CollectCurrentVariableCatalogIdents(): array
+    {
+        $idents = [];
+        foreach ($this->ReadAttributeArray(self::ATTRIBUTE_EXPOSES) as $expose) {
+            if (\is_array($expose)) {
+                $idents = array_merge($idents, $this->RememberExposeFeatureRecursive($expose));
+            }
+        }
+
+        $payload = $this->latestPayload;
+        if (\is_array($payload)) {
+            foreach (array_keys($this->flattenPayload($payload)) as $ident) {
+                $idents[] = $this->NormalizeVariableIdent((string) $ident);
+            }
+        }
+
+        foreach (IPS_GetChildrenIDs($this->InstanceID) as $childID) {
+            $object = IPS_GetObject($childID);
+            if (($object['ObjectType'] ?? -1) !== OBJECTTYPE_VARIABLE) {
+                continue;
+            }
+
+            $ident = $this->NormalizeVariableIdent((string) ($object['ObjectIdent'] ?? ''));
+            if ($ident !== '') {
+                $idents[] = $ident;
+            }
+        }
+
+        return array_values(array_unique(array_filter($idents)));
     }
 
     /**

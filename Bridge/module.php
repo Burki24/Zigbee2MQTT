@@ -499,6 +499,9 @@ class Zigbee2MQTTBridge extends IPSModuleStrict
             case 'SelectNetworkSecurityDevice':
                 $this->SelectNetworkSecurityDeviceFromForm($value);
                 break;
+            case 'RefreshNetworkSecurityAvailableDevices':
+                $this->UpdateNetworkSecurityFormLists();
+                break;
             case 'AddBlocklistDevice':
                 $this->AddNetworkSecurityDeviceFromForm('blocklist', $value);
                 break;
@@ -3411,6 +3414,9 @@ class Zigbee2MQTTBridge extends IPSModuleStrict
      */
     private function UpdateNetworkSecurityFormLists(): void
     {
+        $availableDevices = $this->BuildNetworkSecurityAvailableDeviceFormValues();
+        $this->UpdateFormField('NetworkSecurityAvailableDeviceList', 'values', json_encode($availableDevices));
+        $this->UpdateFormField('NetworkSecurityAvailableDeviceList', 'rowCount', min(10, max(4, \count($availableDevices) + 1)));
         $this->UpdateFormField('NetworkSecurityBlocklist', 'values', json_encode($this->BuildNetworkSecurityListFormValues('blocklist')));
         $this->UpdateFormField('NetworkSecurityPasslist', 'values', json_encode($this->BuildNetworkSecurityListFormValues('passlist')));
     }

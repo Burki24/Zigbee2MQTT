@@ -35,6 +35,7 @@
             "Transaction Data is locked": "Transaktionen Daten sind gesperrt",
             "Command payload must be a valid JSON object or array.": "Command-Payload muss ein gültiges JSON-Objekt oder -Array sein.",
             "Control which variables may be created automatically. Existing variables are not deleted.": "Steuern Sie, welche Variablen automatisch erstellt werden dürfen. Bestehende Variablen werden nicht gelöscht.",
+            "Refresh variables": "Variablen aktualisieren",
             "Variables": "Variablen",
             "Variable": "Variable",
             "Ident": "Ident",

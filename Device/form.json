@@ -656,6 +656,11 @@
                     "caption": "Control which variables may be created automatically. Existing variables are not deleted."
                 },
                 {
+                    "type": "Button",
+                    "caption": "Refresh variables",
+                    "onClick": "IPS_RequestAction($id, 'RefreshVariableSelection', true);"
+                },
+                {
                     "type": "List",
                     "name": "VariableSelectionList",
                     "add": false,

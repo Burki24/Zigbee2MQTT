@@ -106,6 +106,7 @@
             "Read reporting": "Reporting lesen",
             "Variables": "Variablen",
             "Control which variables may be created automatically. Existing variables are not deleted.": "Steuern Sie, welche Variablen automatisch erstellt werden dürfen. Bestehende Variablen werden nicht gelöscht.",
+            "Refresh variables": "Variablen aktualisieren",
             "Variable": "Variable",
             "Ident": "Ident",
             "Source": "Quelle",
