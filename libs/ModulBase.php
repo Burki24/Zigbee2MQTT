@@ -1816,13 +1816,44 @@ abstract class ModulBase extends \IPSModuleStrict
             return [false, false];
         }
 
-        $topic = substr($messageData['Topic'], \strlen($baseTopic) + 1);
+        $receivedTopic = (string) $messageData['Topic'];
+        if (!$this->IsExpectedReceiveTopic($receivedTopic, $baseTopic, $mqttTopic)) {
+            $this->SendDebug(__FUNCTION__, 'Ignoriere fremdes MQTT-Topic: ' . $receivedTopic, 0);
+            return [false, false];
+        }
+
+        $topic = substr($receivedTopic, \strlen($baseTopic) + 1);
 
         $payloadData = json_decode(self::DecodePayload($messageData['Payload']), true);
         return [
             explode('/', $topic),
             $payloadData
         ];
+    }
+
+    /**
+     * Prueft eingehende MQTT-Nachrichten nochmals unabhaengig vom Symcon-Datenfilter.
+     *
+     * Der Datenfilter reduziert die Last im Datenfluss. Diese zweite Pruefung
+     * verhindert, dass fremde Geraete-Payloads versehentlich Variablen in der
+     * falschen Instanz anlegen, falls ein Parent eine Nachricht dennoch zustellt.
+     */
+    private function IsExpectedReceiveTopic(string $receivedTopic, string $baseTopic, string $mqttTopic): bool
+    {
+        $deviceTopic = $baseTopic . '/' . $mqttTopic;
+        if (\in_array(
+            $receivedTopic,
+            [
+                $deviceTopic,
+                $deviceTopic . '/' . self::AVAILABILITY_TOPIC,
+                $baseTopic . self::SYMCON_EXTENSION_RESPONSE . static::$ExtensionTopic . $mqttTopic
+            ],
+            true
+        )) {
+            return true;
+        }
+
+        return str_starts_with($receivedTopic, $baseTopic . self::SYMCON_EXTENSION_LIST_RESPONSE);
     }
 
     /**

@@ -396,6 +396,26 @@ class DevicesTest extends DumpInclude
         $this->assertSame('~Temperature', IPS_GetVariable($dewpointID)['VariableProfile']);
     }
 
+    public function testReceiveDataIgnoresPayloadFromDifferentDeviceTopic(): void
+    {
+        [$iid, $debug] = $this->createTestInstance('RTCGQ01LM.json');
+        $interface = IPS\InstanceManager::getInstanceInterface($iid);
+
+        $interface->ReceiveData(self::buildMqttRequest(
+            $debug['Config']['MQTTBaseTopic'] . '/foreign-device',
+            [
+                'countdown_l1' => 0,
+                'countdown_l2' => 0
+            ]
+        ));
+
+        $this->assertFalse(@IPS_GetObjectIDByIdent('countdown_l1', $iid));
+        $this->assertFalse(@IPS_GetObjectIDByIdent('countdown_l2', $iid));
+        $latestPayload = self::getExportDebugData($iid)['LatestPayload'];
+        $this->assertArrayNotHasKey('countdown_l1', $latestPayload);
+        $this->assertArrayNotHasKey('countdown_l2', $latestPayload);
+    }
+
     public function testVariableSelectionCreatesBinaryAndEnumVariablesWithIncompleteFeatureIdentity(): void
     {
         [$iid] = $this->createTestInstance('RTCGQ01LM.json');
