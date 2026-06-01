@@ -547,12 +547,18 @@ Liste aller Aktionen:
 | :---------------------------------- | :------------------------ |
 | Einschaltverzögerung                | Countdown                 |
 | Ausschaltverzögerung                | Countdown                 |
+| Status umschalten                   | Status                    |
+| Licht mit Übergangszeit schalten    | Status und Helligkeit      |
 | Helligkeit mit Übergangszeit        | Helligkeit                |
 | Dimmen der Helligkeit (absolut)     | Helligkeit                |
 | Dimmen der Helligkeit (relativ)     | Helligkeit                |
 | Dimmen der Farbtemperatur (absolut) | Farbtemperatur            |
 | Dimmen der Farbtemperatur (relativ) | Farbtemperatur            |
+| Farbtemperatur mit Übergangszeit    | Farbtemperatur in Kelvin  |
 | Farbe mit Übergangszeit             | Farbe                     |
+| Szene abrufen                       | Zigbee-Szenen-ID           |
+
+Die Aktion **Szene abrufen** wird für Geräte und Gruppen angeboten. Sie setzt voraus, dass die angegebene Szenen-ID zuvor in Zigbee2MQTT für das Ziel gespeichert wurde. Nicht jedes Gerät unterstützt Zigbee-Szenen.
 
 ## 8. Anhang
 

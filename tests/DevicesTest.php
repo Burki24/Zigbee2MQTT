@@ -261,6 +261,49 @@ class DevicesTest extends DumpInclude
         $this->assertSame([], $device->sentPayload);
     }
 
+    public function testColorTransitionRequiresNativeColorExpose(): void
+    {
+        $device = $this->createDeviceActionTestDouble();
+        $device->setExposesForTest([
+            [
+                'type'     => 'light',
+                'features' => [
+                    [
+                        'name'      => 'color_temp',
+                        'access'    => 7,
+                        'type'      => 'numeric',
+                        'property'  => 'color_temp',
+                        'value_min' => 153,
+                        'value_max' => 500
+                    ]
+                ]
+            ]
+        ]);
+
+        $this->assertFalse($device->SetColorExt(0xFF0000, 2));
+        $this->assertSame([], $device->sentPayload);
+
+        $device->setExposesForTest([
+            [
+                'type'     => 'light',
+                'features' => [
+                    [
+                        'name'       => 'color_xy',
+                        'access'     => 7,
+                        'type'       => 'composite',
+                        'property'   => 'color',
+                        'color_mode' => 'xy'
+                    ]
+                ]
+            ]
+        ]);
+        $device->setColorModeForTest('XY');
+
+        $this->assertTrue($device->SetColorExt(0xFF0000, 2));
+        $this->assertArrayHasKey('color', $device->sentPayload);
+        $this->assertSame(2, $device->sentPayload['transition']);
+    }
+
     public function testWHD02()
     {
         [$iid,$Debug] = $this->createTestInstance('WHD02.json');
@@ -1654,6 +1697,12 @@ class DevicesTest extends DumpInclude
             public function setExposesForTest(array $exposes): void
             {
                 $this->WriteAttributeArray(self::ATTRIBUTE_EXPOSES, $exposes);
+            }
+
+            public function setColorModeForTest(string $colorMode): void
+            {
+                $this->RegisterVariableString('color_mode', 'Color Mode');
+                SetValue($this->GetIDForIdent('color_mode'), $colorMode);
             }
         };
         $device->Create();

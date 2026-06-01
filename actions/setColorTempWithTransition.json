@@ -1,0 +1,57 @@
+{
+    "id": "{DAFF958D-BD53-4CAD-AA94-D4A21F1AEAAD}",
+    "caption": "Color temperature with Transition",
+    "form": [
+        "$id = IPS_GetObjectIDByIdent('color_temp_kelvin', $_IPS['TARGET']);",
+        "return [",
+        "   [",
+        "       'type' => 'SelectValue',",
+        "       'name' => 'ColorTemperature',",
+        "       'caption' => 'Color Temperature',",
+        "       'variableID' => $id",
+        "   ],",
+        "   [",
+        "       'type' => 'NumberSpinner',",
+        "       'name' => 'TransitionTime',",
+        "       'caption' => 'Transition Time',",
+        "       'minimum' => 0,",
+        "       'suffix' => 'seconds'",
+        "   ]",
+        "];"
+    ],
+    "priority": 1,
+    "category": "target",
+    "action": [
+        "$kelvin = max(1, (int) $_IPS['ColorTemperature']);",
+        "Z2M_SendSetCommand($_IPS['TARGET'], ['color_temp' => (int) round(1000000 / $kelvin), 'transition' => (float) $_IPS['TransitionTime']]);"
+    ],
+    "restrictions": {
+        "objectType": [
+            1
+        ],
+        "moduleID": [
+            "{E5BB36C6-A70B-EB23-3716-9151A09AC8A2}",
+            "{11BF3773-E940-469B-9DD7-FB9ACD7199A2}"
+        ],
+        "includeEnvironments": [
+            "Default",
+            "TestCommands"
+        ],
+        "hasIdent": [
+            "color_temp",
+            "color_temp_kelvin"
+        ]
+    },
+    "locale": {
+        "de": {
+            "Color temperature with Transition": "Farbtemperatur mit Übergang",
+            "Color Temperature": "Farbtemperatur",
+            "Transition Time": "Übergangszeit",
+            "seconds": "Sekunden",
+            "Set color temperature of {TARGET, object} to {ColorTemperature, number} K with {TransitionTime, number} seconds transition": "Setze Farbtemperatur von {TARGET, object} auf {ColorTemperature, number} K mit {TransitionTime, number} Sekunden Übergang",
+            "Set color temperature in Kelvin with a defined transition time.": "Setzt die Farbtemperatur in Kelvin mit einer definierten Übergangszeit."
+        }
+    },
+    "format": "Set color temperature of {TARGET, object} to {ColorTemperature, number} K with {TransitionTime, number} seconds transition",
+    "description": "Set color temperature in Kelvin with a defined transition time."
+}

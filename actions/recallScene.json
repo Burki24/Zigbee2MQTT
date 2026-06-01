@@ -1,0 +1,41 @@
+{
+    "id": "{A0AC3A5B-6DD6-4700-85BE-523F5CE9DE64}",
+    "caption": "Recall scene",
+    "form": [
+        {
+            "type": "NumberSpinner",
+            "name": "SceneID",
+            "minimum": 0,
+            "maximum": 255,
+            "caption": "Scene ID"
+        }
+    ],
+    "priority": 1,
+    "category": "target",
+    "action": [
+        "Z2M_SendSetCommand($_IPS['TARGET'], ['scene_recall' => (int) $_IPS['SceneID']]);"
+    ],
+    "restrictions": {
+        "objectType": [
+            1
+        ],
+        "moduleID": [
+            "{E5BB36C6-A70B-EB23-3716-9151A09AC8A2}",
+            "{11BF3773-E940-469B-9DD7-FB9ACD7199A2}"
+        ],
+        "includeEnvironments": [
+            "Default",
+            "TestCommands"
+        ]
+    },
+    "locale": {
+        "de": {
+            "Recall scene": "Szene abrufen",
+            "Scene ID": "Szenen-ID",
+            "Recall scene {SceneID, number} on {TARGET, object}": "Rufe Szene {SceneID, number} auf {TARGET, object} ab",
+            "Recall a stored Zigbee scene by its ID.": "Ruft eine gespeicherte Zigbee-Szene anhand ihrer ID ab."
+        }
+    },
+    "format": "Recall scene {SceneID, number} on {TARGET, object}",
+    "description": "Recall a stored Zigbee scene by its ID."
+}

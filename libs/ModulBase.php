@@ -977,6 +977,11 @@ abstract class ModulBase extends \IPSModuleStrict
      */
     public function SetColorExt(int $color, int $TransitionTime): bool
     {
+        if (!$this->HasNativeColorExpose()) {
+            $this->SendDebug(__FUNCTION__, 'Skip color transition action without native color expose support', 0);
+            return false;
+        }
+
         return $this->setColor($color, $this->getColorMode(), 'color', $TransitionTime);
     }
 

@@ -12,6 +12,7 @@
         }
     ],
     "priority": 1,
+    "category": "target",
     "action": [
         "Z2M_SendSetCommand($_IPS['TARGET'], ['brightness_step_onoff' => (int)($_IPS['Step']*254/100)]);"
     ],

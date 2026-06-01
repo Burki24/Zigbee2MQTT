@@ -12,6 +12,7 @@
         }
     ],
     "priority": 1,
+    "category": "target",
     "action": [
         "if ($_IPS['Steps'] == 0){",
         "   $Value = 'stop';",

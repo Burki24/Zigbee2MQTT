@@ -14,17 +14,23 @@
         "       'type' => 'NumberSpinner',",
         "       'name' => 'TransitionTime',",
         "       'caption' => 'Transition Time',",
+        "       'minimum' => 0,",
         "       'suffix' => 'seconds'",
         "   ]",
         "];"
     ],
     "priority": 1,
+    "category": "target",
     "action": [
         "Z2M_SendSetCommand($_IPS['TARGET'], ['brightness' => (int)($_IPS['Brightness']*254/100), 'transition' => $_IPS['TransitionTime']]);"
     ],
     "restrictions": {
         "objectType": [
             1
+        ],
+        "moduleID": [
+            "{E5BB36C6-A70B-EB23-3716-9151A09AC8A2}",
+            "{11BF3773-E940-469B-9DD7-FB9ACD7199A2}"
         ],
         "includeEnvironments": [
             "Default",
@@ -39,7 +45,9 @@
             "Brightness with Transition": "Helligkeit mit Übergang",
             "Transition Time": "Übergangszeit",
             "seconds": "Sekunden",
-            "Brightness Variable": "Helligkeitsvariable"
+            "Brightness Variable": "Helligkeitsvariable",
+            "Set brightness with a defined transition time.": "Setzt die Helligkeit mit einer definierten Übergangszeit."
         }
-    }
+    },
+    "description": "Set brightness with a defined transition time."
 }

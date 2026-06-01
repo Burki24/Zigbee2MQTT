@@ -1,0 +1,44 @@
+{
+    "id": "{6AC4A025-664D-4540-8341-AA467CD54268}",
+    "caption": "Toggle state",
+    "form": [],
+    "priority": 1,
+    "category": "target",
+    "action": [
+        "$stateID = IPS_GetObjectIDByIdent('state', $_IPS['TARGET']);",
+        "if (($stateID === false) || (IPS_GetVariable($stateID)['VariableType'] !== VARIABLETYPE_BOOLEAN)) {",
+        "    throw new Exception('Toggle state requires a binary state variable.');",
+        "}",
+        "Z2M_SendSetCommand($_IPS['TARGET'], ['state' => 'TOGGLE']);"
+    ],
+    "restrictions": {
+        "objectType": [
+            1
+        ],
+        "moduleID": [
+            "{E5BB36C6-A70B-EB23-3716-9151A09AC8A2}",
+            "{11BF3773-E940-469B-9DD7-FB9ACD7199A2}"
+        ],
+        "includeEnvironments": [
+            "Default",
+            "TestCommands"
+        ],
+        "hasIdent": [
+            "state"
+        ],
+        "hasNoIdent": [
+            "position",
+            "position_left",
+            "position_right"
+        ]
+    },
+    "locale": {
+        "de": {
+            "Toggle state": "Status umschalten",
+            "Toggle {TARGET, object}": "Schalte {TARGET, object} um",
+            "Toggle the current on/off state.": "Schaltet den aktuellen Ein-/Aus-Zustand um."
+        }
+    },
+    "format": "Toggle {TARGET, object}",
+    "description": "Toggle the current on/off state."
+}

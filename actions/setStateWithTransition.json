@@ -1,0 +1,64 @@
+{
+    "id": "{C4677C25-D79B-4D54-92D5-8FB3F8836D91}",
+    "caption": "Switch light with Transition",
+    "form": [
+        {
+            "type": "Select",
+            "name": "State",
+            "caption": "State",
+            "options": [
+                {
+                    "caption": "On",
+                    "value": "ON"
+                },
+                {
+                    "caption": "Off",
+                    "value": "OFF"
+                }
+            ]
+        },
+        {
+            "type": "NumberSpinner",
+            "name": "TransitionTime",
+            "caption": "Transition Time",
+            "minimum": 0,
+            "suffix": "seconds"
+        }
+    ],
+    "priority": 1,
+    "category": "target",
+    "action": [
+        "Z2M_SendSetCommand($_IPS['TARGET'], ['state' => $_IPS['State'], 'transition' => (float) $_IPS['TransitionTime']]);"
+    ],
+    "restrictions": {
+        "objectType": [
+            1
+        ],
+        "moduleID": [
+            "{E5BB36C6-A70B-EB23-3716-9151A09AC8A2}",
+            "{11BF3773-E940-469B-9DD7-FB9ACD7199A2}"
+        ],
+        "includeEnvironments": [
+            "Default",
+            "TestCommands"
+        ],
+        "hasIdent": [
+            "state",
+            "brightness"
+        ]
+    },
+    "locale": {
+        "de": {
+            "Switch light with Transition": "Licht mit Übergang schalten",
+            "State": "Status",
+            "On": "Ein",
+            "Off": "Aus",
+            "Transition Time": "Übergangszeit",
+            "seconds": "Sekunden",
+            "{State, select, ON {Switch on} OFF {Switch off} other {Switch}} {TARGET, object} with {TransitionTime, number} seconds transition": "{State, select, ON {Schalte ein} OFF {Schalte aus} other {Schalte}} {TARGET, object} mit {TransitionTime, number} Sekunden Übergang",
+            "Switch a dimmable light on or off with a defined transition time.": "Schaltet ein dimmbares Licht mit einer definierten Übergangszeit ein oder aus."
+        }
+    },
+    "format": "{State, select, ON {Switch on} OFF {Switch off} other {Switch}} {TARGET, object} with {TransitionTime, number} seconds transition",
+    "description": "Switch a dimmable light on or off with a defined transition time."
+}

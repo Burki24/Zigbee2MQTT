@@ -12,6 +12,7 @@
         }
     ],
     "priority": 1,
+    "category": "target",
     "action": [
         "Z2M_SendSetCommand($_IPS['TARGET'], ['color_temp_step' => (int)($_IPS['Step']*204/100)]);"
     ],

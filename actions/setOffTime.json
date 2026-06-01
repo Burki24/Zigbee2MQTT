@@ -12,6 +12,7 @@
         }
     ],
     "priority": 1,
+    "category": "target",
     "action": [
         "Z2M_SendSetCommand($_IPS['TARGET'], ['state' => 'OFF', 'countdown' => $_IPS['OFFTIME']]);"
     ],
@@ -35,6 +36,7 @@
     "locale": {
         "de": {
             "Off with timed on": "Aus mit Zeiteinschaltung",
+            "Off Time": "Ausschaltzeit",
             "Switch off and switch on after a defined time.": "Ausschalten und nach definierter Zeit einschalten.",
             "seconds": "Sekunden",
             "Switch off and after {OFFTIME} seconds switch on": "Ausschalten und nach {OFFTIME} Sekunden wieder einschalten"
