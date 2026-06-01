@@ -5150,9 +5150,14 @@ abstract class ModulBase extends \IPSModuleStrict
      *
      * @return string Der vollständige Name des Variablenprofils.
      */
-    private static function getFullRangeProfileName($feature): string
+    private static function getFullRangeProfileName(array $feature): string
     {
-        $name = 'Z2M.' . str_replace('&', '_and_', $feature['name']);
+        $featureName = trim((string) ($feature['name'] ?? $feature['property'] ?? ''));
+        if ($featureName === '') {
+            $featureName = 'value';
+        }
+
+        $name = 'Z2M.' . str_replace('&', '_and_', $featureName);
         $valueMin = $feature['value_min'] ?? null;
         $valueMax = $feature['value_max'] ?? null;
 

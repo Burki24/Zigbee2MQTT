@@ -346,6 +346,32 @@ class DevicesTest extends DumpInclude
         $this->assertNotFalse(@IPS_GetObjectIDByIdent('power', $iid), 'Re-enabled variable should be created again.');
     }
 
+    public function testVariableSelectionCreatesNumericVariableWithoutExposeName(): void
+    {
+        [$iid] = $this->createTestInstance('RTCGQ01LM.json');
+        $catalog = $this->readStubAttributeArray($iid, 'VariableCatalog');
+        $catalog['dewpoint'] = [
+            'ident'     => 'dewpoint',
+            'property'  => 'dewpoint',
+            'label'     => 'Dewpoint',
+            'source'    => 'payload',
+            'type'      => 'numeric',
+            'created'   => false,
+            'lastValue' => 10.5,
+            'feature'   => [
+                'property' => 'dewpoint',
+                'type'     => 'numeric'
+            ]
+        ];
+        $this->writeStubAttributeArray($iid, 'VariableCatalog', $catalog);
+
+        IPS_RequestAction($iid, 'ToggleVariableCreation', 'dewpoint');
+
+        $dewpointID = @IPS_GetObjectIDByIdent('dewpoint', $iid);
+        $this->assertNotFalse($dewpointID);
+        $this->assertSame('Z2M.dewpoint', IPS_GetVariable($dewpointID)['VariableProfile']);
+    }
+
     public function testVariableSelectionRefreshRemovesHistoricalEntriesWithoutDeletingVariables(): void
     {
         [$iid, $Debug] = $this->createTestInstance('BMCT-SLZ.json');
