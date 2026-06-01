@@ -289,7 +289,7 @@ Typische Fälle in der Praxis:
 | Eine nicht benötigte Variable wird im Objektbaum gelöscht | Die Variable wird als `Gelöscht` erkannt. Sie wird erst wieder angelegt, wenn im Bereich **Variablen** die Aktion `Anlegen` ausgeführt wird. |
 | Eine Variable wird über `Deaktivieren` gesperrt | Das Modul legt diese Variable nicht automatisch neu an. Existiert sie noch im Objektbaum, bleibt sie erhalten. |
 | Ein Wert erscheint später erstmals im Payload | Die Variable wird im Katalog als bekannt aufgenommen. Wenn sie erlaubt ist, kann sie automatisch angelegt oder über `Anlegen` nachträglich erstellt werden. |
-| Update- und Systemwerte wie `update__*` oder `last_seen` fehlen in den Exposes | Das ist normal. Diese Werte kommen oft erst später über Payloads oder Systemmeldungen und werden trotzdem als gültige Variablen behandelt. |
+| Update- und Systemwerte wie `update__*` oder `last_seen` fehlen in den Exposes | Das ist normal. Diese Werte kommen oft erst später über Payloads oder Systemmeldungen. Beim manuellen Aktualisieren der Variablenliste bleiben sie nur erhalten, wenn sie im zuletzt empfangenen Geräte-Payload tatsächlich enthalten sind. Historische OTA-Werte werden dadurch nicht dauerhaft für Geräte geführt, die aktuell keine OTA-Daten liefern. |
 
 Composite-Exposes werden dabei auf die tatsächlich anlegbaren Untervariablen reduziert. Ein nicht selbst nutzbarer Composite-Elternknoten wird nicht als eigene Variable angeboten, während Unterwerte wie `options__motor_speed` sauber im Variablenkatalog erscheinen.
 

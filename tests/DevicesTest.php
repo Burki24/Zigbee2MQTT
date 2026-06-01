@@ -348,7 +348,9 @@ class DevicesTest extends DumpInclude
 
     public function testVariableSelectionRefreshRemovesHistoricalEntriesWithoutDeletingVariables(): void
     {
-        [$iid] = $this->createTestInstance('BMCT-SLZ.json');
+        [$iid, $Debug] = $this->createTestInstance('BMCT-SLZ.json');
+        $interface = IPS\InstanceManager::getInstanceInterface($iid);
+        $topic = $Debug['Config']['MQTTBaseTopic'] . '/' . $Debug['Config']['MQTTTopic'];
         $catalog = $this->readStubAttributeArray($iid, 'VariableCatalog');
         $catalog['stale_payload'] = [
             'ident'    => 'stale_payload',
@@ -374,11 +376,20 @@ class DevicesTest extends DumpInclude
             'type'     => 'numeric',
             'created'  => false
         ];
+        $catalog['update__historic'] = [
+            'ident'    => 'update__historic',
+            'property' => 'update__historic',
+            'label'    => 'Historic Update Value',
+            'source'   => 'payload',
+            'type'     => 'numeric',
+            'created'  => false
+        ];
         $this->writeStubAttributeArray($iid, 'VariableCatalog', $catalog);
         $this->writeStubAttributeArray($iid, 'DisabledVariables', ['stale_existing']);
         $staleVariableID = IPS_CreateVariable(VARIABLETYPE_FLOAT);
         IPS_SetParent($staleVariableID, $iid);
         IPS_SetIdent($staleVariableID, 'stale_existing');
+        $interface->ReceiveData(self::buildMqttRequest($topic, ['update' => ['progress' => 12.5]]));
 
         IPS_RequestAction($iid, 'RefreshVariableSelection', true);
 
@@ -388,6 +399,7 @@ class DevicesTest extends DumpInclude
         $this->assertNotFalse(@IPS_GetObjectIDByIdent('stale_existing', $iid));
         $this->assertSame([], $this->readStubAttributeArray($iid, 'DisabledVariables'));
         $this->assertArrayHasKey('update__progress', $catalog);
+        $this->assertArrayNotHasKey('update__historic', $catalog);
         $this->assertArrayHasKey('power', $catalog);
     }
 

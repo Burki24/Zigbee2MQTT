@@ -78,15 +78,15 @@ trait VariableCatalogHelper
     }
 
     /**
-     * Bereinigt den lokalen Katalog fuer die manuell ausgelöste Formularaktualisierung.
+     * Baut den lokalen Katalog fuer die manuell ausgeloeste Formularaktualisierung neu auf.
      *
-     * Vorhandene Symcon-Variablen werden nicht geloescht. Historische Katalogeintraege
-     * werden aber entfernt, wenn sie weder in den aktuellen Exposes noch im zuletzt
-     * empfangenen Geraete-Payload vorkommen und keine gueltigen Sonderwerte sind.
+     * Vorhandene Symcon-Variablen werden nicht geloescht. Der neue Katalog enthaelt
+     * nur aktuelle Exposes, das zuletzt empfangene Geraete-Payload sowie daraus
+     * abgeleitete und systemseitige Variablen.
      */
     protected function RefreshVariableSelectionFromForm(): void
     {
-        $this->RemoveStaleVariableCatalogEntries();
+        $this->RebuildVariableCatalogFromCurrentData();
         $values = $this->BuildVariableSelectionFormValues();
         $this->UpdateFormField('VariableSelectionSettings', 'visible', \count($values) > 0);
         $this->UpdateFormField('VariableSelectionList', 'values', json_encode($values));
@@ -434,28 +434,79 @@ trait VariableCatalogHelper
     }
 
     /**
-     * Entfernt veraltete reine Katalogeinträge nach einer bewussten Benutzeraktion.
+     * Ersetzt den bisherigen Katalog durch den fachlich aktuellen Geraeteumfang.
+     *
+     * Historische Kindvariablen bleiben im Symcon-Objektbaum erhalten. Sie werden
+     * lediglich nicht erneut in die Device-Auswahlliste aufgenommen und koennen
+     * ueber die Bridge-Variablen-Wartung gezielt geprueft werden.
      */
-    private function RemoveStaleVariableCatalogEntries(): void
+    private function RebuildVariableCatalogFromCurrentData(): void
     {
-        $validIdents = array_fill_keys($this->CollectCurrentVariableCatalogIdents(), true);
-        $catalog = $this->ReadAttributeArray(self::ATTRIBUTE_VARIABLE_CATALOG);
-        $changed = false;
+        $previousCatalog = $this->ReadAttributeArray(self::ATTRIBUTE_VARIABLE_CATALOG);
+        $this->WriteAttributeArray(self::ATTRIBUTE_VARIABLE_CATALOG, []);
 
-        foreach ($catalog as $ident => $entry) {
+        $validIdents = [];
+        foreach ($this->ReadAttributeArray(self::ATTRIBUTE_EXPOSES) as $expose) {
+            if (\is_array($expose)) {
+                $validIdents = array_merge($validIdents, $this->RememberExposeFeatureRecursive($expose));
+            }
+        }
+
+        $payload = $this->latestPayload;
+        if (\is_array($payload)) {
+            foreach ($this->flattenPayload($payload) as $ident => $value) {
+                if ($value === null) {
+                    continue;
+                }
+
+                $ident = $this->NormalizeVariableIdent((string) $ident);
+                $this->RememberVariableDefinition($ident, ['property' => $ident, 'type' => $this->GetPayloadValueTypeName($value)], 'payload', $value);
+                $validIdents[] = $ident;
+            }
+        }
+
+        $this->RememberVariableDefinition('device_status', ['property' => 'device_status', 'type' => 'binary', 'label' => 'Availability'], 'system');
+        $validIdents[] = 'device_status';
+        foreach ($this->ReadAttributeArray(self::ATTRIBUTE_FILTERED) as $ident) {
+            $validIdents[] = $this->NormalizeVariableIdent((string) $ident);
+        }
+
+        $validIdents = array_fill_keys(array_unique(array_filter($validIdents)), true);
+        $catalog = $this->ReadAttributeArray(self::ATTRIBUTE_VARIABLE_CATALOG);
+        foreach ($previousCatalog as $ident => $entry) {
             $ident = (string) $ident;
-            if (isset($validIdents[$ident]) || $this->IsVariableCatalogEntryCurrentlyValid($ident, $entry, $validIdents)) {
+            if (!\is_array($entry)
+                || (!isset($validIdents[$ident]) && !$this->IsVariableCatalogEntryCurrentlyValid($ident, $entry, $validIdents))
+            ) {
                 continue;
             }
 
-            unset($catalog[$ident]);
-            $this->RemoveVariableFromAttributeList(self::ATTRIBUTE_DISABLED_VARIABLES, $ident);
-            $this->RemoveVariableFromAttributeList(self::ATTRIBUTE_DELETED_VARIABLES, $ident);
-            $changed = true;
+            $currentEntry = $catalog[$ident] ?? [];
+            $catalog[$ident] = array_replace($entry, $currentEntry);
+            $catalog[$ident]['created'] = (bool) ($entry['created'] ?? false) || (bool) ($currentEntry['created'] ?? false);
         }
 
-        if ($changed) {
-            $this->WriteAttributeArray(self::ATTRIBUTE_VARIABLE_CATALOG, $catalog);
+        $this->WriteAttributeArray(self::ATTRIBUTE_VARIABLE_CATALOG, $catalog);
+        $knownIdents = array_fill_keys(array_keys($catalog), true);
+        $this->RestrictVariableAttributeList(self::ATTRIBUTE_DISABLED_VARIABLES, $knownIdents);
+        $this->RestrictVariableAttributeList(self::ATTRIBUTE_DELETED_VARIABLES, $knownIdents);
+        $this->RefreshDeletedVariableCatalogState();
+    }
+
+    /**
+     * Entfernt Entscheidungen fuer Variablen, die nicht mehr im aktuellen Katalog stehen.
+     *
+     * @param array<string,bool> $knownIdents
+     */
+    private function RestrictVariableAttributeList(string $attribute, array $knownIdents): void
+    {
+        $currentValues = $this->ReadAttributeArray($attribute);
+        $values = array_values(array_filter(
+            $currentValues,
+            static fn (mixed $ident): bool => isset($knownIdents[(string) $ident])
+        ));
+        if ($values !== $currentValues) {
+            $this->WriteAttributeArray($attribute, $values);
         }
     }
 
@@ -488,18 +539,10 @@ trait VariableCatalogHelper
     }
 
     /**
-     * Erhaelt gueltige Sonder-, Preset- und abgeleitete Variablen im Katalog.
+     * Erhaelt gueltige Preset- und abgeleitete Variablen im Katalog.
      */
     private function IsVariableCatalogEntryCurrentlyValid(string $ident, mixed $entry, array $validIdents): bool
     {
-        if ($ident === 'device_status'
-            || $ident === 'last_seen'
-            || $ident === 'update'
-            || str_starts_with($ident, 'update__')
-        ) {
-            return true;
-        }
-
         if (str_ends_with($ident, '_presets')) {
             return isset($validIdents[substr($ident, 0, -8)]);
         }
