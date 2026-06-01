@@ -390,7 +390,7 @@ trait VariableCatalogHelper
             return;
         }
 
-        $varType = $this->getPayloadVariableTypeDefinition($value);
+        $varType = $this->getPayloadVariableTypeDefinition($value, $ident);
         $registerFunc = $varType['registerFunc'];
         $this->$registerFunc(
             $ident,

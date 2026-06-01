@@ -276,6 +276,7 @@ abstract class ModulBase extends \IPSModuleStrict
         ['group_type' => 'cover', 'feature' => 'position_left', 'profile' => '~Shutter.Reversed', 'variableType' => VARIABLETYPE_INTEGER],
         ['group_type' => 'cover', 'feature' => 'position_right', 'profile' => '~Shutter.Reversed', 'variableType' => VARIABLETYPE_INTEGER],
         ['group_type' => '', 'feature' => 'temperature', 'profile' => '~Temperature', 'variableType' => VARIABLETYPE_FLOAT],
+        ['group_type' => '', 'feature' => 'dewpoint', 'profile' => '~Temperature', 'variableType' => VARIABLETYPE_FLOAT],
         ['group_type' => '', 'feature' => 'humidity', 'profile' => '~Humidity.F', 'variableType' => VARIABLETYPE_FLOAT],
         ['group_type' => '', 'feature' => 'soil_moisture', 'profile' => '~Humidity.F', 'variableType' => VARIABLETYPE_FLOAT],
         ['group_type' => '', 'feature' => 'local_temperature', 'profile' => '~Temperature', 'variableType' => VARIABLETYPE_FLOAT],
@@ -2121,7 +2122,7 @@ abstract class ModulBase extends \IPSModuleStrict
             return false;
         }
 
-        $varType = $this->getPayloadVariableTypeDefinition($value);
+        $varType = $this->getPayloadVariableTypeDefinition($value, $key);
         if (!$this->GetObjectIDByIdent($key)) {
             if (!$this->CanCreateVariable($key, ['property' => $key, 'type' => $this->GetPayloadValueTypeName($value)], 'payload', $value)) {
                 return true;
@@ -2142,9 +2143,31 @@ abstract class ModulBase extends \IPSModuleStrict
 
     /**
      * Ermittelt Registrierungsdaten fuer dynamisch angelegte Payload-Variablen.
+     *
+     * Globale Standardprofile werden auch dann beruecksichtigt, wenn Zigbee2MQTT
+     * einen Wert nur im Payload liefert und keine vollstaendigen Expose-Metadaten
+     * vorliegen.
      */
-    private function getPayloadVariableTypeDefinition(mixed $value): array
+    private function getPayloadVariableTypeDefinition(mixed $value, string $ident = ''): array
     {
+        if ($ident !== '') {
+            $payloadType = $this->GetPayloadValueTypeName($value);
+            $profile = $this->getStandardProfile($payloadType, $ident);
+            if ($profile !== '') {
+                $registerFunc = match ($this->getVariableTypeFromProfile($payloadType, $ident)) {
+                    'bool'  => 'RegisterVariableBoolean',
+                    'int'   => 'RegisterVariableInteger',
+                    'float' => 'RegisterVariableFloat',
+                    default => 'RegisterVariableString'
+                };
+
+                return [
+                    'profile'      => $profile,
+                    'registerFunc' => $registerFunc
+                ];
+            }
+        }
+
         return match (true) {
             \is_bool($value) => [
                 'profile'      => '~Switch',

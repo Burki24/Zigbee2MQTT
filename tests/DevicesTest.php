@@ -369,7 +369,31 @@ class DevicesTest extends DumpInclude
 
         $dewpointID = @IPS_GetObjectIDByIdent('dewpoint', $iid);
         $this->assertNotFalse($dewpointID);
-        $this->assertSame('Z2M.dewpoint', IPS_GetVariable($dewpointID)['VariableProfile']);
+        $this->assertSame(VARIABLETYPE_FLOAT, IPS_GetVariable($dewpointID)['VariableType']);
+        $this->assertSame('~Temperature', IPS_GetVariable($dewpointID)['VariableProfile']);
+    }
+
+    public function testVariableSelectionCreatesPayloadOnlyDewpointWithTemperatureProfile(): void
+    {
+        [$iid] = $this->createTestInstance('RTCGQ01LM.json');
+        $catalog = $this->readStubAttributeArray($iid, 'VariableCatalog');
+        $catalog['dewpoint'] = [
+            'ident'     => 'dewpoint',
+            'property'  => 'dewpoint',
+            'label'     => 'Dewpoint',
+            'source'    => 'payload',
+            'type'      => 'numeric',
+            'created'   => false,
+            'lastValue' => 10.5
+        ];
+        $this->writeStubAttributeArray($iid, 'VariableCatalog', $catalog);
+
+        IPS_RequestAction($iid, 'ToggleVariableCreation', 'dewpoint');
+
+        $dewpointID = @IPS_GetObjectIDByIdent('dewpoint', $iid);
+        $this->assertNotFalse($dewpointID);
+        $this->assertSame(VARIABLETYPE_FLOAT, IPS_GetVariable($dewpointID)['VariableType']);
+        $this->assertSame('~Temperature', IPS_GetVariable($dewpointID)['VariableProfile']);
     }
 
     public function testVariableSelectionCreatesBinaryAndEnumVariablesWithIncompleteFeatureIdentity(): void
