@@ -15,8 +15,8 @@ trait TranslationHelper
     public function Translate(string $Text): string
     {
         $translation = array_replace_recursive(
-            json_decode(file_get_contents($this->getTranslationFilePath('locale.json')), true),
-            json_decode(file_get_contents($this->getTranslationFilePath('locale_z2m.json')), true)
+            $this->readTranslationFile('locale.json'),
+            $this->readTranslationFile('locale_z2m.json')
         );
 
         $language = IPS_GetSystemLanguage();
@@ -60,7 +60,7 @@ trait TranslationHelper
      */
     private function isValueInLocaleJson(string $Text, string $Type): bool
     {
-        $translation = json_decode(file_get_contents($this->getTranslationFilePath('locale_z2m.json')), true);
+        $translation = $this->readTranslationFile('locale_z2m.json');
         $language = IPS_GetSystemLanguage();
         $code = explode('_', $language)[0];
         if (isset($translation['translations'])) {
@@ -98,5 +98,19 @@ trait TranslationHelper
     private function getTranslationFilePath(string $filename): string
     {
         return dirname(__DIR__) . '/' . $filename;
+    }
+
+    /**
+     * Liest eine globale Uebersetzungsdatei mit einem sicheren Fallback waehrend Modul-Updates.
+     */
+    private function readTranslationFile(string $filename): array
+    {
+        $content = @file_get_contents($this->getTranslationFilePath($filename));
+        if (!\is_string($content)) {
+            return [];
+        }
+
+        $translation = json_decode($content, true);
+        return \is_array($translation) ? $translation : [];
     }
 }

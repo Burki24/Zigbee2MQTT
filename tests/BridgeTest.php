@@ -284,6 +284,15 @@ class BridgeTest extends TestCase
         $this->assertSame('12,5 %', $values[0]['progress']);
     }
 
+    public function testOTAStateTranslationAlwaysReturnsString(): void
+    {
+        $bridge = $this->createBridgeTestDouble(true);
+        $method = new ReflectionMethod(Zigbee2MQTTBridge::class, 'TranslateOTAState');
+
+        $this->assertSame('Idle', $method->invoke($bridge, 'idle'));
+        $this->assertSame('Unknown', $method->invoke($bridge, 'unexpected'));
+    }
+
     public function testSetDeviceOptionsUsesDeviceOptionsBridgeRequest(): void
     {
         $bridge = $this->createBridgeTestDouble([

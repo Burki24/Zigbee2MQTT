@@ -377,6 +377,7 @@ Die Änderungen sind anhand der funktionalen Commits chronologisch gegliedert. A
 - Die Kelvin-Aktion verwendet die pro Geräteinstanz ermittelte beziehungsweise überschriebene Farbtemperaturdarstellung und rechnet den gewählten Kelvin-Wert für Zigbee2MQTT in Mired um.
 - Bestehende Übergangsaktionen werden nur noch für Zigbee2MQTT-Geräte und -Gruppen angeboten. Die Aktionen sind in Symcon als zielspezifisch kategorisiert und erhielten ergänzte Beschreibungen sowie Übersetzungen.
 - Farbübergänge werden für reine Tunable-White-Leuchtmittel nicht als native RGB-Befehle versendet. Deren abgeleitete Farbvariable bleibt eine reine Visualisierungsdarstellung.
+- Übersetzungen verwenden während eines laufenden Modul-Updates einen sicheren Originaltext-Fallback. Kurzzeitig noch nicht verfügbare Sprachdateien oder Instanzschnittstellen unterbrechen dadurch keine OTA-Formularaktualisierung mehr.
 
 **Version 5.42:**  
 

@@ -2454,7 +2454,7 @@ class Zigbee2MQTTBridge extends IPSModuleStrict
         foreach ($rows as $row) {
             $values[] = array_merge($row, [
                 'state_caption' => $this->TranslateOTAState((string) ($row['state'] ?? 'unknown')),
-                'action'        => $this->Translate('Check update')
+                'action'        => $this->TranslateOTAFormText('Check update')
             ]);
         }
 
@@ -2470,8 +2470,8 @@ class Zigbee2MQTTBridge extends IPSModuleStrict
         foreach ($rows as $row) {
             $values[] = array_merge($row, [
                 'state_caption'   => $this->TranslateOTAState((string) ($row['state'] ?? 'unknown')),
-                'update_action'   => $this->Translate('Start update'),
-                'schedule_action' => $this->Translate('Schedule')
+                'update_action'   => $this->TranslateOTAFormText('Start update'),
+                'schedule_action' => $this->TranslateOTAFormText('Schedule')
             ]);
         }
 
@@ -2487,7 +2487,7 @@ class Zigbee2MQTTBridge extends IPSModuleStrict
         foreach ($rows as $row) {
             $values[] = array_merge($row, [
                 'state_caption' => $this->TranslateOTAState((string) ($row['state'] ?? 'unknown')),
-                'action'        => ($row['state'] ?? '') === 'scheduled' ? $this->Translate('Unschedule') : ''
+                'action'        => ($row['state'] ?? '') === 'scheduled' ? $this->TranslateOTAFormText('Unschedule') : ''
             ]);
         }
 
@@ -2500,7 +2500,7 @@ class Zigbee2MQTTBridge extends IPSModuleStrict
     private function BuildOTAStatusCaption(array $rows): string
     {
         return sprintf(
-            $this->Translate('Known OTA devices: %d, available updates: %d, active or scheduled: %d'),
+            $this->TranslateOTAFormText('Known OTA devices: %d, available updates: %d, active or scheduled: %d'),
             \count($rows),
             \count($this->FilterOTADeviceRowsByState($rows, ['available'])),
             \count($this->FilterOTADeviceRowsByState($rows, ['requested', 'scheduled', 'updating']))
@@ -2512,7 +2512,7 @@ class Zigbee2MQTTBridge extends IPSModuleStrict
      */
     private function TranslateOTAState(string $state): string
     {
-        return $this->Translate(match ($state) {
+        return $this->TranslateOTAFormText(match ($state) {
             'available' => 'Available',
             'requested' => 'Requested',
             'scheduled' => 'Scheduled',
@@ -2520,6 +2520,19 @@ class Zigbee2MQTTBridge extends IPSModuleStrict
             'idle'      => 'Idle',
             default     => 'Unknown'
         });
+    }
+
+    /**
+     * Uebersetzt OTA-Formulartexte mit Originaltext als Fallback waehrend Modul-Updates.
+     */
+    private function TranslateOTAFormText(string $text): string
+    {
+        try {
+            $translation = @$this->Translate($text);
+            return \is_string($translation) ? $translation : $text;
+        } catch (\Throwable) {
+            return $text;
+        }
     }
 
     /**
@@ -2866,7 +2879,7 @@ class Zigbee2MQTTBridge extends IPSModuleStrict
             $values[] = [
                 'time'        => date('d.m.Y H:i:s', (int) ($result['time'] ?? 0)),
                 'device_name' => (string) ($result['device_name'] ?? ''),
-                'status'      => $this->Translate(($result['status'] ?? '') === 'successful' ? 'Successful' : 'Failed'),
+                'status'      => $this->TranslateOTAFormText(($result['status'] ?? '') === 'successful' ? 'Successful' : 'Failed'),
                 'message'     => (string) ($result['message'] ?? '')
             ];
         }
