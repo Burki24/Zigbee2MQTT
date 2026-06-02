@@ -82,6 +82,57 @@ class GroupTest extends DumpInclude
         $this->assertSame('11', $group->updatedFields['GroupMemberEndpoint']['value']);
     }
 
+    public function testRefreshingGroupInfoUpdatesExternalMembersOptionsAndScenes(): void
+    {
+        $group = $this->createGroupFormTestDouble([
+            [
+                'friendly_name' => 'WC/Beleuchtung/Licht1',
+                'model'         => 'Leuchtmittel',
+                'type'          => 'Router',
+                'endpoints'     => [
+                    '11' => ['id' => '11']
+                ]
+            ]
+        ]);
+        $group->setGroupInfoForRefreshTest([
+            'members' => [
+                [
+                    'friendly_name' => 'WC/Beleuchtung/Licht1',
+                    'endpoint'      => '11'
+                ],
+                [
+                    'friendly_name' => 'WC/Beleuchtung/Licht2',
+                    'endpoint'      => '11'
+                ]
+            ],
+            'options' => [
+                'retain' => true
+            ],
+            'scenes' => [
+                [
+                    'id'   => 1,
+                    'name' => 'Abend'
+                ]
+            ]
+        ]);
+
+        $group->RequestAction('RefreshGroupInfo', true);
+
+        $members = json_decode($group->updatedFields['GroupMemberList']['values'], true);
+        $this->assertSame(['WC/Beleuchtung/Licht1', 'WC/Beleuchtung/Licht2'], array_column($members, 'device'));
+        $this->assertSame(4, $group->updatedFields['GroupMemberList']['rowCount']);
+
+        $availableDevices = json_decode($group->updatedFields['GroupAvailableDeviceList']['values'], true);
+        $this->assertContains('WC/Beleuchtung/Licht2', array_column($availableDevices, 'topic'));
+
+        $options = json_decode($group->updatedFields['GroupOptionList']['values'], true);
+        $retainOption = array_values(array_filter($options, static fn (array $option): bool => $option['name'] === 'retain'))[0];
+        $this->assertSame('true', $retainOption['current']);
+
+        $scenes = json_decode($group->updatedFields['GroupSceneList']['values'], true);
+        $this->assertSame([['id' => '1', 'name' => 'Abend', 'action' => 'Bearbeiten']], $scenes);
+    }
+
     public function testOfflineGroupMemberRequestShowsPopupInsteadOfNotice(): void
     {
         $group = $this->createFailingGroupBridgeTestDouble(
@@ -298,6 +349,7 @@ class GroupTest extends DumpInclude
     {
         $group = new class(990001, $devices) extends Zigbee2MQTTGroup {
             public array $updatedFields = [];
+            private ?array $groupInfoForRefreshTest = null;
 
             public function __construct(int $InstanceID, private array $devices)
             {
@@ -311,6 +363,19 @@ class GroupTest extends DumpInclude
                 }
 
                 return false;
+            }
+
+            protected function UpdateDeviceInfo(): bool
+            {
+                if ($this->groupInfoForRefreshTest === null) {
+                    return false;
+                }
+
+                $this->WriteAttributeArray(self::ATTRIBUTE_GROUP_OPTIONS, $this->groupInfoForRefreshTest['options'] ?? []);
+                $this->WriteAttributeArray(self::ATTRIBUTE_GROUP_MEMBERS, $this->groupInfoForRefreshTest['members'] ?? []);
+                $this->WriteAttributeArray(self::ATTRIBUTE_GROUP_SCENES, $this->groupInfoForRefreshTest['scenes'] ?? []);
+
+                return true;
             }
 
             protected function ReadPropertyString(string $Name): string
@@ -346,6 +411,11 @@ class GroupTest extends DumpInclude
             public function setExposesForTest(array $exposes): void
             {
                 $this->WriteAttributeArray(self::ATTRIBUTE_EXPOSES, $exposes);
+            }
+
+            public function setGroupInfoForRefreshTest(array $groupInfo): void
+            {
+                $this->groupInfoForRefreshTest = $groupInfo;
             }
         };
         $group->Create();

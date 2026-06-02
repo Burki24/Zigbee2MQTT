@@ -347,7 +347,7 @@ Die Änderungen sind anhand der funktionalen Commits chronologisch gegliedert. A
 
 ### 23. bis 26. Mai 2026: Komfort, Sicherheit und Binding/Reporting
 
-- Gruppenmitglieder lassen sich über filterbare Gerätelisten und automatisch erkannte Endpoints auswählen. Nicht erreichbare Geräte erzeugen ein verständliches Popup.
+- Gruppenmitglieder lassen sich über filterbare Gerätelisten und automatisch erkannte Endpoints auswählen. Über **Gruppendaten aktualisieren** werden externe Änderungen an Mitgliedern, Gruppenoptionen und Szenen erneut aus Zigbee2MQTT übernommen. Nicht erreichbare Geräte erzeugen ein verständliches Popup.
 - Geräte- und Gruppenoptionen verwenden typisierte Editoren für Boolean-, Enum-, Numeric-, Text-, Array- und Objektwerte. Attributfilter wie `filtered_attributes`, `filtered_cache` oder `debounce_ignore` bieten bekannte Payload-Attribute zur Auswahl an.
 - Enum-basierte `state`-Variablen wie Rollladenbefehle senden ihre originalen Zigbee2MQTT-Werte wie `OPEN`, `CLOSE` und `STOP`. Binäre Schalter bleiben bei `ON` und `OFF`.
 - Die Bridge kann globale Zigbee2MQTT-Blocklist und -Passlist verwalten. Die Auswahl nutzt bekannte Zigbee2MQTT-Geräte sowie vorhandene Device-Instanzen. Passlist-Änderungen werden wegen ihrer restriktiven Wirkung mit einer Sicherheitsabfrage geschützt.

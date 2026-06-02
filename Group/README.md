@@ -81,6 +81,8 @@
 
 Die Gruppeninstanz zeigt zwei Listen: die aktuellen Mitglieder und die verfügbaren Geräte zum Hinzufügen. Die verfügbaren Geräte werden aus vorhandenen Symcon-Geräteinstanzen und, wenn möglich, direkt aus der Zigbee2MQTT-Erweiterung geladen. Dadurch können auch Geräte ausgewählt werden, für die noch keine eigene Symcon-Geräteinstanz angelegt wurde.
 
+Mit **Gruppendaten aktualisieren** werden Mitglieder, Gruppenoptionen und Szenen erneut direkt aus Zigbee2MQTT eingelesen. Das ist insbesondere sinnvoll, wenn Änderungen außerhalb von Symcon vorgenommen wurden.
+
 Wenn Zigbee2MQTT Endpoints für ein Gerät liefert, werden diese in der Geräteliste angezeigt und nach Auswahl des Geräts als Endpoint-Auswahl angeboten. Bei mehrkanaligen oder mehrfach endpointfähigen Geräten muss der passende Endpoint ausgewählt werden, damit Zigbee2MQTT das Gerät korrekt zur Gruppe hinzufügt.
 
 Beim Entfernen kann **Reporting beim Entfernen behalten** aktiviert bleiben. Dann wird `skip_disable_reporting` an Zigbee2MQTT übergeben, damit vorhandene Reporting-Konfigurationen nicht automatisch entfernt werden.

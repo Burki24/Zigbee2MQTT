@@ -153,6 +153,10 @@ class Zigbee2MQTTGroup extends \Zigbee2MQTT\ModulBase
             $this->UpdateFormField('GroupId', 'enabled', true);
             return;
         }
+        if ($ident == 'RefreshGroupInfo') {
+            $this->RefreshGroupInfoFromForm();
+            return;
+        }
         if ($ident == 'SelectGroupMember') {
             $this->SelectGroupMemberFromForm($value);
             return;
@@ -584,6 +588,34 @@ class Zigbee2MQTTGroup extends \Zigbee2MQTT\ModulBase
         }
 
         return $values;
+    }
+
+    /**
+     * Laedt extern geaenderte Gruppendaten neu und aktualisiert die geoeffnete Form.
+     */
+    private function RefreshGroupInfoFromForm(): bool
+    {
+        if (!$this->UpdateDeviceInfo()) {
+            return false;
+        }
+
+        $memberValues = $this->BuildGroupMemberFormValues();
+        $this->UpdateFormField('GroupMemberList', 'values', json_encode($memberValues));
+        $this->UpdateFormField('GroupMemberList', 'rowCount', min(10, max(4, \count($memberValues) + 1)));
+
+        $availableDeviceValues = $this->BuildGroupAvailableDeviceFormValues();
+        $this->UpdateFormField('GroupAvailableDeviceList', 'values', json_encode($availableDeviceValues));
+        $this->UpdateFormField('GroupAvailableDeviceList', 'rowCount', min(10, max(4, \count($availableDeviceValues) + 1)));
+
+        $optionValues = $this->BuildGroupOptionFormValues();
+        $this->UpdateFormField('GroupOptionList', 'values', json_encode($optionValues));
+        $this->UpdateFormField('GroupOptionList', 'rowCount', min(8, max(4, \count($optionValues) + 1)));
+
+        $sceneValues = $this->BuildGroupSceneFormValues();
+        $this->UpdateFormField('GroupSceneList', 'values', json_encode($sceneValues));
+        $this->UpdateFormField('GroupSceneList', 'rowCount', min(8, max(4, \count($sceneValues) + 1)));
+
+        return true;
     }
 
     /**

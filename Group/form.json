@@ -31,6 +31,12 @@
             "visible": false,
             "items": [
                 {
+                    "type": "Button",
+                    "name": "RefreshGroupInfoButton",
+                    "caption": "Refresh group data",
+                    "onClick": "IPS_RequestAction($id, 'RefreshGroupInfo', true);"
+                },
+                {
                     "type": "Label",
                     "caption": "Current group members"
                 },
