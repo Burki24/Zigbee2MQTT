@@ -369,6 +369,7 @@ class DevicesTest extends DumpInclude
 
         $dewpointID = @IPS_GetObjectIDByIdent('dewpoint', $iid);
         $this->assertNotFalse($dewpointID);
+        $this->assertSame('Taupunkt', IPS_GetName($dewpointID));
         $this->assertSame(VARIABLETYPE_FLOAT, IPS_GetVariable($dewpointID)['VariableType']);
         $this->assertSame('~Temperature', IPS_GetVariable($dewpointID)['VariableProfile']);
     }
@@ -392,6 +393,7 @@ class DevicesTest extends DumpInclude
 
         $dewpointID = @IPS_GetObjectIDByIdent('dewpoint', $iid);
         $this->assertNotFalse($dewpointID);
+        $this->assertSame('Taupunkt', IPS_GetName($dewpointID));
         $this->assertSame(VARIABLETYPE_FLOAT, IPS_GetVariable($dewpointID)['VariableType']);
         $this->assertSame('~Temperature', IPS_GetVariable($dewpointID)['VariableProfile']);
     }
