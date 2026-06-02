@@ -502,6 +502,11 @@
                     "values": []
                 },
                 {
+                    "type": "Button",
+                    "caption": "Refresh available OTA updates",
+                    "onClick": "IPS_RequestAction($id, 'RefreshOTAStatus', true);"
+                },
+                {
                     "type": "List",
                     "name": "OTAAvailableUpdates",
                     "caption": "Available OTA updates",
@@ -544,6 +549,11 @@
                     "values": []
                 },
                 {
+                    "type": "Button",
+                    "caption": "Refresh active and scheduled OTA updates",
+                    "onClick": "IPS_RequestAction($id, 'RefreshOTAStatus', true);"
+                },
+                {
                     "type": "List",
                     "name": "OTAActiveUpdates",
                     "caption": "Active and scheduled OTA updates",
@@ -582,6 +592,11 @@
                         }
                     ],
                     "values": []
+                },
+                {
+                    "type": "Button",
+                    "caption": "Refresh last OTA update results",
+                    "onClick": "IPS_RequestAction($id, 'RefreshOTAStatus', true);"
                 },
                 {
                     "type": "List",
