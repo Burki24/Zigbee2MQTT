@@ -2306,8 +2306,7 @@ class Zigbee2MQTTBridge extends IPSModuleStrict
 
             $ieeeAddress = strtolower((string) @IPS_GetProperty($instanceID, 'IEEE'));
             $networkDevice = $networkDevices[$deviceName] ?? $networkDevices[$ieeeAddress] ?? [];
-            $hasOTAVariables = $this->HasOTADeviceVariables($instanceID);
-            if (!(bool) ($networkDevice['supports_ota'] ?? false) && !$hasOTAVariables) {
+            if (!(bool) ($networkDevice['supports_ota'] ?? false)) {
                 continue;
             }
 
@@ -2362,20 +2361,6 @@ class Zigbee2MQTTBridge extends IPSModuleStrict
         }
 
         return $devices;
-    }
-
-    /**
-     * Prueft, ob eine Device-Instanz OTA-Statusvariablen besitzt.
-     */
-    private function HasOTADeviceVariables(int $instanceID): bool
-    {
-        foreach (['update__state', 'update__installed_version', 'update__latest_version'] as $ident) {
-            if (@IPS_GetObjectIDByIdent($ident, $instanceID) !== false) {
-                return true;
-            }
-        }
-
-        return false;
     }
 
     /**
@@ -2587,7 +2572,7 @@ class Zigbee2MQTTBridge extends IPSModuleStrict
                 $deviceName = trim((string) @IPS_GetProperty($instanceID, self::MQTT_TOPIC), '/');
                 $ieeeAddress = strtolower((string) @IPS_GetProperty($instanceID, 'IEEE'));
                 $networkDevice = $networkDevices[$deviceName] ?? $networkDevices[$ieeeAddress] ?? [];
-                if (!(bool) ($networkDevice['supports_ota'] ?? false) && $otaVariableIDs === []) {
+                if (!(bool) ($networkDevice['supports_ota'] ?? false)) {
                     continue;
                 }
 

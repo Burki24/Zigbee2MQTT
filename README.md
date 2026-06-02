@@ -384,6 +384,7 @@ Die Änderungen sind anhand der funktionalen Commits chronologisch gegliedert. A
 - Geräteinstanzen prüfen eingehende MQTT-Topics zusätzlich zum Symcon-Datenfilter selbst. Fremde Geräte-Payloads können dadurch auch bei unerwarteter Zustellung keine Variablen in der falschen Instanz anlegen.
 - Gruppeninstanzen erhielten **Gruppendaten aktualisieren**. Damit werden extern in Zigbee2MQTT geänderte Mitglieder, Gruppenoptionen und Szenen erneut eingelesen und direkt in der geöffneten Symcon-Konfiguration angezeigt.
 - Die Discovery behält bei internen MQTT-Servern alle gleichzeitig gefundenen Zigbee2MQTT-Basen bei. Veraltete Konstanten, Locale-Einträge und irreführende PHPDocs aus der früheren dateibasierten Expose-Verwaltung wurden bereinigt.
+- Die zentrale OTA-Verwaltung bietet nur noch Geräte an, die Zigbee2MQTT ausdrücklich mit `supports_ota` kennzeichnet. Historische `update__*`-Variablen allein führen nicht mehr zu falschen OTA-Angeboten.
 
 **Version 5.42:**  
 

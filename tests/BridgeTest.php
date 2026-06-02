@@ -205,6 +205,43 @@ class BridgeTest extends TestCase
         $this->assertSame('unknown', $values[0]['state']);
     }
 
+    public function testOTADeviceRowsIgnoreStaleVariablesForUnsupportedDevice(): void
+    {
+        $bridge = $this->createBridgeTestDouble(true);
+        $bridge->setBaseTopicForTest('zigbee2mqtt');
+        $bridge->ReceiveData(json_encode([
+            'Topic'   => 'zigbee2mqtt/bridge/devices',
+            'Payload' => bin2hex(json_encode([
+                [
+                    'friendly_name' => 'Office/Cover',
+                    'ieee_address'  => '0x000b57fffec6a5b3',
+                    'definition'    => [
+                        'model'        => 'TS130F',
+                        'supports_ota' => false
+                    ]
+                ]
+            ]))
+        ]));
+
+        $deviceID = IPS_CreateInstance(self::DEVICE_MODULE_ID);
+        IPS_SetConfiguration($deviceID, json_encode([
+            'MQTTBaseTopic' => 'zigbee2mqtt',
+            'MQTTTopic'     => 'Office/Cover',
+            'IEEE'          => '0x000b57fffec6a5b3'
+        ]));
+        IPS_ApplyChanges($deviceID);
+        $stateID = IPS_CreateVariable(VARIABLETYPE_STRING);
+        IPS_SetParent($stateID, $deviceID);
+        IPS_SetIdent($stateID, 'update__state');
+        SetValue($stateID, 'available');
+
+        $method = new ReflectionMethod(Zigbee2MQTTBridge::class, 'BuildOTADeviceRows');
+
+        $this->assertSame([], $method->invoke($bridge));
+        $bridge->RequestAction('RefreshOTAStatus', true);
+        $this->assertNotContains($stateID, $bridge->readDiagnosticAttribute('OTAMonitoredVariables'));
+    }
+
     public function testBridgeOTAUpdateActionRequiresConfirmationAndStartsAsyncRequest(): void
     {
         $bridge = $this->createBridgeTestDouble(true);
