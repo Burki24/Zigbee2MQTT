@@ -9,7 +9,7 @@ namespace Zigbee2MQTT;
  */
 trait Constants
 {
-    /** @var string Verzeichnisname für die Exposes JSON Dateien */
+    /** @var string Legacy-Verzeichnisname für die Migration alter Exposes-JSON-Dateien */
     protected const EXPOSES_DIRECTORY = 'Zigbee2MQTTExposes';
     /** @var string Basispfad für MQTT-Nachrichten */
     protected const MQTT_BASE_TOPIC = 'MQTTBaseTopic';
@@ -41,8 +41,6 @@ trait Constants
     protected const GUID_MODULE_CONFIGURATOR = '{D30BADA8-F261-4D9F-89A9-2E9961AF021F}';
     /** @var string GUID des Module Zigbee2MQTT Gerät */
     protected const GUID_MODULE_DEVICE = '{E5BB36C6-A70B-EB23-3716-9151A09AC8A2}';
-    /** @var string GUID des Module Zigbee2MQTT Discovery */
-    protected const GUID_MODULE_DISCOVERY = '{7D2AD94C-6CD2-4B32-8B23-3F21EFC30DAC}';
     /** @var string GUID des Module Zigbee2MQTT Gruppe */
     protected const GUID_MODULE_GROUP = '{11BF3773-E940-469B-9DD7-FB9ACD7199A2}';
     /** @var string summary of ATTRIBUTE_EXPOSES */

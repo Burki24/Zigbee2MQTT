@@ -67,7 +67,7 @@ class Zigbee2MQTTConfigurator extends IPSModuleStrict
      * @uses IPSModule::ReadPropertyString()
      * @uses IPSModule::SetReceiveDataFilter()
      * @uses IPSModule::SetStatus()
-     * @uses IPSModule::SetSendDebugtatus()
+     * @uses IPSModule::SendDebug()
      * @uses preg_quote()
      * @uses empty()
      */

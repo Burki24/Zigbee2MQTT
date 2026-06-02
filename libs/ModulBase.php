@@ -27,12 +27,12 @@ require_once __DIR__ . '/ColorHelper.php';
  * Basisklasse für Geräte (Devices module.php) und Gruppen (Groups module.php)
  *
  * Pseudo Variablen, welche über BufferHelper und die Magic-Functions __get und __set
- * direkt typsichere Werte, Arrays und Objekte in einem Instanz-Buffer schreiben und lesen können.
+ * direkt typsichere Werte, Arrays und Objekte in einem Instanz-Buffer schreiben und lesen.
  * @property bool $BUFFER_MQTT_SUSPENDED Zugriff auf den Buffer für laufende Migration
  * @property bool $BUFFER_PROCESSING_MIGRATION Zugriff auf den Buffer für MQTT Nachrichten nicht verarbeiten
- * @property array $lastPayload Zugriff auf den Buffer welcher die zusammengeführten Payload-Werte enthält (für Download-Button)
+ * @property array $lastPayload Zugriff auf den Buffer, welcher die zusammengeführten Payload-Werte enthält
  * @property array $latestPayload Zugriff auf den Buffer welcher das zuletzt empfangene Geräte-Payload enthält
- * @property array $missingTranslations Zugriff auf den Buffer welcher ein array von fehlenden Übersetzungen enthält (für Download-Button)
+ * @property array $missingTranslations Zugriff auf den Buffer, welcher ein Array von fehlenden Übersetzungen enthält
  */
 abstract class ModulBase extends \IPSModuleStrict
 {
@@ -400,17 +400,14 @@ abstract class ModulBase extends \IPSModuleStrict
      * - Verbindet mit der erstbesten MQTT-Server-Instanz
      * - Registriert Properties für MQTT-Basis-Topic und MQTT-Topic
      * - Initialisiert TransactionData Array
-     * - Erstellt Zigbee2MQTTExposes Verzeichnis wenn nicht vorhanden
-     * - Prüft und erstellt JSON-Datei für Geräteinfos
+     * - Registriert Properties, Attribute, Buffer und statische Profile
      *
      * @return void
-     *
-     * @throws \Exception Error on create Expose Directory
      *
      * @see \IPSModule::RegisterPropertyString()
      * @see \IPSModule::RegisterAttributeFloat()
      * @see \IPSModule::RegisterAttributeArray()
-     * @see \Zigbee2MQTT\ModulBase::RegisterProfileBoolean()
+     * @see \Zigbee2MQTT\ModulBase::RegisterProfileBooleanEx()
      */
     public function Create(): void
     {
@@ -450,8 +447,6 @@ abstract class ModulBase extends \IPSModuleStrict
         $this->lastPayload = [];
         $this->latestPayload = [];
         $this->missingTranslations = [];
-
-        // Legacy exposes directory creation is no longer used.
 
         // Statische Profile
         $this->RegisterProfileBooleanEx(
@@ -655,7 +650,7 @@ abstract class ModulBase extends \IPSModuleStrict
         if ($this->handleAvailability($topics, $payload)) {
             return '';
         }
-        // Leere Payloads brauchte nur handleAvailability
+        // Leere Payloads werden nur fuer handleAvailability benoetigt.
         if (\is_null($payload)) {
             return '';
         }
@@ -1867,11 +1862,10 @@ abstract class ModulBase extends \IPSModuleStrict
      * - Registriert/Aktualisiert Verfügbarkeits-Variable
      *
      * @param array $topics Array mit Topic-Bestandteilen
-     * @param array $payload Array mit MQTT-Nachrichtendaten
+     * @param array|null $payload Array mit MQTT-Nachrichtendaten oder null fuer eine leere Verfuegbarkeitsmeldung
      *
      * @return bool True wenn Verfügbarkeit verarbeitet wurde, sonst False
      *
-     * @see \Zigbee2MQTT\ModulBase::RegisterProfileBoolean()
      * @see \Zigbee2MQTT\ModulBase::RegisterVariableBoolean()
      * @see \IPSModule::Translate()
      * @see \IPSModule::SetValue()
@@ -3406,7 +3400,7 @@ abstract class ModulBase extends \IPSModuleStrict
      * convertLabelToName
      *
      * Konvertiert ein Label in einen formatierten Namen mit Großbuchstaben am Wortanfang
-     * und behält bestimmte Abkürzungen in Großbuchstaben. Speichert den konvertierten Namen in einer JSON-Datei.
+     * und behält bestimmte Abkürzungen in Großbuchstaben.
      *
      * @param string $label Das zu formatierende Label
      * @return string Das formatierte Label
@@ -4225,27 +4219,15 @@ abstract class ModulBase extends \IPSModuleStrict
     /**
      * getKnownVariables
      *
-     * Lädt und verarbeitet die bekannten Variablen aus den gespeicherten JSON-Expose-Dateien.
+     * Lädt und verarbeitet bekannte Variablen aus dem Exposes-Attribut.
      *
-     * Diese Methode durchsucht das Zigbee2MQTTExposes-Verzeichnis nach einer JSON-Datei, die der aktuellen Instanz-ID entspricht.
-     * Sie extrahiert alle Features aus den Exposes und erstellt daraus ein Array von bekannten Variablen.
+     * Die Methode extrahiert alle Features aus den gespeicherten Exposes und erstellt daraus ein Array von bekannten Variablen.
      *
      * Der Prozess beinhaltet:
-     * - Suche nach der JSON-Datei im Symcon-Kernel-Verzeichnis
-     * - Laden und Dekodieren der JSON-Daten
+     * - Laden der Exposes aus dem Instanzattribut
      * - Extraktion der Features aus den Exposes
      * - Filterung nach Features mit 'property'-Attribut
      * - Normalisierung der Feature-Namen (Kleinbuchstaben, getrimmt)
-     *
-     * Dateistruktur:
-     * {
-     *     "exposes": [
-     *         {
-     *             "features": [...],
-     *             "property": "example_property"
-     *         }
-     *     ]
-     * }
      *
      * @internal Diese Methode wird intern vom Modul verwendet
      *
@@ -4257,11 +4239,6 @@ abstract class ModulBase extends \IPSModuleStrict
      * @see \Zigbee2MQTT\ModulBase::registerVariable() Verwendet die zurückgegebenen Variablen zur Registrierung, über
      * @see \Zigbee2MQTT\ModulBase::processVariable()
      * @see \IPSModule::SendDebug()
-     * @see IPS_GetKernelDir()
-     * @see file_exists()
-     * @see file_get_contents()
-     * @see json_decode()
-     * @see json_encode()
      * @see array_map()
      * @see array_merge()
      * @see array_filter()

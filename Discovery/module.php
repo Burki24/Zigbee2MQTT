@@ -335,8 +335,7 @@ class Zigbee2MQTTDiscovery extends IPSModuleStrict
      * @uses Zigbee2MQTTDiscovery::getAllMqTTSplitterInstances()
      * @uses Zigbee2MQTTDiscovery::SearchBridges()
      * @uses IPSModule::SendDebug()
-     * @uses MQTT_GetRetainedMessageTopicList()
-     * @uses MQTT_GetRetainedMessage()
+     * @uses Zigbee2MQTTDiscovery::FindRetainedBridgeTopics()
      * @uses count()
      * @uses isset()
      * @uses array_filter()
@@ -363,17 +362,34 @@ class Zigbee2MQTTDiscovery extends IPSModuleStrict
                 }
             }
             if (IPS_GetInstance($SplitterId)['ModuleInfo']['ModuleID'] == self::GUID_MQTT_SERVER) {
-                foreach (array_filter(MQTT_GetRetainedMessageTopicList($SplitterId), [$this, 'FilterTopics']) as $Topic) {
-                    $Found = [];
-                    if (MQTT_GetRetainedMessage($SplitterId, $Topic)['Payload'] == '{"state":"online"}') {
-                        $Found[] = strstr($Topic, '/', true);
-                    }
-                    $Topics[$SplitterId] = array_unique($Found);
+                $FoundTopics = $this->FindRetainedBridgeTopics($SplitterId);
+                if (\count($FoundTopics)) {
+                    $Topics[$SplitterId] = $FoundTopics;
                 }
             }
         }
         $this->SendDebug('Found Zigbee2MQTT', json_encode($Topics), 0);
         return $Topics;
+    }
+
+    /**
+     * Liefert alle online gemeldeten Zigbee2MQTT-Basen eines internen MQTT-Servers.
+     *
+     * @uses MQTT_GetRetainedMessageTopicList()
+     * @uses MQTT_GetRetainedMessage()
+     */
+    private function FindRetainedBridgeTopics(int $splitterID): array
+    {
+        $foundTopics = [];
+        foreach (array_filter(MQTT_GetRetainedMessageTopicList($splitterID), [$this, 'FilterTopics']) as $topic) {
+            if (MQTT_GetRetainedMessage($splitterID, $topic)['Payload'] !== '{"state":"online"}') {
+                continue;
+            }
+
+            $foundTopics[] = strstr($topic, '/', true);
+        }
+
+        return array_values(array_unique($foundTopics));
     }
 
     /**

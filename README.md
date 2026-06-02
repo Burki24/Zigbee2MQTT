@@ -383,6 +383,7 @@ Die Änderungen sind anhand der funktionalen Commits chronologisch gegliedert. A
 - Der von Zigbee2MQTT berechnete Taupunkt `dewpoint` wird bei nachträglicher Anlage als übersetzte Float-Variable `Taupunkt` mit dem Symcon-Temperaturprofil `~Temperature` angelegt.
 - Geräteinstanzen prüfen eingehende MQTT-Topics zusätzlich zum Symcon-Datenfilter selbst. Fremde Geräte-Payloads können dadurch auch bei unerwarteter Zustellung keine Variablen in der falschen Instanz anlegen.
 - Gruppeninstanzen erhielten **Gruppendaten aktualisieren**. Damit werden extern in Zigbee2MQTT geänderte Mitglieder, Gruppenoptionen und Szenen erneut eingelesen und direkt in der geöffneten Symcon-Konfiguration angezeigt.
+- Die Discovery behält bei internen MQTT-Servern alle gleichzeitig gefundenen Zigbee2MQTT-Basen bei. Veraltete Konstanten, Locale-Einträge und irreführende PHPDocs aus der früheren dateibasierten Expose-Verwaltung wurden bereinigt.
 
 **Version 5.42:**  
 
