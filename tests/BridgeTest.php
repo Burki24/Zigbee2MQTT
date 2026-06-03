@@ -598,6 +598,22 @@ class BridgeTest extends TestCase
         $this->assertArrayHasKey('checked_at', $bridge->readDiagnosticAttribute('DiagnosticHealth'));
     }
 
+    public function testHealthCheckFormShowsReadableMessageWhenZigbee2MqttIsOffline(): void
+    {
+        $bridge = $this->createBridgeTestDouble(false);
+
+        $bridge->RequestAction('RunHealthCheck', true);
+
+        $this->assertSame('/bridge/request/health_check', $bridge->lastTopic);
+        $this->assertSame(10000, $bridge->lastTimeout);
+        $this->assertTrue($bridge->updatedFields['DiagnosticMessage']['visible']);
+        $this->assertSame('Zigbee2MQTT is not reachable', $bridge->updatedFields['DiagnosticMessageTitle']['caption']);
+        $this->assertSame(
+            'Zigbee2MQTT did not respond to the health check. Please check whether Zigbee2MQTT is running and connected to MQTT.',
+            $bridge->updatedFields['DiagnosticMessageText']['caption']
+        );
+    }
+
     public function testCoordinatorCheckStoresMissingRouters(): void
     {
         $bridge = $this->createBridgeTestDouble([
@@ -617,6 +633,22 @@ class BridgeTest extends TestCase
         $this->assertSame([], $bridge->lastPayload);
         $this->assertSame(10000, $bridge->lastTimeout);
         $this->assertSame('router', $bridge->readDiagnosticAttribute('DiagnosticCoordinator')['missing_routers'][0]['friendly_name']);
+    }
+
+    public function testCoordinatorCheckFormShowsReadableMessageWhenZigbee2MqttIsOffline(): void
+    {
+        $bridge = $this->createBridgeTestDouble(false);
+
+        $bridge->RequestAction('RunCoordinatorCheck', true);
+
+        $this->assertSame('/bridge/request/coordinator_check', $bridge->lastTopic);
+        $this->assertSame(10000, $bridge->lastTimeout);
+        $this->assertTrue($bridge->updatedFields['DiagnosticMessage']['visible']);
+        $this->assertSame('Zigbee2MQTT is not reachable', $bridge->updatedFields['DiagnosticMessageTitle']['caption']);
+        $this->assertSame(
+            'Zigbee2MQTT did not respond to the coordinator check. Please check whether Zigbee2MQTT is running and connected to MQTT.',
+            $bridge->updatedFields['DiagnosticMessageText']['caption']
+        );
     }
 
     public function testReceiveDataCollectsBridgeDiagnostics(): void

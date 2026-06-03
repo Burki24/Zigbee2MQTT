@@ -80,7 +80,7 @@ Zusätzlich zu den Grundeinstellungen enthält die Bridge folgende Funktionsbere
 
 ### 5.1 Diagnose
 
-Der Diagnosebereich bündelt zentrale Prüfungen für die Zigbee2MQTT-Installation. Er führt Health Check und Coordinator Check aus, fordert die Netzwerkkarte an und zeigt auffällige Zustände wie fehlende Router, nicht unterstützte Geräte, Interview-Probleme, Bridge-Events sowie Warnungen und Fehler an.
+Der Diagnosebereich bündelt zentrale Prüfungen für die Zigbee2MQTT-Installation. Er führt Health Check und Coordinator Check aus, fordert die Netzwerkkarte an und zeigt auffällige Zustände wie fehlende Router, nicht unterstützte Geräte, Interview-Probleme, Bridge-Events sowie Warnungen und Fehler an. Wenn Zigbee2MQTT nicht läuft oder nicht auf MQTT antwortet, zeigen Health Check und Coordinator Check in der Bridge-Konfiguration eine lesbare Meldung anstatt einer technischen Symcon-Notice.
 
 ### 5.2 Netzwerksicherheit
 

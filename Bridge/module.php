@@ -456,6 +456,12 @@ class Zigbee2MQTTBridge extends IPSModuleStrict
             case 'ClearBridgeDiagnostics':
                 $this->ClearBridgeDiagnostics();
                 break;
+            case 'RunHealthCheck':
+                $this->RunHealthCheckFromForm();
+                break;
+            case 'RunCoordinatorCheck':
+                $this->RunCoordinatorCheckFromForm();
+                break;
             case 'CreateBackupFile':
                 $this->CreateBackupFileFromForm();
                 break;
@@ -1605,6 +1611,44 @@ class Zigbee2MQTTBridge extends IPSModuleStrict
         }
 
         return parent::SetValue($Ident, $Value);
+    }
+
+    /**
+     * Fuehrt den Health-Check aus der Bridge-Konfiguration ohne technische Notice aus.
+     */
+    private function RunHealthCheckFromForm(): bool
+    {
+        $data = $this->SendQuietCheckedBridgeRequest('/bridge/request/health_check', [], 10000);
+        if ($data === false) {
+            $this->ShowDiagnosticMessage(
+                'Zigbee2MQTT is not reachable',
+                'Zigbee2MQTT did not respond to the health check. Please check whether Zigbee2MQTT is running and connected to MQTT.'
+            );
+            return false;
+        }
+
+        $this->StoreHealthCheckResult($data);
+        $this->UpdateDiagnosticFormFields();
+        return (bool) ($data['healthy'] ?? false);
+    }
+
+    /**
+     * Fuehrt den Coordinator-Check aus der Bridge-Konfiguration ohne technische Notice aus.
+     */
+    private function RunCoordinatorCheckFromForm(): bool
+    {
+        $data = $this->SendQuietCheckedBridgeRequest('/bridge/request/coordinator_check', [], 10000);
+        if ($data === false) {
+            $this->ShowDiagnosticMessage(
+                'Zigbee2MQTT is not reachable',
+                'Zigbee2MQTT did not respond to the coordinator check. Please check whether Zigbee2MQTT is running and connected to MQTT.'
+            );
+            return false;
+        }
+
+        $this->StoreCoordinatorCheckResult($data);
+        $this->UpdateDiagnosticFormFields();
+        return \count($this->ReadDiagnosticMissingRouters()) === 0;
     }
 
     /**
@@ -3622,6 +3666,28 @@ class Zigbee2MQTTBridge extends IPSModuleStrict
     }
 
     /**
+     * Aktualisiert die sichtbaren Diagnosefelder in einer geoeffneten Bridge-Konfiguration.
+     */
+    private function UpdateDiagnosticFormFields(): void
+    {
+        $this->UpdateFormField('DiagnosticHealthStatus', 'caption', $this->BuildHealthStatusCaption());
+        $this->UpdateFormField('DiagnosticCoordinatorStatus', 'caption', $this->BuildCoordinatorStatusCaption());
+        $missingRouters = $this->BuildMissingRouterFormValues();
+        $this->UpdateFormField('DiagnosticMissingRoutersList', 'values', json_encode($missingRouters));
+        $this->UpdateFormField('DiagnosticMissingRoutersList', 'rowCount', min(8, max(4, \count($missingRouters) + 1)));
+    }
+
+    /**
+     * Zeigt eine lesbare Diagnosemeldung im Bridge-Formular.
+     */
+    private function ShowDiagnosticMessage(string $title, string $message): void
+    {
+        $this->UpdateFormField('DiagnosticMessageTitle', 'caption', $this->Translate($title));
+        $this->UpdateFormField('DiagnosticMessageText', 'caption', $this->Translate($message));
+        $this->UpdateFormField('DiagnosticMessage', 'visible', true);
+    }
+
+    /**
      * Sammelt warnende und fehlerhafte Bridge-Logmeldungen.
      */
     private function AppendBridgeLog(array $payload): void
@@ -4051,6 +4117,23 @@ class Zigbee2MQTTBridge extends IPSModuleStrict
             return $Result['data'];
         }
         return [];
+    }
+
+    /**
+     * Sendet einen Bridge-Request ohne technische Timeout-Notice fuer Formularaktionen.
+     */
+    private function SendQuietCheckedBridgeRequest(string $Topic, array $Payload = [], int $Timeout = 5000): array|false
+    {
+        set_error_handler(static function (): bool
+        {
+            return true;
+        }, E_USER_NOTICE);
+
+        try {
+            return $this->ValidateCheckedBridgeResponse($Topic, $this->SendDataQuiet($Topic, $Payload, $Timeout));
+        } finally {
+            restore_error_handler();
+        }
     }
 
     /**

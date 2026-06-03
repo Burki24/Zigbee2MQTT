@@ -247,12 +247,12 @@
                         {
                             "type": "Button",
                             "caption": "Run health check",
-                            "onClick": "echo Z2M_HealthCheck($id) ? 'OK' : 'ERROR';"
+                            "onClick": "IPS_RequestAction($id, 'RunHealthCheck', true);"
                         },
                         {
                             "type": "Button",
                             "caption": "Run coordinator check",
-                            "onClick": "echo Z2M_CoordinatorCheck($id) ? 'OK' : 'CHECK';"
+                            "onClick": "IPS_RequestAction($id, 'RunCoordinatorCheck', true);"
                         },
                         {
                             "type": "Button",
@@ -632,6 +632,27 @@
                     "values": []
                 }
             ]
+        },
+        {
+            "name": "DiagnosticMessage",
+            "type": "PopupAlert",
+            "visible": false,
+            "popup": {
+                "closeCaption": "Close",
+                "items": [
+                    {
+                        "type": "Label",
+                        "name": "DiagnosticMessageTitle",
+                        "bold": true,
+                        "caption": "Diagnostics"
+                    },
+                    {
+                        "name": "DiagnosticMessageText",
+                        "type": "Label",
+                        "caption": ""
+                    }
+                ]
+            }
         },
         {
             "name": "OTAUpdateWarning",
