@@ -57,8 +57,6 @@ trait Constants
     protected const ATTRIBUTE_DEVICE_SUPPORTS_OTA = 'DeviceSupportsOTA';
     /** @var string Attribut fuer den lokal bekannten Variablenkatalog */
     protected const ATTRIBUTE_VARIABLE_CATALOG = 'VariableCatalog';
-    /** @var string Attribut fuer die aktuelle Mehrfachauswahl im Variablenkatalog */
-    protected const ATTRIBUTE_VARIABLE_CATALOG_SELECTION = 'VariableCatalogSelection';
     /** @var string Attribut fuer vom Anwender deaktivierte Variablen */
     protected const ATTRIBUTE_DISABLED_VARIABLES = 'DisabledVariables';
     /** @var string Attribut fuer vom Anwender geloeschte Variablen */

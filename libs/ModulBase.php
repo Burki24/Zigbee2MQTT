@@ -436,7 +436,6 @@ abstract class ModulBase extends \IPSModuleStrict
         $this->RegisterAttributeArray(self::ATTRIBUTE_DEVICE_ENDPOINTS, []);
         $this->RegisterAttributeBoolean(self::ATTRIBUTE_DEVICE_SUPPORTS_OTA, false);
         $this->RegisterAttributeArray(self::ATTRIBUTE_VARIABLE_CATALOG, []);
-        $this->RegisterAttributeArray(self::ATTRIBUTE_VARIABLE_CATALOG_SELECTION, []);
         $this->RegisterAttributeArray(self::ATTRIBUTE_DISABLED_VARIABLES, []);
         $this->RegisterAttributeArray(self::ATTRIBUTE_DELETED_VARIABLES, []);
         $this->RegisterAttributeFloat(self::ATTRIBUTE_MODUL_VERSION, 5.0);
@@ -1600,22 +1599,6 @@ abstract class ModulBase extends \IPSModuleStrict
         if ($ident == 'ToggleVariableCreation') {
             $this->SendDebug(__FUNCTION__, 'Verarbeite ToggleVariableCreation: ' . (string) $value, 0);
             return $this->ToggleVariableCreation((string) $value);
-        }
-        if ($ident == 'ToggleVariableCatalogSelection') {
-            $this->SendDebug(__FUNCTION__, 'Verarbeite ToggleVariableCatalogSelection: ' . (string) $value, 0);
-            return $this->ToggleVariableCatalogSelection((string) $value);
-        }
-        if ($ident == 'CreateSelectedVariables') {
-            $this->SendDebug(__FUNCTION__, 'Lege ausgewaehlte Variablen an', 0);
-            return $this->CreateSelectedVariables();
-        }
-        if ($ident == 'DisableSelectedVariables') {
-            $this->SendDebug(__FUNCTION__, 'Deaktiviere ausgewaehlte Variablen', 0);
-            return $this->DisableSelectedVariables();
-        }
-        if ($ident == 'ClearVariableCatalogSelection') {
-            $this->SendDebug(__FUNCTION__, 'Leere Variablenauswahl', 0);
-            return $this->ClearVariableCatalogSelection();
         }
         if ($ident == 'RefreshVariableSelection') {
             $this->SendDebug(__FUNCTION__, 'Aktualisiere Variablenkatalog aus aktuellen Gerätedaten', 0);

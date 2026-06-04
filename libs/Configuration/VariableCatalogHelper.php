@@ -15,7 +15,7 @@ trait VariableCatalogHelper
     /**
      * Aktiviert oder deaktiviert die automatische Anlage einer Variable.
      */
-    protected function SetVariableCreationEnabled(string $ident, bool $enabled, bool $updateForm = true): bool
+    protected function SetVariableCreationEnabled(string $ident, bool $enabled): bool
     {
         $ident = $this->NormalizeVariableIdent($ident);
         if ($ident === '') {
@@ -39,9 +39,7 @@ trait VariableCatalogHelper
             $this->RemoveVariableFromAttributeList(self::ATTRIBUTE_DELETED_VARIABLES, $ident);
         }
 
-        if ($updateForm) {
-            $this->UpdateVariableSelectionFormFields();
-        }
+        $this->UpdateVariableSelectionFormFields();
         return true;
     }
 
@@ -58,54 +56,6 @@ trait VariableCatalogHelper
     }
 
     /**
-     * Schaltet die Auswahl einer Katalogvariable fuer Bulk-Aktionen um.
-     */
-    protected function ToggleVariableCatalogSelection(string $ident): bool
-    {
-        $ident = $this->NormalizeVariableIdent($ident);
-        if (!$this->CanSelectVariableCatalogIdent($ident)) {
-            return false;
-        }
-
-        $selection = $this->ReadVariableCatalogSelection();
-        if (isset($selection[$ident])) {
-            unset($selection[$ident]);
-        } else {
-            $selection[$ident] = true;
-        }
-
-        $this->WriteVariableCatalogSelection(array_keys($selection));
-        $this->UpdateVariableSelectionFormFields();
-        return true;
-    }
-
-    /**
-     * Legt alle aktuell ausgewaehlten Katalogvariablen an oder aktiviert sie wieder.
-     */
-    protected function CreateSelectedVariables(): bool
-    {
-        return $this->ApplySelectedVariableCreationState(true);
-    }
-
-    /**
-     * Deaktiviert die automatische Anlage aller aktuell ausgewaehlten Katalogvariablen.
-     */
-    protected function DisableSelectedVariables(): bool
-    {
-        return $this->ApplySelectedVariableCreationState(false);
-    }
-
-    /**
-     * Leert die aktuelle Mehrfachauswahl im Variablenkatalog.
-     */
-    protected function ClearVariableCatalogSelection(): bool
-    {
-        $this->WriteVariableCatalogSelection([]);
-        $this->UpdateVariableSelectionFormFields();
-        return true;
-    }
-
-    /**
      * Baut die Zeilen fuer die Variablenverwaltung im Instanzformular.
      */
     protected function BuildVariableSelectionFormValues(): array
@@ -114,7 +64,6 @@ trait VariableCatalogHelper
 
         $catalog = $this->ReadAttributeArray(self::ATTRIBUTE_VARIABLE_CATALOG);
         ksort($catalog);
-        $selection = $this->ReadVariableCatalogSelection($catalog);
 
         $rows = [];
         foreach ($catalog as $ident => $entry) {
@@ -123,7 +72,7 @@ trait VariableCatalogHelper
             }
 
             $ident = (string) $ident;
-            $rows[] = $this->BuildVariableSelectionFormRow($ident, $entry, isset($selection[$ident]));
+            $rows[] = $this->BuildVariableSelectionFormRow($ident, $entry);
         }
 
         return $rows;
@@ -148,109 +97,9 @@ trait VariableCatalogHelper
     private function UpdateVariableSelectionFormFields(): void
     {
         $values = $this->BuildVariableSelectionFormValues();
-        $selectedCount = \count($this->ReadVariableCatalogSelection());
         $this->UpdateFormField('VariableSelectionSettings', 'visible', \count($values) > 0);
-        $this->UpdateFormField('VariableSelectionBulkActions', 'visible', \count($values) > 0);
         $this->UpdateFormField('VariableSelectionList', 'values', json_encode($values));
         $this->UpdateFormField('VariableSelectionList', 'rowCount', min(12, max(4, \count($values) + 1)));
-        $this->UpdateFormField('CreateSelectedVariablesButton', 'enabled', $selectedCount > 0);
-        $this->UpdateFormField('DisableSelectedVariablesButton', 'enabled', $selectedCount > 0);
-        $this->UpdateFormField('ClearVariableSelectionButton', 'enabled', $selectedCount > 0);
-        $this->UpdateFormField('VariableSelectionStatus', 'caption', $this->BuildVariableSelectionSummary($selectedCount));
-    }
-
-    /**
-     * Wendet die gewuenschte Anlegefreigabe auf alle aktuell ausgewaehlten Variablen an.
-     */
-    private function ApplySelectedVariableCreationState(bool $enabled): bool
-    {
-        $selection = array_keys($this->ReadVariableCatalogSelection());
-        if ($selection === []) {
-            $this->UpdateVariableSelectionFormFields();
-            return false;
-        }
-
-        foreach ($selection as $ident) {
-            $this->SetVariableCreationEnabled((string) $ident, $enabled, false);
-        }
-
-        $this->WriteVariableCatalogSelection([]);
-        $this->UpdateVariableSelectionFormFields();
-        return true;
-    }
-
-    /**
-     * Liest und normalisiert die aktuelle Mehrfachauswahl.
-     *
-     * @param array|null $catalog Optional bereits gelesener Variablenkatalog.
-     * @return array<string,bool>
-     */
-    protected function ReadVariableCatalogSelection(?array $catalog = null): array
-    {
-        $catalog ??= $this->ReadAttributeArray(self::ATTRIBUTE_VARIABLE_CATALOG);
-        $selection = [];
-        foreach ($this->ReadAttributeArray(self::ATTRIBUTE_VARIABLE_CATALOG_SELECTION) as $ident) {
-            $ident = $this->NormalizeVariableIdent((string) $ident);
-            if ($this->CanSelectVariableCatalogIdent($ident, $catalog)) {
-                $selection[$ident] = true;
-            }
-        }
-
-        return $selection;
-    }
-
-    /**
-     * Speichert die aktuelle Mehrfachauswahl.
-     *
-     * @param array<int,string> $idents
-     */
-    private function WriteVariableCatalogSelection(array $idents): void
-    {
-        $selection = [];
-        foreach ($idents as $ident) {
-            $ident = $this->NormalizeVariableIdent((string) $ident);
-            if ($this->CanSelectVariableCatalogIdent($ident)) {
-                $selection[$ident] = true;
-            }
-        }
-
-        $idents = array_keys($selection);
-        sort($idents);
-        $this->WriteAttributeArray(self::ATTRIBUTE_VARIABLE_CATALOG_SELECTION, $idents);
-    }
-
-    /**
-     * Prueft, ob eine Katalogzeile fuer Bulk-Aktionen ausgewaehlt werden darf.
-     */
-    private function CanSelectVariableCatalogIdent(string $ident, ?array $catalog = null): bool
-    {
-        $ident = $this->NormalizeVariableIdent($ident);
-        if ($ident === '') {
-            return false;
-        }
-
-        $catalog ??= $this->ReadAttributeArray(self::ATTRIBUTE_VARIABLE_CATALOG);
-        if (!isset($catalog[$ident]) || !\is_array($catalog[$ident])) {
-            return false;
-        }
-
-        return !\in_array($ident, $this->ReadAttributeArray(self::ATTRIBUTE_FILTERED), true);
-    }
-
-    /**
-     * Baut die Statuszeile fuer die aktuelle Mehrfachauswahl.
-     */
-    protected function BuildVariableSelectionSummary(int $selectedCount): string
-    {
-        if ($selectedCount === 0) {
-            return $this->Translate('No variable selected');
-        }
-
-        if ($selectedCount === 1) {
-            return '1 ' . $this->Translate('variable selected');
-        }
-
-        return (string) $selectedCount . ' ' . $this->Translate('variables selected');
     }
 
     /**
@@ -650,7 +499,6 @@ trait VariableCatalogHelper
         $knownIdents = array_fill_keys(array_keys($catalog), true);
         $this->RestrictVariableAttributeList(self::ATTRIBUTE_DISABLED_VARIABLES, $knownIdents);
         $this->RestrictVariableAttributeList(self::ATTRIBUTE_DELETED_VARIABLES, $knownIdents);
-        $this->RestrictVariableAttributeList(self::ATTRIBUTE_VARIABLE_CATALOG_SELECTION, $knownIdents);
         $this->RefreshDeletedVariableCatalogState();
     }
 
@@ -884,7 +732,6 @@ trait VariableCatalogHelper
             foreach ($removedIdents as $removedIdent) {
                 $this->RemoveVariableFromAttributeList(self::ATTRIBUTE_DISABLED_VARIABLES, $removedIdent);
                 $this->RemoveVariableFromAttributeList(self::ATTRIBUTE_DELETED_VARIABLES, $removedIdent);
-                $this->RemoveVariableFromAttributeList(self::ATTRIBUTE_VARIABLE_CATALOG_SELECTION, $removedIdent);
             }
         }
     }
@@ -892,7 +739,7 @@ trait VariableCatalogHelper
     /**
      * Baut eine einzelne Zeile fuer die Variablenverwaltung.
      */
-    private function BuildVariableSelectionFormRow(string $ident, array $entry, bool $selected): array
+    private function BuildVariableSelectionFormRow(string $ident, array $entry): array
     {
         $exists = $this->GetObjectIDByIdent($ident) !== false;
         $filtered = \in_array($ident, $this->ReadAttributeArray(self::ATTRIBUTE_FILTERED), true);
@@ -907,7 +754,6 @@ trait VariableCatalogHelper
             $state = 'Filtered by Zigbee2MQTT';
             $action = '';
             $rowColor = '#DFDFDF';
-            $selected = false;
         } elseif ($deleted) {
             $state = 'Deleted';
             $action = 'Create';
@@ -919,7 +765,6 @@ trait VariableCatalogHelper
         }
 
         return [
-            'selected' => $filtered ? '' : ($selected ? '☑' : '☐'),
             'ident'    => $ident,
             'label'    => (string) ($entry['label'] ?? $this->FormatVariableCatalogLabel($ident)),
             'source'   => $this->Translate((string) ($entry['source'] ?? 'payload')),

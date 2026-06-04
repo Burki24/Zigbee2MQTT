@@ -661,39 +661,6 @@
                     "onClick": "IPS_RequestAction($id, 'RefreshVariableSelection', true);"
                 },
                 {
-                    "type": "RowLayout",
-                    "name": "VariableSelectionBulkActions",
-                    "visible": false,
-                    "items": [
-                        {
-                            "type": "Button",
-                            "name": "CreateSelectedVariablesButton",
-                            "caption": "Create selected",
-                            "enabled": false,
-                            "onClick": "IPS_RequestAction($id, 'CreateSelectedVariables', true);"
-                        },
-                        {
-                            "type": "Button",
-                            "name": "DisableSelectedVariablesButton",
-                            "caption": "Disable selected",
-                            "enabled": false,
-                            "onClick": "IPS_RequestAction($id, 'DisableSelectedVariables', true);"
-                        },
-                        {
-                            "type": "Button",
-                            "name": "ClearVariableSelectionButton",
-                            "caption": "Clear selection",
-                            "enabled": false,
-                            "onClick": "IPS_RequestAction($id, 'ClearVariableCatalogSelection', true);"
-                        },
-                        {
-                            "type": "Label",
-                            "name": "VariableSelectionStatus",
-                            "caption": "No variable selected"
-                        }
-                    ]
-                },
-                {
                     "type": "List",
                     "name": "VariableSelectionList",
                     "add": false,
@@ -705,13 +672,6 @@
                         "direction": "ascending"
                     },
                     "columns": [
-                        {
-                            "caption": "Selected",
-                            "name": "selected",
-                            "width": "80px",
-                            "align": "center",
-                            "onClick": "IPS_RequestAction($id, 'ToggleVariableCatalogSelection', $VariableSelectionList['ident']);"
-                        },
                         {
                             "caption": "Variable",
                             "name": "label",
