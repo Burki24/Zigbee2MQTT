@@ -127,6 +127,19 @@ class BridgeTest extends TestCase
         $this->assertSame(5000, $bridge->lastTimeout);
     }
 
+    public function testAbortOTAUpdateUsesAbortTopic(): void
+    {
+        $bridge = $this->createBridgeTestDouble([
+            'status' => 'ok',
+            'data'   => ['id' => 'test_device']
+        ]);
+
+        $this->assertTrue($bridge->AbortOTAUpdate('test_device'));
+        $this->assertSame('/bridge/request/device/ota_update/update/abort', $bridge->lastTopic);
+        $this->assertSame(['id' => 'test_device'], $bridge->lastPayload);
+        $this->assertSame(5000, $bridge->lastTimeout);
+    }
+
     public function testReceiveDataStoresOTAUpdateCapabilityInNetworkCache(): void
     {
         $bridge = $this->createBridgeTestDouble(true);
@@ -168,6 +181,27 @@ class BridgeTest extends TestCase
         $this->assertSame('ota-device', $result['device_name']);
         $this->assertSame('successful', $result['status']);
         $this->assertTrue($bridge->updatedFields['OTAMessage']['visible']);
+    }
+
+    public function testReceiveDataStoresAsyncOTAAbortResult(): void
+    {
+        $bridge = $this->createBridgeTestDouble(true);
+        $bridge->setBaseTopicForTest('zigbee2mqtt');
+
+        $bridge->ReceiveData(json_encode([
+            'Topic'   => 'zigbee2mqtt/bridge/response/device/ota_update/update/abort',
+            'Payload' => bin2hex(json_encode([
+                'status' => 'ok',
+                'data'   => [
+                    'id' => 'ota-device'
+                ]
+            ]))
+        ]));
+
+        $result = $bridge->readDiagnosticAttribute('OTAUpdateResults')[0];
+        $this->assertSame('ota-device', $result['device_name']);
+        $this->assertSame('aborted', $result['status']);
+        $this->assertSame('idle', $bridge->readDiagnosticAttribute('OTACheckResults')['ota-device']['state']);
     }
 
     public function testOTADeviceRowsUseCachedCapabilityAndConfiguredDeviceInstance(): void
@@ -293,6 +327,45 @@ class BridgeTest extends TestCase
         $bridge->RequestAction('UnscheduleOTAUpdate', json_encode(['instance_id' => $deviceID]));
         $this->assertSame('/bridge/request/device/ota_update/unschedule', $bridge->lastTopic);
         $this->assertSame('idle', $this->readOTADeviceState($bridge));
+    }
+
+    public function testBridgeOTAAbortActionRefreshesCachedStateImmediately(): void
+    {
+        $bridge = $this->createBridgeTestDouble([
+            'status' => 'ok',
+            'data'   => ['id' => 'Kitchen/Light']
+        ]);
+        $bridge->setBaseTopicForTest('zigbee2mqtt');
+        $deviceID = $this->createConfiguredOTACapableDevice($bridge);
+        $stateID = IPS_CreateVariable(VARIABLETYPE_STRING);
+        IPS_SetParent($stateID, $deviceID);
+        IPS_SetIdent($stateID, 'update__state');
+        SetValue($stateID, 'updating');
+
+        $bridge->RequestAction('AbortOTAUpdate', json_encode(['instance_id' => $deviceID]));
+
+        $this->assertSame('/bridge/request/device/ota_update/update/abort', $bridge->lastTopic);
+        $this->assertSame('idle', $this->readOTADeviceState($bridge));
+        $this->assertTrue($bridge->updatedFields['OTAMessage']['visible']);
+    }
+
+    public function testOTAActiveUpdateRowsUseStateSpecificActions(): void
+    {
+        $bridge = $this->createBridgeTestDouble(true);
+        $method = new ReflectionMethod(Zigbee2MQTTBridge::class, 'BuildOTAActiveUpdateFormValues');
+
+        $values = $method->invoke($bridge, [
+            ['state' => 'scheduled'],
+            ['state' => 'requested'],
+            ['state' => 'updating'],
+        ]);
+
+        $this->assertSame('Unschedule', $values[0]['action']);
+        $this->assertSame('UnscheduleOTAUpdate', $values[0]['action_request']);
+        $this->assertSame('Abort', $values[1]['action']);
+        $this->assertSame('AbortOTAUpdate', $values[1]['action_request']);
+        $this->assertSame('Abort', $values[2]['action']);
+        $this->assertSame('AbortOTAUpdate', $values[2]['action_request']);
     }
 
     public function testBridgeOTAVariableUpdatesRefreshOpenFormAutomatically(): void

@@ -588,7 +588,7 @@
                             "name": "action",
                             "width": "130px",
                             "align": "center",
-                            "onClick": "IPS_RequestAction($id, 'UnscheduleOTAUpdate', json_encode(['instance_id' => $OTAActiveUpdates['instance_id']]));"
+                            "onClick": "if ($OTAActiveUpdates['action_request'] != '') { IPS_RequestAction($id, $OTAActiveUpdates['action_request'], json_encode(['instance_id' => $OTAActiveUpdates['instance_id']])); }"
                         }
                     ],
                     "values": []

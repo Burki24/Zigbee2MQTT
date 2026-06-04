@@ -547,6 +547,9 @@ class Zigbee2MQTTBridge extends IPSModuleStrict
             case 'UnscheduleOTAUpdate':
                 $this->UnscheduleOTAUpdateFromForm($value);
                 break;
+            case 'AbortOTAUpdate':
+                $this->AbortOTAUpdateFromForm($value);
+                break;
         }
     }
 
@@ -1596,6 +1599,20 @@ class Zigbee2MQTTBridge extends IPSModuleStrict
     }
 
     /**
+     * AbortOTAUpdate
+     *
+     * @param  string $DeviceName
+     *
+     * @return bool
+     */
+    public function AbortOTAUpdate(string $DeviceName): bool
+    {
+        $Data = $this->SendCheckedBridgeRequest('/bridge/request/device/ota_update/update/abort', $this->BuildOTAPayload($DeviceName, ''));
+
+        return $Data !== false;
+    }
+
+    /**
      * Setzt einen Variablenwert module-strict-konform.
      */
     protected function SetValue(string $Ident, mixed $Value): bool
@@ -2357,7 +2374,9 @@ class Zigbee2MQTTBridge extends IPSModuleStrict
             $state = strtolower((string) $this->ReadOTADeviceVariable($instanceID, 'update__state', ''));
             $checkResult = \is_array($checkResults[$deviceName] ?? null) ? $checkResults[$deviceName] : [];
             $hasRecentCheckResult = (int) ($checkResult['checked_at'] ?? 0) >= time() - self::OTA_CHECK_RESULT_LIFETIME;
-            if (($pendingRequests[$deviceName] ?? null) !== null && $state !== 'updating') {
+            if ($hasRecentCheckResult && ($checkResult['state'] ?? '') === 'idle') {
+                $state = 'idle';
+            } elseif (($pendingRequests[$deviceName] ?? null) !== null && $state !== 'updating') {
                 $state = 'requested';
             } elseif ($state !== 'updating' && $hasRecentCheckResult) {
                 $state = (string) ($checkResult['state'] ?? ((bool) ($checkResult['update_available'] ?? false) ? 'available' : 'idle'));
@@ -2517,13 +2536,39 @@ class Zigbee2MQTTBridge extends IPSModuleStrict
     {
         $values = [];
         foreach ($rows as $row) {
+            $state = (string) ($row['state'] ?? '');
             $values[] = array_merge($row, [
-                'state_caption' => $this->TranslateOTAState((string) ($row['state'] ?? 'unknown')),
-                'action'        => ($row['state'] ?? '') === 'scheduled' ? $this->TranslateOTAFormText('Unschedule') : ''
+                'state_caption'  => $this->TranslateOTAState((string) ($row['state'] ?? 'unknown')),
+                'action'         => $this->BuildOTAActiveUpdateActionCaption($state),
+                'action_request' => $this->BuildOTAActiveUpdateActionRequest($state)
             ]);
         }
 
         return $values;
+    }
+
+    /**
+     * Baut die Beschriftung der Zeilenaktion fuer aktive OTA-Updates.
+     */
+    private function BuildOTAActiveUpdateActionCaption(string $state): string
+    {
+        return match ($state) {
+            'scheduled'            => $this->TranslateOTAFormText('Unschedule'),
+            'requested', 'updating' => $this->TranslateOTAFormText('Abort'),
+            default                => ''
+        };
+    }
+
+    /**
+     * Baut die RequestAction der Zeilenaktion fuer aktive OTA-Updates.
+     */
+    private function BuildOTAActiveUpdateActionRequest(string $state): string
+    {
+        return match ($state) {
+            'scheduled'            => 'UnscheduleOTAUpdate',
+            'requested', 'updating' => 'AbortOTAUpdate',
+            default                => ''
+        };
     }
 
     /**
@@ -2798,6 +2843,33 @@ class Zigbee2MQTTBridge extends IPSModuleStrict
     }
 
     /**
+     * Bricht ein laufendes oder angefordertes OTA-Update fuer das ausgewaehlte Geraet ab.
+     */
+    private function AbortOTAUpdateFromForm(mixed $value): bool
+    {
+        $row = $this->ResolveOTADeviceRow($value);
+        if ($row === null) {
+            return false;
+        }
+        if (!\in_array((string) ($row['state'] ?? ''), ['requested', 'updating'], true)) {
+            $this->ShowOTAMessage('OTA update cannot be aborted', 'The selected device does not currently report an active OTA update.');
+            return false;
+        }
+        if ($this->SendQuietCheckedBridgeRequest('/bridge/request/device/ota_update/update/abort', $this->BuildOTAPayload($row['device_name'], '')) === false) {
+            $this->ShowOTAMessage('OTA update could not be aborted', 'Zigbee2MQTT did not accept the OTA abort request.');
+            return false;
+        }
+
+        $requests = $this->ReadAttributeArray(self::ATTRIBUTE_OTA_PENDING_REQUESTS);
+        unset($requests[$row['device_name']]);
+        $this->WriteAttributeArray(self::ATTRIBUTE_OTA_PENDING_REQUESTS, $requests);
+        $this->StoreOTACheckResult($row['device_name'], false, 'idle');
+        $this->UpdateOTAFormLists();
+        $this->ShowOTAMessage('OTA update abort requested', 'The OTA abort request was sent to Zigbee2MQTT.');
+        return true;
+    }
+
+    /**
      * Loest eine Formularauswahl gegen die bekannten OTA-Geraete auf.
      */
     private function ResolveOTADeviceRow(mixed $value): ?array
@@ -2859,20 +2931,22 @@ class Zigbee2MQTTBridge extends IPSModuleStrict
      */
     private function HandleOTAUpdateResponse(array $payload, array $topics): bool
     {
-        if (!\in_array(implode('/', $topics), ['device/ota_update/update', 'device/ota_update/update/downgrade'], true)) {
+        $responseTopic = implode('/', $topics);
+        if (!\in_array($responseTopic, ['device/ota_update/update', 'device/ota_update/update/downgrade', 'device/ota_update/update/abort'], true)) {
             return false;
         }
 
         $data = \is_array($payload['data'] ?? null) ? $payload['data'] : [];
         $deviceName = (string) ($data['id'] ?? $payload['id'] ?? '');
         $success = ($payload['status'] ?? '') === 'ok';
+        $isAbort = $responseTopic === 'device/ota_update/update/abort';
         $message = $success
-            ? $this->Translate('The OTA update completed successfully.')
+            ? $this->Translate($isAbort ? 'The OTA update was aborted.' : 'The OTA update completed successfully.')
             : (string) ($payload['error'] ?? $data['error'] ?? $this->Translate('Zigbee2MQTT reported an OTA update error.'));
         $this->AppendOTAUpdateResult([
             'time'        => time(),
             'device_name' => $deviceName,
-            'status'      => $success ? 'successful' : 'failed',
+            'status'      => $isAbort && $success ? 'aborted' : ($success ? 'successful' : 'failed'),
             'message'     => $message
         ]);
 
@@ -2881,9 +2955,16 @@ class Zigbee2MQTTBridge extends IPSModuleStrict
         $this->WriteAttributeArray(self::ATTRIBUTE_OTA_PENDING_REQUESTS, $requests);
         $checks = $this->ReadAttributeArray(self::ATTRIBUTE_OTA_CHECK_RESULTS);
         unset($checks[$deviceName]);
+        if ($isAbort && $success && $deviceName !== '') {
+            $checks[$deviceName] = [
+                'checked_at'       => time(),
+                'update_available' => false,
+                'state'            => 'idle'
+            ];
+        }
         $this->WriteAttributeArray(self::ATTRIBUTE_OTA_CHECK_RESULTS, $checks);
         $this->UpdateOTAFormLists();
-        $this->ShowOTAMessage($success ? 'OTA update successful' : 'OTA update failed', $message);
+        $this->ShowOTAMessage($isAbort && $success ? 'OTA update aborted' : ($success ? 'OTA update successful' : 'OTA update failed'), $message);
         return true;
     }
 
@@ -2911,12 +2992,24 @@ class Zigbee2MQTTBridge extends IPSModuleStrict
             $values[] = [
                 'time'        => date('d.m.Y H:i:s', (int) ($result['time'] ?? 0)),
                 'device_name' => (string) ($result['device_name'] ?? ''),
-                'status'      => $this->TranslateOTAFormText(($result['status'] ?? '') === 'successful' ? 'Successful' : 'Failed'),
+                'status'      => $this->TranslateOTAResultStatus((string) ($result['status'] ?? 'failed')),
                 'message'     => (string) ($result['message'] ?? '')
             ];
         }
 
         return $values;
+    }
+
+    /**
+     * Uebersetzt einen OTA-Ergebnisstatus fuer die Ergebnisliste.
+     */
+    private function TranslateOTAResultStatus(string $status): string
+    {
+        return $this->TranslateOTAFormText(match ($status) {
+            'successful' => 'Successful',
+            'aborted'    => 'Aborted',
+            default      => 'Failed'
+        });
     }
 
     /**

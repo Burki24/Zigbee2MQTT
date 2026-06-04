@@ -74,7 +74,7 @@ Zusätzlich zu den Grundeinstellungen enthält die Bridge folgende Funktionsbere
 | ------- | ------------ |
 | Diagnose | Führt Health Check und Coordinator Check aus, fordert die Netzwerkkarte an und zeigt fehlende Router, nicht unterstützte Geräte, Interview-Probleme, Bridge-Events sowie Warnungen und Fehler an. |
 | Netzwerksicherheit | Verwaltet `blocklist` und `passlist` direkt über bekannte Zigbee2MQTT-Geräte oder manuelle IEEE-Adressen. |
-| OTA-Updates | Listet bekannte OTA-fähige Geräte, prüft einzelne Geräte auf Updates, plant Aktualisierungen für die nächste Geräteanfrage und startet genau ein aktives Update gleichzeitig. Fortschritt, Restzeit und Abschlussmeldungen werden zentral angezeigt. |
+| OTA-Updates | Listet bekannte OTA-fähige Geräte, prüft einzelne Geräte auf Updates, plant Aktualisierungen für die nächste Geräteanfrage und startet genau ein aktives Update gleichzeitig. Geplante Updates können aufgehoben, laufende Updates abgebrochen und Fortschritt, Restzeit sowie Abschlussmeldungen zentral angezeigt werden. |
 | Variablen-Wartung | Sucht alte Zigbee2MQTT-Variablen, die nicht mehr zu aktuellen Exposes oder Payloads passen, und löscht einzelne klare Kandidaten erst nach Bestätigung. |
 | Zigbee2MQTT-Wartung | Erstellt ein Zigbee2MQTT-Backup als ZIP-Datei auf dem Symcon-Server, sendet Zigbee-3.0-Install-Codes und bietet Touchlink-Scan, Identify und Factory-Reset an. |
 
@@ -88,7 +88,7 @@ Die `blocklist` blockiert Geräte anhand ihrer IEEE-Adresse. Die `passlist` ist 
 
 ### 5.3 OTA-Updates
 
-Die OTA-Verwaltung bietet nur Geräte an, die Zigbee2MQTT in den Bridge-Gerätedaten ausdrücklich mit `supports_ota` kennzeichnet. Historische `update__*`-Variablen einer Symcon-Instanz reichen dafür nicht aus. Über **Update prüfen** wird ein einzelnes Gerät aktiv geprüft. Verfügbare Updates können direkt gestartet oder für die nächste OTA-Anfrage des Geräts geplant werden. Batteriegeräte müssen vor Prüfung oder Planung eventuell aufgeweckt werden. Ein direkt gestartetes Update dauert laut Zigbee2MQTT abhängig von Gerät, Einstellungen und Netzwerkstabilität etwa 10 bis 100 Minuten. Deshalb erlaubt die Bridge immer nur ein aktives Update gleichzeitig. Während eines Updates werden Fortschritt und Restzeit in der geöffneten Bridge-Konfiguration automatisch aktualisiert. Über **Status aktualisieren** oder die Aktualisieren-Schaltfläche direkt oberhalb einer OTA-Tabelle können die Werte zusätzlich manuell neu aus den Geräteinstanzen eingelesen werden. Später eintreffende Erfolgs- oder Fehlermeldungen speichert die Bridge zusätzlich im Ergebnisverlauf.
+Die OTA-Verwaltung bietet nur Geräte an, die Zigbee2MQTT in den Bridge-Gerätedaten ausdrücklich mit `supports_ota` kennzeichnet. Historische `update__*`-Variablen einer Symcon-Instanz reichen dafür nicht aus. Über **Update prüfen** wird ein einzelnes Gerät aktiv geprüft. Verfügbare Updates können direkt gestartet oder für die nächste OTA-Anfrage des Geräts geplant werden. Batteriegeräte müssen vor Prüfung oder Planung eventuell aufgeweckt werden. Ein direkt gestartetes Update dauert laut Zigbee2MQTT abhängig von Gerät, Einstellungen und Netzwerkstabilität etwa 10 bis 100 Minuten. Deshalb erlaubt die Bridge immer nur ein aktives Update gleichzeitig. Während eines Updates werden Fortschritt und Restzeit in der geöffneten Bridge-Konfiguration automatisch aktualisiert. Geplante Updates können in der Liste **Aktive und geplante OTA-Updates** über **Planung aufheben** wieder aus der Zigbee2MQTT-Planung entfernt werden. Bereits angeforderte oder laufende Updates können über **Abbrechen** an Zigbee2MQTT zum Abbruch übergeben werden. Über **Status aktualisieren** oder die Aktualisieren-Schaltfläche direkt oberhalb einer OTA-Tabelle können die Werte zusätzlich manuell neu aus den Geräteinstanzen eingelesen werden. Später eintreffende Erfolgs-, Abbruch- oder Fehlermeldungen speichert die Bridge zusätzlich im Ergebnisverlauf.
 
 ![OTA-Updates](imgs/ota-updates.png)
 
@@ -723,6 +723,16 @@ bool Z2M_UnscheduleOTAUpdate(int $InstanzID, string $DeviceName);
 ```
 
 Hebt eine geplante OTA-Aktualisierung oder ein geplantes OTA-Downgrade für das angegebene Gerät wieder auf.
+
+---
+
+### Z2M_AbortOTAUpdate <!-- omit in toc -->
+
+```php
+bool Z2M_AbortOTAUpdate(int $InstanzID, string $DeviceName);
+```
+
+Bricht ein bereits angefordertes oder laufendes OTA-Update über die Zigbee2MQTT-API ab. Der Abbruch wird an Zigbee2MQTT übergeben; abhängig von Gerät und Funkstatus kann es einen Moment dauern, bis der neue Zustand in der OTA-Übersicht sichtbar wird.
 
 ## 8. Aktionen
 
