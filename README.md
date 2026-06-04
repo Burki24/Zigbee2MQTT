@@ -387,6 +387,7 @@ Die Änderungen sind anhand der funktionalen Commits chronologisch gegliedert. A
 - Die zentrale OTA-Verwaltung bietet nur noch Geräte an, die Zigbee2MQTT ausdrücklich mit `supports_ota` kennzeichnet. Historische `update__*`-Variablen allein führen nicht mehr zu falschen OTA-Angeboten.
 - Die OTA-Zentrale kann geplante Updates weiterhin per `unschedule` aus der Planung nehmen und nutzt zusätzlich den neuen Zigbee2MQTT-Abbruch-Endpunkt, um angeforderte oder laufende OTA-Updates abzubrechen.
 - Health Check und Coordinator Check zeigen bei nicht erreichbarem Zigbee2MQTT in der Bridge-Konfiguration eine lesbare Diagnosemeldung statt einer technischen Timeout-Notice.
+- Weitere Zigbee2MQTT-Gerätelabels für Kalibrierung, Dimmverhalten, Helligkeitsschwellen und Impulssteuerung wurden ins Deutsche übersetzt.
 
 **Version 5.42:**  
 
