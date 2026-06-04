@@ -113,6 +113,26 @@ class DevicesTest extends DumpInclude
         $this->assertSame([], $device->sentPayload);
     }
 
+    public function testLanguageNeutralNumericValuesAreNotReportedAsMissingTranslations(): void
+    {
+        $instanceID = IPS_CreateInstance('{E5BB36C6-A70B-EB23-3716-9151A09AC8A2}');
+        $device = new class($instanceID) extends Zigbee2MQTTDevice {
+            protected function SendDebug(string $Message, string $Data, int $Format): bool
+            {
+                return true;
+            }
+        };
+        $device->Create();
+
+        $method = new ReflectionMethod($device, 'isLanguageNeutralTranslationValue');
+
+        foreach (['1', '1x', '2x', '3.5', '4,5'] as $value) {
+            $this->assertTrue($method->invoke($device, $value, 'value'));
+        }
+        $this->assertFalse($method->invoke($device, '1x', 'label'));
+        $this->assertFalse($method->invoke($device, 'Double Pulse', 'value'));
+    }
+
     public function testUpdateInfoShowsReadablePopupOnFailure(): void
     {
         $device = new class(990006) extends Zigbee2MQTTDevice {

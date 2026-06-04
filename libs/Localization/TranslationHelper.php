@@ -60,6 +60,10 @@ trait TranslationHelper
      */
     private function isValueInLocaleJson(string $Text, string $Type): bool
     {
+        if ($this->isLanguageNeutralTranslationValue($Text, $Type)) {
+            return true;
+        }
+
         $translation = $this->readTranslationFile('locale_z2m.json');
         $language = IPS_GetSystemLanguage();
         $code = explode('_', $language)[0];
@@ -77,6 +81,23 @@ trait TranslationHelper
 
         $this->addValueToTranslationsBuffer($Text, $Type);
         return false;
+    }
+
+    /**
+     * Prueft, ob ein Wert sprachneutral ist und deshalb keine Uebersetzung benoetigt.
+     */
+    private function isLanguageNeutralTranslationValue(string $Text, string $Type): bool
+    {
+        if ($Type !== 'value') {
+            return false;
+        }
+
+        $value = trim($Text);
+        if ($value === '') {
+            return true;
+        }
+
+        return preg_match('/^\d+(?:[.,]\d+)?x?$/', $value) === 1;
     }
 
     /**
