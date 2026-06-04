@@ -371,7 +371,7 @@ Die Änderungen sind anhand der funktionalen Commits chronologisch gegliedert. A
 - Die Bridge-Wartung erhielt einen optionalen lokalen Install-Code-Katalog. Install-Codes können mit einer Bezeichnung gespeichert, maskiert angezeigt, erneut gesendet, bearbeitet und nach Bestätigung gelöscht werden. Sensible MQTT-Payloads und Antworten erscheinen nicht im Debug-Protokoll.
 - Die Bridge-Dokumentation wurde in eigene Funktionsblöcke für Diagnose, Netzwerksicherheit, OTA-Updates, Variablen-Wartung sowie Zigbee2MQTT-Wartung mit Backup, Install-Codes und Touchlink gegliedert.
 
-### 1. bis 2. Juni 2026: Erweiterte Ablaufplan-Aktionen und Datenaktualisierung
+### 1. bis 4. Juni 2026: Erweiterte Ablaufplan-Aktionen und Datenaktualisierung
 
 - Wiederverwendbare Ablaufplan-Aktionen wurden für Status-Umschaltung, Ein-/Ausschalten mit Übergangszeit, Kelvin-Farbtemperatur mit Übergangszeit und Zigbee-Szenenabruf ergänzt.
 - Die Kelvin-Aktion verwendet die pro Geräteinstanz ermittelte beziehungsweise überschriebene Farbtemperaturdarstellung und rechnet den gewählten Kelvin-Wert für Zigbee2MQTT in Mired um.
