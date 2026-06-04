@@ -541,7 +541,13 @@ trait DeviceFormHelper
     private function ConfigureDeviceFormVariableSelection(array &$form): void
     {
         $values = $this->BuildVariableSelectionFormValues();
+        $selectedCount = \count($this->ReadVariableCatalogSelection());
         $this->SetDeviceFormField($form, 'VariableSelectionSettings', 'visible', \count($values) > 0);
+        $this->SetDeviceFormField($form, 'VariableSelectionBulkActions', 'visible', \count($values) > 0);
+        $this->SetDeviceFormField($form, 'CreateSelectedVariablesButton', 'enabled', $selectedCount > 0);
+        $this->SetDeviceFormField($form, 'DisableSelectedVariablesButton', 'enabled', $selectedCount > 0);
+        $this->SetDeviceFormField($form, 'ClearVariableSelectionButton', 'enabled', $selectedCount > 0);
+        $this->SetDeviceFormField($form, 'VariableSelectionStatus', 'caption', $this->BuildVariableSelectionSummary($selectedCount));
         $this->SetDeviceFormField($form, 'VariableSelectionList', 'values', $values);
         $this->SetDeviceFormField($form, 'VariableSelectionList', 'rowCount', min(12, max(4, \count($values) + 1)));
     }

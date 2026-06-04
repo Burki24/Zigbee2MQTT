@@ -366,6 +366,41 @@ class DevicesTest extends DumpInclude
         $this->assertNotFalse(@IPS_GetObjectIDByIdent('power', $iid), 'Re-enabled variable should be created again.');
     }
 
+    public function testVariableSelectionSupportsBulkActions(): void
+    {
+        [$iid] = $this->createTestInstance('BMCT-SLZ.json');
+        $this->assertNotFalse(@IPS_GetObjectIDByIdent('power', $iid));
+        $this->assertNotFalse(@IPS_GetObjectIDByIdent('energy', $iid));
+
+        IPS_RequestAction($iid, 'ToggleVariableCatalogSelection', 'power');
+        IPS_RequestAction($iid, 'ToggleVariableCatalogSelection', 'energy');
+
+        $selection = $this->readStubAttributeArray($iid, 'VariableCatalogSelection');
+        $this->assertSame(['energy', 'power'], $selection);
+
+        $form = json_decode(IPS_GetConfigurationForm($iid), true);
+        $list = $this->findFormItemByName($form, 'VariableSelectionList');
+        $this->assertNotNull($list);
+        $this->assertSame('☑', $this->findVariableSelectionRow($list['values'], 'power')['selected'] ?? null);
+        $this->assertSame('☑', $this->findVariableSelectionRow($list['values'], 'energy')['selected'] ?? null);
+        $status = $this->findFormItemByName($form, 'VariableSelectionStatus');
+        $this->assertSame('2 Variablen ausgewählt', $status['caption'] ?? null);
+
+        IPS_RequestAction($iid, 'DisableSelectedVariables', true);
+        $this->assertSame([], $this->readStubAttributeArray($iid, 'VariableCatalogSelection'));
+        $disabled = $this->readStubAttributeArray($iid, 'DisabledVariables');
+        $this->assertContains('power', $disabled);
+        $this->assertContains('energy', $disabled);
+
+        IPS_RequestAction($iid, 'ToggleVariableCatalogSelection', 'power');
+        IPS_RequestAction($iid, 'ToggleVariableCatalogSelection', 'energy');
+        IPS_RequestAction($iid, 'CreateSelectedVariables', true);
+
+        $this->assertSame([], $this->readStubAttributeArray($iid, 'VariableCatalogSelection'));
+        $this->assertNotContains('power', $this->readStubAttributeArray($iid, 'DisabledVariables'));
+        $this->assertNotContains('energy', $this->readStubAttributeArray($iid, 'DisabledVariables'));
+    }
+
     public function testVariableSelectionCreatesNumericVariableWithoutExposeName(): void
     {
         [$iid] = $this->createTestInstance('RTCGQ01LM.json');
