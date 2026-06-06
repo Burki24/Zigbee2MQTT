@@ -391,6 +391,7 @@ Die Änderungen sind anhand der funktionalen Commits chronologisch gegliedert. A
 - Weitere Zigbee2MQTT-Gerätelabels und Werte für Kalibrierung, Dimmverhalten, Helligkeitsschwellen, Impulssteuerung und Pulsaktionen wurden ins Deutsche übersetzt. Sprachneutrale numerische Werte wie `1x`, `2x` oder `3x` werden nicht mehr als fehlende Übersetzung gemeldet.
 - Die Konfigurationsformulare wurden nach Nutzungshäufigkeit gegliedert: Geräte bündeln Optionen, Variablen sowie Binding und Reporting unter erweiterten Einstellungen; die Bridge zeigt zentrale Statusschaltflächen direkt und trennt Diagnose sowie OTA von administrativen und Expertenwerkzeugen; Gruppenoptionen liegen unter erweiterten Gruppeneinstellungen. Der Konfigurator zeigt Gruppen standardmäßig eingeklappt und blendet selten benötigte Gerätespalten aus.
 - Die direkt sichtbaren Bridge-Statusschaltflächen übernehmen beim Öffnen zuverlässig den zuletzt ermittelten Zustand der Symcon-Erweiterung, der `last_seen`-Einstellung und der `permit_join`-Konfiguration.
+- Fehlende deutsche Übersetzungen für Ventiladaption, Display-Einschaltdauer, Fehlerzustand sowie Temperatur- und Displayauswahlwerte von Thermostaten wurden ergänzt.
 
 **Version 5.42:**  
 
