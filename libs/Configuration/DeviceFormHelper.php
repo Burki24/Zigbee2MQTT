@@ -23,11 +23,12 @@ trait DeviceFormHelper
         $hasDeviceOptions = $this->ConfigureDeviceFormDeviceOptions($form);
         $hasBindingReporting = $this->ConfigureDeviceFormBindingReporting($form);
         $hasVariableSelection = $this->ConfigureDeviceFormVariableSelection($form);
+        $hasDeviceMaintenance = $this->ConfigureDeviceFormMaintenance($form);
         $this->SetDeviceFormField(
             $form,
             'AdvancedDeviceSettings',
             'visible',
-            $hasDeviceOptions || $hasBindingReporting || $hasVariableSelection
+            $hasDeviceOptions || $hasBindingReporting || $hasVariableSelection || $hasDeviceMaintenance
         );
         $this->ConfigureDeviceFormDiagnostics($form);
 
@@ -600,6 +601,17 @@ trait DeviceFormHelper
         $this->SetDeviceFormField($form, 'ReportingEndpoint', 'options', $this->BuildReportingEndpointOptions());
         $this->SetDeviceFormField($form, 'ReportingCluster', 'options', $this->BuildReportingClusterOptions());
         $this->SetDeviceFormField($form, 'ReportingAttribute', 'options', $this->BuildReportingAttributeOptions());
+
+        return $visible;
+    }
+
+    /**
+     * Blendet die Geraetewartung fuer konfigurierte Device-Instanzen ein.
+     */
+    private function ConfigureDeviceFormMaintenance(array &$form): bool
+    {
+        $visible = trim($this->ReadPropertyString(self::MQTT_TOPIC)) !== '';
+        $this->SetDeviceFormField($form, 'DeviceMaintenanceSettings', 'visible', $visible);
 
         return $visible;
     }

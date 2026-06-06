@@ -19,10 +19,11 @@
   - [4.2 Visualisierung und Kacheln](#42-visualisierung-und-kacheln)
   - [4.3 Temperatur-Visualisierung](#43-temperatur-visualisierung)
   - [4.4 Farbtemperatur in der Beleuchtungs-Kachel](#44-farbtemperatur-in-der-beleuchtungs-kachel)
-  - [4.5 Geräteoptionen](#45-geräteoptionen)
-  - [4.6 Binding und Reporting](#46-binding-und-reporting)
-  - [4.7 Variablenverwaltung](#47-variablenverwaltung)
-  - [4.8 Troubleshooting](#48-troubleshooting)
+  - [4.5 Gerätewartung](#45-gerätewartung)
+  - [4.6 Geräteoptionen](#46-geräteoptionen)
+  - [4.7 Binding und Reporting](#47-binding-und-reporting)
+  - [4.8 Variablenverwaltung](#48-variablenverwaltung)
+  - [4.9 Troubleshooting](#49-troubleshooting)
 - [5. Statusvariablen](#5-statusvariablen)
 - [6. PHP-Funktionsreferenz](#6-php-funktionsreferenz)
 - [7. Aktionen](#7-aktionen)
@@ -39,6 +40,7 @@
 - Automatische Zuordnung moderner Tile-Darstellungen und passender Standardprofile, soweit die Exposes dies zulassen
 - Eigene HTML-SDK-Kacheln für häufige Gerätetypen wie Schaltaktoren mit Messwerten, Heizungen, Sensoren, Sicherheitskontakte, Fenstergriffe und Aktionsgeräte
 - Komfortable Pflege von Zigbee2MQTT-Geräteoptionen inklusive typisierter Editoren und Attributauswahl
+- Gerätewartung für ein erneutes Interview oder eine erneute gerätespezifische Konfiguration
 - Binding- und Reporting-Verwaltung anhand der von Zigbee2MQTT gelieferten Endpoint- und Cluster-Daten
 - Variablenverwaltung für automatisch erkannte, nachgelieferte, deaktivierte oder vom Anwender gelöschte Variablen
 - Erstellen von Variablen für reine Aktionen wie Voreinstellungen wählen, Effekte aufrufen oder Identifizieren starten
@@ -78,7 +80,7 @@
 
 Nach dem Anlegen einer Geräteinstanz sind in der Regel nur wenige Schritte nötig. Die meisten Einstellungen werden automatisch aus den von Zigbee2MQTT gelieferten Geräteinformationen abgeleitet.
 
-Die Konfiguration priorisiert die tägliche Bedienung: **Visualisierung** bleibt als eigener Bereich sichtbar. Seltener benötigte, aber regulär unterstützte Funktionen wie **Geräteoptionen**, **Variablen** sowie **Binding und Reporting** befinden sich gesammelt unter **Erweiterte Geräteeinstellungen**. Debug-Export, IEEE-Adressänderung, fehlende Übersetzungen und Testcenter sind unter **Expertenwerkzeuge** zusammengefasst.
+Die Konfiguration priorisiert die tägliche Bedienung: **Visualisierung** bleibt als eigener Bereich sichtbar. Seltener benötigte, aber regulär unterstützte Funktionen wie **Gerätewartung**, **Geräteoptionen**, **Variablen** sowie **Binding und Reporting** befinden sich gesammelt unter **Erweiterte Geräteeinstellungen**. Debug-Export, IEEE-Adressänderung, fehlende Übersetzungen und Testcenter sind unter **Expertenwerkzeuge** zusammengefasst.
 
 1. **Geräteinformationen prüfen oder neu abrufen**
    Kontrollieren Sie, ob Gerätebild, Modell-Link, IEEE-Adresse und MQTT-Topic passen. Wenn Zigbee2MQTT neue oder geänderte Exposes liefert, können die Informationen über **Geräteinformationen aktualisieren** neu geladen werden. Eine erfolgreiche Aktualisierung wird im Formular bestätigt.
@@ -180,7 +182,18 @@ Der Override korrigiert die Symcon-Darstellung der `color_temp_kelvin`-Variable,
 
 Bei reinen Tunable-White-Leuchtmitteln ohne RGB/HS/XY-Farb-Expose legt das Modul zusätzlich eine abgeleitete Variable `color` mit dem Profil `~HexColor` an. Diese Variable zeigt den aktuellen Weißton als Farbe an, bleibt aber eine reine Darstellung und ersetzt keine echte RGB-Steuerung.
 
-### 4.5 Geräteoptionen
+### 4.5 Gerätewartung
+
+Unter **Erweiterte Geräteeinstellungen** steht für konfigurierte Geräte der Bereich **Gerätewartung** zur Verfügung. Die beiden Aktionen greifen direkt auf die offiziellen Zigbee2MQTT-Requests [`device/interview`](https://www.zigbee2mqtt.io/guide/usage/mqtt_topics_and_messages.html#zigbee2mqtt-bridge-request-device-interview) und [`device/configure`](https://www.zigbee2mqtt.io/guide/usage/mqtt_topics_and_messages.html#zigbee2mqtt-bridge-request-device-configure) zu.
+
+| Aktion | Verwendung |
+| --- | --- |
+| **Gerät erneut interviewen** | Liest Endpoints, Cluster und Basisattribute erneut vom Gerät ein. Dies ist besonders nach Firmwareupdates oder bei unvollständigen Endpoint- und Geräteinformationen sinnvoll. |
+| **Gerät neu konfigurieren** | Führt die in der Zigbee2MQTT-Gerätedefinition hinterlegte Konfiguration erneut aus. Dies kann fehlende Bindings oder Reporting-Einstellungen wiederherstellen. Nicht jedes Gerät besitzt eine solche Configure-Definition. |
+
+Beide Aktionen müssen vor dem Start bestätigt werden und können bis zu zwei Minuten dauern. Batteriegeräte müssen unmittelbar vorher aufgeweckt werden. Nach erfolgreichem Interview sollten **Geräteinformationen aktualisieren**, nach erfolgreicher Konfiguration bei Bedarf **Endpoint-Daten aktualisieren** ausgeführt werden. Fehler und Zeitüberschreitungen erscheinen als verständliche Meldung in der Geräte-Konfiguration.
+
+### 4.6 Geräteoptionen
 
 Zigbee2MQTT liefert je nach Gerät allgemeine und gerätespezifische Optionen. In der Instanz-Konfiguration erscheint dafür unter **Erweiterte Geräteeinstellungen** der Bereich **Geräteoptionen**. Dort werden bekannte Optionen mit aktuellem Wert, Typ und Beschreibung angezeigt.
 
@@ -221,7 +234,7 @@ Für Listen und Objekte muss JSON-Schreibweise verwendet werden, z. B. `["batter
 
 Optionen, die Zigbee2MQTT erst nach einem Neustart übernimmt, lösen in der Bridge eine entsprechende Meldung aus.
 
-### 4.6 Binding und Reporting
+### 4.7 Binding und Reporting
 
 Binding und Reporting sind Zigbee-Funktionen, mit denen Geräte direkter und effizienter miteinander arbeiten können. Beim Binding sendet ein Gerät bestimmte Cluster direkt an ein Zielgerät oder eine Zielgruppe, ohne dass jede Aktion erst über eine Automatisierung abgebildet werden muss. Reporting legt fest, welche Attribute ein Gerät selbstständig meldet und in welchen Intervallen oder ab welcher Änderung neue Werte übertragen werden. Beides ist besonders bei Tastern, Leuchtmitteln, Sensoren und batteriebetriebenen Geräten hilfreich, sollte aber bewusst konfiguriert werden, da nicht jedes Gerät jeden Cluster oder jedes Attribut unterstützt.
 
@@ -265,7 +278,7 @@ Für die Bedienung sind vor allem diese Felder wichtig:
 
 Die Endpoint-Liste wird aus den von Zigbee2MQTT gelieferten Geräteinformationen aufgebaut. Sie zeigt Endpoint, Name, Eingangscluster, Ausgangscluster sowie die Anzahl bekannter Bindings und konfigurierter Reportings.
 
-### 4.7 Variablenverwaltung
+### 4.8 Variablenverwaltung
 
 Die Instanz merkt sich alle aus Exposes, Payloads und Systemmeldungen bekannten Variablen in einem lokalen Variablenkatalog. In der Konfiguration erscheint dazu unter **Erweiterte Geräteeinstellungen** der Bereich **Variablen**. Dort kann pro Variable gesteuert werden, ob das Modul sie automatisch anlegen darf.
 
@@ -297,7 +310,7 @@ Typische Fälle in der Praxis:
 
 Composite-Exposes werden dabei auf die tatsächlich anlegbaren Untervariablen reduziert. Ein nicht selbst nutzbarer Composite-Elternknoten wird nicht als eigene Variable angeboten, während Unterwerte wie `options__motor_speed` sauber im Variablenkatalog erscheinen.
 
-### 4.8 Troubleshooting
+### 4.9 Troubleshooting
 
 Bei Problemen mit einer Geräteinstanz hilft zuerst der Debug der Instanz. Dort ist sichtbar, welche Payloads von Zigbee2MQTT empfangen werden, welche Variablen erkannt werden und welche Befehle an Zigbee2MQTT gesendet werden.
 
@@ -308,6 +321,8 @@ Bei Problemen mit einer Geräteinstanz hilft zuerst der Debug der Instanz. Dort 
 | Vorhandenes Binding wird nicht angezeigt | Die Binding-Übersicht wird aus `bridge/devices` gelesen. Nach einem neuen Binding kann der Cache erst verzögert aktualisiert werden. | **Endpoint-Daten aktualisieren** ausführen. Bleibt die Liste leer, in Zigbee2MQTT prüfen, ob das Binding dort unter dem Gerät angezeigt wird und ob `bridge/devices` aktuelle Endpoint-Daten enthält. |
 | Binding oder Reporting zeigt keine Cluster oder Attribute | Für den gewählten Endpoint sind keine passenden Cluster bekannt oder das Gerät unterstützt die Funktion nicht. | Endpoint wechseln, Geräteinformationen neu abrufen und in Zigbee2MQTT prüfen, welche Cluster das Gerät tatsächlich anbietet. Bei Batteriegeräten das Gerät vorher aufwecken. |
 | Gerät offline oder antwortet nicht | Das Gerät ist nicht erreichbar, schläft, hat keine Route oder ist in Zigbee2MQTT als offline markiert. | Gerät aufwecken, Stromversorgung/Batterie prüfen und in Zigbee2MQTT kontrollieren, ob es online ist. Danach die Aktion erneut ausführen. |
+| Geräteinterview schlägt fehl | Das Gerät antwortet während des Interviews nicht oder ein Batteriegerät schläft wieder ein. | Gerät aufwecken und **Gerät erneut interviewen** wiederholen. Nach Erfolg anschließend **Geräteinformationen aktualisieren** ausführen. |
+| Gerät kann nicht neu konfiguriert werden | Das Gerät ist nicht erreichbar oder seine Zigbee2MQTT-Definition enthält keine Configure-Funktion. | Gerät aufwecken und erneut versuchen. Meldet Zigbee2MQTT weiterhin, dass das Gerät nicht konfiguriert werden kann, unterstützt die Gerätedefinition diese Aktion nicht. |
 | Kachel erscheint nicht oder es wird die Standarddarstellung verwendet | Die benötigten Exposes fehlen, eine höher priorisierte Kachel ist aktiv oder die Spezialkachel wurde in der Instanz deaktiviert. | Bereich **Visualisierung** prüfen, Geräteinformationen neu abrufen und kontrollieren, ob die für die gewünschte Kachel nötigen Exposes vorhanden sind. |
 | Farbtemperaturbereich passt nicht | Zigbee2MQTT meldet für `color_temp` einen zu großen oder falschen Mired-Bereich. | Im Bereich **Farbtemperatur-Visualisierung** eigene Kelvin-Minimum- und Maximumwerte setzen. Mit `0`/`0` wird wieder der Zigbee2MQTT-Expose-Bereich verwendet. |
 | Variable wird nach dem Löschen nicht wieder angelegt | Die Variable ist im Variablenkatalog als gelöscht oder deaktiviert vermerkt. | Im Bereich **Variablen** die betroffene Variable über `Anlegen` wieder erstellen oder über `Aktivieren` für die automatische Anlage freigeben. |

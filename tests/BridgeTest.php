@@ -645,6 +645,32 @@ class BridgeTest extends TestCase
         $this->assertSame(10000, $bridge->lastTimeout);
     }
 
+    public function testInterviewDeviceUsesMaintenanceTopicAndTimeout(): void
+    {
+        $bridge = $this->createBridgeTestDouble([
+            'status' => 'ok',
+            'data'   => ['id' => 'lamp']
+        ]);
+
+        $this->assertTrue($bridge->InterviewDevice('lamp'));
+        $this->assertSame('/bridge/request/device/interview', $bridge->lastTopic);
+        $this->assertSame(['id' => 'lamp'], $bridge->lastPayload);
+        $this->assertSame(120000, $bridge->lastTimeout);
+    }
+
+    public function testConfigureDeviceUsesMaintenanceTopicAndTimeout(): void
+    {
+        $bridge = $this->createBridgeTestDouble([
+            'status' => 'ok',
+            'data'   => ['id' => 'lamp']
+        ]);
+
+        $this->assertTrue($bridge->ConfigureDevice('lamp'));
+        $this->assertSame('/bridge/request/device/configure', $bridge->lastTopic);
+        $this->assertSame(['id' => 'lamp'], $bridge->lastPayload);
+        $this->assertSame(120000, $bridge->lastTimeout);
+    }
+
     public function testReadReportingReturnsJsonData(): void
     {
         $bridge = $this->createBridgeTestDouble([

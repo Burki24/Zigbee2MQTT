@@ -217,6 +217,34 @@
             "items": [
                 {
                     "type": "ExpansionPanel",
+                    "name": "DeviceMaintenanceSettings",
+                    "caption": "Device maintenance",
+                    "expanded": false,
+                    "visible": false,
+                    "items": [
+                        {
+                            "type": "Label",
+                            "caption": "Use these actions when a device is not working as expected, after firmware updates, or when endpoints, exposes, bindings, or reporting data are incomplete. Wake battery devices before starting."
+                        },
+                        {
+                            "type": "RowLayout",
+                            "items": [
+                                {
+                                    "type": "Button",
+                                    "caption": "Interview device again",
+                                    "onClick": "IPS_RequestAction($id, 'RequestDeviceInterview', true);"
+                                },
+                                {
+                                    "type": "Button",
+                                    "caption": "Configure device again",
+                                    "onClick": "IPS_RequestAction($id, 'RequestDeviceConfigure', true);"
+                                }
+                            ]
+                        }
+                    ]
+                },
+                {
+                    "type": "ExpansionPanel",
                     "name": "DeviceOptionsSettings",
                     "caption": "Device options",
                     "expanded": false,
@@ -782,6 +810,77 @@
                     {
                         "type": "Label",
                         "caption": "The device information was loaded successfully from Zigbee2MQTT."
+                    }
+                ]
+            }
+        },
+        {
+            "name": "DeviceInterviewWarning",
+            "type": "PopupAlert",
+            "visible": false,
+            "popup": {
+                "closeCaption": "Cancel",
+                "buttons": [
+                    {
+                        "caption": "Start interview",
+                        "onClick": "IPS_RequestAction($id, 'ConfirmDeviceInterview', true);"
+                    }
+                ],
+                "items": [
+                    {
+                        "type": "Label",
+                        "bold": true,
+                        "caption": "Interview device again?"
+                    },
+                    {
+                        "type": "Label",
+                        "caption": "Zigbee2MQTT will read endpoints, clusters, and basic attributes again. The operation can take up to two minutes. Wake battery devices before starting."
+                    }
+                ]
+            }
+        },
+        {
+            "name": "DeviceConfigureWarning",
+            "type": "PopupAlert",
+            "visible": false,
+            "popup": {
+                "closeCaption": "Cancel",
+                "buttons": [
+                    {
+                        "caption": "Start configuration",
+                        "onClick": "IPS_RequestAction($id, 'ConfirmDeviceConfigure', true);"
+                    }
+                ],
+                "items": [
+                    {
+                        "type": "Label",
+                        "bold": true,
+                        "caption": "Configure device again?"
+                    },
+                    {
+                        "type": "Label",
+                        "caption": "Zigbee2MQTT will run the device-specific configuration again. This can restore bindings and reporting, but is only supported by devices with a configure definition. Wake battery devices before starting."
+                    }
+                ]
+            }
+        },
+        {
+            "name": "DeviceMaintenanceMessage",
+            "type": "PopupAlert",
+            "visible": false,
+            "popup": {
+                "closeCaption": "Close",
+                "items": [
+                    {
+                        "name": "DeviceMaintenanceMessageTitle",
+                        "type": "Label",
+                        "bold": true,
+                        "caption": ""
+                    },
+                    {
+                        "name": "DeviceMaintenanceMessageText",
+                        "type": "Label",
+                        "caption": ""
                     }
                 ]
             }

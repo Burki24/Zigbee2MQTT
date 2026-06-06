@@ -744,6 +744,34 @@ class Zigbee2MQTTBridge extends IPSModuleStrict
     }
 
     /**
+     * Liest Endpoints, Cluster und Basisattribute eines Geraets erneut ein.
+     *
+     * @param string $DeviceName Friendly Name oder IEEE-Adresse.
+     */
+    public function InterviewDevice(string $DeviceName): bool
+    {
+        return $this->SendQuietCheckedBridgeRequest(
+            '/bridge/request/device/interview',
+            ['id' => $DeviceName],
+            self::TIMEOUT_ZIGBEE_DEVICE_MAINTENANCE_REQUEST
+        ) !== false;
+    }
+
+    /**
+     * Fuehrt die geraetespezifische Zigbee2MQTT-Konfiguration erneut aus.
+     *
+     * @param string $DeviceName Friendly Name oder IEEE-Adresse.
+     */
+    public function ConfigureDevice(string $DeviceName): bool
+    {
+        return $this->SendQuietCheckedBridgeRequest(
+            '/bridge/request/device/configure',
+            ['id' => $DeviceName],
+            self::TIMEOUT_ZIGBEE_DEVICE_MAINTENANCE_REQUEST
+        ) !== false;
+    }
+
+    /**
      * CreateGroup
      *
      * @param  string $GroupName

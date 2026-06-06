@@ -99,4 +99,6 @@ trait Constants
     protected const TIMEOUT_ZIGBEE_BACKUP_REQUEST = 300000;
     /** @var int Wartezeit fuer Zigbee-Binding-Requests in Millisekunden */
     protected const TIMEOUT_ZIGBEE_BINDING_REQUEST = 15000;
+    /** @var int Wartezeit fuer Interview- und Konfigurations-Requests in Millisekunden */
+    protected const TIMEOUT_ZIGBEE_DEVICE_MAINTENANCE_REQUEST = 120000;
 }

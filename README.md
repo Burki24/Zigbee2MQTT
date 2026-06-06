@@ -394,6 +394,7 @@ Die Änderungen sind anhand der funktionalen Commits chronologisch gegliedert. A
 - Fehlende deutsche Übersetzungen für Ventiladaption, Display-Einschaltdauer, Fehlerzustand sowie Temperatur- und Displayauswahlwerte von Thermostaten wurden ergänzt.
 - Geräte- und Gruppeninformationen lassen sich über einheitlich benannte, direkt sichtbare Aktualisierungsaktionen neu aus Zigbee2MQTT einlesen; die doppelte Gruppenaktion unter den Expertenwerkzeugen wurde entfernt.
 - Gruppenoptionen werden ohne unnötige Zwischenebene direkt neben Gruppenmitgliedern und Szenen angezeigt.
+- Geräteinstanzen erhielten eine bestätigungspflichtige Gerätewartung. Ein erneutes Interview liest Endpoints, Cluster und Basisattribute neu ein; eine erneute Konfiguration stößt die gerätespezifische Zigbee2MQTT-Konfiguration für Bindings und Reporting erneut an. Lange Requests sowie nicht erreichbare oder nicht konfigurierbare Geräte werden mit verständlichen Ergebnisdialogen behandelt.
 
 **Version 5.42:**  
 

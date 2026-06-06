@@ -204,6 +204,51 @@ class DevicesTest extends DumpInclude
         $this->assertArrayNotHasKey('DeviceInfoRequestError', $device->updatedFields);
     }
 
+    public function testDeviceMaintenanceIsShownForConfiguredDevice(): void
+    {
+        [$iid] = $this->createTestInstance('MixedLightSensor.json');
+
+        $form = json_decode(IPS_GetConfigurationForm($iid), true);
+
+        $this->assertFormItemVisible($form, 'AdvancedDeviceSettings');
+        $this->assertFormItemVisible($form, 'DeviceMaintenanceSettings');
+    }
+
+    public function testDeviceInterviewRequiresConfirmationAndUsesLongMaintenanceTimeout(): void
+    {
+        $device = $this->createDeviceOptionFormTestDouble();
+
+        $device->RequestAction('RequestDeviceInterview', true);
+
+        $this->assertSame(true, $device->updatedFields['DeviceInterviewWarning']['visible']);
+        $this->assertSame('', $device->sentTopic);
+
+        $device->bridgeFunctionResult = true;
+        $device->RequestAction('ConfirmDeviceInterview', true);
+
+        $this->assertSame(false, $device->updatedFields['DeviceInterviewWarning']['visible']);
+        $this->assertSame('InterviewDevice', $device->calledBridgeFunction);
+        $this->assertSame(['Flur/Beleuchtung/Unten'], $device->calledBridgeArguments);
+        $this->assertSame(true, $device->updatedFields['DeviceMaintenanceMessage']['visible']);
+        $this->assertSame('Device interview successful', $device->updatedFields['DeviceMaintenanceMessageTitle']['caption']);
+    }
+
+    public function testDeviceConfigureShowsReadableZigbee2MQTTError(): void
+    {
+        $device = $this->createDeviceOptionFormTestDouble();
+        $device->bridgeFunctionResult = false;
+
+        $device->RequestAction('ConfirmDeviceConfigure', true);
+
+        $this->assertSame('ConfigureDevice', $device->calledBridgeFunction);
+        $this->assertSame(['Flur/Beleuchtung/Unten'], $device->calledBridgeArguments);
+        $this->assertSame('Device configuration failed', $device->updatedFields['DeviceMaintenanceMessageTitle']['caption']);
+        $this->assertStringContainsString(
+            'Zigbee2MQTT did not complete the request.',
+            $device->updatedFields['DeviceMaintenanceMessageText']['caption']
+        );
+    }
+
     public function testSwitchStateActionStillMapsBooleanToOnOff(): void
     {
         $device = $this->createDeviceActionTestDouble();
@@ -1833,6 +1878,9 @@ class DevicesTest extends DumpInclude
             public array $sendDataResponses = [];
             public array $cachedEndpoints = [];
             public bool $updateDeviceInfoCalled = false;
+            public string $calledBridgeFunction = '';
+            public array $calledBridgeArguments = [];
+            public bool $bridgeFunctionResult = false;
 
             protected function SendData(string $Topic, array $Payload = [], int $Timeout = 5000): array|bool
             {
@@ -1895,6 +1943,14 @@ class DevicesTest extends DumpInclude
             protected function ReadBridgeCachedDeviceEndpoints(): array
             {
                 return $this->cachedEndpoints;
+            }
+
+            protected function CallMatchingBridgeFunction(string $function, array $arguments): mixed
+            {
+                $this->calledBridgeFunction = $function;
+                $this->calledBridgeArguments = $arguments;
+
+                return $this->bridgeFunctionResult;
             }
         };
         $device->Create();

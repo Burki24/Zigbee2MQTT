@@ -596,6 +596,26 @@ Typische Optionen sind `transition`, `debounce`, `debounce_ignore`, `disable_aut
 
 ---
 
+### Z2M_InterviewDevice <!-- omit in toc -->
+
+```php
+bool Z2M_InterviewDevice(int $InstanzID, string $DeviceName);
+```
+
+Liest Endpoints, Cluster und Basisattribute eines Geräts erneut ein. Der Vorgang kann bis zu zwei Minuten dauern. Batteriegeräte müssen vorher aufgeweckt werden.
+
+---
+
+### Z2M_ConfigureDevice <!-- omit in toc -->
+
+```php
+bool Z2M_ConfigureDevice(int $InstanzID, string $DeviceName);
+```
+
+Führt die gerätespezifische Zigbee2MQTT-Konfiguration erneut aus. Die Funktion ist nur erfolgreich, wenn die Zigbee2MQTT-Gerätedefinition eine Configure-Funktion bereitstellt. Batteriegeräte müssen vorher aufgeweckt werden.
+
+---
+
 ### Z2M_CheckOTAUpdate <!-- omit in toc -->
 
 ```php

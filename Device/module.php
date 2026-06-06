@@ -136,6 +136,34 @@ class Zigbee2MQTTDevice extends \Zigbee2MQTT\ModulBase
             }
             return;
         }
+        if ($ident == 'RequestDeviceInterview') {
+            $this->UpdateFormField('DeviceInterviewWarning', 'visible', true);
+            return;
+        }
+        if ($ident == 'ConfirmDeviceInterview') {
+            $this->UpdateFormField('DeviceInterviewWarning', 'visible', false);
+            $this->RunDeviceMaintenanceRequest(
+                'InterviewDevice',
+                'Device interview successful',
+                'The device interview completed successfully. Refresh the device information afterwards to import changed exposes into Symcon.',
+                'Device interview failed'
+            );
+            return;
+        }
+        if ($ident == 'RequestDeviceConfigure') {
+            $this->UpdateFormField('DeviceConfigureWarning', 'visible', true);
+            return;
+        }
+        if ($ident == 'ConfirmDeviceConfigure') {
+            $this->UpdateFormField('DeviceConfigureWarning', 'visible', false);
+            $this->RunDeviceMaintenanceRequest(
+                'ConfigureDevice',
+                'Device configuration successful',
+                'The device configuration completed successfully. Refresh endpoint data afterwards to update binding and reporting information.',
+                'Device configuration failed'
+            );
+            return;
+        }
         if ($ident == 'ShowIeeeEditWarning') {
             $this->UpdateFormField('IeeeWarning', 'visible', true);
             return;
@@ -271,6 +299,55 @@ class Zigbee2MQTTDevice extends \Zigbee2MQTT\ModulBase
     private function ShowDeviceInfoRequestSuccess(): void
     {
         $this->UpdateFormField('DeviceInfoRequestSuccess', 'visible', true);
+    }
+
+    /**
+     * Fuehrt eine bestaetigte Zigbee2MQTT-Geraetewartung aus und zeigt das Ergebnis lesbar an.
+     */
+    private function RunDeviceMaintenanceRequest(
+        string $bridgeFunction,
+        string $successTitle,
+        string $successMessage,
+        string $failureTitle
+    ): bool {
+        $deviceID = trim($this->ReadPropertyString(parent::MQTT_TOPIC));
+        if ($deviceID === '') {
+            $this->ShowDeviceMaintenanceMessage(
+                $failureTitle,
+                'The device cannot be maintained because no MQTT topic is configured.'
+            );
+            return false;
+        }
+
+        set_error_handler(static function (): bool
+        {
+            return true;
+        }, E_USER_NOTICE);
+        try {
+            $success = $this->CallMatchingBridgeFunction($bridgeFunction, [$deviceID]) === true;
+        } finally {
+            restore_error_handler();
+        }
+        if (!$success) {
+            $this->ShowDeviceMaintenanceMessage(
+                $failureTitle,
+                'Zigbee2MQTT did not complete the request. Make sure the device is online and wake battery devices before trying again.'
+            );
+            return false;
+        }
+
+        $this->ShowDeviceMaintenanceMessage($successTitle, $successMessage);
+        return true;
+    }
+
+    /**
+     * Zeigt das Ergebnis einer Geraetewartungsaktion.
+     */
+    private function ShowDeviceMaintenanceMessage(string $title, string $message): void
+    {
+        $this->UpdateFormField('DeviceMaintenanceMessageTitle', 'caption', $this->Translate($title));
+        $this->UpdateFormField('DeviceMaintenanceMessageText', 'caption', $this->Translate($message));
+        $this->UpdateFormField('DeviceMaintenanceMessage', 'visible', true);
     }
 
     /**
