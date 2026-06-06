@@ -246,18 +246,11 @@
         },
         {
             "type": "ExpansionPanel",
-            "name": "AdvancedGroupSettings",
-            "caption": "Advanced group settings",
+            "name": "GroupOptionsSettings",
+            "caption": "Group options",
             "expanded": false,
             "visible": false,
             "items": [
-                {
-                    "type": "ExpansionPanel",
-                    "name": "GroupOptionsSettings",
-                    "caption": "Group options",
-                    "expanded": false,
-                    "visible": false,
-                    "items": [
                         {
                             "type": "Label",
                             "caption": "Configure Zigbee2MQTT group options. Values are sent to Zigbee2MQTT."
@@ -388,8 +381,6 @@
                                 }
                             ]
                         }
-                    ]
-                }
             ]
         }
     ],

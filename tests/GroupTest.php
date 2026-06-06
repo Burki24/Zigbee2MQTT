@@ -15,9 +15,12 @@ class GroupTest extends DumpInclude
     public function testGroupInformationRefreshIsTopLevelAction(): void
     {
         $form = json_decode(file_get_contents(__DIR__ . '/../Group/form.json'), true);
+        $topLevelNames = array_column($form['elements'], 'name');
 
         $this->assertSame('RefreshGroupInfoButton', $form['elements'][3]['name']);
         $this->assertSame('Refresh group information', $form['elements'][3]['caption']);
+        $this->assertContains('GroupOptionsSettings', $topLevelNames);
+        $this->assertNotContains('AdvancedGroupSettings', $topLevelNames);
     }
 
     public function testGroupAvailableDeviceListIsFilledFromExistingDeviceInstances(): void
@@ -161,9 +164,9 @@ class GroupTest extends DumpInclude
     {
         $groupID = $this->createConfiguredGroup('zigbee2mqtt', 'Flur/Beleuchtung/Deckenlicht/Gruppe');
         $form = json_decode(IPS_GetConfigurationForm($groupID), true);
-        $advancedSettings = $this->findFormItemByName($form, 'AdvancedGroupSettings');
-        $this->assertNotNull($advancedSettings);
-        $this->assertTrue($advancedSettings['visible']);
+        $groupOptions = $this->findFormItemByName($form, 'GroupOptionsSettings');
+        $this->assertNotNull($groupOptions);
+        $this->assertTrue($groupOptions['visible']);
         $list = $this->findFormItemByName($form, 'GroupOptionList');
 
         $this->assertNotNull($list);

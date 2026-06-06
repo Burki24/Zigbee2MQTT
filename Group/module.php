@@ -281,7 +281,6 @@ class Zigbee2MQTTGroup extends \Zigbee2MQTT\ModulBase
 
         $optionValues = $this->BuildGroupOptionFormValues();
         $hasGroupOptions = $configured || $optionValues !== [];
-        $this->SetGroupFormField($form, 'AdvancedGroupSettings', 'visible', $hasGroupOptions);
         $this->SetGroupFormField($form, 'GroupOptionsSettings', 'visible', $hasGroupOptions);
         $this->SetGroupFormField($form, 'GroupOptionList', 'values', $optionValues);
         $this->SetGroupFormField($form, 'GroupOptionList', 'rowCount', min(8, max(4, \count($optionValues) + 1)));
