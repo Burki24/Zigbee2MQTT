@@ -191,6 +191,21 @@ Unter **Erweiterte Geräteeinstellungen** steht für konfigurierte Geräte der B
 | **Gerät erneut interviewen** | Liest Endpoints, Cluster und Basisattribute erneut vom Gerät ein. Dies ist besonders nach Firmwareupdates oder bei unvollständigen Endpoint- und Geräteinformationen sinnvoll. |
 | **Gerät neu konfigurieren** | Führt die in der Zigbee2MQTT-Gerätedefinition hinterlegte Konfiguration erneut aus. Dies kann fehlende Bindings oder Reporting-Einstellungen wiederherstellen. Nicht jedes Gerät besitzt eine solche Configure-Definition. |
 
+#### Was bedeutet „Gerät neu konfigurieren“?
+
+Zigbee2MQTT-Gerätedefinitionen können eine gerätespezifische `configure`-Funktion enthalten. Diese wird normalerweise nach dem Anlernen eines Geräts ausgeführt und richtet das Gerät so ein, wie es der jeweilige Zigbee2MQTT-Gerätetreiber erwartet. Über **Gerät neu konfigurieren** wird genau diese Funktion erneut ausgeführt.
+
+Abhängig von der Gerätedefinition kann Zigbee2MQTT dabei:
+
+- benötigte Cluster an den Coordinator binden,
+- automatische Reporting-Intervalle und Änderungsschwellen einrichten,
+- gerätespezifische Attribute lesen oder schreiben,
+- herstellerspezifische Grundeinstellungen erneut setzen.
+
+Die Aktion führt **keinen Factory-Reset** durch, lernt das Gerät nicht neu an und ändert weder Friendly Name noch allgemeine Geräteoptionen. Sie kann jedoch zuvor manuell angepasste Bindings oder Reporting-Einstellungen wieder auf die von der Zigbee2MQTT-Gerätedefinition vorgesehenen Werte setzen. Deshalb sollte sie vor allem verwendet werden, wenn Werte nicht mehr gemeldet werden, Bindings fehlen oder ein Gerät nach einem Firmwareupdate nicht mehr vollständig arbeitet.
+
+Enthält die Zigbee2MQTT-Gerätedefinition keine `configure`-Funktion, kann das Gerät nicht neu konfiguriert werden. Zigbee2MQTT meldet dies entsprechend zurück.
+
 Beide Aktionen müssen vor dem Start bestätigt werden und können bis zu zwei Minuten dauern. Batteriegeräte müssen unmittelbar vorher aufgeweckt werden. Nach erfolgreichem Interview sollten **Geräteinformationen aktualisieren**, nach erfolgreicher Konfiguration bei Bedarf **Endpoint-Daten aktualisieren** ausgeführt werden. Fehler und Zeitüberschreitungen erscheinen als verständliche Meldung in der Geräte-Konfiguration.
 
 ### 4.6 Geräteoptionen
