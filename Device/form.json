@@ -39,10 +39,8 @@
         },
         {
             "type": "Button",
-            "name": "ShowMissingTranslationsButton",
-            "visible": false,
-            "caption": "Show missing translations",
-            "onClick": "IPS_RequestAction($id, 'ShowMissingTranslations', true);"
+            "caption": "Get Device Infos",
+            "onClick": "IPS_RequestAction($id, 'UpdateInfo', true);"
         },
         {
             "type": "ExpansionPanel",
@@ -136,423 +134,38 @@
                     "name": "UseSensorTile",
                     "caption": "Use sensor tile",
                     "visible": false
-                }
-            ]
-        },
-        {
-            "type": "ExpansionPanel",
-            "name": "TemperatureVisualization",
-            "caption": "Temperature visualization",
-            "expanded": false,
-            "visible": false,
-            "items": [
-                {
-                    "type": "Label",
-                    "caption": "Fallback range for temperature exposes without value_min/value_max."
-                },
-                {
-                    "type": "RowLayout",
-                    "items": [
-                        {
-                            "type": "NumberSpinner",
-                            "name": "TemperaturePresentationFallbackMin",
-                            "caption": "Minimum",
-                            "digits": 1,
-                            "minimum": -273.1,
-                            "maximum": 1000,
-                            "suffix": " °C"
-                        },
-                        {
-                            "type": "NumberSpinner",
-                            "name": "TemperaturePresentationFallbackMax",
-                            "caption": "Maximum",
-                            "digits": 1,
-                            "minimum": -273.1,
-                            "maximum": 1000,
-                            "suffix": " °C"
-                        }
-                    ]
-                }
-            ]
-        },
-        {
-            "type": "ExpansionPanel",
-            "name": "ColorTemperatureVisualization",
-            "caption": "Color temperature visualization",
-            "expanded": false,
-            "visible": false,
-            "items": [
-                {
-                    "type": "Label",
-                    "caption": "Optional Kelvin range for color temperature. Use 0 to use the Zigbee2MQTT expose range."
-                },
-                {
-                    "type": "RowLayout",
-                    "items": [
-                        {
-                            "type": "NumberSpinner",
-                            "name": "ColorTemperaturePresentationMin",
-                            "caption": "Minimum",
-                            "minimum": 0,
-                            "maximum": 40000,
-                            "suffix": " K"
-                        },
-                        {
-                            "type": "NumberSpinner",
-                            "name": "ColorTemperaturePresentationMax",
-                            "caption": "Maximum",
-                            "minimum": 0,
-                            "maximum": 40000,
-                            "suffix": " K"
-                        }
-                    ]
-                }
-            ]
-        },
-        {
-            "type": "ExpansionPanel",
-            "name": "DeviceOptionsSettings",
-            "caption": "Device options",
-            "expanded": false,
-            "visible": false,
-            "items": [
-                {
-                    "type": "Label",
-                    "caption": "Configure Zigbee2MQTT device options. Values are sent to Zigbee2MQTT and existing variables are not changed."
-                },
-                {
-                    "type": "List",
-                    "name": "DeviceOptionList",
-                    "add": false,
-                    "delete": false,
-                    "rowCount": 8,
-                    "loadValuesFromConfiguration": false,
-                    "sort": {
-                        "column": "label",
-                        "direction": "ascending"
-                    },
-                    "columns": [
-                        {
-                            "caption": "Option",
-                            "name": "label",
-                            "width": "auto",
-                            "quickFilter": true
-                        },
-                        {
-                            "caption": "Ident",
-                            "name": "name",
-                            "width": "180px",
-                            "quickFilter": true
-                        },
-                        {
-                            "caption": "Type",
-                            "name": "type",
-                            "width": "100px"
-                        },
-                        {
-                            "caption": "Current value",
-                            "name": "current",
-                            "width": "180px"
-                        },
-                        {
-                            "caption": "Description",
-                            "name": "description",
-                            "width": "300px"
-                        },
-                        {
-                            "caption": "Action",
-                            "name": "action",
-                            "width": "100px",
-                            "align": "center",
-                            "onClick": "IPS_RequestAction($id, 'SelectDeviceOption', json_encode(['name' => $DeviceOptionList['name'], 'value' => $DeviceOptionList['current']]));"
-                        }
-                    ],
-                    "values": []
-                },
-                {
-                    "type": "Label",
-                    "caption": "Use JSON notation for arrays and objects, e.g. [\"battery\"] or {\"key\":\"value\"}."
-                },
-                {
-                    "type": "RowLayout",
-                    "items": [
-                        {
-                            "type": "ValidationTextBox",
-                            "name": "DeviceOptionName",
-                            "caption": "Option"
-                        },
-                        {
-                            "type": "ValidationTextBox",
-                            "name": "DeviceOptionEditor",
-                            "caption": "Editor",
-                            "visible": false
-                        },
-                        {
-                            "type": "ValidationTextBox",
-                            "name": "DeviceOptionValue",
-                            "caption": "Value (JSON or text)"
-                        },
-                        {
-                            "type": "CheckBox",
-                            "name": "DeviceOptionBoolean",
-                            "caption": "Value",
-                            "visible": false
-                        },
-                        {
-                            "type": "Select",
-                            "name": "DeviceOptionSelect",
-                            "caption": "Value",
-                            "visible": false,
-                            "options": []
-                        },
-                        {
-                            "type": "Button",
-                            "caption": "Apply option",
-                            "onClick": "IPS_RequestAction($id, 'ApplyDeviceOption', json_encode(['name' => $DeviceOptionName, 'editor' => $DeviceOptionEditor, 'value' => $DeviceOptionValue, 'boolean' => $DeviceOptionBoolean, 'selection' => $DeviceOptionSelect]));"
-                        }
-                    ]
-                },
-                {
-                    "type": "List",
-                    "name": "DeviceOptionAttributeList",
-                    "visible": false,
-                    "add": false,
-                    "delete": false,
-                    "rowCount": 4,
-                    "loadValuesFromConfiguration": false,
-                    "columns": [
-                        {
-                            "caption": "Attribute",
-                            "name": "attribute",
-                            "width": "auto",
-                            "quickFilter": true
-                        },
-                        {
-                            "caption": "Action",
-                            "name": "action",
-                            "width": "100px",
-                            "align": "center",
-                            "onClick": "IPS_RequestAction($id, 'RemoveDeviceOptionAttribute', json_encode(['attribute' => $DeviceOptionAttributeList['attribute'], 'value' => $DeviceOptionValue]));"
-                        }
-                    ],
-                    "values": []
-                },
-                {
-                    "type": "RowLayout",
-                    "name": "DeviceOptionAttributeEditor",
-                    "visible": false,
-                    "items": [
-                        {
-                            "type": "Select",
-                            "name": "DeviceOptionAttributeCandidate",
-                            "caption": "Attribute",
-                            "options": []
-                        },
-                        {
-                            "type": "Button",
-                            "caption": "Add attribute",
-                            "onClick": "IPS_RequestAction($id, 'AddDeviceOptionAttribute', json_encode(['attribute' => $DeviceOptionAttributeCandidate, 'value' => $DeviceOptionValue]));"
-                        }
-                    ]
-                }
-            ]
-        },
-        {
-            "type": "ExpansionPanel",
-            "name": "BindingReportingSettings",
-            "caption": "Binding and reporting",
-            "expanded": false,
-            "visible": false,
-            "items": [
-                {
-                    "type": "Label",
-                    "caption": "Configure Zigbee binding and attribute reporting for this device. Battery devices may need to be woken up before applying changes."
-                },
-                {
-                    "type": "Button",
-                    "caption": "Refresh endpoint data",
-                    "onClick": "IPS_RequestAction($id, 'RefreshBindingReportingInfo', true);"
-                },
-                {
-                    "type": "Label",
-                    "name": "EndpointDataHint",
-                    "caption": "No endpoint data is available yet. Update the device information and make sure the Symcon extension is current.",
-                    "visible": false
-                },
-                {
-                    "type": "List",
-                    "name": "EndpointList",
-                    "add": false,
-                    "delete": false,
-                    "rowCount": 6,
-                    "loadValuesFromConfiguration": false,
-                    "columns": [
-                        {
-                            "caption": "Endpoint",
-                            "name": "endpoint",
-                            "width": "90px"
-                        },
-                        {
-                            "caption": "Name",
-                            "name": "name",
-                            "width": "140px"
-                        },
-                        {
-                            "caption": "Input clusters",
-                            "name": "input",
-                            "width": "auto"
-                        },
-                        {
-                            "caption": "Output clusters",
-                            "name": "output",
-                            "width": "160px"
-                        },
-                        {
-                            "caption": "Bindings",
-                            "name": "bindings",
-                            "width": "90px"
-                        },
-                        {
-                            "caption": "Reportings",
-                            "name": "reportings",
-                            "width": "90px"
-                        }
-                    ],
-                    "values": []
-                },
-                {
-                    "type": "List",
-                    "name": "BindingOverviewList",
-                    "caption": "Existing bindings",
-                    "visible": false,
-                    "add": false,
-                    "delete": false,
-                    "rowCount": 4,
-                    "loadValuesFromConfiguration": false,
-                    "columns": [
-                        {
-                            "caption": "Source endpoint",
-                            "name": "source_endpoint",
-                            "width": "120px"
-                        },
-                        {
-                            "caption": "Cluster",
-                            "name": "cluster",
-                            "width": "160px"
-                        },
-                        {
-                            "caption": "Type",
-                            "name": "target_type",
-                            "width": "100px"
-                        },
-                        {
-                            "caption": "Target",
-                            "name": "target",
-                            "width": "auto"
-                        },
-                        {
-                            "caption": "Target endpoint",
-                            "name": "target_endpoint",
-                            "width": "120px"
-                        }
-                    ],
-                    "values": []
-                },
-                {
-                    "type": "List",
-                    "name": "ReportingOverviewList",
-                    "caption": "Existing reportings",
-                    "visible": false,
-                    "add": false,
-                    "delete": false,
-                    "rowCount": 4,
-                    "loadValuesFromConfiguration": false,
-                    "columns": [
-                        {
-                            "caption": "Endpoint",
-                            "name": "endpoint",
-                            "width": "90px"
-                        },
-                        {
-                            "caption": "Cluster",
-                            "name": "cluster",
-                            "width": "180px"
-                        },
-                        {
-                            "caption": "Attribute",
-                            "name": "attribute",
-                            "width": "auto"
-                        },
-                        {
-                            "caption": "Minimum interval",
-                            "name": "minimum_interval",
-                            "width": "130px"
-                        },
-                        {
-                            "caption": "Maximum interval",
-                            "name": "maximum_interval",
-                            "width": "130px"
-                        },
-                        {
-                            "caption": "Reportable change",
-                            "name": "reportable_change",
-                            "width": "150px"
-                        }
-                    ],
-                    "values": []
                 },
                 {
                     "type": "ExpansionPanel",
-                    "caption": "Binding",
+                    "name": "TemperatureVisualization",
+                    "caption": "Temperature visualization",
                     "expanded": false,
+                    "visible": false,
                     "items": [
                         {
-                            "type": "RowLayout",
-                            "items": [
-                                {
-                                    "type": "Select",
-                                    "name": "BindingSourceEndpoint",
-                                    "caption": "Source endpoint",
-                                    "options": [],
-                                    "onChange": "IPS_RequestAction($id, 'UpdateBindingClusters', json_encode(['endpoint' => $BindingSourceEndpoint, 'target' => $BindingTarget, 'cluster' => $BindingClusters]));"
-                                },
-                                {
-                                    "type": "Select",
-                                    "name": "BindingTarget",
-                                    "caption": "Target device or group",
-                                    "options": [],
-                                    "onChange": "IPS_RequestAction($id, 'UpdateBindingClusters', json_encode(['endpoint' => $BindingSourceEndpoint, 'target' => $BindingTarget, 'cluster' => $BindingClusters]));"
-                                },
-                                {
-                                    "type": "Select",
-                                    "name": "BindingClusters",
-                                    "caption": "Clusters",
-                                    "options": []
-                                }
-                            ]
-                        },
-                        {
-                            "type": "CheckBox",
-                            "name": "BindingSkipDisableReporting",
-                            "caption": "Keep reporting when unbinding"
+                            "type": "Label",
+                            "caption": "Fallback range for temperature exposes without value_min/value_max."
                         },
                         {
                             "type": "RowLayout",
                             "items": [
                                 {
-                                    "type": "Button",
-                                    "caption": "Bind",
-                                    "onClick": "IPS_RequestAction($id, 'ApplyBinding', json_encode(['endpoint' => $BindingSourceEndpoint, 'target' => $BindingTarget, 'clusters' => $BindingClusters, 'skip_disable_reporting' => $BindingSkipDisableReporting]));"
+                                    "type": "NumberSpinner",
+                                    "name": "TemperaturePresentationFallbackMin",
+                                    "caption": "Minimum",
+                                    "digits": 1,
+                                    "minimum": -273.1,
+                                    "maximum": 1000,
+                                    "suffix": " °C"
                                 },
                                 {
-                                    "type": "Button",
-                                    "caption": "Unbind",
-                                    "onClick": "IPS_RequestAction($id, 'ApplyUnbinding', json_encode(['endpoint' => $BindingSourceEndpoint, 'target' => $BindingTarget, 'clusters' => $BindingClusters, 'skip_disable_reporting' => $BindingSkipDisableReporting]));"
-                                },
-                                {
-                                    "type": "Button",
-                                    "caption": "Clear bindings",
-                                    "onClick": "IPS_RequestAction($id, 'ClearBindings', true);"
+                                    "type": "NumberSpinner",
+                                    "name": "TemperaturePresentationFallbackMax",
+                                    "caption": "Maximum",
+                                    "digits": 1,
+                                    "minimum": -273.1,
+                                    "maximum": 1000,
+                                    "suffix": " °C"
                                 }
                             ]
                         }
@@ -560,154 +173,548 @@
                 },
                 {
                     "type": "ExpansionPanel",
-                    "caption": "Reporting",
+                    "name": "ColorTemperatureVisualization",
+                    "caption": "Color temperature visualization",
                     "expanded": false,
+                    "visible": false,
                     "items": [
                         {
-                            "type": "RowLayout",
-                            "items": [
-                                {
-                                    "type": "Select",
-                                    "name": "ReportingEndpoint",
-                                    "caption": "Endpoint",
-                                    "options": [],
-                                    "onChange": "IPS_RequestAction($id, 'UpdateReportingSelection', json_encode(['endpoint' => $ReportingEndpoint, 'cluster' => $ReportingCluster, 'attribute' => $ReportingAttribute]));"
-                                },
-                                {
-                                    "type": "Select",
-                                    "name": "ReportingCluster",
-                                    "caption": "Cluster",
-                                    "options": [],
-                                    "onChange": "IPS_RequestAction($id, 'UpdateReportingSelection', json_encode(['endpoint' => $ReportingEndpoint, 'cluster' => $ReportingCluster, 'attribute' => $ReportingAttribute]));"
-                                },
-                                {
-                                    "type": "Select",
-                                    "name": "ReportingAttribute",
-                                    "caption": "Attribute",
-                                    "options": []
-                                }
-                            ]
+                            "type": "Label",
+                            "caption": "Optional Kelvin range for color temperature. Use 0 to use the Zigbee2MQTT expose range."
                         },
                         {
                             "type": "RowLayout",
                             "items": [
                                 {
                                     "type": "NumberSpinner",
-                                    "name": "ReportingMinimumInterval",
-                                    "caption": "Minimum interval",
+                                    "name": "ColorTemperaturePresentationMin",
+                                    "caption": "Minimum",
                                     "minimum": 0,
-                                    "maximum": 65535,
-                                    "suffix": " s"
+                                    "maximum": 40000,
+                                    "suffix": " K"
                                 },
                                 {
                                     "type": "NumberSpinner",
-                                    "name": "ReportingMaximumInterval",
-                                    "caption": "Maximum interval",
+                                    "name": "ColorTemperaturePresentationMax",
+                                    "caption": "Maximum",
                                     "minimum": 0,
-                                    "maximum": 65535,
-                                    "suffix": " s"
-                                },
-                                {
-                                    "type": "ValidationTextBox",
-                                    "name": "ReportingReportableChange",
-                                    "caption": "Reportable change"
+                                    "maximum": 40000,
+                                    "suffix": " K"
                                 }
                             ]
+                        }
+                    ]
+                }
+            ]
+        },
+        {
+            "type": "ExpansionPanel",
+            "name": "AdvancedDeviceSettings",
+            "caption": "Advanced device settings",
+            "expanded": false,
+            "visible": false,
+            "items": [
+                {
+                    "type": "ExpansionPanel",
+                    "name": "DeviceOptionsSettings",
+                    "caption": "Device options",
+                    "expanded": false,
+                    "visible": false,
+                    "items": [
+                        {
+                            "type": "Label",
+                            "caption": "Configure Zigbee2MQTT device options. Values are sent to Zigbee2MQTT and existing variables are not changed."
                         },
                         {
-                            "type": "ValidationTextBox",
-                            "name": "ReportingOptions",
-                            "caption": "Options JSON"
+                            "type": "List",
+                            "name": "DeviceOptionList",
+                            "add": false,
+                            "delete": false,
+                            "rowCount": 8,
+                            "loadValuesFromConfiguration": false,
+                            "sort": {
+                                "column": "label",
+                                "direction": "ascending"
+                            },
+                            "columns": [
+                                {
+                                    "caption": "Option",
+                                    "name": "label",
+                                    "width": "auto",
+                                    "quickFilter": true
+                                },
+                                {
+                                    "caption": "Ident",
+                                    "name": "name",
+                                    "width": "180px",
+                                    "quickFilter": true
+                                },
+                                {
+                                    "caption": "Type",
+                                    "name": "type",
+                                    "width": "100px"
+                                },
+                                {
+                                    "caption": "Current value",
+                                    "name": "current",
+                                    "width": "180px"
+                                },
+                                {
+                                    "caption": "Description",
+                                    "name": "description",
+                                    "width": "300px"
+                                },
+                                {
+                                    "caption": "Action",
+                                    "name": "action",
+                                    "width": "100px",
+                                    "align": "center",
+                                    "onClick": "IPS_RequestAction($id, 'SelectDeviceOption', json_encode(['name' => $DeviceOptionList['name'], 'value' => $DeviceOptionList['current']]));"
+                                }
+                            ],
+                            "values": []
                         },
                         {
                             "type": "Label",
-                            "name": "ReportingResult",
-                            "visible": false,
-                            "caption": ""
+                            "caption": "Use JSON notation for arrays and objects, e.g. [\"battery\"] or {\"key\":\"value\"}."
                         },
                         {
                             "type": "RowLayout",
                             "items": [
                                 {
-                                    "type": "Button",
-                                    "caption": "Configure reporting",
-                                    "onClick": "IPS_RequestAction($id, 'ConfigureReporting', json_encode(['endpoint' => $ReportingEndpoint, 'cluster' => $ReportingCluster, 'attribute' => $ReportingAttribute, 'minimum' => $ReportingMinimumInterval, 'maximum' => $ReportingMaximumInterval, 'change' => $ReportingReportableChange, 'options' => $ReportingOptions]));"
+                                    "type": "ValidationTextBox",
+                                    "name": "DeviceOptionName",
+                                    "caption": "Option"
+                                },
+                                {
+                                    "type": "ValidationTextBox",
+                                    "name": "DeviceOptionEditor",
+                                    "caption": "Editor",
+                                    "visible": false
+                                },
+                                {
+                                    "type": "ValidationTextBox",
+                                    "name": "DeviceOptionValue",
+                                    "caption": "Value (JSON or text)"
+                                },
+                                {
+                                    "type": "CheckBox",
+                                    "name": "DeviceOptionBoolean",
+                                    "caption": "Value",
+                                    "visible": false
+                                },
+                                {
+                                    "type": "Select",
+                                    "name": "DeviceOptionSelect",
+                                    "caption": "Value",
+                                    "visible": false,
+                                    "options": []
                                 },
                                 {
                                     "type": "Button",
-                                    "caption": "Read reporting",
-                                    "onClick": "IPS_RequestAction($id, 'ReadReporting', json_encode(['endpoint' => $ReportingEndpoint, 'cluster' => $ReportingCluster, 'attribute' => $ReportingAttribute]));"
+                                    "caption": "Apply option",
+                                    "onClick": "IPS_RequestAction($id, 'ApplyDeviceOption', json_encode(['name' => $DeviceOptionName, 'editor' => $DeviceOptionEditor, 'value' => $DeviceOptionValue, 'boolean' => $DeviceOptionBoolean, 'selection' => $DeviceOptionSelect]));"
+                                }
+                            ]
+                        },
+                        {
+                            "type": "List",
+                            "name": "DeviceOptionAttributeList",
+                            "visible": false,
+                            "add": false,
+                            "delete": false,
+                            "rowCount": 4,
+                            "loadValuesFromConfiguration": false,
+                            "columns": [
+                                {
+                                    "caption": "Attribute",
+                                    "name": "attribute",
+                                    "width": "auto",
+                                    "quickFilter": true
+                                },
+                                {
+                                    "caption": "Action",
+                                    "name": "action",
+                                    "width": "100px",
+                                    "align": "center",
+                                    "onClick": "IPS_RequestAction($id, 'RemoveDeviceOptionAttribute', json_encode(['attribute' => $DeviceOptionAttributeList['attribute'], 'value' => $DeviceOptionValue]));"
+                                }
+                            ],
+                            "values": []
+                        },
+                        {
+                            "type": "RowLayout",
+                            "name": "DeviceOptionAttributeEditor",
+                            "visible": false,
+                            "items": [
+                                {
+                                    "type": "Select",
+                                    "name": "DeviceOptionAttributeCandidate",
+                                    "caption": "Attribute",
+                                    "options": []
+                                },
+                                {
+                                    "type": "Button",
+                                    "caption": "Add attribute",
+                                    "onClick": "IPS_RequestAction($id, 'AddDeviceOptionAttribute', json_encode(['attribute' => $DeviceOptionAttributeCandidate, 'value' => $DeviceOptionValue]));"
                                 }
                             ]
                         }
                     ]
-                }
-            ]
-        },
-        {
-            "type": "ExpansionPanel",
-            "name": "VariableSelectionSettings",
-            "caption": "Variables",
-            "expanded": false,
-            "visible": false,
-            "items": [
-                {
-                    "type": "Label",
-                    "caption": "Control which variables may be created automatically. Existing variables are not deleted."
                 },
                 {
-                    "type": "Button",
-                    "caption": "Refresh variables",
-                    "onClick": "IPS_RequestAction($id, 'RefreshVariableSelection', true);"
-                },
-                {
-                    "type": "List",
-                    "name": "VariableSelectionList",
-                    "add": false,
-                    "delete": false,
-                    "rowCount": 8,
-                    "loadValuesFromConfiguration": false,
-                    "sort": {
-                        "column": "label",
-                        "direction": "ascending"
-                    },
-                    "columns": [
+                    "type": "ExpansionPanel",
+                    "name": "VariableSelectionSettings",
+                    "caption": "Variables",
+                    "expanded": false,
+                    "visible": false,
+                    "items": [
                         {
-                            "caption": "Variable",
-                            "name": "label",
-                            "width": "auto",
-                            "quickFilter": true
+                            "type": "Label",
+                            "caption": "Control which variables may be created automatically. Existing variables are not deleted."
                         },
                         {
-                            "caption": "Ident",
-                            "name": "ident",
-                            "width": "180px",
-                            "quickFilter": true
+                            "type": "Button",
+                            "caption": "Refresh variables",
+                            "onClick": "IPS_RequestAction($id, 'RefreshVariableSelection', true);"
                         },
                         {
-                            "caption": "Source",
-                            "name": "source",
-                            "width": "90px"
-                        },
-                        {
-                            "caption": "Type",
-                            "name": "type",
-                            "width": "90px"
-                        },
-                        {
-                            "caption": "State",
-                            "name": "state",
-                            "width": "150px"
-                        },
-                        {
-                            "caption": "Action",
-                            "name": "action",
-                            "width": "100px",
-                            "align": "center",
-                            "onClick": "IPS_RequestAction($id, 'ToggleVariableCreation', $VariableSelectionList['ident']);"
+                            "type": "List",
+                            "name": "VariableSelectionList",
+                            "add": false,
+                            "delete": false,
+                            "rowCount": 8,
+                            "loadValuesFromConfiguration": false,
+                            "sort": {
+                                "column": "label",
+                                "direction": "ascending"
+                            },
+                            "columns": [
+                                {
+                                    "caption": "Variable",
+                                    "name": "label",
+                                    "width": "auto",
+                                    "quickFilter": true
+                                },
+                                {
+                                    "caption": "Ident",
+                                    "name": "ident",
+                                    "width": "180px",
+                                    "quickFilter": true
+                                },
+                                {
+                                    "caption": "Source",
+                                    "name": "source",
+                                    "width": "90px"
+                                },
+                                {
+                                    "caption": "Type",
+                                    "name": "type",
+                                    "width": "90px"
+                                },
+                                {
+                                    "caption": "State",
+                                    "name": "state",
+                                    "width": "150px"
+                                },
+                                {
+                                    "caption": "Action",
+                                    "name": "action",
+                                    "width": "100px",
+                                    "align": "center",
+                                    "onClick": "IPS_RequestAction($id, 'ToggleVariableCreation', $VariableSelectionList['ident']);"
+                                }
+                            ],
+                            "values": []
                         }
-                    ],
-                    "values": []
+                    ]
+                },
+                {
+                    "type": "ExpansionPanel",
+                    "name": "BindingReportingSettings",
+                    "caption": "Binding and reporting",
+                    "expanded": false,
+                    "visible": false,
+                    "items": [
+                        {
+                            "type": "Label",
+                            "caption": "Configure Zigbee binding and attribute reporting for this device. Battery devices may need to be woken up before applying changes."
+                        },
+                        {
+                            "type": "Button",
+                            "caption": "Refresh endpoint data",
+                            "onClick": "IPS_RequestAction($id, 'RefreshBindingReportingInfo', true);"
+                        },
+                        {
+                            "type": "Label",
+                            "name": "EndpointDataHint",
+                            "caption": "No endpoint data is available yet. Update the device information and make sure the Symcon extension is current.",
+                            "visible": false
+                        },
+                        {
+                            "type": "List",
+                            "name": "EndpointList",
+                            "add": false,
+                            "delete": false,
+                            "rowCount": 6,
+                            "loadValuesFromConfiguration": false,
+                            "columns": [
+                                {
+                                    "caption": "Endpoint",
+                                    "name": "endpoint",
+                                    "width": "90px"
+                                },
+                                {
+                                    "caption": "Name",
+                                    "name": "name",
+                                    "width": "140px"
+                                },
+                                {
+                                    "caption": "Input clusters",
+                                    "name": "input",
+                                    "width": "auto"
+                                },
+                                {
+                                    "caption": "Output clusters",
+                                    "name": "output",
+                                    "width": "160px"
+                                },
+                                {
+                                    "caption": "Bindings",
+                                    "name": "bindings",
+                                    "width": "90px"
+                                },
+                                {
+                                    "caption": "Reportings",
+                                    "name": "reportings",
+                                    "width": "90px"
+                                }
+                            ],
+                            "values": []
+                        },
+                        {
+                            "type": "List",
+                            "name": "BindingOverviewList",
+                            "caption": "Existing bindings",
+                            "visible": false,
+                            "add": false,
+                            "delete": false,
+                            "rowCount": 4,
+                            "loadValuesFromConfiguration": false,
+                            "columns": [
+                                {
+                                    "caption": "Source endpoint",
+                                    "name": "source_endpoint",
+                                    "width": "120px"
+                                },
+                                {
+                                    "caption": "Cluster",
+                                    "name": "cluster",
+                                    "width": "160px"
+                                },
+                                {
+                                    "caption": "Type",
+                                    "name": "target_type",
+                                    "width": "100px"
+                                },
+                                {
+                                    "caption": "Target",
+                                    "name": "target",
+                                    "width": "auto"
+                                },
+                                {
+                                    "caption": "Target endpoint",
+                                    "name": "target_endpoint",
+                                    "width": "120px"
+                                }
+                            ],
+                            "values": []
+                        },
+                        {
+                            "type": "List",
+                            "name": "ReportingOverviewList",
+                            "caption": "Existing reportings",
+                            "visible": false,
+                            "add": false,
+                            "delete": false,
+                            "rowCount": 4,
+                            "loadValuesFromConfiguration": false,
+                            "columns": [
+                                {
+                                    "caption": "Endpoint",
+                                    "name": "endpoint",
+                                    "width": "90px"
+                                },
+                                {
+                                    "caption": "Cluster",
+                                    "name": "cluster",
+                                    "width": "180px"
+                                },
+                                {
+                                    "caption": "Attribute",
+                                    "name": "attribute",
+                                    "width": "auto"
+                                },
+                                {
+                                    "caption": "Minimum interval",
+                                    "name": "minimum_interval",
+                                    "width": "130px"
+                                },
+                                {
+                                    "caption": "Maximum interval",
+                                    "name": "maximum_interval",
+                                    "width": "130px"
+                                },
+                                {
+                                    "caption": "Reportable change",
+                                    "name": "reportable_change",
+                                    "width": "150px"
+                                }
+                            ],
+                            "values": []
+                        },
+                        {
+                            "type": "ExpansionPanel",
+                            "caption": "Binding",
+                            "expanded": false,
+                            "items": [
+                                {
+                                    "type": "RowLayout",
+                                    "items": [
+                                        {
+                                            "type": "Select",
+                                            "name": "BindingSourceEndpoint",
+                                            "caption": "Source endpoint",
+                                            "options": [],
+                                            "onChange": "IPS_RequestAction($id, 'UpdateBindingClusters', json_encode(['endpoint' => $BindingSourceEndpoint, 'target' => $BindingTarget, 'cluster' => $BindingClusters]));"
+                                        },
+                                        {
+                                            "type": "Select",
+                                            "name": "BindingTarget",
+                                            "caption": "Target device or group",
+                                            "options": [],
+                                            "onChange": "IPS_RequestAction($id, 'UpdateBindingClusters', json_encode(['endpoint' => $BindingSourceEndpoint, 'target' => $BindingTarget, 'cluster' => $BindingClusters]));"
+                                        },
+                                        {
+                                            "type": "Select",
+                                            "name": "BindingClusters",
+                                            "caption": "Clusters",
+                                            "options": []
+                                        }
+                                    ]
+                                },
+                                {
+                                    "type": "CheckBox",
+                                    "name": "BindingSkipDisableReporting",
+                                    "caption": "Keep reporting when unbinding"
+                                },
+                                {
+                                    "type": "RowLayout",
+                                    "items": [
+                                        {
+                                            "type": "Button",
+                                            "caption": "Bind",
+                                            "onClick": "IPS_RequestAction($id, 'ApplyBinding', json_encode(['endpoint' => $BindingSourceEndpoint, 'target' => $BindingTarget, 'clusters' => $BindingClusters, 'skip_disable_reporting' => $BindingSkipDisableReporting]));"
+                                        },
+                                        {
+                                            "type": "Button",
+                                            "caption": "Unbind",
+                                            "onClick": "IPS_RequestAction($id, 'ApplyUnbinding', json_encode(['endpoint' => $BindingSourceEndpoint, 'target' => $BindingTarget, 'clusters' => $BindingClusters, 'skip_disable_reporting' => $BindingSkipDisableReporting]));"
+                                        },
+                                        {
+                                            "type": "Button",
+                                            "caption": "Clear bindings",
+                                            "onClick": "IPS_RequestAction($id, 'ClearBindings', true);"
+                                        }
+                                    ]
+                                }
+                            ]
+                        },
+                        {
+                            "type": "ExpansionPanel",
+                            "caption": "Reporting",
+                            "expanded": false,
+                            "items": [
+                                {
+                                    "type": "RowLayout",
+                                    "items": [
+                                        {
+                                            "type": "Select",
+                                            "name": "ReportingEndpoint",
+                                            "caption": "Endpoint",
+                                            "options": [],
+                                            "onChange": "IPS_RequestAction($id, 'UpdateReportingSelection', json_encode(['endpoint' => $ReportingEndpoint, 'cluster' => $ReportingCluster, 'attribute' => $ReportingAttribute]));"
+                                        },
+                                        {
+                                            "type": "Select",
+                                            "name": "ReportingCluster",
+                                            "caption": "Cluster",
+                                            "options": [],
+                                            "onChange": "IPS_RequestAction($id, 'UpdateReportingSelection', json_encode(['endpoint' => $ReportingEndpoint, 'cluster' => $ReportingCluster, 'attribute' => $ReportingAttribute]));"
+                                        },
+                                        {
+                                            "type": "Select",
+                                            "name": "ReportingAttribute",
+                                            "caption": "Attribute",
+                                            "options": []
+                                        }
+                                    ]
+                                },
+                                {
+                                    "type": "RowLayout",
+                                    "items": [
+                                        {
+                                            "type": "NumberSpinner",
+                                            "name": "ReportingMinimumInterval",
+                                            "caption": "Minimum interval",
+                                            "minimum": 0,
+                                            "maximum": 65535,
+                                            "suffix": " s"
+                                        },
+                                        {
+                                            "type": "NumberSpinner",
+                                            "name": "ReportingMaximumInterval",
+                                            "caption": "Maximum interval",
+                                            "minimum": 0,
+                                            "maximum": 65535,
+                                            "suffix": " s"
+                                        },
+                                        {
+                                            "type": "ValidationTextBox",
+                                            "name": "ReportingReportableChange",
+                                            "caption": "Reportable change"
+                                        }
+                                    ]
+                                },
+                                {
+                                    "type": "ValidationTextBox",
+                                    "name": "ReportingOptions",
+                                    "caption": "Options JSON"
+                                },
+                                {
+                                    "type": "Label",
+                                    "name": "ReportingResult",
+                                    "visible": false,
+                                    "caption": ""
+                                },
+                                {
+                                    "type": "RowLayout",
+                                    "items": [
+                                        {
+                                            "type": "Button",
+                                            "caption": "Configure reporting",
+                                            "onClick": "IPS_RequestAction($id, 'ConfigureReporting', json_encode(['endpoint' => $ReportingEndpoint, 'cluster' => $ReportingCluster, 'attribute' => $ReportingAttribute, 'minimum' => $ReportingMinimumInterval, 'maximum' => $ReportingMaximumInterval, 'change' => $ReportingReportableChange, 'options' => $ReportingOptions]));"
+                                        },
+                                        {
+                                            "type": "Button",
+                                            "caption": "Read reporting",
+                                            "onClick": "IPS_RequestAction($id, 'ReadReporting', json_encode(['endpoint' => $ReportingEndpoint, 'cluster' => $ReportingCluster, 'attribute' => $ReportingAttribute]));"
+                                        }
+                                    ]
+                                }
+                            ]
+                        }
+                    ]
                 }
             ]
         }
@@ -780,7 +787,7 @@
         },
         {
             "type": "ExpansionPanel",
-            "caption": "Expert Settings",
+            "caption": "Expert tools",
             "expanded": false,
             "width": "800px",
             "items": [
@@ -789,8 +796,10 @@
                     "items": [
                         {
                             "type": "Button",
-                            "caption": "Get Device Infos",
-                            "onClick": "IPS_RequestAction($id, 'UpdateInfo', true);"
+                            "name": "ShowMissingTranslationsButton",
+                            "visible": false,
+                            "caption": "Show missing translations",
+                            "onClick": "IPS_RequestAction($id, 'ShowMissingTranslations', true);"
                         },
                         {
                             "type": "Button",

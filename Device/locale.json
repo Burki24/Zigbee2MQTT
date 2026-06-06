@@ -13,6 +13,8 @@
             "Device information loaded": "Geräteinformationen geladen",
             "The device information was loaded successfully from Zigbee2MQTT.": "Die Geräteinformationen wurden erfolgreich von Zigbee2MQTT geladen.",
             "Expert Settings": "Experteneinstellungen",
+            "Expert tools": "Expertenwerkzeuge",
+            "Advanced device settings": "Erweiterte Geräteeinstellungen",
             "Change IEEE Address": "IEEE Adresse ändern",
             "Warning!": "Warnung!",
             "Close": "Schließen",

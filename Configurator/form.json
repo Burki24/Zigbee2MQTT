@@ -56,7 +56,8 @@
                         {
                             "caption": "Description",
                             "name": "description",
-                            "width": "200px"
+                            "width": "200px",
+                            "visible": false
                         },
                         {
                             "caption": "Type",
@@ -66,7 +67,8 @@
                         {
                             "caption": "Power Source",
                             "name": "power_source",
-                            "width": "150px"
+                            "width": "150px",
+                            "visible": false
                         }
                     ],
                     "values": []
@@ -76,7 +78,7 @@
         {
             "type": "ExpansionPanel",
             "caption": "Groups",
-            "expanded": true,
+            "expanded": false,
             "items": [
                 {
                     "type": "Configurator",

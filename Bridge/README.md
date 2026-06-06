@@ -70,6 +70,8 @@
 
 Zusätzlich zu den Grundeinstellungen enthält die Bridge folgende Funktionsbereiche:
 
+Die Oberfläche trennt häufig benötigte Funktionen von administrativen Werkzeugen. **Integration und Status**, **Diagnose** und **OTA-Updates** bilden die regulären Arbeitsbereiche. **Netzwerksicherheit**, **Variablen-Wartung** und **Zigbee2MQTT-Wartung** sind unter **Erweiterte Administration** zusammengefasst. Das Testcenter befindet sich unter **Expertenwerkzeuge**.
+
 | Bereich | Beschreibung |
 | ------- | ------------ |
 | Diagnose | Führt Health Check und Coordinator Check aus, fordert die Netzwerkkarte an und zeigt fehlende Router, nicht unterstützte Geräte, Interview-Probleme, Bridge-Events sowie Warnungen und Fehler an. |
@@ -84,7 +86,7 @@ Der Diagnosebereich bündelt zentrale Prüfungen für die Zigbee2MQTT-Installati
 
 ### 5.2 Netzwerksicherheit
 
-Die `blocklist` blockiert Geräte anhand ihrer IEEE-Adresse. Die `passlist` ist restriktiver: Zigbee2MQTT entfernt Geräte aus dem Netzwerk, die nicht in der Passlist stehen. Deshalb verlangt die Bridge-Konfiguration vor Passlist-Änderungen eine Bestätigung. Die Geräteauswahl wird als filterbare Liste aus bereits empfangenen Zigbee2MQTT-Gerätedaten, vorhandenen Device-Instanzen mit gleicher Bridge und bei Bedarf aus der Symcon-Extension aufgebaut. Über **Verfügbare Geräte aktualisieren** wird die geöffnete Liste neu aus diesen Datenquellen aufgebaut.
+Die Netzwerksicherheit befindet sich unter **Erweiterte Administration**. Die `blocklist` blockiert Geräte anhand ihrer IEEE-Adresse. Die `passlist` ist restriktiver: Zigbee2MQTT entfernt Geräte aus dem Netzwerk, die nicht in der Passlist stehen. Deshalb verlangt die Bridge-Konfiguration vor Passlist-Änderungen eine Bestätigung. Die Geräteauswahl wird als filterbare Liste aus bereits empfangenen Zigbee2MQTT-Gerätedaten, vorhandenen Device-Instanzen mit gleicher Bridge und bei Bedarf aus der Symcon-Extension aufgebaut. Über **Verfügbare Geräte aktualisieren** wird die geöffnete Liste neu aus diesen Datenquellen aufgebaut.
 
 ### 5.3 OTA-Updates
 
@@ -94,7 +96,7 @@ Die OTA-Verwaltung bietet nur Geräte an, die Zigbee2MQTT in den Bridge-Geräted
 
 ### 5.4 Variablen-Wartung
 
-Die Variablen-Wartung ist der unterstützte Weg, um alte Zigbee2MQTT-Variablen aufzuräumen. Über **Verwaiste Variablen suchen** werden klare Löschkandidaten, Review-Kandidaten und Hinweise getrennt angezeigt. Die Listen zeigen zusätzlich, ob eine Variable archiviert ist und wann sie zuletzt beschrieben wurde. Archivierte oder von anderen Symcon-Objekten referenzierte Variablen werden in der Bridge-Oberfläche nicht gelöscht. Jeder Löschvorgang betrifft genau eine Variable und muss über ein Popup bestätigt werden.
+Die Variablen-Wartung befindet sich unter **Erweiterte Administration** und ist der unterstützte Weg, um alte Zigbee2MQTT-Variablen aufzuräumen. Über **Verwaiste Variablen suchen** werden klare Löschkandidaten, Review-Kandidaten und Hinweise getrennt angezeigt. Die Listen zeigen zusätzlich, ob eine Variable archiviert ist und wann sie zuletzt beschrieben wurde. Archivierte oder von anderen Symcon-Objekten referenzierte Variablen werden in der Bridge-Oberfläche nicht gelöscht. Jeder Löschvorgang betrifft genau eine Variable und muss über ein Popup bestätigt werden.
 
 Bei OTA-fähigen Geräten bleiben stabile Update-Metadaten wie installierte Version, neueste Version und Status geschützt. Fortschritt und verbleibende Dauer sind hingegen temporäre Werte und werden nur berücksichtigt, solange Zigbee2MQTT sie im aktuellen Payload liefert. Dadurch bleiben bei Geräten ohne OTA-Fähigkeit keine historischen Update-Reste dauerhaft geschützt.
 
@@ -102,7 +104,7 @@ Bei OTA-fähigen Geräten bleiben stabile Update-Metadaten wie installierte Vers
 
 ### 5.5 Zigbee2MQTT-Wartung
 
-Der Bereich **Zigbee2MQTT-Wartung** stellt Werkzeuge für administrative Aufgaben bereit. Backups werden als ZIP-Datei auf dem Symcon-Server gespeichert. Zusätzlich können Zigbee-3.0-Install-Codes gesendet und Touchlink-Scan, Identify sowie Factory-Reset ausgeführt werden.
+Der unter **Erweiterte Administration** einsortierte Bereich **Zigbee2MQTT-Wartung** stellt Werkzeuge für administrative Aufgaben bereit. Backups werden als ZIP-Datei auf dem Symcon-Server gespeichert. Zusätzlich können Zigbee-3.0-Install-Codes gesendet und Touchlink-Scan, Identify sowie Factory-Reset ausgeführt werden.
 
 #### 5.5.1 Backup
 

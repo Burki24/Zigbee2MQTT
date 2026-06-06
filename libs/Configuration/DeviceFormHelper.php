@@ -20,9 +20,15 @@ trait DeviceFormHelper
         $this->ConfigureDeviceFormVisualization($form, $tileStates);
         $this->ConfigureDeviceFormTemperatureVisualization($form, $tileStates);
         $this->ConfigureDeviceFormColorTemperatureVisualization($form);
-        $this->ConfigureDeviceFormDeviceOptions($form);
-        $this->ConfigureDeviceFormBindingReporting($form);
-        $this->ConfigureDeviceFormVariableSelection($form);
+        $hasDeviceOptions = $this->ConfigureDeviceFormDeviceOptions($form);
+        $hasBindingReporting = $this->ConfigureDeviceFormBindingReporting($form);
+        $hasVariableSelection = $this->ConfigureDeviceFormVariableSelection($form);
+        $this->SetDeviceFormField(
+            $form,
+            'AdvancedDeviceSettings',
+            'visible',
+            $hasDeviceOptions || $hasBindingReporting || $hasVariableSelection
+        );
         $this->ConfigureDeviceFormDiagnostics($form);
 
         return $form;
@@ -538,29 +544,35 @@ trait DeviceFormHelper
     /**
      * Fuellt die dynamische Variablenverwaltung.
      */
-    private function ConfigureDeviceFormVariableSelection(array &$form): void
+    private function ConfigureDeviceFormVariableSelection(array &$form): bool
     {
         $values = $this->BuildVariableSelectionFormValues();
-        $this->SetDeviceFormField($form, 'VariableSelectionSettings', 'visible', \count($values) > 0);
+        $visible = \count($values) > 0;
+        $this->SetDeviceFormField($form, 'VariableSelectionSettings', 'visible', $visible);
         $this->SetDeviceFormField($form, 'VariableSelectionList', 'values', $values);
         $this->SetDeviceFormField($form, 'VariableSelectionList', 'rowCount', min(12, max(4, \count($values) + 1)));
+
+        return $visible;
     }
 
     /**
      * Fuellt die dynamische Verwaltung fuer Zigbee2MQTT-Geraeteoptionen.
      */
-    private function ConfigureDeviceFormDeviceOptions(array &$form): void
+    private function ConfigureDeviceFormDeviceOptions(array &$form): bool
     {
         $values = $this->BuildDeviceOptionFormValues();
-        $this->SetDeviceFormField($form, 'DeviceOptionsSettings', 'visible', \count($values) > 0);
+        $visible = \count($values) > 0;
+        $this->SetDeviceFormField($form, 'DeviceOptionsSettings', 'visible', $visible);
         $this->SetDeviceFormField($form, 'DeviceOptionList', 'values', $values);
         $this->SetDeviceFormField($form, 'DeviceOptionList', 'rowCount', min(12, max(4, \count($values) + 1)));
+
+        return $visible;
     }
 
     /**
      * Fuellt die dynamische Verwaltung fuer Zigbee-Binding und Reporting.
      */
-    private function ConfigureDeviceFormBindingReporting(array &$form): void
+    private function ConfigureDeviceFormBindingReporting(array &$form): bool
     {
         $values = $this->BuildEndpointFormValues();
         $bindingValues = $this->BuildBindingOverviewFormValues();
@@ -588,6 +600,8 @@ trait DeviceFormHelper
         $this->SetDeviceFormField($form, 'ReportingEndpoint', 'options', $this->BuildReportingEndpointOptions());
         $this->SetDeviceFormField($form, 'ReportingCluster', 'options', $this->BuildReportingClusterOptions());
         $this->SetDeviceFormField($form, 'ReportingAttribute', 'options', $this->BuildReportingAttributeOptions());
+
+        return $visible;
     }
 
     /**

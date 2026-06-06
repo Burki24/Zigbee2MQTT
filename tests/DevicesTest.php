@@ -786,6 +786,7 @@ class DevicesTest extends DumpInclude
         ]);
 
         $form = json_decode(IPS_GetConfigurationForm($iid), true);
+        $this->assertFormItemVisible($form, 'AdvancedDeviceSettings');
         $this->assertFormItemVisible($form, 'DeviceOptionsSettings');
 
         $list = $this->findFormItemByName($form, 'DeviceOptionList');

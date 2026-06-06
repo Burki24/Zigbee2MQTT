@@ -78,11 +78,13 @@
 
 Nach dem Anlegen einer Geräteinstanz sind in der Regel nur wenige Schritte nötig. Die meisten Einstellungen werden automatisch aus den von Zigbee2MQTT gelieferten Geräteinformationen abgeleitet.
 
+Die Konfiguration priorisiert die tägliche Bedienung: **Visualisierung** bleibt als eigener Bereich sichtbar. Seltener benötigte, aber regulär unterstützte Funktionen wie **Geräteoptionen**, **Variablen** sowie **Binding und Reporting** befinden sich gesammelt unter **Erweiterte Geräteeinstellungen**. Debug-Export, IEEE-Adressänderung, fehlende Übersetzungen und Testcenter sind unter **Expertenwerkzeuge** zusammengefasst.
+
 1. **Geräteinformationen prüfen oder neu abrufen**
    Kontrollieren Sie, ob Gerätebild, Modell-Link, IEEE-Adresse und MQTT-Topic passen. Wenn Zigbee2MQTT neue oder geänderte Exposes liefert, können die Informationen über **Geräteinformationen abrufen** neu geladen werden. Ein erfolgreicher Abruf wird im Formular bestätigt.
 
 2. **Variablen prüfen**
-   Öffnen Sie den Bereich **Variablen** und prüfen Sie, welche Werte angelegt, deaktiviert, gelöscht oder noch nicht angelegt sind. Deaktivierte Variablen werden nicht automatisch neu erzeugt, können dort aber später wieder aktiviert werden.
+   Öffnen Sie unter **Erweiterte Geräteeinstellungen** den Bereich **Variablen** und prüfen Sie, welche Werte angelegt, deaktiviert, gelöscht oder noch nicht angelegt sind. Deaktivierte Variablen werden nicht automatisch neu erzeugt, können dort aber später wieder aktiviert werden.
 
 3. **Visualisierung prüfen**
    Im Bereich **Visualisierung** zeigt das Modul, welche Kachel automatisch verwendet wird. Wenn mehrere Darstellungen fachlich passen, kann eine spezielle Kachel deaktiviert werden, damit die nächste passende Darstellung oder die Symcon-Standarddarstellung verwendet wird.
@@ -180,7 +182,7 @@ Bei reinen Tunable-White-Leuchtmitteln ohne RGB/HS/XY-Farb-Expose legt das Modul
 
 ### 4.5 Geräteoptionen
 
-Zigbee2MQTT liefert je nach Gerät allgemeine und gerätespezifische Optionen. In der Instanz-Konfiguration erscheint dafür der Bereich **Geräteoptionen**. Dort werden bekannte Optionen mit aktuellem Wert, Typ und Beschreibung angezeigt.
+Zigbee2MQTT liefert je nach Gerät allgemeine und gerätespezifische Optionen. In der Instanz-Konfiguration erscheint dafür unter **Erweiterte Geräteeinstellungen** der Bereich **Geräteoptionen**. Dort werden bekannte Optionen mit aktuellem Wert, Typ und Beschreibung angezeigt.
 
 ![Geräteoptionen](imgs/geraeteoptionen.png)
 
@@ -225,7 +227,7 @@ Binding und Reporting sind Zigbee-Funktionen, mit denen Geräte direkter und eff
 
 ![Binding und Reporting](imgs/binding-reporting.png)
 
-Wenn Zigbee2MQTT Endpoint-Daten liefert, zeigt die Instanz-Konfiguration den Bereich **Binding und Reporting**. Dort sind Endpoints, Eingangs-/Ausgangscluster sowie vorhandene Bindings und konfigurierte Reportings sichtbar. Bekannte Bindings werden zusätzlich als eigene Übersicht mit Quell-Endpoint, Cluster, Zieltyp, Ziel und Ziel-Endpoint aufgelistet. Konfigurierte Reportings werden separat mit Endpoint, Cluster, Attribut, Intervallen und Reportable Change angezeigt.
+Wenn Zigbee2MQTT Endpoint-Daten liefert, zeigt die Instanz-Konfiguration unter **Erweiterte Geräteeinstellungen** den Bereich **Binding und Reporting**. Dort sind Endpoints, Eingangs-/Ausgangscluster sowie vorhandene Bindings und konfigurierte Reportings sichtbar. Bekannte Bindings werden zusätzlich als eigene Übersicht mit Quell-Endpoint, Cluster, Zieltyp, Ziel und Ziel-Endpoint aufgelistet. Konfigurierte Reportings werden separat mit Endpoint, Cluster, Attribut, Intervallen und Reportable Change angezeigt.
 
 Vorhandene Bindings und Reportings werden aus dem von Zigbee2MQTT veröffentlichten `bridge/devices` Cache gelesen. Zigbee2MQTT stellt dafür keinen separaten "Binding lesen"-Request bereit. Wenn ein Binding gerade erst angelegt oder in Zigbee2MQTT geändert wurde, kann die Anzeige zunächst leer bleiben. Mit **Endpoint-Daten aktualisieren** liest die Device-Konfiguration den aktuellen Bridge-Cache erneut ein und baut die Übersichten neu auf. Der Button ruft keine Geräteinformationen über die Symcon-Extension ab und ist deshalb unabhängig vom `getDeviceInfo` Request.
 
@@ -265,7 +267,7 @@ Die Endpoint-Liste wird aus den von Zigbee2MQTT gelieferten Geräteinformationen
 
 ### 4.7 Variablenverwaltung
 
-Die Instanz merkt sich alle aus Exposes, Payloads und Systemmeldungen bekannten Variablen in einem lokalen Variablenkatalog. In der Konfiguration erscheint dazu der Bereich **Variablen**. Dort kann pro Variable gesteuert werden, ob das Modul sie automatisch anlegen darf.
+Die Instanz merkt sich alle aus Exposes, Payloads und Systemmeldungen bekannten Variablen in einem lokalen Variablenkatalog. In der Konfiguration erscheint dazu unter **Erweiterte Geräteeinstellungen** der Bereich **Variablen**. Dort kann pro Variable gesteuert werden, ob das Modul sie automatisch anlegen darf.
 
 ![Variablenverwaltung](imgs/variablenverwaltung.png)
 

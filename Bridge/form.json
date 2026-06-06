@@ -8,174 +8,33 @@
     ],
     "actions": [
         {
-            "type": "Button",
-            "name": "InstallExtension",
-            "caption": "Install or upgrade Symcon-Extension",
-            "onClick": [
-                "if (!Z2M_InstallSymconExtension($id)){",
-                "   echo 'ERROR';",
-                "}"
-            ]
-        },
-        {
-            "type": "Button",
-            "name": "SetLastSeen",
-            "caption": "Set last_seen setting to epoch",
-            "onClick": "Z2M_SetLastSeen($id);"
-        },
-        {
-            "type": "Button",
-            "name": "PermitJoinOption",
-            "caption": "Disable permit_join option in Z2M configuration.yaml",
-            "onClick": "Z2M_SetPermitJoinOption($id, false);",
-            "visible": false
-        },
-        {
             "type": "ExpansionPanel",
-            "name": "NetworkSecurity",
-            "caption": "Network security",
+            "name": "IntegrationStatus",
+            "caption": "Integration and status",
             "expanded": false,
             "items": [
                 {
-                    "type": "Label",
-                    "caption": "Manage Zigbee2MQTT blocklist and passlist. The passlist is restrictive: Zigbee2MQTT removes devices that are not included."
+                    "type": "Button",
+                    "name": "InstallExtension",
+                    "caption": "Install or upgrade Symcon-Extension",
+                    "onClick": [
+                        "if (!Z2M_InstallSymconExtension($id)){",
+                        "   echo 'ERROR';",
+                        "}"
+                    ]
                 },
                 {
                     "type": "Button",
-                    "caption": "Refresh available devices",
-                    "onClick": "IPS_RequestAction($id, 'RefreshNetworkSecurityAvailableDevices', true);"
+                    "name": "SetLastSeen",
+                    "caption": "Set last_seen setting to epoch",
+                    "onClick": "Z2M_SetLastSeen($id);"
                 },
                 {
-                    "type": "List",
-                    "name": "NetworkSecurityAvailableDeviceList",
-                    "caption": "Available devices",
-                    "add": false,
-                    "delete": false,
-                    "rowCount": 6,
-                    "loadValuesFromConfiguration": false,
-                    "columns": [
-                        {
-                            "caption": "Device",
-                            "name": "device",
-                            "width": "auto",
-                            "quickFilter": true
-                        },
-                        {
-                            "caption": "IEEE address",
-                            "name": "ieee_address",
-                            "width": "180px",
-                            "quickFilter": true
-                        },
-                        {
-                            "caption": "Action",
-                            "name": "action",
-                            "width": "100px",
-                            "align": "center",
-                            "onClick": "IPS_RequestAction($id, 'SelectNetworkSecurityDevice', json_encode(['device' => $NetworkSecurityAvailableDeviceList['device'], 'ieee_address' => $NetworkSecurityAvailableDeviceList['ieee_address']]));"
-                        }
-                    ],
-                    "values": []
-                },
-                {
-                    "type": "Label",
-                    "caption": "Selected device"
-                },
-                {
-                    "type": "RowLayout",
-                    "items": [
-                        {
-                            "type": "ValidationTextBox",
-                            "name": "NetworkSecuritySelectedDevice",
-                            "caption": "Device",
-                            "enabled": false
-                        },
-                        {
-                            "type": "ValidationTextBox",
-                            "name": "NetworkSecuritySelectedIeeeAddress",
-                            "caption": "IEEE address",
-                            "enabled": false
-                        },
-                        {
-                            "type": "ValidationTextBox",
-                            "name": "NetworkSecurityIeeeAddress",
-                            "caption": "Manual IEEE address"
-                        }
-                    ]
-                },
-                {
-                    "type": "RowLayout",
-                    "items": [
-                        {
-                            "type": "Button",
-                            "caption": "Add to blocklist",
-                            "onClick": "IPS_RequestAction($id, 'AddBlocklistDevice', json_encode(['ieee_address' => $NetworkSecurityIeeeAddress, 'selected_ieee_address' => $NetworkSecuritySelectedIeeeAddress]));"
-                        },
-                        {
-                            "type": "Button",
-                            "caption": "Add to passlist",
-                            "onClick": "IPS_RequestAction($id, 'RequestPasslistChange', json_encode(['operation' => 'add', 'ieee_address' => $NetworkSecurityIeeeAddress, 'selected_ieee_address' => $NetworkSecuritySelectedIeeeAddress]));"
-                        }
-                    ]
-                },
-                {
-                    "type": "List",
-                    "name": "NetworkSecurityBlocklist",
-                    "caption": "Blocklist",
-                    "add": false,
-                    "delete": false,
-                    "rowCount": 4,
-                    "loadValuesFromConfiguration": false,
-                    "columns": [
-                        {
-                            "caption": "Device",
-                            "name": "device",
-                            "width": "auto",
-                            "quickFilter": true
-                        },
-                        {
-                            "caption": "IEEE address",
-                            "name": "ieee_address",
-                            "width": "180px"
-                        },
-                        {
-                            "caption": "Action",
-                            "name": "action",
-                            "width": "100px",
-                            "align": "center",
-                            "onClick": "IPS_RequestAction($id, 'RemoveBlocklistDevice', json_encode(['ieee_address' => $NetworkSecurityBlocklist['ieee_address']]));"
-                        }
-                    ],
-                    "values": []
-                },
-                {
-                    "type": "List",
-                    "name": "NetworkSecurityPasslist",
-                    "caption": "Passlist",
-                    "add": false,
-                    "delete": false,
-                    "rowCount": 4,
-                    "loadValuesFromConfiguration": false,
-                    "columns": [
-                        {
-                            "caption": "Device",
-                            "name": "device",
-                            "width": "auto",
-                            "quickFilter": true
-                        },
-                        {
-                            "caption": "IEEE address",
-                            "name": "ieee_address",
-                            "width": "180px"
-                        },
-                        {
-                            "caption": "Action",
-                            "name": "action",
-                            "width": "100px",
-                            "align": "center",
-                            "onClick": "IPS_RequestAction($id, 'RequestPasslistChange', json_encode(['operation' => 'remove', 'ieee_address' => $NetworkSecurityPasslist['ieee_address']]));"
-                        }
-                    ],
-                    "values": []
+                    "type": "Button",
+                    "name": "PermitJoinOption",
+                    "caption": "Disable permit_join option in Z2M configuration.yaml",
+                    "onClick": "Z2M_SetPermitJoinOption($id, false);",
+                    "visible": false
                 }
             ]
         },
@@ -702,165 +561,6 @@
             }
         },
         {
-            "type": "ExpansionPanel",
-            "name": "VariableMaintenance",
-            "caption": "Variable maintenance",
-            "expanded": false,
-            "items": [
-                {
-                    "type": "Label",
-                    "caption": "Find Zigbee2MQTT variables that are no longer backed by current exposes or payload data. Archived or referenced variables are protected."
-                },
-                {
-                    "type": "RowLayout",
-                    "items": [
-                        {
-                            "type": "Button",
-                            "caption": "Scan stale variables",
-                            "onClick": "IPS_RequestAction($id, 'ScanStaleVariables', true);"
-                        },
-                        {
-                            "type": "Label",
-                            "name": "StaleVariableStatus",
-                            "caption": "No scan has been run yet."
-                        }
-                    ]
-                },
-                {
-                    "type": "List",
-                    "name": "StaleVariableClearCandidates",
-                    "caption": "Clear deletion candidates",
-                    "add": false,
-                    "delete": false,
-                    "rowCount": 3,
-                    "loadValuesFromConfiguration": false,
-                    "columns": [
-                        {
-                            "caption": "Instance",
-                            "name": "instance",
-                            "width": "auto",
-                            "quickFilter": true
-                        },
-                        {
-                            "caption": "Variable",
-                            "name": "variable",
-                            "width": "220px",
-                            "quickFilter": true
-                        },
-                        {
-                            "caption": "Ident",
-                            "name": "ident",
-                            "width": "180px",
-                            "quickFilter": true
-                        },
-                        {
-                            "caption": "Archived",
-                            "name": "archived",
-                            "width": "90px",
-                            "align": "center"
-                        },
-                        {
-                            "caption": "Last written",
-                            "name": "last_update",
-                            "width": "150px"
-                        },
-                        {
-                            "caption": "Reason",
-                            "name": "reason",
-                            "width": "240px"
-                        },
-                        {
-                            "caption": "Protection",
-                            "name": "protection",
-                            "width": "160px"
-                        },
-                        {
-                            "caption": "Action",
-                            "name": "action",
-                            "width": "100px",
-                            "align": "center",
-                            "onClick": "IPS_RequestAction($id, 'RequestDeleteStaleVariable', json_encode(['variable_id' => $StaleVariableClearCandidates['variable_id']]));"
-                        }
-                    ],
-                    "values": []
-                },
-                {
-                    "type": "List",
-                    "name": "StaleVariableReviewCandidates",
-                    "caption": "Review candidates",
-                    "add": false,
-                    "delete": false,
-                    "rowCount": 3,
-                    "loadValuesFromConfiguration": false,
-                    "columns": [
-                        {
-                            "caption": "Instance",
-                            "name": "instance",
-                            "width": "auto",
-                            "quickFilter": true
-                        },
-                        {
-                            "caption": "Variable",
-                            "name": "variable",
-                            "width": "220px",
-                            "quickFilter": true
-                        },
-                        {
-                            "caption": "Ident",
-                            "name": "ident",
-                            "width": "180px",
-                            "quickFilter": true
-                        },
-                        {
-                            "caption": "Archived",
-                            "name": "archived",
-                            "width": "90px",
-                            "align": "center"
-                        },
-                        {
-                            "caption": "Last written",
-                            "name": "last_update",
-                            "width": "150px"
-                        },
-                        {
-                            "caption": "Reason",
-                            "name": "reason",
-                            "width": "240px"
-                        },
-                        {
-                            "caption": "Protection",
-                            "name": "protection",
-                            "width": "160px"
-                        }
-                    ],
-                    "values": []
-                },
-                {
-                    "type": "List",
-                    "name": "StaleVariableErrors",
-                    "caption": "Scan hints",
-                    "add": false,
-                    "delete": false,
-                    "rowCount": 2,
-                    "loadValuesFromConfiguration": false,
-                    "columns": [
-                        {
-                            "caption": "Instance",
-                            "name": "instance",
-                            "width": "auto",
-                            "quickFilter": true
-                        },
-                        {
-                            "caption": "Message",
-                            "name": "message",
-                            "width": "auto"
-                        }
-                    ],
-                    "values": []
-                }
-            ]
-        },
-        {
             "name": "StaleVariableDeleteWarning",
             "type": "PopupAlert",
             "visible": false,
@@ -906,184 +606,6 @@
                     }
                 ]
             }
-        },
-        {
-            "type": "ExpansionPanel",
-            "name": "BridgeMaintenance",
-            "caption": "Zigbee2MQTT maintenance",
-            "expanded": false,
-            "items": [
-                {
-                    "type": "Label",
-                    "caption": "Create a Zigbee2MQTT data folder backup. The backup can take up to five minutes for large Zigbee2MQTT data folders and is saved on the Symcon server."
-                },
-                {
-                    "type": "Button",
-                    "caption": "Create backup file",
-                    "onClick": "IPS_RequestAction($id, 'CreateBackupFile', true);"
-                },
-                {
-                    "type": "Label",
-                    "caption": "Send a Zigbee 3.0 install code once or store it locally for later reuse. Only the install code is sent to Zigbee2MQTT."
-                },
-                {
-                    "type": "Label",
-                    "bold": true,
-                    "caption": "Stored install codes are sensitive data. They are masked in this form but stored locally in the Bridge instance and may be included in Symcon backups."
-                },
-                {
-                    "type": "RowLayout",
-                    "items": [
-                        {
-                            "type": "ValidationTextBox",
-                            "name": "InstallCodeCatalogID",
-                            "caption": "Internal ID",
-                            "visible": false
-                        },
-                        {
-                            "type": "ValidationTextBox",
-                            "name": "InstallCodeLabel",
-                            "caption": "Label"
-                        },
-                        {
-                            "type": "PasswordTextBox",
-                            "name": "InstallCode",
-                            "caption": "Install code"
-                        },
-                        {
-                            "type": "Button",
-                            "caption": "Send once",
-                            "onClick": "IPS_RequestAction($id, 'SendInstallCode', json_encode(['code' => $InstallCode]));"
-                        },
-                        {
-                            "type": "Button",
-                            "caption": "Save and send",
-                            "onClick": "IPS_RequestAction($id, 'SaveInstallCode', json_encode(['id' => $InstallCodeCatalogID, 'label' => $InstallCodeLabel, 'code' => $InstallCode]));"
-                        }
-                    ]
-                },
-                {
-                    "type": "Label",
-                    "name": "InstallCodeEditorHint",
-                    "caption": "Leave the install code empty while editing to keep the stored value.",
-                    "visible": false
-                },
-                {
-                    "type": "List",
-                    "name": "StoredInstallCodeList",
-                    "caption": "Stored install codes",
-                    "add": false,
-                    "delete": false,
-                    "rowCount": 3,
-                    "loadValuesFromConfiguration": false,
-                    "columns": [
-                        {
-                            "caption": "Label",
-                            "name": "label",
-                            "width": "auto",
-                            "quickFilter": true
-                        },
-                        {
-                            "caption": "Install code",
-                            "name": "masked_code",
-                            "width": "220px"
-                        },
-                        {
-                            "caption": "Action",
-                            "name": "send",
-                            "width": "90px",
-                            "align": "center",
-                            "onClick": "IPS_RequestAction($id, 'SendStoredInstallCode', json_encode(['id' => $StoredInstallCodeList['id']]));"
-                        },
-                        {
-                            "caption": "Action",
-                            "name": "edit",
-                            "width": "90px",
-                            "align": "center",
-                            "onClick": "IPS_RequestAction($id, 'SelectStoredInstallCode', json_encode(['id' => $StoredInstallCodeList['id']]));"
-                        },
-                        {
-                            "caption": "Action",
-                            "name": "delete",
-                            "width": "90px",
-                            "align": "center",
-                            "onClick": "IPS_RequestAction($id, 'RequestDeleteStoredInstallCode', json_encode(['id' => $StoredInstallCodeList['id']]));"
-                        }
-                    ],
-                    "values": []
-                },
-                {
-                    "type": "Label",
-                    "bold": true,
-                    "caption": "Touchlink scan and factory reset can temporarily disturb Zigbee communication. Factory reset may reset the nearest Touchlink device when no target is selected."
-                },
-                {
-                    "type": "RowLayout",
-                    "items": [
-                        {
-                            "type": "Button",
-                            "caption": "Touchlink scan",
-                            "onClick": "IPS_RequestAction($id, 'TouchlinkScan', true);"
-                        },
-                        {
-                            "type": "Button",
-                            "caption": "Touchlink identify",
-                            "onClick": "IPS_RequestAction($id, 'TouchlinkIdentify', json_encode(['ieee_address' => $TouchlinkIeeeAddress, 'channel' => $TouchlinkChannel]));"
-                        },
-                        {
-                            "type": "Button",
-                            "caption": "Touchlink factory reset",
-                            "onClick": "IPS_RequestAction($id, 'TouchlinkFactoryReset', json_encode(['ieee_address' => $TouchlinkIeeeAddress, 'channel' => $TouchlinkChannel]));"
-                        }
-                    ]
-                },
-                {
-                    "type": "List",
-                    "name": "TouchlinkDeviceList",
-                    "caption": "Touchlink scan results",
-                    "add": false,
-                    "delete": false,
-                    "rowCount": 4,
-                    "loadValuesFromConfiguration": false,
-                    "columns": [
-                        {
-                            "caption": "IEEE address",
-                            "name": "ieee_address",
-                            "width": "220px"
-                        },
-                        {
-                            "caption": "Channel",
-                            "name": "channel",
-                            "width": "100px"
-                        },
-                        {
-                            "caption": "Action",
-                            "name": "action",
-                            "width": "100px",
-                            "align": "center",
-                            "onClick": "IPS_RequestAction($id, 'SelectTouchlinkDevice', json_encode(['ieee_address' => $TouchlinkDeviceList['ieee_address'], 'channel' => $TouchlinkDeviceList['channel']]));"
-                        }
-                    ],
-                    "values": []
-                },
-                {
-                    "type": "RowLayout",
-                    "items": [
-                        {
-                            "type": "ValidationTextBox",
-                            "name": "TouchlinkIeeeAddress",
-                            "caption": "IEEE address"
-                        },
-                        {
-                            "type": "NumberSpinner",
-                            "name": "TouchlinkChannel",
-                            "caption": "Channel",
-                            "minimum": 0,
-                            "maximum": 26
-                        }
-                    ]
-                }
-            ]
         },
         {
             "name": "InstallCodeDeleteWarning",
@@ -1133,10 +655,6 @@
             }
         },
         {
-            "caption": "Testcenter",
-            "type": "TestCenter"
-        },
-        {
             "name": "BackupMessage",
             "type": "PopupAlert",
             "visible": false,
@@ -1156,6 +674,512 @@
                     }
                 ]
             }
+        },
+        {
+            "type": "ExpansionPanel",
+            "name": "AdvancedAdministration",
+            "caption": "Advanced administration",
+            "expanded": false,
+            "items": [
+                {
+                    "type": "ExpansionPanel",
+                    "name": "NetworkSecurity",
+                    "caption": "Network security",
+                    "expanded": false,
+                    "items": [
+                        {
+                            "type": "Label",
+                            "caption": "Manage Zigbee2MQTT blocklist and passlist. The passlist is restrictive: Zigbee2MQTT removes devices that are not included."
+                        },
+                        {
+                            "type": "Button",
+                            "caption": "Refresh available devices",
+                            "onClick": "IPS_RequestAction($id, 'RefreshNetworkSecurityAvailableDevices', true);"
+                        },
+                        {
+                            "type": "List",
+                            "name": "NetworkSecurityAvailableDeviceList",
+                            "caption": "Available devices",
+                            "add": false,
+                            "delete": false,
+                            "rowCount": 6,
+                            "loadValuesFromConfiguration": false,
+                            "columns": [
+                                {
+                                    "caption": "Device",
+                                    "name": "device",
+                                    "width": "auto",
+                                    "quickFilter": true
+                                },
+                                {
+                                    "caption": "IEEE address",
+                                    "name": "ieee_address",
+                                    "width": "180px",
+                                    "quickFilter": true
+                                },
+                                {
+                                    "caption": "Action",
+                                    "name": "action",
+                                    "width": "100px",
+                                    "align": "center",
+                                    "onClick": "IPS_RequestAction($id, 'SelectNetworkSecurityDevice', json_encode(['device' => $NetworkSecurityAvailableDeviceList['device'], 'ieee_address' => $NetworkSecurityAvailableDeviceList['ieee_address']]));"
+                                }
+                            ],
+                            "values": []
+                        },
+                        {
+                            "type": "Label",
+                            "caption": "Selected device"
+                        },
+                        {
+                            "type": "RowLayout",
+                            "items": [
+                                {
+                                    "type": "ValidationTextBox",
+                                    "name": "NetworkSecuritySelectedDevice",
+                                    "caption": "Device",
+                                    "enabled": false
+                                },
+                                {
+                                    "type": "ValidationTextBox",
+                                    "name": "NetworkSecuritySelectedIeeeAddress",
+                                    "caption": "IEEE address",
+                                    "enabled": false
+                                },
+                                {
+                                    "type": "ValidationTextBox",
+                                    "name": "NetworkSecurityIeeeAddress",
+                                    "caption": "Manual IEEE address"
+                                }
+                            ]
+                        },
+                        {
+                            "type": "RowLayout",
+                            "items": [
+                                {
+                                    "type": "Button",
+                                    "caption": "Add to blocklist",
+                                    "onClick": "IPS_RequestAction($id, 'AddBlocklistDevice', json_encode(['ieee_address' => $NetworkSecurityIeeeAddress, 'selected_ieee_address' => $NetworkSecuritySelectedIeeeAddress]));"
+                                },
+                                {
+                                    "type": "Button",
+                                    "caption": "Add to passlist",
+                                    "onClick": "IPS_RequestAction($id, 'RequestPasslistChange', json_encode(['operation' => 'add', 'ieee_address' => $NetworkSecurityIeeeAddress, 'selected_ieee_address' => $NetworkSecuritySelectedIeeeAddress]));"
+                                }
+                            ]
+                        },
+                        {
+                            "type": "List",
+                            "name": "NetworkSecurityBlocklist",
+                            "caption": "Blocklist",
+                            "add": false,
+                            "delete": false,
+                            "rowCount": 4,
+                            "loadValuesFromConfiguration": false,
+                            "columns": [
+                                {
+                                    "caption": "Device",
+                                    "name": "device",
+                                    "width": "auto",
+                                    "quickFilter": true
+                                },
+                                {
+                                    "caption": "IEEE address",
+                                    "name": "ieee_address",
+                                    "width": "180px"
+                                },
+                                {
+                                    "caption": "Action",
+                                    "name": "action",
+                                    "width": "100px",
+                                    "align": "center",
+                                    "onClick": "IPS_RequestAction($id, 'RemoveBlocklistDevice', json_encode(['ieee_address' => $NetworkSecurityBlocklist['ieee_address']]));"
+                                }
+                            ],
+                            "values": []
+                        },
+                        {
+                            "type": "List",
+                            "name": "NetworkSecurityPasslist",
+                            "caption": "Passlist",
+                            "add": false,
+                            "delete": false,
+                            "rowCount": 4,
+                            "loadValuesFromConfiguration": false,
+                            "columns": [
+                                {
+                                    "caption": "Device",
+                                    "name": "device",
+                                    "width": "auto",
+                                    "quickFilter": true
+                                },
+                                {
+                                    "caption": "IEEE address",
+                                    "name": "ieee_address",
+                                    "width": "180px"
+                                },
+                                {
+                                    "caption": "Action",
+                                    "name": "action",
+                                    "width": "100px",
+                                    "align": "center",
+                                    "onClick": "IPS_RequestAction($id, 'RequestPasslistChange', json_encode(['operation' => 'remove', 'ieee_address' => $NetworkSecurityPasslist['ieee_address']]));"
+                                }
+                            ],
+                            "values": []
+                        }
+                    ]
+                },
+                {
+                    "type": "ExpansionPanel",
+                    "name": "VariableMaintenance",
+                    "caption": "Variable maintenance",
+                    "expanded": false,
+                    "items": [
+                        {
+                            "type": "Label",
+                            "caption": "Find Zigbee2MQTT variables that are no longer backed by current exposes or payload data. Archived or referenced variables are protected."
+                        },
+                        {
+                            "type": "RowLayout",
+                            "items": [
+                                {
+                                    "type": "Button",
+                                    "caption": "Scan stale variables",
+                                    "onClick": "IPS_RequestAction($id, 'ScanStaleVariables', true);"
+                                },
+                                {
+                                    "type": "Label",
+                                    "name": "StaleVariableStatus",
+                                    "caption": "No scan has been run yet."
+                                }
+                            ]
+                        },
+                        {
+                            "type": "List",
+                            "name": "StaleVariableClearCandidates",
+                            "caption": "Clear deletion candidates",
+                            "add": false,
+                            "delete": false,
+                            "rowCount": 3,
+                            "loadValuesFromConfiguration": false,
+                            "columns": [
+                                {
+                                    "caption": "Instance",
+                                    "name": "instance",
+                                    "width": "auto",
+                                    "quickFilter": true
+                                },
+                                {
+                                    "caption": "Variable",
+                                    "name": "variable",
+                                    "width": "220px",
+                                    "quickFilter": true
+                                },
+                                {
+                                    "caption": "Ident",
+                                    "name": "ident",
+                                    "width": "180px",
+                                    "quickFilter": true
+                                },
+                                {
+                                    "caption": "Archived",
+                                    "name": "archived",
+                                    "width": "90px",
+                                    "align": "center"
+                                },
+                                {
+                                    "caption": "Last written",
+                                    "name": "last_update",
+                                    "width": "150px"
+                                },
+                                {
+                                    "caption": "Reason",
+                                    "name": "reason",
+                                    "width": "240px"
+                                },
+                                {
+                                    "caption": "Protection",
+                                    "name": "protection",
+                                    "width": "160px"
+                                },
+                                {
+                                    "caption": "Action",
+                                    "name": "action",
+                                    "width": "100px",
+                                    "align": "center",
+                                    "onClick": "IPS_RequestAction($id, 'RequestDeleteStaleVariable', json_encode(['variable_id' => $StaleVariableClearCandidates['variable_id']]));"
+                                }
+                            ],
+                            "values": []
+                        },
+                        {
+                            "type": "List",
+                            "name": "StaleVariableReviewCandidates",
+                            "caption": "Review candidates",
+                            "add": false,
+                            "delete": false,
+                            "rowCount": 3,
+                            "loadValuesFromConfiguration": false,
+                            "columns": [
+                                {
+                                    "caption": "Instance",
+                                    "name": "instance",
+                                    "width": "auto",
+                                    "quickFilter": true
+                                },
+                                {
+                                    "caption": "Variable",
+                                    "name": "variable",
+                                    "width": "220px",
+                                    "quickFilter": true
+                                },
+                                {
+                                    "caption": "Ident",
+                                    "name": "ident",
+                                    "width": "180px",
+                                    "quickFilter": true
+                                },
+                                {
+                                    "caption": "Archived",
+                                    "name": "archived",
+                                    "width": "90px",
+                                    "align": "center"
+                                },
+                                {
+                                    "caption": "Last written",
+                                    "name": "last_update",
+                                    "width": "150px"
+                                },
+                                {
+                                    "caption": "Reason",
+                                    "name": "reason",
+                                    "width": "240px"
+                                },
+                                {
+                                    "caption": "Protection",
+                                    "name": "protection",
+                                    "width": "160px"
+                                }
+                            ],
+                            "values": []
+                        },
+                        {
+                            "type": "List",
+                            "name": "StaleVariableErrors",
+                            "caption": "Scan hints",
+                            "add": false,
+                            "delete": false,
+                            "rowCount": 2,
+                            "loadValuesFromConfiguration": false,
+                            "columns": [
+                                {
+                                    "caption": "Instance",
+                                    "name": "instance",
+                                    "width": "auto",
+                                    "quickFilter": true
+                                },
+                                {
+                                    "caption": "Message",
+                                    "name": "message",
+                                    "width": "auto"
+                                }
+                            ],
+                            "values": []
+                        }
+                    ]
+                },
+                {
+                    "type": "ExpansionPanel",
+                    "name": "BridgeMaintenance",
+                    "caption": "Zigbee2MQTT maintenance",
+                    "expanded": false,
+                    "items": [
+                        {
+                            "type": "Label",
+                            "caption": "Create a Zigbee2MQTT data folder backup. The backup can take up to five minutes for large Zigbee2MQTT data folders and is saved on the Symcon server."
+                        },
+                        {
+                            "type": "Button",
+                            "caption": "Create backup file",
+                            "onClick": "IPS_RequestAction($id, 'CreateBackupFile', true);"
+                        },
+                        {
+                            "type": "Label",
+                            "caption": "Send a Zigbee 3.0 install code once or store it locally for later reuse. Only the install code is sent to Zigbee2MQTT."
+                        },
+                        {
+                            "type": "Label",
+                            "bold": true,
+                            "caption": "Stored install codes are sensitive data. They are masked in this form but stored locally in the Bridge instance and may be included in Symcon backups."
+                        },
+                        {
+                            "type": "RowLayout",
+                            "items": [
+                                {
+                                    "type": "ValidationTextBox",
+                                    "name": "InstallCodeCatalogID",
+                                    "caption": "Internal ID",
+                                    "visible": false
+                                },
+                                {
+                                    "type": "ValidationTextBox",
+                                    "name": "InstallCodeLabel",
+                                    "caption": "Label"
+                                },
+                                {
+                                    "type": "PasswordTextBox",
+                                    "name": "InstallCode",
+                                    "caption": "Install code"
+                                },
+                                {
+                                    "type": "Button",
+                                    "caption": "Send once",
+                                    "onClick": "IPS_RequestAction($id, 'SendInstallCode', json_encode(['code' => $InstallCode]));"
+                                },
+                                {
+                                    "type": "Button",
+                                    "caption": "Save and send",
+                                    "onClick": "IPS_RequestAction($id, 'SaveInstallCode', json_encode(['id' => $InstallCodeCatalogID, 'label' => $InstallCodeLabel, 'code' => $InstallCode]));"
+                                }
+                            ]
+                        },
+                        {
+                            "type": "Label",
+                            "name": "InstallCodeEditorHint",
+                            "caption": "Leave the install code empty while editing to keep the stored value.",
+                            "visible": false
+                        },
+                        {
+                            "type": "List",
+                            "name": "StoredInstallCodeList",
+                            "caption": "Stored install codes",
+                            "add": false,
+                            "delete": false,
+                            "rowCount": 3,
+                            "loadValuesFromConfiguration": false,
+                            "columns": [
+                                {
+                                    "caption": "Label",
+                                    "name": "label",
+                                    "width": "auto",
+                                    "quickFilter": true
+                                },
+                                {
+                                    "caption": "Install code",
+                                    "name": "masked_code",
+                                    "width": "220px"
+                                },
+                                {
+                                    "caption": "Action",
+                                    "name": "send",
+                                    "width": "90px",
+                                    "align": "center",
+                                    "onClick": "IPS_RequestAction($id, 'SendStoredInstallCode', json_encode(['id' => $StoredInstallCodeList['id']]));"
+                                },
+                                {
+                                    "caption": "Action",
+                                    "name": "edit",
+                                    "width": "90px",
+                                    "align": "center",
+                                    "onClick": "IPS_RequestAction($id, 'SelectStoredInstallCode', json_encode(['id' => $StoredInstallCodeList['id']]));"
+                                },
+                                {
+                                    "caption": "Action",
+                                    "name": "delete",
+                                    "width": "90px",
+                                    "align": "center",
+                                    "onClick": "IPS_RequestAction($id, 'RequestDeleteStoredInstallCode', json_encode(['id' => $StoredInstallCodeList['id']]));"
+                                }
+                            ],
+                            "values": []
+                        },
+                        {
+                            "type": "Label",
+                            "bold": true,
+                            "caption": "Touchlink scan and factory reset can temporarily disturb Zigbee communication. Factory reset may reset the nearest Touchlink device when no target is selected."
+                        },
+                        {
+                            "type": "RowLayout",
+                            "items": [
+                                {
+                                    "type": "Button",
+                                    "caption": "Touchlink scan",
+                                    "onClick": "IPS_RequestAction($id, 'TouchlinkScan', true);"
+                                },
+                                {
+                                    "type": "Button",
+                                    "caption": "Touchlink identify",
+                                    "onClick": "IPS_RequestAction($id, 'TouchlinkIdentify', json_encode(['ieee_address' => $TouchlinkIeeeAddress, 'channel' => $TouchlinkChannel]));"
+                                },
+                                {
+                                    "type": "Button",
+                                    "caption": "Touchlink factory reset",
+                                    "onClick": "IPS_RequestAction($id, 'TouchlinkFactoryReset', json_encode(['ieee_address' => $TouchlinkIeeeAddress, 'channel' => $TouchlinkChannel]));"
+                                }
+                            ]
+                        },
+                        {
+                            "type": "List",
+                            "name": "TouchlinkDeviceList",
+                            "caption": "Touchlink scan results",
+                            "add": false,
+                            "delete": false,
+                            "rowCount": 4,
+                            "loadValuesFromConfiguration": false,
+                            "columns": [
+                                {
+                                    "caption": "IEEE address",
+                                    "name": "ieee_address",
+                                    "width": "220px"
+                                },
+                                {
+                                    "caption": "Channel",
+                                    "name": "channel",
+                                    "width": "100px"
+                                },
+                                {
+                                    "caption": "Action",
+                                    "name": "action",
+                                    "width": "100px",
+                                    "align": "center",
+                                    "onClick": "IPS_RequestAction($id, 'SelectTouchlinkDevice', json_encode(['ieee_address' => $TouchlinkDeviceList['ieee_address'], 'channel' => $TouchlinkDeviceList['channel']]));"
+                                }
+                            ],
+                            "values": []
+                        },
+                        {
+                            "type": "RowLayout",
+                            "items": [
+                                {
+                                    "type": "ValidationTextBox",
+                                    "name": "TouchlinkIeeeAddress",
+                                    "caption": "IEEE address"
+                                },
+                                {
+                                    "type": "NumberSpinner",
+                                    "name": "TouchlinkChannel",
+                                    "caption": "Channel",
+                                    "minimum": 0,
+                                    "maximum": 26
+                                }
+                            ]
+                        }
+                    ]
+                }
+            ]
+        },
+        {
+            "type": "ExpansionPanel",
+            "name": "BridgeExpertTools",
+            "caption": "Expert tools",
+            "expanded": false,
+            "items": [
+                {
+                    "caption": "Testcenter",
+                    "type": "TestCenter"
+                }
+            ]
         },
         {
             "type": "Label",

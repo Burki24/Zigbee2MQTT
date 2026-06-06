@@ -371,7 +371,7 @@ Die Änderungen sind anhand der funktionalen Commits chronologisch gegliedert. A
 - Die Bridge-Wartung erhielt einen optionalen lokalen Install-Code-Katalog. Install-Codes können mit einer Bezeichnung gespeichert, maskiert angezeigt, erneut gesendet, bearbeitet und nach Bestätigung gelöscht werden. Sensible MQTT-Payloads und Antworten erscheinen nicht im Debug-Protokoll.
 - Die Bridge-Dokumentation wurde in eigene Funktionsblöcke für Diagnose, Netzwerksicherheit, OTA-Updates, Variablen-Wartung sowie Zigbee2MQTT-Wartung mit Backup, Install-Codes und Touchlink gegliedert.
 
-### 1. bis 4. Juni 2026: Erweiterte Ablaufplan-Aktionen und Datenaktualisierung
+### 1. bis 6. Juni 2026: Erweiterte Ablaufplan-Aktionen, Datenaktualisierung und Bedienkomfort
 
 - Wiederverwendbare Ablaufplan-Aktionen wurden für Status-Umschaltung, Ein-/Ausschalten mit Übergangszeit, Kelvin-Farbtemperatur mit Übergangszeit und Zigbee-Szenenabruf ergänzt.
 - Die Kelvin-Aktion verwendet die pro Geräteinstanz ermittelte beziehungsweise überschriebene Farbtemperaturdarstellung und rechnet den gewählten Kelvin-Wert für Zigbee2MQTT in Mired um.
@@ -389,6 +389,7 @@ Die Änderungen sind anhand der funktionalen Commits chronologisch gegliedert. A
 - Die OTA-Zentrale kann geplante Updates weiterhin per `unschedule` aus der Planung nehmen und nutzt zusätzlich den neuen Zigbee2MQTT-Abbruch-Endpunkt, um angeforderte oder laufende OTA-Updates abzubrechen.
 - Health Check und Coordinator Check zeigen bei nicht erreichbarem Zigbee2MQTT in der Bridge-Konfiguration eine lesbare Diagnosemeldung statt einer technischen Timeout-Notice.
 - Weitere Zigbee2MQTT-Gerätelabels und Werte für Kalibrierung, Dimmverhalten, Helligkeitsschwellen, Impulssteuerung und Pulsaktionen wurden ins Deutsche übersetzt. Sprachneutrale numerische Werte wie `1x`, `2x` oder `3x` werden nicht mehr als fehlende Übersetzung gemeldet.
+- Die Konfigurationsformulare wurden nach Nutzungshäufigkeit gegliedert: Geräte bündeln Optionen, Variablen sowie Binding und Reporting unter erweiterten Einstellungen; die Bridge trennt Status, Diagnose und OTA von administrativen und Expertenwerkzeugen; Gruppenoptionen liegen unter erweiterten Gruppeneinstellungen. Der Konfigurator zeigt Gruppen standardmäßig eingeklappt und blendet selten benötigte Gerätespalten aus.
 
 **Version 5.42:**  
 

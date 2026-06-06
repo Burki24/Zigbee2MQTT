@@ -72,7 +72,7 @@
 | Bereich             | Beschreibung                                                                                                                                 |
 | ------------------- | -------------------------------------------------------------------------------------------------------------------------------------------- |
 | Gruppenmitglieder   | Zeigt die von Zigbee2MQTT gemeldeten Mitglieder der Gruppe. Geräte können mit optionalem Endpoint hinzugefügt oder entfernt werden.          |
-| Gruppenoptionen     | Zeigt die aktuellen Zigbee2MQTT-Gruppenoptionen und erlaubt Änderungen einzelner Optionen als Auswahlliste, Schalter, JSON-, Zahlen- oder Textwert. |
+| Erweiterte Gruppeneinstellungen | Enthält die Gruppenoptionen und erlaubt Änderungen einzelner Optionen als Auswahlliste, Schalter, JSON-, Zahlen- oder Textwert. |
 | Szenen              | Speichert den aktuellen Gruppenstatus als Szene, fügt erweiterte Szenen per JSON hinzu, ruft Szenen ab, benennt sie um oder löscht sie.     |
 
    Änderungen werden über die Bridge an Zigbee2MQTT gesendet. Wenn Zigbee2MQTT für geänderte Gruppenoptionen einen Neustart verlangt, wird dies in der Bridge protokolliert.
@@ -89,7 +89,7 @@ Beim Entfernen kann **Reporting beim Entfernen behalten** aktiviert bleiben. Dan
 
 Antwortet ein Gerät bei einem Gruppenbefehl nicht, zeigt die Gruppeninstanz eine verständliche Meldung **Gerät offline** im Formular. Die technische Zigbee2MQTT-Fehlermeldung wird weiter im Debug protokolliert.
 
-**Gruppenoptionen**
+**Gruppenoptionen unter Erweiterte Gruppeneinstellungen**
 
 Das Modul kennt die wichtigsten Zigbee2MQTT-Gruppenoptionen:
 

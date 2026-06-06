@@ -153,6 +153,9 @@ class GroupTest extends DumpInclude
     {
         $groupID = $this->createConfiguredGroup('zigbee2mqtt', 'Flur/Beleuchtung/Deckenlicht/Gruppe');
         $form = json_decode(IPS_GetConfigurationForm($groupID), true);
+        $advancedSettings = $this->findFormItemByName($form, 'AdvancedGroupSettings');
+        $this->assertNotNull($advancedSettings);
+        $this->assertTrue($advancedSettings['visible']);
         $list = $this->findFormItemByName($form, 'GroupOptionList');
 
         $this->assertNotNull($list);
