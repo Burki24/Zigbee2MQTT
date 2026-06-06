@@ -383,7 +383,7 @@ Die Änderungen sind anhand der funktionalen Commits chronologisch gegliedert. A
 - Von Zigbee2MQTT berechnete oder nachgelieferte Werte können auch bei unvollständiger Expose-Kennung nachträglich angelegt werden. Numeric-, Binary- und Enum-Variablen ergänzen fehlende `name`- oder `property`-Felder typunabhängig aus der jeweils vorhandenen Kennung.
 - Der von Zigbee2MQTT berechnete Taupunkt `dewpoint` wird bei nachträglicher Anlage als übersetzte Float-Variable `Taupunkt` mit dem Symcon-Temperaturprofil `~Temperature` angelegt.
 - Geräteinstanzen prüfen eingehende MQTT-Topics zusätzlich zum Symcon-Datenfilter selbst. Fremde Geräte-Payloads können dadurch auch bei unerwarteter Zustellung keine Variablen in der falschen Instanz anlegen.
-- Gruppeninstanzen erhielten **Gruppendaten aktualisieren**. Damit werden extern in Zigbee2MQTT geänderte Mitglieder, Gruppenoptionen und Szenen erneut eingelesen und direkt in der geöffneten Symcon-Konfiguration angezeigt.
+- Gruppeninstanzen erhielten **Gruppeninformationen aktualisieren**. Damit werden extern in Zigbee2MQTT geänderte Mitglieder, Gruppenoptionen und Szenen erneut eingelesen und direkt in der geöffneten Symcon-Konfiguration angezeigt.
 - Die Discovery behält bei internen MQTT-Servern alle gleichzeitig gefundenen Zigbee2MQTT-Basen bei. Veraltete Konstanten, Locale-Einträge und irreführende PHPDocs aus der früheren dateibasierten Expose-Verwaltung wurden bereinigt.
 - Die zentrale OTA-Verwaltung bietet nur noch Geräte an, die Zigbee2MQTT ausdrücklich mit `supports_ota` kennzeichnet. Historische `update__*`-Variablen allein führen nicht mehr zu falschen OTA-Angeboten.
 - Die OTA-Zentrale kann geplante Updates weiterhin per `unschedule` aus der Planung nehmen und nutzt zusätzlich den neuen Zigbee2MQTT-Abbruch-Endpunkt, um angeforderte oder laufende OTA-Updates abzubrechen.
@@ -392,6 +392,7 @@ Die Änderungen sind anhand der funktionalen Commits chronologisch gegliedert. A
 - Die Konfigurationsformulare wurden nach Nutzungshäufigkeit gegliedert: Geräte bündeln Optionen, Variablen sowie Binding und Reporting unter erweiterten Einstellungen; die Bridge zeigt zentrale Statusschaltflächen direkt und trennt Diagnose sowie OTA von administrativen und Expertenwerkzeugen; Gruppenoptionen liegen unter erweiterten Gruppeneinstellungen. Der Konfigurator zeigt Gruppen standardmäßig eingeklappt und blendet selten benötigte Gerätespalten aus.
 - Die direkt sichtbaren Bridge-Statusschaltflächen übernehmen beim Öffnen zuverlässig den zuletzt ermittelten Zustand der Symcon-Erweiterung, der `last_seen`-Einstellung und der `permit_join`-Konfiguration.
 - Fehlende deutsche Übersetzungen für Ventiladaption, Display-Einschaltdauer, Fehlerzustand sowie Temperatur- und Displayauswahlwerte von Thermostaten wurden ergänzt.
+- Geräte- und Gruppeninformationen lassen sich über einheitlich benannte, direkt sichtbare Aktualisierungsaktionen neu aus Zigbee2MQTT einlesen; die doppelte Gruppenaktion unter den Expertenwerkzeugen wurde entfernt.
 
 **Version 5.42:**  
 

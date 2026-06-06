@@ -39,7 +39,8 @@
         },
         {
             "type": "Button",
-            "caption": "Get Device Infos",
+            "name": "RefreshDeviceInfoButton",
+            "caption": "Refresh device information",
             "onClick": "IPS_RequestAction($id, 'UpdateInfo', true);"
         },
         {

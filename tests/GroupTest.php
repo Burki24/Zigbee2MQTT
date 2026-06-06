@@ -12,6 +12,14 @@ class GroupTest extends DumpInclude
     private const DEVICE_MODULE_ID = '{E5BB36C6-A70B-EB23-3716-9151A09AC8A2}';
     private const GROUP_MODULE_ID = '{11BF3773-E940-469B-9DD7-FB9ACD7199A2}';
 
+    public function testGroupInformationRefreshIsTopLevelAction(): void
+    {
+        $form = json_decode(file_get_contents(__DIR__ . '/../Group/form.json'), true);
+
+        $this->assertSame('RefreshGroupInfoButton', $form['elements'][3]['name']);
+        $this->assertSame('Refresh group information', $form['elements'][3]['caption']);
+    }
+
     public function testGroupAvailableDeviceListIsFilledFromExistingDeviceInstances(): void
     {
         $this->createConfiguredDevice('zigbee2mqtt', 'Flur/Beleuchtung/Deckenlicht');

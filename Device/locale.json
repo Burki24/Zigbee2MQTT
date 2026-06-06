@@ -21,7 +21,7 @@
             "I understand": "Habe ich verstanden",
             "Please use this function carefully!\r\nAn incorrect IEEE address can lead to malfunctions.": "Bitte benutzen Sie diese Funktion mit Aufmerksamkeit!\r\nEine falsche IEEE Adresse kann zu Fehlfunktionen führen.",
             "Link to device information: ": "Link zur Geräteinformation: ",
-            "Get Device Infos": "Geräteinformationen abrufen",
+            "Refresh device information": "Geräteinformationen aktualisieren",
             "Disable switch tile": "Schalter-Kachel deaktivieren",
             "Disable heating tile": "Heizungs-Kachel deaktivieren",
             "Disable security tile": "Sicherheits-Kachel deaktivieren",

@@ -17,18 +17,18 @@
             "enabled": false
         },
         {
+            "type": "Button",
+            "name": "RefreshGroupInfoButton",
+            "caption": "Refresh group information",
+            "onClick": "IPS_RequestAction($id, 'RefreshGroupInfo', true);"
+        },
+        {
             "type": "ExpansionPanel",
             "name": "GroupMembersSettings",
             "caption": "Group members",
             "expanded": false,
             "visible": false,
             "items": [
-                {
-                    "type": "Button",
-                    "name": "RefreshGroupInfoButton",
-                    "caption": "Refresh group data",
-                    "onClick": "IPS_RequestAction($id, 'RefreshGroupInfo', true);"
-                },
                 {
                     "type": "Label",
                     "caption": "Current group members"
@@ -457,11 +457,6 @@
                             "visible": false,
                             "caption": "Show missing translations",
                             "onClick": "IPS_RequestAction($id, 'ShowMissingTranslations', true);"
-                        },
-                        {
-                            "type": "Button",
-                            "caption": "Get Group Infos",
-                            "onClick": "IPS_RequestAction($id, 'UpdateInfo', true);"
                         },
                         {
                             "type": "Button",

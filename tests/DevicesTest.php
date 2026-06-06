@@ -9,6 +9,14 @@ include_once __DIR__ . '/DumpInclude.php';
  */
 class DevicesTest extends DumpInclude
 {
+    public function testDeviceInformationRefreshIsTopLevelAction(): void
+    {
+        $form = json_decode(file_get_contents(__DIR__ . '/../Device/form.json'), true);
+
+        $this->assertSame('RefreshDeviceInfoButton', $form['elements'][2]['name']);
+        $this->assertSame('Refresh device information', $form['elements'][2]['caption']);
+    }
+
     public function testTRV06()
     {
         [$iid,$Debug] = $this->createTestInstance('TRV06.json');
