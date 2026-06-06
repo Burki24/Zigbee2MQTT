@@ -70,7 +70,7 @@
 
 Zusätzlich zu den Grundeinstellungen enthält die Bridge folgende Funktionsbereiche:
 
-Die Oberfläche trennt häufig benötigte Funktionen von administrativen Werkzeugen. **Integration und Status**, **Diagnose** und **OTA-Updates** bilden die regulären Arbeitsbereiche. **Netzwerksicherheit**, **Variablen-Wartung** und **Zigbee2MQTT-Wartung** sind unter **Erweiterte Administration** zusammengefasst. Das Testcenter befindet sich unter **Expertenwerkzeuge**.
+Die Oberfläche trennt häufig benötigte Funktionen von administrativen Werkzeugen. Die Schaltflächen für Erweiterungsstatus, `last_seen` und `permit_join` sind direkt sichtbar. **Diagnose** und **OTA-Updates** bilden die regulären Arbeitsbereiche. **Netzwerksicherheit**, **Variablen-Wartung** und **Zigbee2MQTT-Wartung** sind unter **Erweiterte Administration** zusammengefasst. Das Testcenter befindet sich unter **Expertenwerkzeuge**.
 
 | Bereich | Beschreibung |
 | ------- | ------------ |

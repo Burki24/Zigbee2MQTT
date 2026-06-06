@@ -8,10 +8,7 @@
     ],
     "actions": [
         {
-            "type": "ExpansionPanel",
-            "name": "IntegrationStatus",
-            "caption": "Integration and status",
-            "expanded": false,
+            "type": "RowLayout",
             "items": [
                 {
                     "type": "Button",
