@@ -16,6 +16,7 @@ require_once dirname(__DIR__) . '/libs/Maintenance/StaleVariableCleanupHelper.ph
  * @property string $ExtensionFilename Enthält den Dateinamen der Extension in einem InstanzBuffer
  * @property string $ConfigLastSeen Enthält die Z2M Konfiguration der LastSeen Option in einem InstanzBuffer
  * @property bool $ConfigPermitJoin Enthält die Z2M Konfiguration der PermitJoin Option in einem InstanzBuffer
+ * @property string $PermitJoinTarget Enthält das zuletzt gewählte Pairing-Ziel in einem InstanzBuffer
  */
 class Zigbee2MQTTBridge extends IPSModuleStrict
 {
@@ -71,6 +72,8 @@ class Zigbee2MQTTBridge extends IPSModuleStrict
     private const MAX_OTA_RESULT_ENTRIES = 25;
     private const OTA_CHECK_RESULT_LIFETIME = 300;
     private const OTA_PENDING_REQUEST_LIFETIME = 300;
+    private const MAX_PERMIT_JOIN_DURATION = 254;
+    private const TIMER_PERMIT_JOIN_STATUS = 'UpdatePermitJoinStatus';
 
     /**
      * Create
@@ -93,6 +96,9 @@ class Zigbee2MQTTBridge extends IPSModuleStrict
         $this->ConfigLastSeen = 'epoch';
         $this->ClearTransactionData();
         $this->ConfigPermitJoin = false;
+        $this->PermitJoinTarget = '';
+
+        $this->RegisterPermitJoinTimer();
 
         $this->RegisterAttributeArray(self::ATTRIBUTE_DIAGNOSTIC_HEALTH, []);
         $this->RegisterAttributeArray(self::ATTRIBUTE_DIAGNOSTIC_COORDINATOR, []);
@@ -180,6 +186,9 @@ class Zigbee2MQTTBridge extends IPSModuleStrict
         $this->EnableAction('log_level');
         $this->RegisterVariableBoolean('permit_join', $this->Translate('Allow joining the network'), '~Switch');
         $this->EnableAction('permit_join');
+        $this->RegisterVariableInteger('permit_join_end', $this->Translate('Pairing mode ends'), '~UnixTimestamp');
+        $this->RegisterVariableInteger('permit_join_remaining', $this->Translate('Pairing time remaining'), '~Duration');
+        $this->RegisterVariableString('permit_join_target', $this->Translate('Pairing target'));
         $this->RegisterVariableBoolean('restart_required', $this->Translate('Restart Required'));
         $this->RegisterVariableInteger('restart_request', $this->Translate('Perform a restart'), 'Z2M.bridge.restart');
         $this->EnableAction('restart_request');
@@ -189,6 +198,7 @@ class Zigbee2MQTTBridge extends IPSModuleStrict
         $this->RegisterVariableInteger('network_channel', $this->Translate('Network Channel'));
 
         $this->UnregisterVariable('permit_join_timeout');
+        $this->UpdatePermitJoinStatus(false);
 
         $online = false;
         if (!empty($BaseTopic)) {
@@ -336,6 +346,17 @@ class Zigbee2MQTTBridge extends IPSModuleStrict
                 if (isset($Payload['permit_join'])) {
                     $this->SetValue('permit_join', $Payload['permit_join']);
                 }
+                if (array_key_exists('permit_join_end', $Payload)) {
+                    $this->SetValue('permit_join_end', $this->NormalizePermitJoinEnd($Payload['permit_join_end']));
+                }
+                if (array_key_exists('permit_join', $Payload) && $Payload['permit_join'] === false) {
+                    $this->PermitJoinTarget = '';
+                    $this->SetValue('permit_join_end', 0);
+                    $this->SetValue('permit_join_target', '');
+                }
+                if (isset($Payload['permit_join']) || array_key_exists('permit_join_end', $Payload)) {
+                    $this->UpdatePermitJoinStatus();
+                }
                 if (isset($Payload['restart_required'])) {
                     $this->SetValue('restart_required', $Payload['restart_required']);
                 }
@@ -446,6 +467,15 @@ class Zigbee2MQTTBridge extends IPSModuleStrict
         switch ($ident) {
             case 'permit_join':
                 $this->SetPermitJoin((bool) $value);
+                break;
+            case 'StartPairing':
+                $this->StartPairingFromForm($value);
+                break;
+            case 'StopPairing':
+                $this->SetPermitJoinTarget(0);
+                break;
+            case 'UpdatePermitJoinStatus':
+                $this->UpdatePermitJoinStatus();
                 break;
             case 'log_level':
                 $this->SetLogLevel((string) $value);
@@ -681,9 +711,36 @@ class Zigbee2MQTTBridge extends IPSModuleStrict
      */
     public function SetPermitJoin(bool $PermitJoin): bool
     {
-        $Topic = '/bridge/request/permit_join';
-        $Payload = ['time'=> ($PermitJoin ? 254 : 0)];
-        return $this->SendCheckedBridgeRequest($Topic, $Payload) !== false;
+        return $this->SetPermitJoinTarget($PermitJoin ? self::MAX_PERMIT_JOIN_DURATION : 0);
+    }
+
+    /**
+     * Aktiviert den Netzwerkbeitritt fuer eine begrenzte Dauer optional ueber
+     * einen bestimmten Coordinator oder Router.
+     *
+     * @param int    $Duration Dauer in Sekunden von 0 bis 254. Mit 0 wird der Netzwerkbeitritt beendet.
+     * @param string $Device Optionaler Friendly Name oder eine IEEE-Adresse des Pairing-Ziels.
+     *
+     * @return bool true, wenn Zigbee2MQTT den Request angenommen hat.
+     */
+    public function SetPermitJoinTarget(int $Duration, string $Device = ''): bool
+    {
+        $Duration = max(0, min(self::MAX_PERMIT_JOIN_DURATION, $Duration));
+        $Device = trim($Device);
+        $Payload = ['time' => $Duration];
+        if ($Duration > 0 && $Device !== '') {
+            $Payload['device'] = $Device;
+        }
+
+        $Data = $this->SendCheckedBridgeRequest('/bridge/request/permit_join', $Payload);
+        if ($Data === false) {
+            return false;
+        }
+
+        $Duration = max(0, min(self::MAX_PERMIT_JOIN_DURATION, (int) ($Data['time'] ?? $Duration)));
+        $Target = $Duration > 0 ? trim((string) ($Data['device'] ?? $Device)) : '';
+        $this->ApplyPermitJoinState($Duration > 0, $Duration > 0 ? time() + $Duration : 0, $Target);
+        return true;
     }
 
     /**
@@ -1659,6 +1716,34 @@ class Zigbee2MQTTBridge extends IPSModuleStrict
     }
 
     /**
+     * Registriert den Timer fuer die laufende Pairing-Restzeit.
+     */
+    protected function RegisterPermitJoinTimer(): void
+    {
+        try {
+            $this->RegisterTimer(
+                self::TIMER_PERMIT_JOIN_STATUS,
+                0,
+                "IPS_RequestAction(\$_IPS['TARGET'], 'UpdatePermitJoinStatus', true);"
+            );
+        } catch (\Throwable) {
+            // Timer operations can be temporarily unavailable while the module is being updated.
+        }
+    }
+
+    /**
+     * Aktiviert oder deaktiviert die laufende Pairing-Restzeit.
+     */
+    protected function SetPermitJoinTimerInterval(int $milliseconds): void
+    {
+        try {
+            $this->SetTimerInterval(self::TIMER_PERMIT_JOIN_STATUS, $milliseconds);
+        } catch (\Throwable) {
+            // Timer operations can be temporarily unavailable while the module is being updated.
+        }
+    }
+
+    /**
      * Fuehrt den Health-Check aus der Bridge-Konfiguration ohne technische Notice aus.
      */
     private function RunHealthCheckFromForm(): bool
@@ -2325,11 +2410,172 @@ class Zigbee2MQTTBridge extends IPSModuleStrict
     }
 
     /**
+     * Startet den Pairing-Modus mit den Eingaben aus der Bridge-Konfiguration.
+     */
+    private function StartPairingFromForm(mixed $value): bool
+    {
+        $selection = $this->DecodeBridgeFormPayload($value);
+        if ($selection === null) {
+            return false;
+        }
+
+        return $this->SetPermitJoinTarget(
+            (int) ($selection['time'] ?? self::MAX_PERMIT_JOIN_DURATION),
+            (string) ($selection['device'] ?? '')
+        );
+    }
+
+    /**
+     * Uebernimmt den Pairing-Zustand in Variablen, Buffer, Timer und Formular.
+     */
+    private function ApplyPermitJoinState(bool $active, int $end, string $target): void
+    {
+        $this->PermitJoinTarget = $active ? trim($target) : '';
+        $this->SetValue('permit_join', $active);
+        $this->SetValue('permit_join_end', $active ? $end : 0);
+        $this->SetValue('permit_join_target', $active ? $this->FormatPairingTarget($target) : '');
+        $this->UpdatePermitJoinStatus();
+    }
+
+    /**
+     * Berechnet die verbleibende Pairing-Zeit und aktualisiert das Formular.
+     */
+    private function UpdatePermitJoinStatus(bool $updateForm = true): void
+    {
+        $active = (bool) $this->GetValue('permit_join');
+        $end = (int) $this->GetValue('permit_join_end');
+        if ($active && $this->PermitJoinTarget === '') {
+            $this->PermitJoinTarget = trim((string) $this->GetValue('permit_join_target'));
+        }
+        $remaining = $active && $end > 0 ? max(0, $end - time()) : 0;
+
+        if ($active && $end > 0 && $remaining === 0) {
+            $active = false;
+            $this->PermitJoinTarget = '';
+            $this->SetValue('permit_join', false);
+            $this->SetValue('permit_join_end', 0);
+            $this->SetValue('permit_join_target', '');
+        }
+
+        $this->SetValue('permit_join_remaining', $remaining);
+        $this->SetPermitJoinTimerInterval($active && $end > 0 ? 1000 : 0);
+
+        if (!$updateForm) {
+            return;
+        }
+
+        $this->UpdateFormField('PairingStatus', 'caption', $this->BuildPairingStatusCaption());
+        $this->UpdateFormField('StartPairing', 'enabled', !$active);
+        $this->UpdateFormField('StopPairing', 'enabled', $active);
+    }
+
+    /**
+     * Normalisiert den von Zigbee2MQTT gelieferten Unix-Zeitstempel.
+     */
+    private function NormalizePermitJoinEnd(mixed $value): int
+    {
+        if (is_numeric($value)) {
+            $timestamp = (int) $value;
+            return $timestamp > 20000000000 ? (int) floor($timestamp / 1000) : max(0, $timestamp);
+        }
+
+        if (\is_string($value) && trim($value) !== '') {
+            $timestamp = strtotime($value);
+            return $timestamp === false ? 0 : $timestamp;
+        }
+
+        return 0;
+    }
+
+    /**
+     * Baut den lesbaren Pairing-Status fuer das Formular.
+     */
+    private function BuildPairingStatusCaption(): string
+    {
+        if (!(bool) $this->GetValue('permit_join')) {
+            return $this->Translate('Pairing mode is closed.');
+        }
+
+        $remaining = (int) $this->GetValue('permit_join_remaining');
+        $target = $this->FormatPairingTarget($this->PermitJoinTarget);
+        if ($remaining <= 0) {
+            return sprintf($this->Translate('Pairing mode is open via %s.'), $target);
+        }
+
+        return sprintf(
+            $this->Translate('Pairing mode is open via %s. Remaining time: %s.'),
+            $target,
+            $this->FormatOTARemaining($remaining)
+        );
+    }
+
+    /**
+     * Baut die Auswahl aus gesamtem Netzwerk, Coordinator und vorhandenen Routern.
+     */
+    private function BuildPairingTargetOptions(): array
+    {
+        $options = [
+            ['caption' => $this->Translate('Entire network'), 'value' => ''],
+            ['caption' => $this->Translate('Coordinator'), 'value' => 'coordinator']
+        ];
+        $routers = [];
+        foreach ($this->BuildNetworkSecurityDevices() as $device) {
+            if (!\is_array($device) || strcasecmp((string) ($device['type'] ?? ''), 'Router') !== 0) {
+                continue;
+            }
+
+            $ieeeAddress = trim((string) ($device['ieee_address'] ?? ''));
+            if ($ieeeAddress === '') {
+                continue;
+            }
+
+            $caption = trim((string) ($device['friendly_name'] ?? $ieeeAddress));
+            $model = trim((string) ($device['model'] ?? ''));
+            if ($model !== '' && $model !== $caption) {
+                $caption .= ' (' . $model . ')';
+            }
+            $routers[$ieeeAddress] = ['caption' => $caption, 'value' => $ieeeAddress];
+        }
+
+        uasort($routers, static fn (array $left, array $right): int => strnatcasecmp($left['caption'], $right['caption']));
+        return array_merge($options, array_values($routers));
+    }
+
+    /**
+     * Formatiert ein Pairing-Ziel fuer Statusvariable und Formular.
+     */
+    private function FormatPairingTarget(string $target): string
+    {
+        $target = trim($target);
+        if ($target === '') {
+            return $this->Translate('Entire network');
+        }
+        if (strcasecmp($target, 'coordinator') === 0) {
+            return $this->Translate('Coordinator');
+        }
+
+        foreach ($this->BuildNetworkSecurityDevices() as $device) {
+            if (!\is_array($device) || strcasecmp((string) ($device['ieee_address'] ?? ''), $target) !== 0) {
+                continue;
+            }
+
+            $friendlyName = trim((string) ($device['friendly_name'] ?? ''));
+            return $friendlyName !== '' ? $friendlyName : $target;
+        }
+
+        return $target;
+    }
+
+    /**
      * Ergaenzt die statische Bridge-Form um aktuelle Diagnosewerte.
      */
     private function BuildBridgeConfigurationForm(array $form): array
     {
         $this->SynchronizeOTAMessageSubscriptions();
+        $this->SetBridgeFormField($form, 'PairingTarget', 'options', $this->BuildPairingTargetOptions());
+        $this->SetBridgeFormField($form, 'PairingStatus', 'caption', $this->BuildPairingStatusCaption());
+        $this->SetBridgeFormField($form, 'StartPairing', 'enabled', !$this->GetValue('permit_join'));
+        $this->SetBridgeFormField($form, 'StopPairing', 'enabled', $this->GetValue('permit_join'));
         $availableDevices = $this->BuildNetworkSecurityAvailableDeviceFormValues();
         $this->SetBridgeFormField($form, 'NetworkSecurityAvailableDeviceList', 'values', $availableDevices);
         $this->SetBridgeFormField($form, 'NetworkSecurityAvailableDeviceList', 'rowCount', min(10, max(4, \count($availableDevices) + 1)));

@@ -395,6 +395,7 @@ Die Änderungen sind anhand der funktionalen Commits chronologisch gegliedert. A
 - Geräte- und Gruppeninformationen lassen sich über einheitlich benannte, direkt sichtbare Aktualisierungsaktionen neu aus Zigbee2MQTT einlesen; die doppelte Gruppenaktion unter den Expertenwerkzeugen wurde entfernt.
 - Gruppenoptionen werden ohne unnötige Zwischenebene direkt neben Gruppenmitgliedern und Szenen angezeigt.
 - Geräteinstanzen erhielten eine bestätigungspflichtige Gerätewartung. Ein erneutes Interview liest Endpoints, Cluster und Basisattribute neu ein; eine erneute Konfiguration stößt die gerätespezifische Zigbee2MQTT-Konfiguration für Bindings und Reporting erneut an. Lange Requests sowie nicht erreichbare oder nicht konfigurierbare Geräte werden mit verständlichen Ergebnisdialogen behandelt.
+- Die Bridge erhielt eine erweiterte Pairing-Steuerung. Der Netzwerkbeitritt kann für eine wählbare Dauer über das gesamte Netzwerk, den Coordinator oder einen bestimmten Router geöffnet werden; Ziel, Endzeit und verbleibende Zeit werden in Statusvariablen und der Bridge-Konfiguration angezeigt.
 
 **Version 5.42:**  
 

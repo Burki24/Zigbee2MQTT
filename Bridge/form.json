@@ -83,6 +83,57 @@
         },
         {
             "type": "ExpansionPanel",
+            "name": "Pairing",
+            "caption": "Pairing",
+            "expanded": true,
+            "items": [
+                {
+                    "type": "Label",
+                    "name": "PairingStatus",
+                    "caption": "Pairing mode is closed."
+                },
+                {
+                    "type": "RowLayout",
+                    "items": [
+                        {
+                            "type": "NumberSpinner",
+                            "name": "PairingDuration",
+                            "caption": "Duration",
+                            "minimum": 1,
+                            "maximum": 254,
+                            "suffix": " s",
+                            "value": 254
+                        },
+                        {
+                            "type": "Select",
+                            "name": "PairingTarget",
+                            "caption": "Pairing via",
+                            "options": []
+                        }
+                    ]
+                },
+                {
+                    "type": "RowLayout",
+                    "items": [
+                        {
+                            "type": "Button",
+                            "name": "StartPairing",
+                            "caption": "Start pairing",
+                            "onClick": "IPS_RequestAction($id, 'StartPairing', json_encode(['time' => $PairingDuration, 'device' => $PairingTarget]));"
+                        },
+                        {
+                            "type": "Button",
+                            "name": "StopPairing",
+                            "caption": "Stop pairing",
+                            "onClick": "IPS_RequestAction($id, 'StopPairing', true);",
+                            "enabled": false
+                        }
+                    ]
+                }
+            ]
+        },
+        {
+            "type": "ExpansionPanel",
             "name": "BridgeDiagnostics",
             "caption": "Diagnostics",
             "expanded": false,

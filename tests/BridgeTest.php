@@ -54,6 +54,106 @@ class BridgeTest extends TestCase
         $this->assertTrue($actions['PermitJoinOption']['visible']);
     }
 
+    public function testConfigurationFormOffersCoordinatorAndKnownRoutersAsPairingTargets(): void
+    {
+        $bridge = $this->createBridgeTestDouble(true);
+        $bridge->setCachedBridgeStatusForTest(false, false, 'epoch');
+        $bridge->writeDiagnosticAttribute('NetworkDevices', [
+            [
+                'friendly_name' => 'Hallway/Router',
+                'ieee_address'  => '0x000b57fffec6a5b2',
+                'model'         => 'ROUTER',
+                'type'          => 'Router'
+            ],
+            [
+                'friendly_name' => 'Bedroom/Sensor',
+                'ieee_address'  => '0x000b57fffec6a5b3',
+                'model'         => 'SENSOR',
+                'type'          => 'EndDevice'
+            ]
+        ]);
+
+        $pairingTarget = $this->findFormField(json_decode($bridge->GetConfigurationForm(), true), 'PairingTarget');
+        $this->assertNotNull($pairingTarget);
+        $this->assertSame(
+            ['', 'coordinator', '0x000b57fffec6a5b2'],
+            array_column($pairingTarget['options'], 'value')
+        );
+    }
+
+    public function testSetPermitJoinTargetUsesSelectedRouterAndDuration(): void
+    {
+        $bridge = $this->createBridgeTestDouble([
+            'status' => 'ok',
+            'data'   => ['time' => 60]
+        ]);
+
+        $this->assertTrue($bridge->SetPermitJoinTarget(60, '0x000b57fffec6a5b2'));
+        $this->assertSame('/bridge/request/permit_join', $bridge->lastTopic);
+        $this->assertSame([
+            'time'   => 60,
+            'device' => '0x000b57fffec6a5b2'
+        ], $bridge->lastPayload);
+        $this->assertGreaterThanOrEqual(59, $bridge->readPairingValue('permit_join_remaining'));
+        $this->assertLessThanOrEqual(60, $bridge->readPairingValue('permit_join_remaining'));
+    }
+
+    public function testSetPermitJoinKeepsLegacyGlobalDuration(): void
+    {
+        $bridge = $this->createBridgeTestDouble([
+            'status' => 'ok',
+            'data'   => ['time' => 254]
+        ]);
+
+        $this->assertTrue($bridge->SetPermitJoin(true));
+        $this->assertSame('/bridge/request/permit_join', $bridge->lastTopic);
+        $this->assertSame(['time' => 254], $bridge->lastPayload);
+    }
+
+    public function testBridgeInfoUpdatesPermitJoinEndAndRemainingTime(): void
+    {
+        $bridge = $this->createBridgeTestDouble(true);
+        $bridge->setBaseTopicForTest('zigbee2mqtt');
+        $end = time() + 90;
+
+        $bridge->ReceiveData(json_encode([
+            'Topic'   => 'zigbee2mqtt/bridge/info',
+            'Payload' => bin2hex(json_encode([
+                'permit_join'     => true,
+                'permit_join_end' => $end
+            ]))
+        ]));
+
+        $this->assertTrue($bridge->readPairingValue('permit_join'));
+        $this->assertSame($end, $bridge->readPairingValue('permit_join_end'));
+        $this->assertGreaterThanOrEqual(89, $bridge->readPairingValue('permit_join_remaining'));
+        $this->assertLessThanOrEqual(90, $bridge->readPairingValue('permit_join_remaining'));
+    }
+
+    public function testBridgeInfoClearsInactivePermitJoinState(): void
+    {
+        $bridge = $this->createBridgeTestDouble([
+            'status' => 'ok',
+            'data'   => ['time' => 60]
+        ]);
+        $bridge->setBaseTopicForTest('zigbee2mqtt');
+
+        $this->assertTrue($bridge->SetPermitJoinTarget(60, '0x000b57fffec6a5b2'));
+
+        $bridge->ReceiveData(json_encode([
+            'Topic'   => 'zigbee2mqtt/bridge/info',
+            'Payload' => bin2hex(json_encode([
+                'permit_join'     => false,
+                'permit_join_end' => time() + 60
+            ]))
+        ]));
+
+        $this->assertFalse($bridge->readPairingValue('permit_join'));
+        $this->assertSame(0, $bridge->readPairingValue('permit_join_end'));
+        $this->assertSame(0, $bridge->readPairingValue('permit_join_remaining'));
+        $this->assertSame('', $bridge->readPairingValue('permit_join_target'));
+    }
+
     public function testCheckOTADowngradeWithUrlUsesDowngradeTopicAndUrlPayload(): void
     {
         $bridge = $this->createBridgeTestDouble([
@@ -1262,6 +1362,11 @@ class BridgeTest extends TestCase
                 $this->ConfigPermitJoin = true;
             }
 
+            public function readPairingValue(string $ident): mixed
+            {
+                return $this->testValues[$ident] ?? null;
+            }
+
             protected function ReadPropertyString(string $Name): string
             {
                 if ($Name === self::MQTT_BASE_TOPIC && $this->testBaseTopic !== '') {
@@ -1276,13 +1381,40 @@ class BridgeTest extends TestCase
                 if (\array_key_exists($Ident, $this->testValues)) {
                     return $this->testValues[$Ident];
                 }
+                if ($Ident === 'permit_join') {
+                    return false;
+                }
+                if ($Ident === 'permit_join_end' || $Ident === 'permit_join_remaining') {
+                    return 0;
+                }
+                if ($Ident === 'permit_join_target') {
+                    return '';
+                }
 
                 return parent::GetValue($Ident);
+            }
+
+            protected function SetValue(string $Ident, mixed $Value): bool
+            {
+                if (\in_array($Ident, ['permit_join', 'permit_join_end', 'permit_join_remaining', 'permit_join_target'], true)) {
+                    $this->testValues[$Ident] = $Value;
+                    return true;
+                }
+
+                return parent::SetValue($Ident, $Value);
             }
 
             protected function GetStatus(): int
             {
                 return IS_ACTIVE;
+            }
+
+            protected function RegisterPermitJoinTimer(): void
+            {
+            }
+
+            protected function SetPermitJoinTimerInterval(int $milliseconds): void
+            {
             }
 
             protected function SendDebug(string $Message, string $Data, int $Format): bool
@@ -1330,5 +1462,37 @@ class BridgeTest extends TestCase
     {
         $method = new ReflectionMethod(Zigbee2MQTTBridge::class, 'BuildOTADeviceRows');
         return $method->invoke($bridge)[0]['state'];
+    }
+
+    private function findFormField(array $node, string $name): ?array
+    {
+        if (($node['name'] ?? null) === $name) {
+            return $node;
+        }
+
+        foreach (['elements', 'actions', 'items', 'popup'] as $childKey) {
+            $children = $node[$childKey] ?? null;
+            if (!\is_array($children)) {
+                continue;
+            }
+            if ($childKey === 'popup') {
+                $result = $this->findFormField($children, $name);
+                if ($result !== null) {
+                    return $result;
+                }
+                continue;
+            }
+            foreach ($children as $child) {
+                if (!\is_array($child)) {
+                    continue;
+                }
+                $result = $this->findFormField($child, $name);
+                if ($result !== null) {
+                    return $result;
+                }
+            }
+        }
+
+        return null;
     }
 }

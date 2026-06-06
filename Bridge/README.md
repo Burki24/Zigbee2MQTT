@@ -16,14 +16,15 @@
 - [3. Software-Installation](#3-software-installation)
 - [4. Konfiguration](#4-konfiguration)
 - [5. Bridge-Funktionen](#5-bridge-funktionen)
-  - [5.1 Diagnose](#51-diagnose)
-  - [5.2 Netzwerksicherheit](#52-netzwerksicherheit)
-  - [5.3 OTA-Updates](#53-ota-updates)
-  - [5.4 Variablen-Wartung](#54-variablen-wartung)
-  - [5.5 Zigbee2MQTT-Wartung](#55-zigbee2mqtt-wartung)
-    - [5.5.1 Backup](#551-backup)
-    - [5.5.2 Install-Codes](#552-install-codes)
-    - [5.5.3 Touchlink](#553-touchlink)
+  - [5.1 Anlernen](#51-anlernen)
+  - [5.2 Diagnose](#52-diagnose)
+  - [5.3 Netzwerksicherheit](#53-netzwerksicherheit)
+  - [5.4 OTA-Updates](#54-ota-updates)
+  - [5.5 Variablen-Wartung](#55-variablen-wartung)
+  - [5.6 Zigbee2MQTT-Wartung](#56-zigbee2mqtt-wartung)
+    - [5.6.1 Backup](#561-backup)
+    - [5.6.2 Install-Codes](#562-install-codes)
+    - [5.6.3 Touchlink](#563-touchlink)
 - [6. Statusvariablen](#6-statusvariablen)
 - [7. PHP-Funktionsreferenz](#7-php-funktionsreferenz)
 - [8. Aktionen](#8-aktionen)
@@ -74,27 +75,36 @@ Die Oberfläche trennt häufig benötigte Funktionen von administrativen Werkzeu
 
 | Bereich | Beschreibung |
 | ------- | ------------ |
+| Anlernen | Öffnet den Netzwerkbeitritt für eine wählbare Dauer über das gesamte Netzwerk, den Coordinator oder einen bestimmten Router und zeigt die verbleibende Zeit an. |
 | Diagnose | Führt Health Check und Coordinator Check aus, fordert die Netzwerkkarte an und zeigt fehlende Router, nicht unterstützte Geräte, Interview-Probleme, Bridge-Events sowie Warnungen und Fehler an. |
 | Netzwerksicherheit | Verwaltet `blocklist` und `passlist` direkt über bekannte Zigbee2MQTT-Geräte oder manuelle IEEE-Adressen. |
 | OTA-Updates | Listet bekannte OTA-fähige Geräte, prüft einzelne Geräte auf Updates, plant Aktualisierungen für die nächste Geräteanfrage und startet genau ein aktives Update gleichzeitig. Geplante Updates können aufgehoben, laufende Updates abgebrochen und Fortschritt, Restzeit sowie Abschlussmeldungen zentral angezeigt werden. |
 | Variablen-Wartung | Sucht alte Zigbee2MQTT-Variablen, die nicht mehr zu aktuellen Exposes oder Payloads passen, und löscht einzelne klare Kandidaten erst nach Bestätigung. |
 | Zigbee2MQTT-Wartung | Erstellt ein Zigbee2MQTT-Backup als ZIP-Datei auf dem Symcon-Server, sendet Zigbee-3.0-Install-Codes und bietet Touchlink-Scan, Identify und Factory-Reset an. |
 
-### 5.1 Diagnose
+### 5.1 Anlernen
+
+Der Bereich **Anlernen** öffnet den Zigbee-Netzwerkbeitritt für eine frei wählbare Dauer von maximal 254 Sekunden. Als Ziel kann das gesamte Netzwerk, der Coordinator oder ein bereits bekannter Router gewählt werden. Die Bridge zeigt währenddessen das gewählte Ziel und die verbleibende Zeit an; über **Anlernen beenden** kann der Netzwerkbeitritt jederzeit vorzeitig geschlossen werden.
+
+Das gezielte Anlernen über einen Router kann bei Geräten helfen, die einen ungünstigen Router auswählen oder in einem bestimmten Netzbereich eingebunden werden sollen. Zigbee2MQTT weist jedoch darauf hin, dass die Auswahl weder garantiert, dass das neue Gerät diesen Router tatsächlich verwendet, noch dass es dauerhaft mit ihm verbunden bleibt. Der ausgewählte Router muss eingeschaltet und erreichbar sein.
+
+Der vorhandene Schalter **Beitritt zum Netzwerk zulassen** bleibt für Skripte und bestehende Bedienoberflächen kompatibel. Beim Einschalten öffnet er den Netzwerkbeitritt weiterhin global für die maximale Dauer von 254 Sekunden.
+
+### 5.2 Diagnose
 
 Der Diagnosebereich bündelt zentrale Prüfungen für die Zigbee2MQTT-Installation. Er führt Health Check und Coordinator Check aus, fordert die Netzwerkkarte an und zeigt auffällige Zustände wie fehlende Router, nicht unterstützte Geräte, Interview-Probleme, Bridge-Events sowie Warnungen und Fehler an. Wenn Zigbee2MQTT nicht läuft oder nicht auf MQTT antwortet, zeigen Health Check und Coordinator Check in der Bridge-Konfiguration eine lesbare Meldung anstatt einer technischen Symcon-Notice.
 
-### 5.2 Netzwerksicherheit
+### 5.3 Netzwerksicherheit
 
 Die Netzwerksicherheit befindet sich unter **Erweiterte Administration**. Die `blocklist` blockiert Geräte anhand ihrer IEEE-Adresse. Die `passlist` ist restriktiver: Zigbee2MQTT entfernt Geräte aus dem Netzwerk, die nicht in der Passlist stehen. Deshalb verlangt die Bridge-Konfiguration vor Passlist-Änderungen eine Bestätigung. Die Geräteauswahl wird als filterbare Liste aus bereits empfangenen Zigbee2MQTT-Gerätedaten, vorhandenen Device-Instanzen mit gleicher Bridge und bei Bedarf aus der Symcon-Extension aufgebaut. Über **Verfügbare Geräte aktualisieren** wird die geöffnete Liste neu aus diesen Datenquellen aufgebaut.
 
-### 5.3 OTA-Updates
+### 5.4 OTA-Updates
 
 Die OTA-Verwaltung bietet nur Geräte an, die Zigbee2MQTT in den Bridge-Gerätedaten ausdrücklich mit `supports_ota` kennzeichnet. Historische `update__*`-Variablen einer Symcon-Instanz reichen dafür nicht aus. Über **Update prüfen** wird ein einzelnes Gerät aktiv geprüft. Verfügbare Updates können direkt gestartet oder für die nächste OTA-Anfrage des Geräts geplant werden. Batteriegeräte müssen vor Prüfung oder Planung eventuell aufgeweckt werden. Ein direkt gestartetes Update dauert laut Zigbee2MQTT abhängig von Gerät, Einstellungen und Netzwerkstabilität etwa 10 bis 100 Minuten. Deshalb erlaubt die Bridge immer nur ein aktives Update gleichzeitig. Während eines Updates werden Fortschritt und Restzeit in der geöffneten Bridge-Konfiguration automatisch aktualisiert. Geplante Updates können in der Liste **Aktive und geplante OTA-Updates** über **Planung aufheben** wieder aus der Zigbee2MQTT-Planung entfernt werden. Bereits angeforderte oder laufende Updates können über **Abbrechen** an Zigbee2MQTT zum Abbruch übergeben werden. Über **Status aktualisieren** oder die Aktualisieren-Schaltfläche direkt oberhalb einer OTA-Tabelle können die Werte zusätzlich manuell neu aus den Geräteinstanzen eingelesen werden. Später eintreffende Erfolgs-, Abbruch- oder Fehlermeldungen speichert die Bridge zusätzlich im Ergebnisverlauf.
 
 ![OTA-Updates](imgs/ota-updates.png)
 
-### 5.4 Variablen-Wartung
+### 5.5 Variablen-Wartung
 
 Die Variablen-Wartung befindet sich unter **Erweiterte Administration** und ist der unterstützte Weg, um alte Zigbee2MQTT-Variablen aufzuräumen. Über **Verwaiste Variablen suchen** werden klare Löschkandidaten, Review-Kandidaten und Hinweise getrennt angezeigt. Die Listen zeigen zusätzlich, ob eine Variable archiviert ist und wann sie zuletzt beschrieben wurde. Archivierte oder von anderen Symcon-Objekten referenzierte Variablen werden in der Bridge-Oberfläche nicht gelöscht. Jeder Löschvorgang betrifft genau eine Variable und muss über ein Popup bestätigt werden.
 
@@ -102,15 +112,15 @@ Bei OTA-fähigen Geräten bleiben stabile Update-Metadaten wie installierte Vers
 
 ![Variablen-Wartung](imgs/variable-maintenance.png)
 
-### 5.5 Zigbee2MQTT-Wartung
+### 5.6 Zigbee2MQTT-Wartung
 
 Der unter **Erweiterte Administration** einsortierte Bereich **Zigbee2MQTT-Wartung** stellt Werkzeuge für administrative Aufgaben bereit. Backups werden als ZIP-Datei auf dem Symcon-Server gespeichert. Zusätzlich können Zigbee-3.0-Install-Codes gesendet und Touchlink-Scan, Identify sowie Factory-Reset ausgeführt werden.
 
-#### 5.5.1 Backup
+#### 5.6.1 Backup
 
 Über **Backup-Datei erstellen** wird ein Backup des Zigbee2MQTT-Datenordners erstellt und als ZIP-Datei auf dem Symcon-Server gespeichert. Bei großen Datenordnern kann die Erstellung bis zu fünf Minuten dauern.
 
-#### 5.5.2 Install-Codes
+#### 5.6.2 Install-Codes
 
 Install-Codes können einmalig gesendet oder mit einer frei wählbaren Bezeichnung lokal in der Bridge-Instanz gespeichert und später erneut gesendet werden. An Zigbee2MQTT wird dabei ausschließlich der eigentliche Install-Code übertragen. Die Liste zeigt gespeicherte Codes nur maskiert an. Beim Bearbeiten kann das Code-Feld leer bleiben, wenn lediglich die Bezeichnung geändert werden soll.
 
@@ -119,7 +129,7 @@ Install-Codes können einmalig gesendet oder mit einer frei wählbaren Bezeichnu
 > [!WARNING]
 > Gespeicherte Install-Codes sind sensible Daten. Die Maskierung schützt nur vor einem versehentlichen Ablesen in der Bridge-Konfiguration. Die Codes werden nicht verschlüsselt in einem privaten Bridge-Attribut gespeichert und können deshalb auch Bestandteil von Symcon-Backups sein. Speichern Sie Codes nur auf entsprechend geschützten Symcon-Systemen.
 
-#### 5.5.3 Touchlink
+#### 5.6.3 Touchlink
 
 Touchlink-Scan und Touchlink-Factory-Reset können die Zigbee-Kommunikation kurzfristig stören. Ein Factory-Reset ohne ausgewähltes Ziel kann das nächste per Touchlink erreichbare Gerät zurücksetzen und sollte daher nur bewusst genutzt werden.
 
@@ -127,6 +137,8 @@ Touchlink-Scan und Touchlink-Factory-Reset können die Zigbee-Kommunikation kurz
 
 | Name                               | Typ     | Profil              | Beschreibung                                 |
 | ---------------------------------- | ------- | ------------------- | -------------------------------------------- |
+| Anlernmodus endet                  | integer | ~UnixTimestamp      | Zeitpunkt, zu dem der Netzwerkbeitritt endet |
+| Anlernziel                         | string  |                     | Gewähltes Ziel für den Netzwerkbeitritt      |
 | Beitritt zum Netzwerk zulassen     | bool    | ~Switch             | Status und Steuern des Netzwerkbeitritt      |
 | Erweiterung geladen                | bool    |                     | true wenn die Erweiterung geladen wurde      |
 | Erweiterung ist aktuell            | bool    |                     | true wenn die Erweiterung aktuell ist        |
@@ -136,6 +148,7 @@ Touchlink-Scan und Touchlink-Factory-Reset können die Zigbee-Kommunikation kurz
 | Neustart erforderlich              | bool    |                     | true wenn eine Neustart von Z2M nötig ist    |
 | Protokollierung                    | string  | Z2M.brigde.loglevel | Status der Softwareaktualisierung            |
 | Status                             | bool    | ~Alert.Reversed     | Online Status von Zigbee2MQTT                |
+| Verbleibende Anlernzeit            | integer | ~Duration           | Restzeit des geöffneten Netzwerkbeitritts    |
 | Version                            | string  |                     | Version von Zigbee2MQTT                      |
 | Zigbee Herdsman Converters Version | string  |                     | Version des Zigbee Herdsman Converters       |
 | Zigbee Herdsman Version            | string  |                     | Version vom Zigbee Herdsman-Modul            |
@@ -198,6 +211,16 @@ bool Z2M_SetPermitJoin(int $InstanzID, bool $PermitJoin);
 ```
 
 Aktiviert oder deaktiviert den Netzwerkbeitritt zur Laufzeit. Bei `true` wird Zigbee2MQTT angewiesen, neue Geräte temporär beitreten zu lassen; bei `false` wird der Beitritt beendet.
+
+---
+
+### Z2M_SetPermitJoinTarget <!-- omit in toc -->
+
+```php
+bool Z2M_SetPermitJoinTarget(int $InstanzID, int $Duration, string $Device = '');
+```
+
+Öffnet den Netzwerkbeitritt für `Duration` Sekunden. Erlaubt sind Werte von `1` bis `254`; mit `0` wird der Netzwerkbeitritt beendet. Ohne `Device` wird das gesamte Netzwerk geöffnet. Für gezieltes Anlernen kann `Device` den Wert `coordinator`, einen Friendly Name oder eine IEEE-Adresse eines Routers enthalten.
 
 ---
 
