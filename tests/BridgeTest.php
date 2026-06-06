@@ -39,6 +39,21 @@ class BridgeTest extends TestCase
         $this->assertSame(10000, $bridge->lastTimeout);
     }
 
+    public function testConfigurationFormShowsCachedBridgeStatusOnDirectActionButtons(): void
+    {
+        $bridge = $this->createBridgeTestDouble(true);
+        $bridge->setCachedBridgeStatusForTest(true, true, 'epoch');
+
+        $form = json_decode($bridge->GetConfigurationForm(), true);
+        $actions = array_column($form['actions'][0]['items'], null, 'name');
+
+        $this->assertFalse($actions['InstallExtension']['enabled']);
+        $this->assertSame('Symcon-Extension is up-to-date', $actions['InstallExtension']['caption']);
+        $this->assertFalse($actions['SetLastSeen']['enabled']);
+        $this->assertSame('last_seen setting is correct', $actions['SetLastSeen']['caption']);
+        $this->assertTrue($actions['PermitJoinOption']['visible']);
+    }
+
     public function testCheckOTADowngradeWithUrlUsesDowngradeTopicAndUrlPayload(): void
     {
         $bridge = $this->createBridgeTestDouble([
@@ -1171,6 +1186,7 @@ class BridgeTest extends TestCase
             public bool $lastSensitive = false;
             public array $updatedFields = [];
             private string $testBaseTopic = '';
+            private array $testValues = [];
 
             public function __construct(int $InstanceID, private array|bool $result)
             {
@@ -1212,6 +1228,14 @@ class BridgeTest extends TestCase
                 $this->testBaseTopic = $baseTopic;
             }
 
+            public function setCachedBridgeStatusForTest(bool $extensionLoaded, bool $extensionCurrent, string $lastSeen): void
+            {
+                $this->testValues['extension_loaded'] = $extensionLoaded;
+                $this->testValues['extension_is_current'] = $extensionCurrent;
+                $this->ConfigLastSeen = $lastSeen;
+                $this->ConfigPermitJoin = true;
+            }
+
             protected function ReadPropertyString(string $Name): string
             {
                 if ($Name === self::MQTT_BASE_TOPIC && $this->testBaseTopic !== '') {
@@ -1219,6 +1243,15 @@ class BridgeTest extends TestCase
                 }
 
                 return parent::ReadPropertyString($Name);
+            }
+
+            protected function GetValue(string $Ident): mixed
+            {
+                if (\array_key_exists($Ident, $this->testValues)) {
+                    return $this->testValues[$Ident];
+                }
+
+                return parent::GetValue($Ident);
             }
 
             protected function GetStatus(): int

@@ -568,15 +568,15 @@ class Zigbee2MQTTBridge extends IPSModuleStrict
     {
         $Form = json_decode(file_get_contents(__DIR__ . '/form.json'), true);
         if ($this->GetValue('extension_loaded') && $this->GetValue('extension_is_current')) {
-            $Form['actions'][0]['enabled'] = false;
-            $Form['actions'][0]['caption'] = $this->Translate('Symcon-Extension is up-to-date');
+            $this->SetBridgeFormField($Form, 'InstallExtension', 'enabled', false);
+            $this->SetBridgeFormField($Form, 'InstallExtension', 'caption', $this->Translate('Symcon-Extension is up-to-date'));
         }
         if ($this->ConfigLastSeen == 'epoch') {
-            $Form['actions'][1]['enabled'] = false;
-            $Form['actions'][1]['caption'] = $this->Translate('last_seen setting is correct');
+            $this->SetBridgeFormField($Form, 'SetLastSeen', 'enabled', false);
+            $this->SetBridgeFormField($Form, 'SetLastSeen', 'caption', $this->Translate('last_seen setting is correct'));
         }
         if ($this->ConfigPermitJoin) {
-            $Form['actions'][2]['visible'] = true;
+            $this->SetBridgeFormField($Form, 'PermitJoinOption', 'visible', true);
         }
         return json_encode($this->BuildBridgeConfigurationForm($Form));
     }
