@@ -120,6 +120,8 @@ class NetworkMapTest extends TestCase
         $nodeList = $this->findFormField($form, 'NodeList');
         $this->assertNotNull($nodeList);
         $this->assertSame('Coordinator', $nodeList['values'][0]['name']);
+        $this->assertNotNull($this->findFormField($form, 'DefaultLayout'));
+        $this->assertNotNull($this->findFormField($form, 'ShowLabels'));
 
         $tile = $map->GetVisualizationTile();
         $this->assertStringContainsString('cytoscape', $tile);
@@ -139,6 +141,8 @@ class NetworkMapTest extends TestCase
         $this->assertStringContainsString("searchFields: ['id', 'label', 'model', 'type']", $tile);
         $this->assertStringContainsString('focusSelectedNeighborhood()', $tile);
         $this->assertStringContainsString('<option value="cose">Netzstruktur</option>', $tile);
+        $this->assertStringContainsString('applyViewDefaults()', $tile);
+        $this->assertStringContainsString('"view":{"layout":"concentric","labels":true}', $tile);
         $this->assertStringNotContainsString('__INITIAL_DATA__', $tile);
         $this->assertStringNotContainsString('__CYTOSCAPE__', $tile);
         $this->assertStringNotContainsString('__CYTOSCAPE_VIEW_CONTROLLER__', $tile);

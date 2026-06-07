@@ -11,6 +11,45 @@
             "caption": "Weak LQI warning threshold",
             "minimum": 0,
             "maximum": 255
+        },
+        {
+            "type": "ExpansionPanel",
+            "caption": "View",
+            "expanded": true,
+            "items": [
+                {
+                    "type": "Select",
+                    "name": "DefaultLayout",
+                    "caption": "Default layout",
+                    "options": [
+                        {
+                            "caption": "Overview",
+                            "value": "concentric"
+                        },
+                        {
+                            "caption": "Hierarchy",
+                            "value": "breadthfirst"
+                        },
+                        {
+                            "caption": "Circle",
+                            "value": "circle"
+                        },
+                        {
+                            "caption": "Grid",
+                            "value": "grid"
+                        },
+                        {
+                            "caption": "Network structure",
+                            "value": "cose"
+                        }
+                    ]
+                },
+                {
+                    "type": "CheckBox",
+                    "name": "ShowLabels",
+                    "caption": "Show labels by default"
+                }
+            ]
         }
     ],
     "actions": [

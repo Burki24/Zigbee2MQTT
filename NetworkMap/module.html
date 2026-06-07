@@ -160,6 +160,7 @@
     let selectedLayout = 'concentric';
     let labelsVisible = true;
     let selectedNodeId = '';
+    let viewDefaultsApplied = false;
     let resizeFrame = 0;
     let stateRequestPending = false;
 
@@ -175,6 +176,7 @@
         const elements = [...(currentData.nodes || []), ...(currentData.links || [])];
         const hasTopology = elements.length > 0;
         const isRunning = Boolean(currentData.scan?.running);
+        applyViewDefaults();
 
         status.textContent = scanStatus;
         status.hidden = !hasTopology && !isRunning;
@@ -273,6 +275,20 @@
             resizeGraph(true);
         });
         applyFilters();
+    }
+
+    function applyViewDefaults() {
+        if (viewDefaultsApplied) {
+            return;
+        }
+        const configuredLayout = currentData.view?.layout;
+        if (['concentric', 'breadthfirst', 'circle', 'grid', 'cose'].includes(configuredLayout)) {
+            selectedLayout = configuredLayout;
+        }
+        labelsVisible = currentData.view?.labels !== false;
+        document.getElementById('layout').value = selectedLayout;
+        document.getElementById('labels').checked = labelsVisible;
+        viewDefaultsApplied = true;
     }
 
     function buildLayout(name) {

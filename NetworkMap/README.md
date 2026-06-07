@@ -44,6 +44,8 @@ Die HTML-SDK-Kachel bietet eine interaktive Darstellung der zuletzt gespeicherte
 - **Vollbild** öffnet die Netzwerkkarte als bildschirmfüllende Darstellung und lässt sich über denselben Button oder `Esc` wieder schließen.
 - Die Kachel startet selbst keine Netzwerkanalyse.
 
+Im Abschnitt **Ansicht** der Instanzkonfiguration werden das beim Öffnen verwendete Standardlayout und die anfängliche Sichtbarkeit der Beschriftungen festgelegt. Änderungen über den Button **Ansicht** innerhalb der Kachel gelten nur für die aktuell geöffnete Darstellung und verändern diese gespeicherten Vorgaben nicht.
+
 Der Vergrößerungspfeil von Symcon öffnet bei individuellen HTML-SDK-Kacheln die normale Detailansicht der Instanz. Das PHP-SDK bietet derzeit keine eigene HTML-Darstellung für diese maximierte Detailansicht. Da die Netzwerkkarten-Instanz keine darzustellenden Kindobjekte benötigt, bleibt diese Symcon-Ansicht leer. Für die große grafische Darstellung ist deshalb der Button **Vollbild** innerhalb der Netzwerkkarte vorgesehen.
 
 Für die lokale Graphdarstellung wird [Cytoscape.js](https://js.cytoscape.org/) unter MIT-Lizenz mitgeliefert. Es werden keine externen Webressourcen nachgeladen.

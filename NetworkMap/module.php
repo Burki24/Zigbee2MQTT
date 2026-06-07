@@ -27,6 +27,8 @@ class Zigbee2MQTTNetworkMap extends IPSModuleStrict
 
         $this->RegisterPropertyString(self::MQTT_BASE_TOPIC, '');
         $this->RegisterPropertyInteger('WeakLQIThreshold', 50);
+        $this->RegisterPropertyString('DefaultLayout', 'concentric');
+        $this->RegisterPropertyBoolean('ShowLabels', true);
         $this->RegisterAttributeArray(self::ATTRIBUTE_TOPOLOGY, []);
         $this->RegisterAttributeArray(self::ATTRIBUTE_SCAN, []);
         $this->RegisterScanStatusTimer();
@@ -97,6 +99,7 @@ class Zigbee2MQTTNetworkMap extends IPSModuleStrict
             'scan'      => [],
             'summary'   => [],
             'threshold' => $this->ReadPropertyInteger('WeakLQIThreshold'),
+            'view'      => $this->BuildVisualizationViewSettings(),
             'nodes'     => [],
             'links'     => []
         ], JSON_HEX_TAG | JSON_HEX_APOS | JSON_HEX_AMP | JSON_HEX_QUOT);
@@ -539,8 +542,25 @@ class Zigbee2MQTTNetworkMap extends IPSModuleStrict
             ],
             'summary'   => $summary,
             'threshold' => $this->ReadPropertyInteger('WeakLQIThreshold'),
+            'view'      => $this->BuildVisualizationViewSettings(),
             'nodes'     => $nodes,
             'links'     => $links
+        ];
+    }
+
+    /**
+     * Liefert ausschließlich dauerhaft konfigurierbare Vorgaben für die Kachel.
+     */
+    private function BuildVisualizationViewSettings(): array
+    {
+        $layout = $this->ReadPropertyString('DefaultLayout');
+        if (!\in_array($layout, ['concentric', 'breadthfirst', 'circle', 'grid', 'cose'], true)) {
+            $layout = 'concentric';
+        }
+
+        return [
+            'layout' => $layout,
+            'labels' => $this->ReadPropertyBoolean('ShowLabels')
         ];
     }
 
