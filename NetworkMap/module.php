@@ -89,7 +89,13 @@ class Zigbee2MQTTNetworkMap extends IPSModuleStrict
             $themeSupport = '';
         }
 
-        $initialData = json_encode($this->BuildVisualizationData(), JSON_HEX_TAG | JSON_HEX_APOS | JSON_HEX_AMP | JSON_HEX_QUOT);
+        $initialData = json_encode([
+            'scan'      => [],
+            'summary'   => [],
+            'threshold' => $this->ReadPropertyInteger('WeakLQIThreshold'),
+            'nodes'     => [],
+            'links'     => []
+        ], JSON_HEX_TAG | JSON_HEX_APOS | JSON_HEX_AMP | JSON_HEX_QUOT);
         return str_replace(
             ['__THEME_SUPPORT__', '__CYTOSCAPE__', '__INITIAL_DATA__'],
             [

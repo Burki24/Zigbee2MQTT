@@ -104,6 +104,7 @@
     let routesOnly = false;
     let cy = null;
     let resizeFrame = 0;
+    let stateRequestPending = false;
 
     function render(data) {
         currentData = data || currentData;
@@ -220,13 +221,16 @@
     }
 
     function requestCurrentState() {
-        if (typeof requestAction !== 'function') {
+        if (stateRequestPending || typeof requestAction !== 'function') {
             return;
         }
+        stateRequestPending = true;
         try {
             requestAction('RefreshVisualization', true);
         } catch {
             // The initial data remains available if the visualization channel is not ready yet.
+            stateRequestPending = false;
+            setTimeout(requestCurrentState, 250);
         }
     }
 
@@ -273,10 +277,11 @@
         if (!data || typeof data !== 'object') {
             return;
         }
+        stateRequestPending = false;
         render(data);
     }
     render(initialData);
-    requestAnimationFrame(requestCurrentState);
+    setTimeout(requestCurrentState, 50);
 </script>
 </body>
 </html>
