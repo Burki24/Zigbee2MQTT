@@ -58,14 +58,18 @@
 
 ## 4. Konfiguration
 
-   ![Konfiguration Device](imgs/config.png)
+![Konfiguration der Bridge](imgs/config.png)
 
-| **Nummer** | **Feld**            | **Beschreibung**                                                                                                                                                |
-| ---------- | ------------------- | --------------------------------------------------------------------------------------------------------------------------------------------------------------- |
-| **1**      | **MQTT Base Topic** | Dieses wird vom [Konfigurator](../Configurator/README.md) bei Anlage der Instanz automatisch auf den korrekten Wert gesetzt und sollte auch so belassen werden. |
-| **2**      | **Erweiterung**     | Über diese Schaltfläche kann die Erweiterung in Z2M eingerichtet oder aktualisert werden, sofern dies nicht automatisch erfolgt ist.                            |
-| **3**      | **last_seen**       | In Z2M muss die Einstellung `last_seen` auf den Wert `epoch` eingerichtet sein, da es sonst zu Fehlermeldungen bei den Variablen `Zuletzt gesehen` kommt.       |
-| **4**      | **Testcenter**      | Hier sind die Schaltbaren Statusvariablen aufgeführt, so kann z.B. der Netzwerkbeitritt aktiviert werden.                                                       |
+| **Nummer** | **Bereich** | **Beschreibung** |
+| ---------- | ----------- | ---------------- |
+| **1** | **MQTT Base Topic** | Basistopic der zugehörigen Zigbee2MQTT-Installation. Es wird vom [Konfigurator](../Configurator/README.md) beim Anlegen der Instanz automatisch gesetzt und sollte nur geändert werden, wenn auch Zigbee2MQTT ein anderes Basistopic verwendet. |
+| **2** | **Symcon-Erweiterung** | Zeigt, ob die Symcon-Erweiterung in Zigbee2MQTT installiert und aktuell ist. Bei einer fehlenden oder veralteten Erweiterung kann sie über dieselbe Schaltfläche installiert beziehungsweise aktualisiert werden. |
+| **3** | **last_seen-Einstellung** | Prüft, ob Zigbee2MQTT `last_seen` im benötigten Format `epoch` veröffentlicht. Ist die Einstellung nicht korrekt, kann sie über dieselbe Schaltfläche angepasst werden. |
+| **4** | **Anlernen** | Öffnet den Netzwerkbeitritt für eine wählbare Dauer über das gesamte Netzwerk, den Coordinator oder einen bestimmten Router. |
+| **5** | **Diagnose** | Enthält Health Check, Coordinator Check, Bridge-Ereignisse, Warnungen sowie Übersichten auffälliger oder nicht vollständig interviewter Geräte. |
+| **6** | **OTA-Updates** | Verwaltet verfügbare, geplante und laufende Geräte-Firmwareupdates zentral. |
+| **7** | **Erweiterte Administration** | Enthält die seltener benötigten Bereiche Netzwerksicherheit, Variablen-Wartung und Zigbee2MQTT-Wartung. |
+| **8** | **Expertenwerkzeuge** | Enthält das Testcenter für die direkte Prüfung und Bedienung der Bridge-Statusvariablen. |
 
 ## 5. Bridge-Funktionen
 
