@@ -58,6 +58,35 @@ Im Abschnitt **Ansicht** der Instanzkonfiguration werden das beim Öffnen verwen
 
 ![Ansicht der Netzwerkkarte konfigurieren](imgs/ansicht-konfiguration.png)
 
+### Routing-Ansicht
+
+Der Button **Routen** reduziert die Darstellung auf Verbindungen, denen Zigbee2MQTT während der letzten Analyse mindestens einen Routing-Eintrag zuordnen konnte. Diese Ansicht steht deshalb nur sinnvoll zur Verfügung, wenn zuvor **Verbindungen und Routen analysieren** ausgeführt wurde.
+
+![Routing-Ansicht der Netzwerkkarte](imgs/routing-ansicht.png)
+
+Die Darstellung verwendet folgende Markierungen:
+
+| Element | Bedeutung |
+|---|---|
+| Roter Knoten | Coordinator des Zigbee-Netzwerks |
+| Blauer Knoten | Router |
+| Türkiser Knoten | Endgerät |
+| Grüner Pfeil | Gerichtete Verbindung, für die mindestens ein Routing-Eintrag vorliegt |
+| Orangefarbener Rand | Bei diesem Gerät ist während der letzten Analyse mindestens eine Abfrage fehlgeschlagen |
+| Kontrastreicher dunkler oder heller Rand | Aktuell ausgewähltes Gerät |
+
+Die Pfeilrichtung entspricht der in den von Zigbee2MQTT gelieferten Topologiedaten enthaltenen Richtung von Quelle zu Ziel. Die Routing-Ansicht ist eine Diagnosehilfe und keine garantierte Echtzeitdarstellung des Weges jedes einzelnen Zigbee-Pakets. Routing-Tabellen können sich ändern und einzelne Abfragen können unvollständig bleiben.
+
+Nach einem Klick auf ein Gerät erscheint unten links eine Detailkarte. Sie zeigt:
+
+- den Anzeigenamen beziehungsweise die IEEE-Adresse des Geräts,
+- den Gerätetyp, beispielsweise `Router`, sowie das Modell, sofern bekannt,
+- fehlgeschlagene Abfragen der letzten Analyse.
+
+Der Hinweis `Scanfehler: routingTable` bedeutet, dass Zigbee2MQTT die Routing-Tabelle dieses Routers während der letzten Analyse nicht erfolgreich lesen konnte. Das Gerät ist dadurch nicht automatisch offline oder defekt. Mögliche Ursachen sind beispielsweise eine Zeitüberschreitung, eine vorübergehend gestörte Kommunikation oder eine vom Gerät nicht beantwortete Routing-Abfrage. Ein erneuter Scan kann deshalb ein anderes Ergebnis liefern.
+
+Ein Klick auf eine freie Stelle der Netzwerkkarte schließt die Detailkarte wieder.
+
 ### Warum gibt es einen eigenen Vollbildmodus?
 
 Der Button **Vollbild** ist aufgrund einer Einschränkung von IP-Symcon erforderlich. Der reguläre Vergrößerungspfeil einer individuellen HTML-SDK-Kachel öffnet lediglich die normale Detailansicht der Instanz. Das PHP-SDK von Symcon bietet derzeit keine Möglichkeit, für diese maximierte Detailansicht eine eigene HTML-Darstellung bereitzustellen.
