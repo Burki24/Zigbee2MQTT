@@ -127,6 +127,10 @@ class NetworkMapTest extends TestCase
         $this->assertStringContainsString('--tile-title-clearance: 58px', $tile);
         $this->assertStringContainsString('tools.hidden = !hasTopology', $tile);
         $this->assertStringContainsString('--z2m-font-family', $tile);
+        $this->assertStringContainsString('height: 100vh', $tile);
+        $this->assertStringContainsString('new ResizeObserver(scheduleGraphResize)', $tile);
+        $this->assertStringContainsString("requestAction('RefreshVisualization', true)", $tile);
+        $this->assertStringContainsString("window.addEventListener('pageshow', requestCurrentState)", $tile);
         $this->assertStringNotContainsString('__INITIAL_DATA__', $tile);
         $this->assertStringNotContainsString('__CYTOSCAPE__', $tile);
         $this->assertStringNotContainsString('__THEME_SUPPORT__', $tile);
@@ -158,6 +162,18 @@ class NetworkMapTest extends TestCase
         $visualizationData = json_decode($map->lastVisualizationValue, true, 512, JSON_THROW_ON_ERROR);
         $this->assertTrue($visualizationData['scan']['running']);
         $this->assertStringContainsString('JSON.parse(data)', $map->GetVisualizationTile());
+    }
+
+    public function testVisualizationCanRequestCurrentStoredState(): void
+    {
+        $map = $this->createMapTestDouble();
+
+        $map->RequestAction('RefreshVisualization', true);
+
+        $this->assertIsString($map->lastVisualizationValue);
+        $visualizationData = json_decode($map->lastVisualizationValue, true, 512, JSON_THROW_ON_ERROR);
+        $this->assertSame([], $visualizationData['nodes']);
+        $this->assertSame([], $visualizationData['links']);
     }
 
     public function testVisualizationOmitsLinksToUnknownNodes(): void

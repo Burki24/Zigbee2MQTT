@@ -9,7 +9,13 @@
         }
 
         * { box-sizing: border-box; }
-        html, body { width: 100%; height: 100%; margin: 0; background: transparent; }
+        html, body {
+            width: 100%;
+            height: 100vh;
+            min-height: 240px;
+            margin: 0;
+            background: transparent;
+        }
         body { display: grid; grid-template-rows: auto minmax(0, 1fr); overflow: hidden; }
         header {
             display: grid;
@@ -97,6 +103,7 @@
     let weakOnly = false;
     let routesOnly = false;
     let cy = null;
+    let resizeFrame = 0;
 
     function render(data) {
         currentData = data || currentData;
@@ -185,8 +192,7 @@
             if (event.target === cy) document.getElementById('details').style.display = 'none';
         });
         requestAnimationFrame(() => {
-            cy?.resize();
-            cy?.fit(undefined, 40);
+            resizeGraph(true);
         });
         applyFilters();
     }
@@ -196,6 +202,32 @@
         empty.textContent = message;
         empty.classList.add('error');
         empty.style.display = 'grid';
+    }
+
+    function resizeGraph(fit = false) {
+        if (!cy) {
+            return;
+        }
+        cy.resize();
+        if (fit) {
+            cy.fit(undefined, 40);
+        }
+    }
+
+    function scheduleGraphResize() {
+        cancelAnimationFrame(resizeFrame);
+        resizeFrame = requestAnimationFrame(() => resizeGraph(true));
+    }
+
+    function requestCurrentState() {
+        if (typeof requestAction !== 'function') {
+            return;
+        }
+        try {
+            requestAction('RefreshVisualization', true);
+        } catch {
+            // The initial data remains available if the visualization channel is not ready yet.
+        }
     }
 
     function applyFilters() {
@@ -216,6 +248,17 @@
     document.getElementById('fit').addEventListener('click', () => cy?.fit(undefined, 30));
     document.getElementById('weak').addEventListener('click', event => { weakOnly = !weakOnly; event.target.style.opacity = weakOnly ? '1' : '0.8'; applyFilters(); });
     document.getElementById('routes').addEventListener('click', event => { routesOnly = !routesOnly; event.target.style.opacity = routesOnly ? '1' : '0.8'; applyFilters(); });
+    window.addEventListener('resize', scheduleGraphResize);
+    window.addEventListener('pageshow', requestCurrentState);
+    document.addEventListener('visibilitychange', () => {
+        if (!document.hidden) {
+            scheduleGraphResize();
+            requestCurrentState();
+        }
+    });
+    if (typeof ResizeObserver === 'function') {
+        new ResizeObserver(scheduleGraphResize).observe(document.body);
+    }
     function handleMessage(data) {
         if (Array.isArray(data) && data.length === 1) {
             data = data[0];
@@ -233,6 +276,7 @@
         render(data);
     }
     render(initialData);
+    requestAnimationFrame(requestCurrentState);
 </script>
 </body>
 </html>

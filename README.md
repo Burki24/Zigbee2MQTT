@@ -402,6 +402,7 @@ Die Änderungen sind anhand der funktionalen Commits chronologisch gegliedert. A
 - Die Netzwerkkarten-Kachel reserviert den Symcon-Titelbereich, richtet Status, Zusammenfassung und Filter responsiv aus und blendet vor der ersten Analyse noch nicht nutzbare Bedienelemente aus.
 - Live-Aktualisierungen der Netzwerkkarten-Kachel werden als JSON-Zeichenkette an das HTML-SDK übertragen und dort sicher normalisiert, sodass Scanstart, Fortschritt und Ergebnisse ohne Typkonvertierungswarnung dargestellt werden.
 - Die grafische Netzwerkkarte filtert Verbindungen zu unbekannten oder nicht im Scan enthaltenen Knoten, lädt Cytoscape unabhängig von der HTML-SDK-Umgebung und verwendet für große Netzwerke ein schnelles konzentrisches Layout. Darstellungsfehler werden sichtbar in der Kachel ausgegeben.
+- Die HTML-SDK-Netzwerkkarte reagiert auf Größen- und Sichtbarkeitsänderungen, verwendet die verfügbare Viewport-Höhe und fordert beim Öffnen den aktuell gespeicherten Zustand an, damit der Graph auch in einer neu geöffneten maximierten Kachelansicht dargestellt und automatisch eingepasst wird.
 
 **Version 5.42:**  
 

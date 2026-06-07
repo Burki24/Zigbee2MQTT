@@ -300,6 +300,9 @@ class Zigbee2MQTTNetworkMap extends IPSModuleStrict
             case 'UpdateScanStatus':
                 $this->UpdateVisibleData();
                 break;
+            case 'RefreshVisualization':
+                $this->UpdateVisibleData();
+                break;
             default:
                 throw new InvalidArgumentException('Invalid ident: ' . $Ident);
         }
