@@ -160,6 +160,28 @@ class NetworkMapTest extends TestCase
         $this->assertStringContainsString('JSON.parse(data)', $map->GetVisualizationTile());
     }
 
+    public function testVisualizationOmitsLinksToUnknownNodes(): void
+    {
+        $map = $this->createMapTestDouble();
+        $map->ReceiveData($this->buildRawResponse([
+            'nodes' => [
+                ['ieeeAddr' => '0x0000000000000001', 'friendlyName' => 'Coordinator', 'type' => 'Coordinator']
+            ],
+            'links' => [
+                [
+                    'source' => ['ieeeAddr' => '0x0000000000000001'],
+                    'target' => ['ieeeAddr' => '0x0000000000009999'],
+                    'lqi'    => 100
+                ]
+            ]
+        ], false));
+
+        $visualizationData = json_decode($map->lastVisualizationValue, true, 512, JSON_THROW_ON_ERROR);
+        $this->assertCount(1, $visualizationData['nodes']);
+        $this->assertCount(0, $visualizationData['links']);
+        $this->assertSame(1, $visualizationData['summary']['omitted_links']);
+    }
+
     private function createMapTestDouble(): Zigbee2MQTTNetworkMap
     {
         $map = new class(900002) extends Zigbee2MQTTNetworkMap {

@@ -468,14 +468,20 @@ class Zigbee2MQTTNetworkMap extends IPSModuleStrict
         $topology = $this->ReadAttributeArray(self::ATTRIBUTE_TOPOLOGY);
         $scan = $this->ReadAttributeArray(self::ATTRIBUTE_SCAN);
         $nodes = [];
+        $nodeIDs = [];
         foreach ($topology['nodes'] ?? [] as $node) {
             if (!\is_array($node)) {
                 continue;
             }
+            $id = (string) ($node['ieeeAddr'] ?? '');
+            if ($id === '' || isset($nodeIDs[$id])) {
+                continue;
+            }
+            $nodeIDs[$id] = true;
             $definition = \is_array($node['definition'] ?? null) ? $node['definition'] : [];
             $nodes[] = [
                 'data' => [
-                    'id'       => (string) ($node['ieeeAddr'] ?? ''),
+                    'id'       => $id,
                     'label'    => (string) ($node['friendlyName'] ?? $node['ieeeAddr'] ?? ''),
                     'type'     => (string) ($node['type'] ?? ''),
                     'model'    => (string) ($definition['model'] ?? $node['modelID'] ?? ''),
@@ -484,6 +490,7 @@ class Zigbee2MQTTNetworkMap extends IPSModuleStrict
             ];
         }
         $links = [];
+        $omittedLinks = 0;
         $index = 0;
         foreach ($topology['links'] ?? [] as $link) {
             if (!\is_array($link)) {
@@ -491,7 +498,8 @@ class Zigbee2MQTTNetworkMap extends IPSModuleStrict
             }
             $source = (string) ($link['source']['ieeeAddr'] ?? $link['sourceIeeeAddr'] ?? '');
             $target = (string) ($link['target']['ieeeAddr'] ?? $link['targetIeeeAddr'] ?? '');
-            if ($source === '' || $target === '') {
+            if ($source === '' || $target === '' || !isset($nodeIDs[$source], $nodeIDs[$target])) {
+                $omittedLinks++;
                 continue;
             }
             $links[] = [
@@ -505,6 +513,9 @@ class Zigbee2MQTTNetworkMap extends IPSModuleStrict
             ];
         }
 
+        $summary = $this->BuildSummary($topology);
+        $summary['omitted_links'] = $omittedLinks;
+
         return [
             'scan'      => [
                 'running'    => (bool) ($scan['running'] ?? false),
@@ -512,7 +523,7 @@ class Zigbee2MQTTNetworkMap extends IPSModuleStrict
                 'started_at' => (int) ($scan['started_at'] ?? 0),
                 'status'     => $this->BuildScanStatus($scan, $topology)
             ],
-            'summary'   => $this->BuildSummary($topology),
+            'summary'   => $summary,
             'threshold' => $this->ReadPropertyInteger('WeakLQIThreshold'),
             'nodes'     => $nodes,
             'links'     => $links
