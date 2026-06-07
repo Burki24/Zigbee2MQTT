@@ -95,8 +95,6 @@ Ein Klick auf eine freie Stelle der Netzwerkkarte schließt die Detailkarte wied
 
 Für die lokale Graphdarstellung wird [Cytoscape.js](https://js.cytoscape.org/) unter MIT-Lizenz mitgeliefert. Es werden keine externen Webressourcen nachgeladen.
 
-Die allgemeine Bedienlogik für Layoutwechsel, Suche, Fokus und Beschriftungen ist innerhalb des Netzwerkkarten-Moduls von der Zigbee-spezifischen Topologieauswertung und Darstellung getrennt. Dadurch kann sie nach Stabilisierung der Schnittstelle später als eigenständiger, wiederverwendbarer Cytoscape-Helfer bereitgestellt werden.
-
 ## Exporte
 
 Aus der gespeicherten RAW-Analyse erzeugt Symcon lokal:
