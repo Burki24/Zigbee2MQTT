@@ -612,6 +612,7 @@ trait DeviceFormHelper
     {
         $visible = trim($this->ReadPropertyString(self::MQTT_TOPIC)) !== '';
         $this->SetDeviceFormField($form, 'DeviceMaintenanceSettings', 'visible', $visible);
+        $this->SetDeviceFormField($form, 'AdvancedDeviceRemovalSettings', 'visible', $visible);
 
         return $visible;
     }

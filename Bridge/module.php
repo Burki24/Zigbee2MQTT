@@ -1466,7 +1466,9 @@ class Zigbee2MQTTBridge extends IPSModuleStrict
     /**
      * RemoveDevice
      *
-     * @param  string $DeviceName
+     * @param string $DeviceName Friendly Name oder IEEE-Adresse.
+     * @param bool   $Force      Entfernt das Geraet nur aus der Zigbee2MQTT-Datenbank.
+     * @param bool   $Block      Blockiert das Geraet nach dem Entfernen.
      *
      * @return bool
      *
@@ -1474,10 +1476,17 @@ class Zigbee2MQTTBridge extends IPSModuleStrict
      * @uses trigger_error()
      * @uses isset()
      */
-    public function RemoveDevice(string $DeviceName): bool
+    public function RemoveDevice(string $DeviceName, bool $Force = false, bool $Block = false): bool
     {
         $Topic = '/bridge/request/device/remove';
-        $Payload = ['id'=>$DeviceName];
+        $Payload = ['id' => $DeviceName];
+        if ($Force) {
+            $Payload['force'] = true;
+        }
+        if ($Block) {
+            $Payload['block'] = true;
+        }
+
         return $this->SendCheckedBridgeRequest($Topic, $Payload, 11000) !== false;
     }
 

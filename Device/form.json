@@ -865,6 +865,81 @@
             }
         },
         {
+            "name": "DeviceRemovalWarning",
+            "type": "PopupAlert",
+            "visible": false,
+            "popup": {
+                "closeCaption": "Cancel",
+                "buttons": [
+                    {
+                        "caption": "Remove device",
+                        "onClick": "IPS_RequestAction($id, 'ConfirmDeviceRemoval', true);"
+                    }
+                ],
+                "items": [
+                    {
+                        "type": "Label",
+                        "bold": true,
+                        "caption": "Remove device normally?"
+                    },
+                    {
+                        "type": "Label",
+                        "caption": "Zigbee2MQTT will ask the device to leave the Zigbee network. The device must be online and battery devices may need to be woken up. The Symcon instance and its variables remain unchanged."
+                    }
+                ]
+            }
+        },
+        {
+            "name": "ForceDeviceRemovalWarning",
+            "type": "PopupAlert",
+            "visible": false,
+            "popup": {
+                "closeCaption": "Cancel",
+                "buttons": [
+                    {
+                        "caption": "Force remove device",
+                        "onClick": "IPS_RequestAction($id, 'ConfirmForceDeviceRemoval', true);"
+                    }
+                ],
+                "items": [
+                    {
+                        "type": "Label",
+                        "bold": true,
+                        "caption": "Force remove device?"
+                    },
+                    {
+                        "type": "Label",
+                        "caption": "This only removes the device from the Zigbee2MQTT database. The device keeps the network encryption key and may continue communicating until it is factory-reset. The Symcon instance and its variables remain unchanged."
+                    }
+                ]
+            }
+        },
+        {
+            "name": "BlockDeviceRemovalWarning",
+            "type": "PopupAlert",
+            "visible": false,
+            "popup": {
+                "closeCaption": "Cancel",
+                "buttons": [
+                    {
+                        "caption": "Remove and block device",
+                        "onClick": "IPS_RequestAction($id, 'ConfirmBlockDeviceRemoval', true);"
+                    }
+                ],
+                "items": [
+                    {
+                        "type": "Label",
+                        "bold": true,
+                        "caption": "Remove and block device?"
+                    },
+                    {
+                        "type": "Label",
+                        "caption": "Zigbee2MQTT will remove the device and add it to the blocklist so it cannot join the network again. The Symcon instance and its variables remain unchanged."
+                    }
+                ]
+            }
+        },
+        {
             "name": "DeviceMaintenanceMessage",
             "type": "PopupAlert",
             "visible": false,
@@ -914,6 +989,39 @@
                             "type": "Button",
                             "caption": "Change IEEE Address",
                             "onClick": "IPS_RequestAction($id, 'ShowIeeeEditWarning', true);"
+                        }
+                    ]
+                },
+                {
+                    "type": "ExpansionPanel",
+                    "name": "AdvancedDeviceRemovalSettings",
+                    "caption": "Advanced device removal",
+                    "expanded": false,
+                    "visible": false,
+                    "items": [
+                        {
+                            "type": "Label",
+                            "caption": "Removing a device from Zigbee2MQTT does not delete its Symcon instance or variables. Use these actions carefully."
+                        },
+                        {
+                            "type": "RowLayout",
+                            "items": [
+                                {
+                                    "type": "Button",
+                                    "caption": "Remove device normally",
+                                    "onClick": "IPS_RequestAction($id, 'RequestDeviceRemoval', true);"
+                                },
+                                {
+                                    "type": "Button",
+                                    "caption": "Force remove device",
+                                    "onClick": "IPS_RequestAction($id, 'RequestForceDeviceRemoval', true);"
+                                },
+                                {
+                                    "type": "Button",
+                                    "caption": "Remove and block device",
+                                    "onClick": "IPS_RequestAction($id, 'RequestBlockDeviceRemoval', true);"
+                                }
+                            ]
                         }
                     ]
                 },

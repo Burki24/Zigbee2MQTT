@@ -600,10 +600,12 @@ Benennt ein Zigbee2MQTT-Gerät um. Danach ändert sich auch das MQTT-Topic des G
 ### Z2M_RemoveDevice <!-- omit in toc -->
 
 ```php
-bool Z2M_RemoveDevice(int $InstanzID, string $DeviceName);
+bool Z2M_RemoveDevice(int $InstanzID, string $DeviceName, bool $Force = false, bool $Block = false);
 ```
 
-Entfernt ein Gerät aus Zigbee2MQTT.
+Entfernt ein Gerät aus Zigbee2MQTT. Ohne optionale Parameter fordert Zigbee2MQTT das erreichbare Gerät regulär auf, das Netzwerk zu verlassen.
+
+Mit `Force = true` wird das Gerät nur aus der Zigbee2MQTT-Datenbank entfernt. Es behält dabei den Netzwerkschlüssel und kann bis zu einem Factory-Reset weiterhin kommunizieren. Mit `Block = true` wird das Gerät nach dem Entfernen zusätzlich zur Zigbee2MQTT-Blocklist hinzugefügt. Die Symcon-Geräteinstanz und ihre Variablen werden durch diese Funktion nicht gelöscht.
 
 ---
 

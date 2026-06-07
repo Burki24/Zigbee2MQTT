@@ -771,6 +771,36 @@ class BridgeTest extends TestCase
         $this->assertSame(120000, $bridge->lastTimeout);
     }
 
+    public function testRemoveDeviceKeepsLegacyRequestPayload(): void
+    {
+        $bridge = $this->createBridgeTestDouble([
+            'status' => 'ok',
+            'data'   => ['id' => 'lamp']
+        ]);
+
+        $this->assertTrue($bridge->RemoveDevice('lamp'));
+        $this->assertSame('/bridge/request/device/remove', $bridge->lastTopic);
+        $this->assertSame(['id' => 'lamp'], $bridge->lastPayload);
+        $this->assertSame(11000, $bridge->lastTimeout);
+    }
+
+    public function testRemoveDeviceSupportsForceAndBlockOptions(): void
+    {
+        $bridge = $this->createBridgeTestDouble([
+            'status' => 'ok',
+            'data'   => ['id' => 'lamp']
+        ]);
+
+        $this->assertTrue($bridge->RemoveDevice('lamp', true, false));
+        $this->assertSame(['id' => 'lamp', 'force' => true], $bridge->lastPayload);
+
+        $this->assertTrue($bridge->RemoveDevice('lamp', false, true));
+        $this->assertSame(['id' => 'lamp', 'block' => true], $bridge->lastPayload);
+
+        $this->assertTrue($bridge->RemoveDevice('lamp', true, true));
+        $this->assertSame(['id' => 'lamp', 'force' => true, 'block' => true], $bridge->lastPayload);
+    }
+
     public function testReadReportingReturnsJsonData(): void
     {
         $bridge = $this->createBridgeTestDouble([

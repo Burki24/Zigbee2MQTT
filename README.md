@@ -396,6 +396,7 @@ Die Änderungen sind anhand der funktionalen Commits chronologisch gegliedert. A
 - Gruppenoptionen werden ohne unnötige Zwischenebene direkt neben Gruppenmitgliedern und Szenen angezeigt.
 - Geräteinstanzen erhielten eine bestätigungspflichtige Gerätewartung. Ein erneutes Interview liest Endpoints, Cluster und Basisattribute neu ein; eine erneute Konfiguration stößt die gerätespezifische Zigbee2MQTT-Konfiguration für Bindings und Reporting erneut an. Lange Requests sowie nicht erreichbare oder nicht konfigurierbare Geräte werden mit verständlichen Ergebnisdialogen behandelt.
 - Die Bridge erhielt eine erweiterte Pairing-Steuerung. Der Netzwerkbeitritt kann für eine wählbare Dauer über das gesamte Netzwerk, den Coordinator oder einen bestimmten Router geöffnet werden; Ziel, Endzeit und verbleibende Zeit werden in Statusvariablen und der Bridge-Konfiguration angezeigt.
+- Geräteinstanzen bieten unter den Expertenwerkzeugen eine bestätigungspflichtige erweiterte Geräteentfernung. Geräte können regulär entfernt, nur aus der Zigbee2MQTT-Datenbank zwangsweise entfernt oder nach dem Entfernen zusätzlich blockiert werden; Symcon-Instanz und Variablen bleiben dabei erhalten.
 
 **Version 5.42:**  
 

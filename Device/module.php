@@ -164,6 +164,48 @@ class Zigbee2MQTTDevice extends \Zigbee2MQTT\ModulBase
             );
             return;
         }
+        if ($ident == 'RequestDeviceRemoval') {
+            $this->UpdateFormField('DeviceRemovalWarning', 'visible', true);
+            return;
+        }
+        if ($ident == 'ConfirmDeviceRemoval') {
+            $this->UpdateFormField('DeviceRemovalWarning', 'visible', false);
+            $this->RunDeviceRemovalRequest(
+                false,
+                false,
+                'Device removed',
+                'Zigbee2MQTT removed the device from the Zigbee network. The Symcon instance and its variables remain unchanged.'
+            );
+            return;
+        }
+        if ($ident == 'RequestForceDeviceRemoval') {
+            $this->UpdateFormField('ForceDeviceRemovalWarning', 'visible', true);
+            return;
+        }
+        if ($ident == 'ConfirmForceDeviceRemoval') {
+            $this->UpdateFormField('ForceDeviceRemovalWarning', 'visible', false);
+            $this->RunDeviceRemovalRequest(
+                true,
+                false,
+                'Device force removed',
+                'Zigbee2MQTT removed the device from its database. Factory-reset the device before pairing it again. The Symcon instance and its variables remain unchanged.'
+            );
+            return;
+        }
+        if ($ident == 'RequestBlockDeviceRemoval') {
+            $this->UpdateFormField('BlockDeviceRemovalWarning', 'visible', true);
+            return;
+        }
+        if ($ident == 'ConfirmBlockDeviceRemoval') {
+            $this->UpdateFormField('BlockDeviceRemovalWarning', 'visible', false);
+            $this->RunDeviceRemovalRequest(
+                false,
+                true,
+                'Device removed and blocked',
+                'Zigbee2MQTT removed the device and added it to the blocklist. The Symcon instance and its variables remain unchanged.'
+            );
+            return;
+        }
         if ($ident == 'ShowIeeeEditWarning') {
             $this->UpdateFormField('IeeeWarning', 'visible', true);
             return;
@@ -332,6 +374,41 @@ class Zigbee2MQTTDevice extends \Zigbee2MQTT\ModulBase
             $this->ShowDeviceMaintenanceMessage(
                 $failureTitle,
                 'Zigbee2MQTT did not complete the request. Make sure the device is online and wake battery devices before trying again.'
+            );
+            return false;
+        }
+
+        $this->ShowDeviceMaintenanceMessage($successTitle, $successMessage);
+        return true;
+    }
+
+    /**
+     * Fuehrt eine bestaetigte Zigbee2MQTT-Geraeteentfernung aus.
+     */
+    private function RunDeviceRemovalRequest(bool $force, bool $block, string $successTitle, string $successMessage): bool
+    {
+        $deviceID = trim($this->ReadPropertyString(parent::MQTT_TOPIC));
+        if ($deviceID === '') {
+            $this->ShowDeviceMaintenanceMessage(
+                'Device removal failed',
+                'The device cannot be removed because no MQTT topic is configured.'
+            );
+            return false;
+        }
+
+        set_error_handler(static function (): bool
+        {
+            return true;
+        }, E_USER_NOTICE);
+        try {
+            $success = $this->CallMatchingBridgeFunction('RemoveDevice', [$deviceID, $force, $block]) === true;
+        } finally {
+            restore_error_handler();
+        }
+        if (!$success) {
+            $this->ShowDeviceMaintenanceMessage(
+                'Device removal failed',
+                'Zigbee2MQTT did not remove the device. Make sure Zigbee2MQTT is online and wake battery devices before a normal removal.'
             );
             return false;
         }

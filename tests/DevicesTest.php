@@ -212,6 +212,7 @@ class DevicesTest extends DumpInclude
 
         $this->assertFormItemVisible($form, 'AdvancedDeviceSettings');
         $this->assertFormItemVisible($form, 'DeviceMaintenanceSettings');
+        $this->assertFormItemVisible($form, 'AdvancedDeviceRemovalSettings');
     }
 
     public function testDeviceInterviewRequiresConfirmationAndUsesLongMaintenanceTimeout(): void
@@ -245,6 +246,53 @@ class DevicesTest extends DumpInclude
         $this->assertSame('Device configuration failed', $device->updatedFields['DeviceMaintenanceMessageTitle']['caption']);
         $this->assertStringContainsString(
             'Zigbee2MQTT did not complete the request.',
+            $device->updatedFields['DeviceMaintenanceMessageText']['caption']
+        );
+    }
+
+    public function testDeviceRemovalRequiresConfirmationAndUsesSelectedMode(): void
+    {
+        $device = $this->createDeviceOptionFormTestDouble();
+        $device->bridgeFunctionResult = true;
+
+        $device->RequestAction('RequestDeviceRemoval', true);
+        $this->assertSame(true, $device->updatedFields['DeviceRemovalWarning']['visible']);
+
+        $device->RequestAction('ConfirmDeviceRemoval', true);
+        $this->assertSame(false, $device->updatedFields['DeviceRemovalWarning']['visible']);
+        $this->assertSame('RemoveDevice', $device->calledBridgeFunction);
+        $this->assertSame(['Flur/Beleuchtung/Unten', false, false], $device->calledBridgeArguments);
+        $this->assertSame('Device removed', $device->updatedFields['DeviceMaintenanceMessageTitle']['caption']);
+
+        $device->RequestAction('RequestForceDeviceRemoval', true);
+        $this->assertSame(true, $device->updatedFields['ForceDeviceRemovalWarning']['visible']);
+
+        $device->RequestAction('ConfirmForceDeviceRemoval', true);
+        $this->assertSame(false, $device->updatedFields['ForceDeviceRemovalWarning']['visible']);
+        $this->assertSame('RemoveDevice', $device->calledBridgeFunction);
+        $this->assertSame(['Flur/Beleuchtung/Unten', true, false], $device->calledBridgeArguments);
+        $this->assertSame('Device force removed', $device->updatedFields['DeviceMaintenanceMessageTitle']['caption']);
+
+        $device->RequestAction('RequestBlockDeviceRemoval', true);
+        $this->assertSame(true, $device->updatedFields['BlockDeviceRemovalWarning']['visible']);
+
+        $device->RequestAction('ConfirmBlockDeviceRemoval', true);
+        $this->assertSame(false, $device->updatedFields['BlockDeviceRemovalWarning']['visible']);
+        $this->assertSame('RemoveDevice', $device->calledBridgeFunction);
+        $this->assertSame(['Flur/Beleuchtung/Unten', false, true], $device->calledBridgeArguments);
+        $this->assertSame('Device removed and blocked', $device->updatedFields['DeviceMaintenanceMessageTitle']['caption']);
+    }
+
+    public function testDeviceRemovalShowsReadableZigbee2MQTTError(): void
+    {
+        $device = $this->createDeviceOptionFormTestDouble();
+        $device->bridgeFunctionResult = false;
+
+        $device->RequestAction('ConfirmDeviceRemoval', true);
+
+        $this->assertSame('Device removal failed', $device->updatedFields['DeviceMaintenanceMessageTitle']['caption']);
+        $this->assertStringContainsString(
+            'Zigbee2MQTT did not remove the device.',
             $device->updatedFields['DeviceMaintenanceMessageText']['caption']
         );
     }
