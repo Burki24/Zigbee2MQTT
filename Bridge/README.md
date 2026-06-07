@@ -90,6 +90,16 @@ Die Oberfläche trennt häufig benötigte Funktionen von administrativen Werkzeu
 
 Der Bereich **Anlernen** öffnet den Zigbee-Netzwerkbeitritt für eine frei wählbare Dauer von maximal 254 Sekunden. Als Ziel kann das gesamte Netzwerk, der Coordinator oder ein bereits bekannter Router gewählt werden. Die Bridge zeigt währenddessen das gewählte Ziel und die verbleibende Zeit an; über **Anlernen beenden** kann der Netzwerkbeitritt jederzeit vorzeitig geschlossen werden.
 
+![Anlernen neuer Zigbee-Geräte](imgs/pairing.png)
+
+| Bedienelement | Bedeutung |
+| ------------- | --------- |
+| **Statuszeile** | Zeigt, ob der Anlernmodus geschlossen oder geöffnet ist. Bei geöffnetem Netzwerkbeitritt werden zusätzlich das gewählte Ziel und die verbleibende Zeit angezeigt. |
+| **Dauer** | Legt fest, wie viele Sekunden der Netzwerkbeitritt geöffnet bleibt. Zigbee2MQTT erlaubt maximal `254` Sekunden. |
+| **Anlernen über** | Wählt aus, ob der Netzwerkbeitritt über das gesamte Netzwerk, ausschließlich über den Coordinator oder gezielt über einen bekannten Router freigegeben wird. |
+| **Anlernen starten** | Öffnet den Netzwerkbeitritt mit der gewählten Dauer und dem gewählten Ziel. |
+| **Anlernen beenden** | Schließt einen laufenden Netzwerkbeitritt vorzeitig. |
+
 Das gezielte Anlernen über einen Router kann bei Geräten helfen, die einen ungünstigen Router auswählen oder in einem bestimmten Netzbereich eingebunden werden sollen. Zigbee2MQTT weist jedoch darauf hin, dass die Auswahl weder garantiert, dass das neue Gerät diesen Router tatsächlich verwendet, noch dass es dauerhaft mit ihm verbunden bleibt. Der ausgewählte Router muss eingeschaltet und erreichbar sein.
 
 Der vorhandene Schalter **Beitritt zum Netzwerk zulassen** bleibt für Skripte und bestehende Bedienoberflächen kompatibel. Beim Einschalten öffnet er den Netzwerkbeitritt weiterhin global für die maximale Dauer von 254 Sekunden.
