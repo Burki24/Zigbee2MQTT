@@ -124,8 +124,12 @@ class NetworkMapTest extends TestCase
         $tile = $map->GetVisualizationTile();
         $this->assertStringContainsString('cytoscape', $tile);
         $this->assertStringContainsString('Coordinator', $tile);
+        $this->assertStringContainsString('--tile-title-clearance: 58px', $tile);
+        $this->assertStringContainsString('tools.hidden = !hasTopology', $tile);
+        $this->assertStringContainsString('--z2m-font-family', $tile);
         $this->assertStringNotContainsString('__INITIAL_DATA__', $tile);
         $this->assertStringNotContainsString('__CYTOSCAPE__', $tile);
+        $this->assertStringNotContainsString('__THEME_SUPPORT__', $tile);
     }
 
     public function testFailedResponseStopsRunningScan(): void

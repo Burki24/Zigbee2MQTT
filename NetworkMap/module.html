@@ -4,35 +4,82 @@
     <meta charset="utf-8">
     <meta name="viewport" content="width=device-width, initial-scale=1">
     <style>
+        :root {
+            --tile-title-clearance: 58px;
+        }
+
         * { box-sizing: border-box; }
-        html, body { width: 100%; height: 100%; margin: 0; color: inherit; background: transparent; font-family: inherit; }
-        body { display: grid; grid-template-rows: auto 1fr; overflow: hidden; }
-        header { display: grid; grid-template-columns: 1fr auto; gap: 10px; align-items: center; padding: 12px 14px 6px; }
-        .summary { display: flex; flex-wrap: wrap; gap: 6px 14px; font-size: 0.9rem; opacity: 0.82; }
-        .tools { display: flex; gap: 6px; }
+        html, body { width: 100%; height: 100%; margin: 0; background: transparent; }
+        body { display: grid; grid-template-rows: auto minmax(0, 1fr); overflow: hidden; }
+        header {
+            display: grid;
+            grid-template-columns: minmax(0, 1fr) auto;
+            gap: 8px 12px;
+            align-items: end;
+            padding: var(--tile-title-clearance) 14px 8px;
+        }
+        #status {
+            overflow: hidden;
+            margin-bottom: 4px;
+            font-size: var(--z2m-font-small, 0.86em);
+            font-weight: 500;
+            line-height: 1.25;
+            text-overflow: ellipsis;
+            white-space: nowrap;
+        }
+        .summary {
+            display: flex;
+            flex-wrap: wrap;
+            gap: 4px 12px;
+            font-size: var(--z2m-font-caption, 0.78em);
+            line-height: 1.25;
+            opacity: 0.76;
+        }
+        .tools { display: flex; flex-wrap: wrap; justify-content: flex-end; gap: 6px; }
+        .tools[hidden], #status[hidden], .summary[hidden] { display: none; }
         button, input, select { font: inherit; color: inherit; }
-        button { border: 1px solid currentColor; background: transparent; padding: 5px 9px; cursor: pointer; opacity: 0.8; }
+        button {
+            min-height: 30px;
+            border: 1px solid var(--line, currentColor);
+            border-radius: 3px;
+            background: var(--chip, transparent);
+            padding: 4px 8px;
+            font-size: var(--z2m-font-caption, 0.78em);
+            white-space: nowrap;
+            cursor: pointer;
+            opacity: 0.82;
+        }
         button:hover { opacity: 1; }
         main { position: relative; min-height: 0; }
         #graph { position: absolute; inset: 0; }
-        .empty { position: absolute; inset: 0; display: grid; place-items: center; text-align: center; padding: 24px; opacity: 0.65; }
+        .empty {
+            position: absolute;
+            inset: 0;
+            display: grid;
+            place-items: center;
+            text-align: center;
+            padding: 24px;
+            font-size: var(--z2m-font-small, 0.86em);
+            opacity: 0.65;
+        }
         .details { position: absolute; left: 12px; bottom: 12px; max-width: min(420px, calc(100% - 24px)); padding: 9px 11px; border: 1px solid currentColor; background: color-mix(in srgb, Canvas 90%, transparent); display: none; }
         .details strong { display: block; margin-bottom: 3px; }
-        @media (max-width: 600px) {
+        @media (max-width: 520px) {
             header { grid-template-columns: 1fr; }
             .tools { justify-content: flex-start; }
             .tools button:nth-child(n+3) { display: none; }
         }
     </style>
+    __THEME_SUPPORT__
     <script>__CYTOSCAPE__</script>
 </head>
 <body>
 <header>
-    <div>
-        <div id="status"></div>
-        <div class="summary" id="summary"></div>
+    <div id="overview">
+        <div id="status" hidden></div>
+        <div class="summary" id="summary" hidden></div>
     </div>
-    <div class="tools">
+    <div class="tools" id="tools" hidden>
         <button type="button" id="fit" title="Ansicht einpassen">Einpassen</button>
         <button type="button" id="weak" title="Schwache Verbindungen hervorheben">Schwache LQI</button>
         <button type="button" id="routes" title="Nur Verbindungen mit Routen anzeigen">Routen</button>
@@ -54,18 +101,30 @@
         currentData = data || currentData;
         const textColor = getComputedStyle(document.body).color;
         const summary = currentData.summary || {};
-        document.getElementById('status').textContent = currentData.scan?.status || '';
-        document.getElementById('summary').innerHTML =
+        const status = document.getElementById('status');
+        const summaryElement = document.getElementById('summary');
+        const tools = document.getElementById('tools');
+        const empty = document.getElementById('empty');
+        const scanStatus = currentData.scan?.status || '';
+        const elements = [...(currentData.nodes || []), ...(currentData.links || [])];
+        const hasTopology = elements.length > 0;
+        const isRunning = Boolean(currentData.scan?.running);
+
+        status.textContent = scanStatus;
+        status.hidden = !hasTopology && !isRunning;
+        summaryElement.innerHTML =
             `<span>${summary.devices || 0} Geräte</span>` +
             `<span>${summary.routers || 0} Router</span>` +
             `<span>${summary.end_devices || 0} Endgeräte</span>` +
             `<span>${summary.links || 0} Verbindungen</span>` +
             `<span>${summary.routes || 0} Routen</span>` +
             `<span>${summary.failures || 0} Scanfehler</span>`;
+        summaryElement.hidden = !hasTopology;
+        tools.hidden = !hasTopology;
+        empty.textContent = isRunning ? scanStatus : 'Noch keine Netzwerkanalyse vorhanden.';
 
-        const elements = [...(currentData.nodes || []), ...(currentData.links || [])];
-        document.getElementById('empty').style.display = elements.length ? 'none' : 'grid';
-        if (!elements.length || typeof cytoscape !== 'function') {
+        empty.style.display = hasTopology ? 'none' : 'grid';
+        if (!hasTopology || typeof cytoscape !== 'function') {
             return;
         }
 

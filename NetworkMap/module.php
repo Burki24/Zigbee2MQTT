@@ -77,17 +77,23 @@ class Zigbee2MQTTNetworkMap extends IPSModuleStrict
     {
         $html = file_get_contents(__DIR__ . '/module.html');
         $cytoscape = file_get_contents(__DIR__ . '/assets/cytoscape.min.js');
+        $themePath = dirname(__DIR__) . '/libs/Visualization/tiles/theme_support.html';
+        $themeSupport = is_file($themePath) ? file_get_contents($themePath) : '';
         if (!\is_string($html)) {
             return '';
         }
         if (!\is_string($cytoscape)) {
             $cytoscape = '';
         }
+        if (!\is_string($themeSupport)) {
+            $themeSupport = '';
+        }
 
         $initialData = json_encode($this->BuildVisualizationData(), JSON_HEX_TAG | JSON_HEX_APOS | JSON_HEX_AMP | JSON_HEX_QUOT);
         return str_replace(
-            ['__CYTOSCAPE__', '__INITIAL_DATA__'],
+            ['__THEME_SUPPORT__', '__CYTOSCAPE__', '__INITIAL_DATA__'],
             [
+                $themeSupport,
                 $cytoscape,
                 \is_string($initialData) ? $initialData : '{}'
             ],
