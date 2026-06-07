@@ -184,7 +184,22 @@
     document.getElementById('fit').addEventListener('click', () => cy?.fit(undefined, 30));
     document.getElementById('weak').addEventListener('click', event => { weakOnly = !weakOnly; event.target.style.opacity = weakOnly ? '1' : '0.8'; applyFilters(); });
     document.getElementById('routes').addEventListener('click', event => { routesOnly = !routesOnly; event.target.style.opacity = routesOnly ? '1' : '0.8'; applyFilters(); });
-    function handleMessage(data) { render(data); }
+    function handleMessage(data) {
+        if (Array.isArray(data) && data.length === 1) {
+            data = data[0];
+        }
+        if (typeof data === 'string') {
+            try {
+                data = JSON.parse(data);
+            } catch {
+                return;
+            }
+        }
+        if (!data || typeof data !== 'object') {
+            return;
+        }
+        render(data);
+    }
     render(initialData);
 </script>
 </body>

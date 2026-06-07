@@ -149,12 +149,24 @@ class NetworkMapTest extends TestCase
         $this->assertSame('scan failed', $scan['error']);
     }
 
+    public function testVisibleDataUpdatesTileWithJsonString(): void
+    {
+        $map = $this->createMapTestDouble();
+
+        $this->assertTrue($map->StartNetworkScan(false));
+        $this->assertIsString($map->lastVisualizationValue);
+        $visualizationData = json_decode($map->lastVisualizationValue, true, 512, JSON_THROW_ON_ERROR);
+        $this->assertTrue($visualizationData['scan']['running']);
+        $this->assertStringContainsString('JSON.parse(data)', $map->GetVisualizationTile());
+    }
+
     private function createMapTestDouble(): Zigbee2MQTTNetworkMap
     {
         $map = new class(900002) extends Zigbee2MQTTNetworkMap {
             public string $lastTopic = '';
             public array $lastPayload = [];
             public int $lastTimeout = -1;
+            public mixed $lastVisualizationValue = null;
             private string $baseTopic = 'zigbee2mqtt';
 
             protected function SendData(string $Topic, array $Payload = [], int $Timeout = 5000): array|bool
@@ -188,6 +200,7 @@ class NetworkMapTest extends TestCase
 
             protected function UpdateVisualizationValue(mixed $Value)
             {
+                $this->lastVisualizationValue = $Value;
                 return true;
             }
 

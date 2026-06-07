@@ -380,7 +380,10 @@ class Zigbee2MQTTNetworkMap extends IPSModuleStrict
             $this->UpdateFormField($field, 'values', json_encode($data[$key]));
             $this->UpdateFormField($field, 'rowCount', min(12, max(3, \count($data[$key]) + 1)));
         }
-        $this->UpdateVisualizationValue($this->BuildVisualizationData());
+        $visualizationData = json_encode($this->BuildVisualizationData(), JSON_HEX_TAG | JSON_HEX_APOS | JSON_HEX_AMP | JSON_HEX_QUOT);
+        if (\is_string($visualizationData)) {
+            $this->UpdateVisualizationValue($visualizationData);
+        }
     }
 
     /**

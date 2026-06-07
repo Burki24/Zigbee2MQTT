@@ -400,6 +400,7 @@ Die Änderungen sind anhand der funktionalen Commits chronologisch gegliedert. A
 - Geräteinstanzen bieten unter den Expertenwerkzeugen eine bestätigungspflichtige erweiterte Geräteentfernung. Geräte können regulär entfernt, nur aus der Zigbee2MQTT-Datenbank zwangsweise entfernt oder nach dem Entfernen zusätzlich blockiert werden; Symcon-Instanz und Variablen bleiben dabei erhalten.
 - Das neue eigenständige Modul **Zigbee2MQTT Netzwerkkarte** analysiert die Netzwerktopologie asynchron als RAW-Daten, zeigt Geräte, gerichtete LQI-Verbindungen, Routen und Scanfehler an und bietet eine interaktive HTML-SDK-Kachel. RAW-, Graphviz- und PlantUML-Exporte werden lokal aus der letzten Analyse erzeugt und lösen keinen weiteren Zigbee-Netzwerkscan aus.
 - Die Netzwerkkarten-Kachel reserviert den Symcon-Titelbereich, richtet Status, Zusammenfassung und Filter responsiv aus und blendet vor der ersten Analyse noch nicht nutzbare Bedienelemente aus.
+- Live-Aktualisierungen der Netzwerkkarten-Kachel werden als JSON-Zeichenkette an das HTML-SDK übertragen und dort sicher normalisiert, sodass Scanstart, Fortschritt und Ergebnisse ohne Typkonvertierungswarnung dargestellt werden.
 
 **Version 5.42:**  
 
