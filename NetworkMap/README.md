@@ -38,17 +38,31 @@ Die HTML-SDK-Kachel bietet eine interaktive Darstellung der zuletzt gespeicherte
 - Coordinator, Router und Endgeräte werden unterschiedlich dargestellt.
 - Schwache Verbindungen und Verbindungen mit aktiven Routen können hervorgehoben werden.
 - Geräte lassen sich anklicken, verschieben, zoomen und gemeinsam in die Ansicht einpassen.
-- Über **Ansicht** stehen die Layouts Übersicht, Hierarchie, Kreis, Raster und Netzstruktur zur Verfügung.
 - Die Gerätesuche findet Knoten anhand von Name, Modell, Typ oder Adresse und kann ein einzelnes Gerät oder dessen direktes Netzwerkumfeld hervorheben.
 - Beschriftungen lassen sich für eine ruhigere Darstellung großer Netze ausblenden.
-- **Vollbild** öffnet die Netzwerkkarte als bildschirmfüllende Darstellung und lässt sich über denselben Button oder `Esc` wieder schließen. Die transparente Kachel übernimmt dabei automatisch eine zum aktuellen hellen oder dunklen Symcon-Profil passende kontrastierende Vollbildfläche.
 - Die Kachel startet selbst keine Netzwerkanalyse.
+
+![Interaktive Netzwerkkarten-Kachel](imgs/netzwerkkarte-kachel.png)
+
+Die Buttons der Kachel haben folgende Aufgaben:
+
+| Button | Funktion |
+|---|---|
+| **Einpassen** | Zentriert die aktuell sichtbaren Geräte und Verbindungen und passt sie an die verfügbare Kachelfläche an. |
+| **Schwache LQI** | Zeigt ausschließlich Verbindungen, deren LQI unterhalb des in der Instanz konfigurierten Warnwerts liegt. |
+| **Routen** | Zeigt ausschließlich Verbindungen an, für die in der letzten Analyse Routing-Einträge vorhanden waren. Routing-Daten stehen nur nach einer Analyse mit Routen zur Verfügung. |
+| **Ansicht** | Öffnet die Werkzeuge für Layoutwechsel, Gerätesuche, Umfeldfokus und das Ein- oder Ausblenden der Beschriftungen. |
+| **Vollbild** | Öffnet die interaktive Netzwerkkarte bildschirmfüllend. Der Vollbildmodus kann über denselben Button oder `Esc` geschlossen werden und verwendet automatisch eine zum aktiven Symcon-Profil passende kontrastierende Fläche. |
 
 Im Abschnitt **Ansicht** der Instanzkonfiguration werden das beim Öffnen verwendete Standardlayout und die anfängliche Sichtbarkeit der Beschriftungen festgelegt. Änderungen über den Button **Ansicht** innerhalb der Kachel gelten nur für die aktuell geöffnete Darstellung und verändern diese gespeicherten Vorgaben nicht.
 
 ![Ansicht der Netzwerkkarte konfigurieren](imgs/ansicht-konfiguration.png)
 
-Der Vergrößerungspfeil von Symcon öffnet bei individuellen HTML-SDK-Kacheln die normale Detailansicht der Instanz. Das PHP-SDK bietet derzeit keine eigene HTML-Darstellung für diese maximierte Detailansicht. Da die Netzwerkkarten-Instanz keine darzustellenden Kindobjekte benötigt, bleibt diese Symcon-Ansicht leer. Für die große grafische Darstellung ist deshalb der Button **Vollbild** innerhalb der Netzwerkkarte vorgesehen.
+### Warum gibt es einen eigenen Vollbildmodus?
+
+Der Button **Vollbild** ist aufgrund einer Einschränkung von IP-Symcon erforderlich. Der reguläre Vergrößerungspfeil einer individuellen HTML-SDK-Kachel öffnet lediglich die normale Detailansicht der Instanz. Das PHP-SDK von Symcon bietet derzeit keine Möglichkeit, für diese maximierte Detailansicht eine eigene HTML-Darstellung bereitzustellen.
+
+Da die Netzwerkkarten-Instanz keine darzustellenden Kindobjekte benötigt, bleibt die von Symcon geöffnete Detailansicht leer. Für eine große, weiterhin interaktive Darstellung stellt das Modul deshalb den eigenen Button **Vollbild** innerhalb der Netzwerkkarte bereit.
 
 Für die lokale Graphdarstellung wird [Cytoscape.js](https://js.cytoscape.org/) unter MIT-Lizenz mitgeliefert. Es werden keine externen Webressourcen nachgeladen.
 
