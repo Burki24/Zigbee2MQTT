@@ -39,6 +39,7 @@ Anbindung von [zigbee2mqtt](https://www.zigbee2mqtt.io) an IP-Symcon.
 - [Zigbee2MQTT Bridge](Bridge/README.md)
 - [Zigbee2MQTT Gerät](Device/README.md)
 - [Zigbee2MQTT Gruppe](Group/README.md)
+- [Zigbee2MQTT Netzwerkkarte](NetworkMap/README.md)
 
  Details zu jedem Typ sind direkt in der Dokumentation der jeweiligen Module beschrieben.
 
@@ -371,7 +372,7 @@ Die Änderungen sind anhand der funktionalen Commits chronologisch gegliedert. A
 - Die Bridge-Wartung erhielt einen optionalen lokalen Install-Code-Katalog. Install-Codes können mit einer Bezeichnung gespeichert, maskiert angezeigt, erneut gesendet, bearbeitet und nach Bestätigung gelöscht werden. Sensible MQTT-Payloads und Antworten erscheinen nicht im Debug-Protokoll.
 - Die Bridge-Dokumentation wurde in eigene Funktionsblöcke für Diagnose, Netzwerksicherheit, OTA-Updates, Variablen-Wartung sowie Zigbee2MQTT-Wartung mit Backup, Install-Codes und Touchlink gegliedert.
 
-### 1. bis 6. Juni 2026: Erweiterte Ablaufplan-Aktionen, Datenaktualisierung und Bedienkomfort
+### 1. bis 7. Juni 2026: Erweiterte Ablaufplan-Aktionen, Datenaktualisierung und Bedienkomfort
 
 - Wiederverwendbare Ablaufplan-Aktionen wurden für Status-Umschaltung, Ein-/Ausschalten mit Übergangszeit, Kelvin-Farbtemperatur mit Übergangszeit und Zigbee-Szenenabruf ergänzt.
 - Die Kelvin-Aktion verwendet die pro Geräteinstanz ermittelte beziehungsweise überschriebene Farbtemperaturdarstellung und rechnet den gewählten Kelvin-Wert für Zigbee2MQTT in Mired um.
@@ -397,6 +398,7 @@ Die Änderungen sind anhand der funktionalen Commits chronologisch gegliedert. A
 - Geräteinstanzen erhielten eine bestätigungspflichtige Gerätewartung. Ein erneutes Interview liest Endpoints, Cluster und Basisattribute neu ein; eine erneute Konfiguration stößt die gerätespezifische Zigbee2MQTT-Konfiguration für Bindings und Reporting erneut an. Lange Requests sowie nicht erreichbare oder nicht konfigurierbare Geräte werden mit verständlichen Ergebnisdialogen behandelt.
 - Die Bridge erhielt eine erweiterte Pairing-Steuerung. Der Netzwerkbeitritt kann für eine wählbare Dauer über das gesamte Netzwerk, den Coordinator oder einen bestimmten Router geöffnet werden; Ziel, Endzeit und verbleibende Zeit werden in Statusvariablen und der Bridge-Konfiguration angezeigt.
 - Geräteinstanzen bieten unter den Expertenwerkzeugen eine bestätigungspflichtige erweiterte Geräteentfernung. Geräte können regulär entfernt, nur aus der Zigbee2MQTT-Datenbank zwangsweise entfernt oder nach dem Entfernen zusätzlich blockiert werden; Symcon-Instanz und Variablen bleiben dabei erhalten.
+- Das neue eigenständige Modul **Zigbee2MQTT Netzwerkkarte** analysiert die Netzwerktopologie asynchron als RAW-Daten, zeigt Geräte, gerichtete LQI-Verbindungen, Routen und Scanfehler an und bietet eine interaktive HTML-SDK-Kachel. RAW-, Graphviz- und PlantUML-Exporte werden lokal aus der letzten Analyse erzeugt und lösen keinen weiteren Zigbee-Netzwerkscan aus.
 
 **Version 5.42:**  
 

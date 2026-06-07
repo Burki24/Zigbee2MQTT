@@ -1,0 +1,243 @@
+<?php
+
+declare(strict_types=1);
+
+include_once __DIR__ . '/stubs/autoload.php';
+
+use PHPUnit\Framework\TestCase;
+
+/**
+ * Tests asynchronous network-map requests, normalization and exports.
+ */
+class NetworkMapTest extends TestCase
+{
+    public function setUp(): void
+    {
+        IPS\Kernel::reset();
+        IPS\ModuleLoader::loadLibrary(__DIR__ . '/../library.json');
+        IPS\ModuleLoader::loadLibrary(__DIR__ . '/stubs/CoreStubs/library.json');
+        IPS\ModuleLoader::loadLibrary(__DIR__ . '/stubs/IOStubs/library.json');
+
+        parent::setUp();
+    }
+
+    public function testQuickScanSendsAsynchronousRawRequestWithoutRoutes(): void
+    {
+        $map = $this->createMapTestDouble();
+
+        $this->assertTrue($map->StartNetworkScan(false));
+        $this->assertSame('/bridge/request/networkmap', $map->lastTopic);
+        $this->assertSame('raw', $map->lastPayload['type']);
+        $this->assertFalse($map->lastPayload['routes']);
+        $this->assertIsInt($map->lastPayload['transaction']);
+        $this->assertSame(0, $map->lastTimeout);
+        $this->assertTrue($map->readMapAttribute('Scan')['running']);
+    }
+
+    public function testFullScanSendsAsynchronousRawRequestWithRoutes(): void
+    {
+        $map = $this->createMapTestDouble();
+
+        $this->assertTrue($map->StartNetworkScan(true));
+        $this->assertTrue($map->lastPayload['routes']);
+    }
+
+    public function testRunningScanPreventsAnotherRequest(): void
+    {
+        $map = $this->createMapTestDouble();
+
+        $this->assertTrue($map->StartNetworkScan(false));
+        $firstTransaction = $map->lastPayload['transaction'];
+        $this->assertFalse($map->StartNetworkScan(true));
+        $this->assertSame($firstTransaction, $map->lastPayload['transaction']);
+        $this->assertFalse($map->lastPayload['routes']);
+    }
+
+    public function testRawResponseFinishesScanAndBuildsExports(): void
+    {
+        $map = $this->createMapTestDouble();
+        $map->StartNetworkScan(true);
+        $map->ReceiveData($this->buildRawResponse([
+            'nodes' => [
+                [
+                    'ieeeAddr'       => '0x0000000000000001',
+                    'friendlyName'   => 'Coordinator',
+                    'type'           => 'Coordinator',
+                    'networkAddress' => 0
+                ],
+                [
+                    'ieeeAddr'       => '0x0000000000000002',
+                    'friendlyName'   => 'Hall/Router',
+                    'type'           => 'Router',
+                    'networkAddress' => 4660,
+                    'definition'     => ['model' => 'TEST-ROUTER']
+                ]
+            ],
+            'links' => [
+                [
+                    'source'       => ['ieeeAddr' => '0x0000000000000002', 'networkAddress' => 4660],
+                    'target'       => ['ieeeAddr' => '0x0000000000000001', 'networkAddress' => 0],
+                    'relationship' => 2,
+                    'depth'        => 1,
+                    'lqi'          => 170,
+                    'routes'       => [
+                        ['destinationAddress' => 22136, 'nextHopAddress' => 4660, 'status' => 0]
+                    ]
+                ]
+            ]
+        ], true));
+
+        $this->assertFalse($map->readMapAttribute('Scan')['running']);
+        $this->assertTrue($map->readMapAttribute('Topology')['routes_included']);
+        $this->assertStringContainsString('Hall/Router', $map->ExportNetworkMapGraphviz());
+        $this->assertStringContainsString('LQI 170', $map->ExportNetworkMapGraphviz());
+        $this->assertStringContainsString('@startuml', $map->ExportNetworkMapPlantUML());
+        $this->assertStringContainsString('"nodes"', $map->ExportNetworkMapRaw());
+
+        $directory = $map->CreateNetworkMapExportFiles();
+        $this->assertDirectoryExists($directory);
+        $this->assertNotSame([], glob($directory . DIRECTORY_SEPARATOR . 'zigbee-network-map-*.json'));
+        $this->assertNotSame([], glob($directory . DIRECTORY_SEPARATOR . 'zigbee-network-map-*.dot'));
+        $this->assertNotSame([], glob($directory . DIRECTORY_SEPARATOR . 'zigbee-network-map-*.puml'));
+    }
+
+    public function testConfigurationFormAndTileUseStoredTopology(): void
+    {
+        $map = $this->createMapTestDouble();
+        $map->ReceiveData($this->buildRawResponse([
+            'nodes' => [
+                [
+                    'ieeeAddr'       => '0x0000000000000001',
+                    'friendlyName'   => 'Coordinator',
+                    'type'           => 'Coordinator',
+                    'networkAddress' => 0
+                ]
+            ],
+            'links' => []
+        ], false));
+
+        $form = json_decode($map->GetConfigurationForm(), true);
+        $nodeList = $this->findFormField($form, 'NodeList');
+        $this->assertNotNull($nodeList);
+        $this->assertSame('Coordinator', $nodeList['values'][0]['name']);
+
+        $tile = $map->GetVisualizationTile();
+        $this->assertStringContainsString('cytoscape', $tile);
+        $this->assertStringContainsString('Coordinator', $tile);
+        $this->assertStringNotContainsString('__INITIAL_DATA__', $tile);
+        $this->assertStringNotContainsString('__CYTOSCAPE__', $tile);
+    }
+
+    public function testFailedResponseStopsRunningScan(): void
+    {
+        $map = $this->createMapTestDouble();
+        $map->StartNetworkScan(false);
+        $map->ReceiveData(json_encode([
+            'Topic'   => 'zigbee2mqtt/bridge/response/networkmap',
+            'Payload' => bin2hex(json_encode([
+                'status' => 'error',
+                'error'  => 'scan failed'
+            ]))
+        ]));
+
+        $scan = $map->readMapAttribute('Scan');
+        $this->assertFalse($scan['running']);
+        $this->assertSame('scan failed', $scan['error']);
+    }
+
+    private function createMapTestDouble(): Zigbee2MQTTNetworkMap
+    {
+        $map = new class(900002) extends Zigbee2MQTTNetworkMap {
+            public string $lastTopic = '';
+            public array $lastPayload = [];
+            public int $lastTimeout = -1;
+            private string $baseTopic = 'zigbee2mqtt';
+
+            protected function SendData(string $Topic, array $Payload = [], int $Timeout = 5000): array|bool
+            {
+                $this->lastTopic = $Topic;
+                $this->lastPayload = $Payload;
+                $this->lastTimeout = $Timeout;
+                return true;
+            }
+
+            protected function ReadPropertyString(string $Name): string
+            {
+                if ($Name === self::MQTT_BASE_TOPIC) {
+                    return $this->baseTopic;
+                }
+                return parent::ReadPropertyString($Name);
+            }
+
+            protected function ReadPropertyInteger(string $Name): int
+            {
+                if ($Name === 'WeakLQIThreshold') {
+                    return 50;
+                }
+                return parent::ReadPropertyInteger($Name);
+            }
+
+            protected function UpdateFormField(string $Field, string $Parameter, mixed $Value): bool
+            {
+                return true;
+            }
+
+            protected function UpdateVisualizationValue(mixed $Value)
+            {
+                return true;
+            }
+
+            public function readMapAttribute(string $name): array
+            {
+                return $this->ReadAttributeArray($name);
+            }
+        };
+        $map->Create();
+        return $map;
+    }
+
+    private function buildRawResponse(array $topology, bool $routes): string
+    {
+        return json_encode([
+            'Topic'   => 'zigbee2mqtt/bridge/response/networkmap',
+            'Payload' => bin2hex(json_encode([
+                'status' => 'ok',
+                'data'   => [
+                    'type'   => 'raw',
+                    'routes' => $routes,
+                    'value'  => $topology
+                ]
+            ]))
+        ]);
+    }
+
+    private function findFormField(array $node, string $name): ?array
+    {
+        if (($node['name'] ?? null) === $name) {
+            return $node;
+        }
+        foreach (['elements', 'actions', 'items', 'popup'] as $childKey) {
+            $children = $node[$childKey] ?? null;
+            if (!\is_array($children)) {
+                continue;
+            }
+            if ($childKey === 'popup') {
+                $result = $this->findFormField($children, $name);
+                if ($result !== null) {
+                    return $result;
+                }
+                continue;
+            }
+            foreach ($children as $child) {
+                if (!\is_array($child)) {
+                    continue;
+                }
+                $result = $this->findFormField($child, $name);
+                if ($result !== null) {
+                    return $result;
+                }
+            }
+        }
+        return null;
+    }
+}

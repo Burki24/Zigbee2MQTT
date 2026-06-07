@@ -1,0 +1,287 @@
+{
+    "elements": [
+        {
+            "type": "ValidationTextBox",
+            "name": "MQTTBaseTopic",
+            "caption": "MQTT Base Topic"
+        },
+        {
+            "type": "NumberSpinner",
+            "name": "WeakLQIThreshold",
+            "caption": "Weak LQI warning threshold",
+            "minimum": 0,
+            "maximum": 255
+        }
+    ],
+    "actions": [
+        {
+            "type": "Label",
+            "name": "ScanStatus",
+            "bold": true,
+            "caption": "No network analysis available yet"
+        },
+        {
+            "type": "Label",
+            "caption": "A network scan queries every router and can noticeably load the Zigbee network. For large networks, a scan without routes may take several minutes and a scan with routes may take considerably longer."
+        },
+        {
+            "type": "RowLayout",
+            "items": [
+                {
+                    "type": "Button",
+                    "name": "StartQuickScan",
+                    "caption": "Analyze connections",
+                    "onClick": "IPS_RequestAction($id, 'StartQuickScan', true);"
+                },
+                {
+                    "type": "Button",
+                    "name": "RequestFullScan",
+                    "caption": "Analyze connections and routes",
+                    "onClick": "IPS_RequestAction($id, 'RequestFullScan', true);"
+                },
+                {
+                    "type": "Button",
+                    "name": "ResetScanStatus",
+                    "caption": "Reset scan status",
+                    "visible": false,
+                    "onClick": "IPS_RequestAction($id, 'ResetScanStatus', true);"
+                }
+            ]
+        },
+        {
+            "type": "ExpansionPanel",
+            "caption": "Devices",
+            "expanded": true,
+            "items": [
+                {
+                    "type": "List",
+                    "name": "NodeList",
+                    "add": false,
+                    "delete": false,
+                    "rowCount": 5,
+                    "columns": [
+                        {
+                            "caption": "Device",
+                            "name": "name",
+                            "width": "auto",
+                            "quickFilter": true
+                        },
+                        {
+                            "caption": "Type",
+                            "name": "type",
+                            "width": "120px",
+                            "quickFilter": true
+                        },
+                        {
+                            "caption": "Model",
+                            "name": "model",
+                            "width": "180px",
+                            "quickFilter": true
+                        },
+                        {
+                            "caption": "Network address",
+                            "name": "network",
+                            "width": "110px"
+                        },
+                        {
+                            "caption": "IEEE address",
+                            "name": "ieee",
+                            "width": "180px"
+                        },
+                        {
+                            "caption": "Last seen",
+                            "name": "last_seen",
+                            "width": "160px"
+                        },
+                        {
+                            "caption": "Scan status",
+                            "name": "scan_status",
+                            "width": "150px",
+                            "quickFilter": true
+                        }
+                    ],
+                    "values": []
+                }
+            ]
+        },
+        {
+            "type": "ExpansionPanel",
+            "caption": "Connections",
+            "expanded": false,
+            "items": [
+                {
+                    "type": "List",
+                    "name": "LinkList",
+                    "add": false,
+                    "delete": false,
+                    "rowCount": 5,
+                    "columns": [
+                        {
+                            "caption": "Source",
+                            "name": "source",
+                            "width": "auto",
+                            "quickFilter": true
+                        },
+                        {
+                            "caption": "Target",
+                            "name": "target",
+                            "width": "auto",
+                            "quickFilter": true
+                        },
+                        {
+                            "caption": "LQI",
+                            "name": "lqi",
+                            "width": "80px"
+                        },
+                        {
+                            "caption": "Relationship",
+                            "name": "relationship",
+                            "width": "140px",
+                            "quickFilter": true
+                        },
+                        {
+                            "caption": "Depth",
+                            "name": "depth",
+                            "width": "80px"
+                        },
+                        {
+                            "caption": "Routes",
+                            "name": "routes",
+                            "width": "80px"
+                        }
+                    ],
+                    "values": []
+                }
+            ]
+        },
+        {
+            "type": "ExpansionPanel",
+            "caption": "Routes",
+            "expanded": false,
+            "items": [
+                {
+                    "type": "List",
+                    "name": "RouteList",
+                    "add": false,
+                    "delete": false,
+                    "rowCount": 4,
+                    "columns": [
+                        {
+                            "caption": "Router",
+                            "name": "router",
+                            "width": "auto",
+                            "quickFilter": true
+                        },
+                        {
+                            "caption": "Destination",
+                            "name": "destination",
+                            "width": "150px"
+                        },
+                        {
+                            "caption": "Next hop",
+                            "name": "next_hop",
+                            "width": "150px"
+                        },
+                        {
+                            "caption": "Status",
+                            "name": "status",
+                            "width": "180px",
+                            "quickFilter": true
+                        }
+                    ],
+                    "values": []
+                }
+            ]
+        },
+        {
+            "type": "ExpansionPanel",
+            "caption": "Scan errors",
+            "expanded": false,
+            "items": [
+                {
+                    "type": "List",
+                    "name": "FailureList",
+                    "add": false,
+                    "delete": false,
+                    "rowCount": 3,
+                    "columns": [
+                        {
+                            "caption": "Device",
+                            "name": "device",
+                            "width": "auto",
+                            "quickFilter": true
+                        },
+                        {
+                            "caption": "Failed operation",
+                            "name": "operation",
+                            "width": "240px",
+                            "quickFilter": true
+                        }
+                    ],
+                    "values": []
+                }
+            ]
+        },
+        {
+            "type": "ExpansionPanel",
+            "caption": "Exports",
+            "expanded": false,
+            "items": [
+                {
+                    "type": "Label",
+                    "caption": "Exports are generated locally from the last RAW analysis and do not start another network scan. They are stored on the Symcon server to avoid output buffer limits."
+                },
+                {
+                    "type": "Button",
+                    "caption": "Create export files",
+                    "onClick": "IPS_RequestAction($id, 'CreateExportFiles', true);"
+                }
+            ]
+        },
+        {
+            "type": "PopupAlert",
+            "name": "FullScanWarning",
+            "visible": false,
+            "popup": {
+                "closeCaption": "Cancel",
+                "items": [
+                    {
+                        "type": "Label",
+                        "bold": true,
+                        "caption": "Start full network analysis?"
+                    },
+                    {
+                        "type": "Label",
+                        "caption": "A scan with routing tables can take 20 minutes or longer in large networks and may noticeably load Zigbee communication."
+                    },
+                    {
+                        "type": "Button",
+                        "caption": "Start full analysis",
+                        "onClick": "IPS_RequestAction($id, 'ConfirmFullScan', true);"
+                    }
+                ]
+            }
+        },
+        {
+            "type": "PopupAlert",
+            "name": "MessagePopup",
+            "visible": false,
+            "popup": {
+                "closeCaption": "Close",
+                "items": [
+                    {
+                        "type": "Label",
+                        "name": "MessageTitle",
+                        "bold": true,
+                        "caption": ""
+                    },
+                    {
+                        "type": "Label",
+                        "name": "MessageText",
+                        "caption": ""
+                    }
+                ]
+            }
+        }
+    ]
+}

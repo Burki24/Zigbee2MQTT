@@ -1,0 +1,132 @@
+<!DOCTYPE html>
+<html lang="de">
+<head>
+    <meta charset="utf-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1">
+    <style>
+        * { box-sizing: border-box; }
+        html, body { width: 100%; height: 100%; margin: 0; color: inherit; background: transparent; font-family: inherit; }
+        body { display: grid; grid-template-rows: auto 1fr; overflow: hidden; }
+        header { display: grid; grid-template-columns: 1fr auto; gap: 10px; align-items: center; padding: 12px 14px 6px; }
+        .summary { display: flex; flex-wrap: wrap; gap: 6px 14px; font-size: 0.9rem; opacity: 0.82; }
+        .tools { display: flex; gap: 6px; }
+        button, input, select { font: inherit; color: inherit; }
+        button { border: 1px solid currentColor; background: transparent; padding: 5px 9px; cursor: pointer; opacity: 0.8; }
+        button:hover { opacity: 1; }
+        main { position: relative; min-height: 0; }
+        #graph { position: absolute; inset: 0; }
+        .empty { position: absolute; inset: 0; display: grid; place-items: center; text-align: center; padding: 24px; opacity: 0.65; }
+        .details { position: absolute; left: 12px; bottom: 12px; max-width: min(420px, calc(100% - 24px)); padding: 9px 11px; border: 1px solid currentColor; background: color-mix(in srgb, Canvas 90%, transparent); display: none; }
+        .details strong { display: block; margin-bottom: 3px; }
+        @media (max-width: 600px) {
+            header { grid-template-columns: 1fr; }
+            .tools { justify-content: flex-start; }
+            .tools button:nth-child(n+3) { display: none; }
+        }
+    </style>
+    <script>__CYTOSCAPE__</script>
+</head>
+<body>
+<header>
+    <div>
+        <div id="status"></div>
+        <div class="summary" id="summary"></div>
+    </div>
+    <div class="tools">
+        <button type="button" id="fit" title="Ansicht einpassen">Einpassen</button>
+        <button type="button" id="weak" title="Schwache Verbindungen hervorheben">Schwache LQI</button>
+        <button type="button" id="routes" title="Nur Verbindungen mit Routen anzeigen">Routen</button>
+    </div>
+</header>
+<main>
+    <div id="graph"></div>
+    <div class="empty" id="empty">Noch keine Netzwerkanalyse vorhanden.</div>
+    <div class="details" id="details"></div>
+</main>
+<script>
+    const initialData = __INITIAL_DATA__;
+    let currentData = initialData;
+    let weakOnly = false;
+    let routesOnly = false;
+    let cy = null;
+
+    function render(data) {
+        currentData = data || currentData;
+        const textColor = getComputedStyle(document.body).color;
+        const summary = currentData.summary || {};
+        document.getElementById('status').textContent = currentData.scan?.status || '';
+        document.getElementById('summary').innerHTML =
+            `<span>${summary.devices || 0} Geräte</span>` +
+            `<span>${summary.routers || 0} Router</span>` +
+            `<span>${summary.end_devices || 0} Endgeräte</span>` +
+            `<span>${summary.links || 0} Verbindungen</span>` +
+            `<span>${summary.routes || 0} Routen</span>` +
+            `<span>${summary.failures || 0} Scanfehler</span>`;
+
+        const elements = [...(currentData.nodes || []), ...(currentData.links || [])];
+        document.getElementById('empty').style.display = elements.length ? 'none' : 'grid';
+        if (!elements.length || typeof cytoscape !== 'function') {
+            return;
+        }
+
+        if (cy) {
+            cy.destroy();
+        }
+        const threshold = Number(currentData.threshold || 50);
+        cy = cytoscape({
+            container: document.getElementById('graph'),
+            elements,
+            wheelSensitivity: 0.2,
+            style: [
+                { selector: 'node', style: {
+                    'label': 'data(label)', 'font-size': 9, 'text-wrap': 'wrap', 'text-max-width': 110,
+                    'text-valign': 'bottom', 'text-margin-y': 8, 'color': textColor,
+                    'background-color': '#00c7b1', 'width': 18, 'height': 18
+                }},
+                { selector: 'node[type = "Coordinator"]', style: { 'background-color': '#ef4444', 'width': 30, 'height': 30 }},
+                { selector: 'node[type = "Router"]', style: { 'background-color': '#2f9ee5', 'width': 24, 'height': 24 }},
+                { selector: 'node[failed != ""]', style: { 'border-width': 4, 'border-color': '#f59e0b' }},
+                { selector: 'edge', style: {
+                    'width': 1, 'line-color': '#8b95a5', 'target-arrow-color': '#8b95a5',
+                    'target-arrow-shape': 'triangle', 'curve-style': 'bezier', 'opacity': 0.55
+                }},
+                { selector: `edge[lqi < ${threshold}]`, style: { 'line-color': '#ef4444', 'target-arrow-color': '#ef4444', 'width': 2 }},
+                { selector: 'edge[routes > 0]', style: { 'line-color': '#22c55e', 'target-arrow-color': '#22c55e', 'width': 2.5 }}
+            ],
+            layout: { name: 'cose', animate: false, fit: true, padding: 30, nodeRepulsion: 120000, idealEdgeLength: 80 }
+        });
+        cy.on('tap', 'node', event => {
+            const node = event.target.data();
+            const details = document.getElementById('details');
+            details.innerHTML = `<strong>${escapeHtml(node.label || node.id)}</strong>${escapeHtml(node.type || '')}${node.model ? ` · ${escapeHtml(node.model)}` : ''}${node.failed ? `<br>Scanfehler: ${escapeHtml(node.failed)}` : ''}`;
+            details.style.display = 'block';
+        });
+        cy.on('tap', event => {
+            if (event.target === cy) document.getElementById('details').style.display = 'none';
+        });
+        applyFilters();
+    }
+
+    function applyFilters() {
+        if (!cy) return;
+        const threshold = Number(currentData.threshold || 50);
+        cy.edges().style('display', edge => {
+            if (weakOnly && Number(edge.data('lqi')) >= threshold) return 'none';
+            if (routesOnly && Number(edge.data('routes')) === 0) return 'none';
+            return 'element';
+        });
+        cy.nodes().style('display', node => node.connectedEdges(':visible').length || (!weakOnly && !routesOnly) ? 'element' : 'none');
+    }
+
+    function escapeHtml(value) {
+        return String(value).replace(/[&<>"']/g, char => ({'&':'&amp;','<':'&lt;','>':'&gt;','"':'&quot;',"'":'&#039;'}[char]));
+    }
+
+    document.getElementById('fit').addEventListener('click', () => cy?.fit(undefined, 30));
+    document.getElementById('weak').addEventListener('click', event => { weakOnly = !weakOnly; event.target.style.opacity = weakOnly ? '1' : '0.8'; applyFilters(); });
+    document.getElementById('routes').addEventListener('click', event => { routesOnly = !routesOnly; event.target.style.opacity = routesOnly ? '1' : '0.8'; applyFilters(); });
+    function handleMessage(data) { render(data); }
+    render(initialData);
+</script>
+</body>
+</html>

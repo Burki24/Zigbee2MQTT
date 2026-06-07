@@ -43,6 +43,8 @@ trait Constants
     protected const GUID_MODULE_DEVICE = '{E5BB36C6-A70B-EB23-3716-9151A09AC8A2}';
     /** @var string GUID des Module Zigbee2MQTT Gruppe */
     protected const GUID_MODULE_GROUP = '{11BF3773-E940-469B-9DD7-FB9ACD7199A2}';
+    /** @var string GUID des Module Zigbee2MQTT Netzwerkkarte */
+    protected const GUID_MODULE_NETWORK_MAP = '{C07834E7-9821-218C-C3EC-A4A87FFB8D7D}';
     /** @var string summary of ATTRIBUTE_EXPOSES */
     protected const ATTRIBUTE_EXPOSES = 'Exposes';
     /** @var string Attribut fuer geraetespezifische filtered_attributes aus Z2M */

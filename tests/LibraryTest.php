@@ -31,6 +31,11 @@ class LibraryTest extends TestCaseSymconValidation
         $this->validateModule(__DIR__ . '/../Group');
     }
 
+    public function testValidateNetworkMap(): void
+    {
+        $this->validateModule(__DIR__ . '/../NetworkMap');
+    }
+
     public function testValidateActions(): void
     {
         $actionFiles = glob(__DIR__ . '/../actions/*.json');

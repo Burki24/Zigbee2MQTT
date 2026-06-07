@@ -94,6 +94,8 @@ Der vorhandene Schalter **Beitritt zum Netzwerk zulassen** bleibt für Skripte u
 
 Der Diagnosebereich bündelt zentrale Prüfungen für die Zigbee2MQTT-Installation. Er führt Health Check und Coordinator Check aus, fordert die Netzwerkkarte an und zeigt auffällige Zustände wie fehlende Router, nicht unterstützte Geräte, Interview-Probleme, Bridge-Events sowie Warnungen und Fehler an. Wenn Zigbee2MQTT nicht läuft oder nicht auf MQTT antwortet, zeigen Health Check und Coordinator Check in der Bridge-Konfiguration eine lesbare Meldung anstatt einer technischen Symcon-Notice.
 
+Für eine strukturierte Analyse mit Geräte-, Verbindungs-, Routen- und Fehlerlisten sowie einer interaktiven grafischen Darstellung steht zusätzlich das eigenständige Modul [Zigbee2MQTT Netzwerkkarte](../NetworkMap/README.md) zur Verfügung. Die bisherige Bridge-Funktion zur Graphviz-Anforderung bleibt aus Kompatibilitätsgründen erhalten.
+
 ### 5.3 Netzwerksicherheit
 
 Die Netzwerksicherheit befindet sich unter **Erweiterte Administration**. Die `blocklist` blockiert Geräte anhand ihrer IEEE-Adresse. Die `passlist` ist restriktiver: Zigbee2MQTT entfernt Geräte aus dem Netzwerk, die nicht in der Passlist stehen. Deshalb verlangt die Bridge-Konfiguration vor Passlist-Änderungen eine Bestätigung. Die Geräteauswahl wird als filterbare Liste aus bereits empfangenen Zigbee2MQTT-Gerätedaten, vorhandenen Device-Instanzen mit gleicher Bridge und bei Bedarf aus der Symcon-Extension aufgebaut. Über **Verfügbare Geräte aktualisieren** wird die geöffnete Liste neu aus diesen Datenquellen aufgebaut.
