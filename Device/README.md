@@ -214,6 +214,8 @@ Beide Aktionen müssen vor dem Start bestätigt werden und können bis zu zwei M
 
 Unter **Expertenwerkzeuge** steht für konfigurierte Geräte der Bereich **Erweiterte Geräteentfernung** zur Verfügung. Jede Aktion muss über einen eigenen Hinweisdialog bestätigt werden. Das Entfernen aus Zigbee2MQTT löscht weder die zugehörige Symcon-Instanz noch ihre Variablen.
 
+![Erweiterte Geräteentfernung](imgs/geraeteentfernung.png)
+
 | Aktion | Verhalten |
 | --- | --- |
 | **Gerät normal entfernen** | Zigbee2MQTT fordert das erreichbare Gerät auf, das Zigbee-Netzwerk zu verlassen. Das Gerät muss online sein; Batteriegeräte müssen eventuell aufgeweckt werden. |
