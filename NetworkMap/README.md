@@ -38,12 +38,17 @@ Die HTML-SDK-Kachel bietet eine interaktive Darstellung der zuletzt gespeicherte
 - Coordinator, Router und Endgeräte werden unterschiedlich dargestellt.
 - Schwache Verbindungen und Verbindungen mit aktiven Routen können hervorgehoben werden.
 - Geräte lassen sich anklicken, verschieben, zoomen und gemeinsam in die Ansicht einpassen.
+- Über **Ansicht** stehen die Layouts Übersicht, Hierarchie, Kreis, Raster und Netzstruktur zur Verfügung.
+- Die Gerätesuche findet Knoten anhand von Name, Modell, Typ oder Adresse und kann ein einzelnes Gerät oder dessen direktes Netzwerkumfeld hervorheben.
+- Beschriftungen lassen sich für eine ruhigere Darstellung großer Netze ausblenden.
 - **Vollbild** öffnet die Netzwerkkarte als bildschirmfüllende Darstellung und lässt sich über denselben Button oder `Esc` wieder schließen.
 - Die Kachel startet selbst keine Netzwerkanalyse.
 
 Der Vergrößerungspfeil von Symcon öffnet bei individuellen HTML-SDK-Kacheln die normale Detailansicht der Instanz. Das PHP-SDK bietet derzeit keine eigene HTML-Darstellung für diese maximierte Detailansicht. Da die Netzwerkkarten-Instanz keine darzustellenden Kindobjekte benötigt, bleibt diese Symcon-Ansicht leer. Für die große grafische Darstellung ist deshalb der Button **Vollbild** innerhalb der Netzwerkkarte vorgesehen.
 
 Für die lokale Graphdarstellung wird [Cytoscape.js](https://js.cytoscape.org/) unter MIT-Lizenz mitgeliefert. Es werden keine externen Webressourcen nachgeladen.
+
+Die allgemeine Bedienlogik für Layoutwechsel, Suche, Fokus und Beschriftungen ist innerhalb des Netzwerkkarten-Moduls von der Zigbee-spezifischen Topologieauswertung und Darstellung getrennt. Dadurch kann sie nach Stabilisierung der Schnittstelle später als eigenständiger, wiederverwendbarer Cytoscape-Helfer bereitgestellt werden.
 
 ## Exporte
 

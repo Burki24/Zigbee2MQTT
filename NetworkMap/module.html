@@ -59,6 +59,31 @@
         button:hover { opacity: 1; }
         main { position: relative; min-height: 0; }
         #graph { position: absolute; inset: 0; }
+        .view-panel {
+            position: absolute;
+            z-index: 2;
+            top: 8px;
+            right: 12px;
+            display: grid;
+            width: min(340px, calc(100% - 24px));
+            gap: 8px;
+            padding: 10px;
+            border: 1px solid color-mix(in srgb, currentColor 35%, transparent);
+            background: color-mix(in srgb, Canvas 94%, transparent);
+        }
+        .view-panel[hidden] { display: none; }
+        .view-panel label { display: grid; gap: 3px; font-size: var(--z2m-font-caption, 0.78em); }
+        .view-panel input, .view-panel select {
+            width: 100%;
+            min-height: 30px;
+            border: 1px solid color-mix(in srgb, currentColor 35%, transparent);
+            border-radius: 3px;
+            background: transparent;
+            padding: 4px 6px;
+        }
+        .view-panel-actions { display: flex; flex-wrap: wrap; gap: 6px; }
+        .label-toggle { display: flex !important; grid-column: 1 / -1; align-items: center; gap: 7px !important; }
+        .label-toggle input { width: auto; min-height: auto; }
         .empty {
             position: absolute;
             inset: 0;
@@ -76,10 +101,12 @@
             header { grid-template-columns: 1fr; }
             .tools { justify-content: flex-start; }
             .tools button:nth-child(3) { display: none; }
+            .view-panel { top: 4px; right: 6px; width: calc(100% - 12px); }
         }
     </style>
     __THEME_SUPPORT__
     <script>(function(module, exports, define) { __CYTOSCAPE__ }).call(window, undefined, undefined, undefined);</script>
+    <script>__CYTOSCAPE_VIEW_CONTROLLER__</script>
 </head>
 <body>
 <header>
@@ -91,11 +118,35 @@
         <button type="button" id="fit" title="Ansicht einpassen">Einpassen</button>
         <button type="button" id="weak" title="Schwache Verbindungen hervorheben">Schwache LQI</button>
         <button type="button" id="routes" title="Nur Verbindungen mit Routen anzeigen">Routen</button>
+        <button type="button" id="view" title="Darstellung anpassen">Ansicht</button>
         <button type="button" id="fullscreen" title="Netzwerkkarte im Vollbild anzeigen">Vollbild</button>
     </div>
 </header>
 <main>
     <div id="graph"></div>
+    <div class="view-panel" id="view-panel" hidden>
+        <label>
+            Layout
+            <select id="layout">
+                <option value="concentric">Übersicht</option>
+                <option value="breadthfirst">Hierarchie</option>
+                <option value="circle">Kreis</option>
+                <option value="grid">Raster</option>
+                <option value="cose">Netzstruktur</option>
+            </select>
+        </label>
+        <label>
+            Gerät suchen
+            <input type="search" id="node-search" list="node-search-options" placeholder="Name, Modell oder Adresse">
+            <datalist id="node-search-options"></datalist>
+        </label>
+        <label class="label-toggle"><input type="checkbox" id="labels" checked> Beschriftungen anzeigen</label>
+        <div class="view-panel-actions">
+            <button type="button" id="search">Suchen</button>
+            <button type="button" id="neighborhood">Umfeld</button>
+            <button type="button" id="show-all">Alle anzeigen</button>
+        </div>
+    </div>
     <div class="empty" id="empty">Noch keine Netzwerkanalyse vorhanden.</div>
     <div class="details" id="details"></div>
 </main>
@@ -105,6 +156,10 @@
     let weakOnly = false;
     let routesOnly = false;
     let cy = null;
+    let viewController = null;
+    let selectedLayout = 'concentric';
+    let labelsVisible = true;
+    let selectedNodeId = '';
     let resizeFrame = 0;
     let stateRequestPending = false;
 
@@ -164,6 +219,9 @@
                     { selector: 'node[type = "Coordinator"]', style: { 'background-color': '#ef4444', 'width': 30, 'height': 30 }},
                     { selector: 'node[type = "Router"]', style: { 'background-color': '#2f9ee5', 'width': 24, 'height': 24 }},
                     { selector: 'node[failed != ""]', style: { 'border-width': 4, 'border-color': '#f59e0b' }},
+                    { selector: 'node.selected', style: { 'border-width': 4, 'border-color': textColor }},
+                    { selector: '.faded', style: { 'opacity': 0.12 }},
+                    { selector: '.focused-neighborhood', style: { 'opacity': 1 }},
                     { selector: 'edge', style: {
                         'width': 1, 'line-color': '#8b95a5', 'target-arrow-color': '#8b95a5',
                         'target-arrow-shape': 'triangle', 'curve-style': 'bezier', 'opacity': 0.55
@@ -171,33 +229,81 @@
                     { selector: `edge[lqi < ${threshold}]`, style: { 'line-color': '#ef4444', 'target-arrow-color': '#ef4444', 'width': 2 }},
                     { selector: 'edge[routes > 0]', style: { 'line-color': '#22c55e', 'target-arrow-color': '#22c55e', 'width': 2.5 }}
                 ],
-                layout: {
-                    name: 'concentric',
-                    animate: false,
-                    fit: true,
-                    padding: 40,
-                    minNodeSpacing: 24,
-                    concentric: node => node.data('type') === 'Coordinator' ? 3 : (node.data('type') === 'Router' ? 2 : 1),
-                    levelWidth: () => 1
-                }
+                layout: { name: 'preset' }
             });
         } catch (error) {
             showRenderError(`Die Netzwerkkarte konnte nicht dargestellt werden: ${error?.message || error}`);
             return;
         }
+        if (typeof globalThis.CytoscapeViewController !== 'function') {
+            showRenderError('Die Ansichtssteuerung konnte nicht geladen werden.');
+            return;
+        }
+        viewController = new globalThis.CytoscapeViewController(cy, {
+            layouts: {
+                concentric: () => buildLayout('concentric'),
+                breadthfirst: () => buildLayout('breadthfirst'),
+                circle: () => buildLayout('circle'),
+                grid: () => buildLayout('grid'),
+                cose: () => buildLayout('cose')
+            },
+            searchFields: ['id', 'label', 'model', 'type']
+        });
+        viewController.runLayout(selectedLayout);
+        viewController.setLabelsVisible(labelsVisible);
+        populateSearchOptions();
+        if (selectedNodeId) {
+            viewController.selectNode(selectedNodeId);
+        }
         cy.on('tap', 'node', event => {
             const node = event.target.data();
+            selectedNodeId = event.target.id();
+            viewController.clearFocus(false);
+            viewController.selectNode(event.target);
             const details = document.getElementById('details');
             details.innerHTML = `<strong>${escapeHtml(node.label || node.id)}</strong>${escapeHtml(node.type || '')}${node.model ? ` · ${escapeHtml(node.model)}` : ''}${node.failed ? `<br>Scanfehler: ${escapeHtml(node.failed)}` : ''}`;
             details.style.display = 'block';
         });
         cy.on('tap', event => {
-            if (event.target === cy) document.getElementById('details').style.display = 'none';
+            if (event.target === cy) {
+                document.getElementById('details').style.display = 'none';
+            }
         });
         requestAnimationFrame(() => {
             resizeGraph(true);
         });
         applyFilters();
+    }
+
+    function buildLayout(name) {
+        const common = { name, animate: false, fit: true, padding: 40 };
+        if (name === 'concentric') {
+            return {
+                ...common,
+                minNodeSpacing: 24,
+                concentric: node => node.data('type') === 'Coordinator' ? 3 : (node.data('type') === 'Router' ? 2 : 1),
+                levelWidth: () => 1
+            };
+        }
+        if (name === 'breadthfirst') {
+            const coordinator = cy?.nodes('[type = "Coordinator"]');
+            return { ...common, directed: true, spacingFactor: 1.2, roots: coordinator?.length ? coordinator : undefined };
+        }
+        if (name === 'cose') {
+            return { ...common, randomize: true, numIter: 250, nodeRepulsion: 5000, idealEdgeLength: 80 };
+        }
+        return common;
+    }
+
+    function populateSearchOptions() {
+        const options = document.getElementById('node-search-options');
+        options.replaceChildren();
+        cy?.nodes().forEach(node => {
+            const option = document.createElement('option');
+            option.value = node.data('label') || node.id();
+            option.label = [node.data('model'), node.id()].filter(Boolean).join(' · ');
+            options.appendChild(option);
+        });
     }
 
     function showRenderError(message) {
@@ -259,6 +365,15 @@
         cy.nodes().style('display', node => node.connectedEdges(':visible').length || (!weakOnly && !routesOnly) ? 'element' : 'none');
     }
 
+    function searchNode(includeNeighborhood = false) {
+        const node = viewController?.findNode(document.getElementById('node-search').value);
+        if (!node) {
+            return;
+        }
+        selectedNodeId = node.id();
+        viewController.focusNode(node, includeNeighborhood);
+    }
+
     function escapeHtml(value) {
         return String(value).replace(/[&<>"']/g, char => ({'&':'&amp;','<':'&lt;','>':'&gt;','"':'&quot;',"'":'&#039;'}[char]));
     }
@@ -266,6 +381,32 @@
     document.getElementById('fit').addEventListener('click', () => cy?.fit(undefined, 30));
     document.getElementById('weak').addEventListener('click', event => { weakOnly = !weakOnly; event.target.style.opacity = weakOnly ? '1' : '0.8'; applyFilters(); });
     document.getElementById('routes').addEventListener('click', event => { routesOnly = !routesOnly; event.target.style.opacity = routesOnly ? '1' : '0.8'; applyFilters(); });
+    const viewPanel = document.getElementById('view-panel');
+    document.getElementById('view').addEventListener('click', () => { viewPanel.hidden = !viewPanel.hidden; });
+    document.getElementById('layout').addEventListener('change', event => {
+        selectedLayout = event.target.value;
+        viewController?.runLayout(selectedLayout);
+    });
+    document.getElementById('labels').addEventListener('change', event => {
+        labelsVisible = event.target.checked;
+        viewController?.setLabelsVisible(labelsVisible);
+    });
+    document.getElementById('search').addEventListener('click', () => searchNode(false));
+    document.getElementById('node-search').addEventListener('keydown', event => {
+        if (event.key === 'Enter') {
+            searchNode(false);
+        }
+    });
+    document.getElementById('neighborhood').addEventListener('click', () => {
+        if (!viewController?.focusSelectedNeighborhood()) {
+            searchNode(true);
+        }
+    });
+    document.getElementById('show-all').addEventListener('click', () => {
+        selectedNodeId = '';
+        document.getElementById('node-search').value = '';
+        viewController?.clearFocus();
+    });
     const fullscreenButton = document.getElementById('fullscreen');
     fullscreenButton.hidden = !document.fullscreenEnabled;
     fullscreenButton.addEventListener('click', toggleFullscreen);

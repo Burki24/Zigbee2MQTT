@@ -134,8 +134,14 @@ class NetworkMapTest extends TestCase
         $this->assertStringContainsString('setTimeout(requestCurrentState, 50)', $tile);
         $this->assertStringContainsString('document.documentElement.requestFullscreen()', $tile);
         $this->assertStringContainsString("fullscreenButton.addEventListener('click', toggleFullscreen)", $tile);
+        $this->assertStringContainsString('class CytoscapeViewController', $tile);
+        $this->assertStringContainsString('viewController.runLayout(selectedLayout)', $tile);
+        $this->assertStringContainsString("searchFields: ['id', 'label', 'model', 'type']", $tile);
+        $this->assertStringContainsString('focusSelectedNeighborhood()', $tile);
+        $this->assertStringContainsString('<option value="cose">Netzstruktur</option>', $tile);
         $this->assertStringNotContainsString('__INITIAL_DATA__', $tile);
         $this->assertStringNotContainsString('__CYTOSCAPE__', $tile);
+        $this->assertStringNotContainsString('__CYTOSCAPE_VIEW_CONTROLLER__', $tile);
         $this->assertStringNotContainsString('__THEME_SUPPORT__', $tile);
     }
 

@@ -77,6 +77,7 @@ class Zigbee2MQTTNetworkMap extends IPSModuleStrict
     {
         $html = file_get_contents(__DIR__ . '/module.html');
         $cytoscape = file_get_contents(__DIR__ . '/assets/cytoscape.min.js');
+        $viewController = file_get_contents(__DIR__ . '/assets/cytoscape-view-controller.js');
         $themePath = dirname(__DIR__) . '/libs/Visualization/tiles/theme_support.html';
         $themeSupport = is_file($themePath) ? file_get_contents($themePath) : '';
         if (!\is_string($html)) {
@@ -84,6 +85,9 @@ class Zigbee2MQTTNetworkMap extends IPSModuleStrict
         }
         if (!\is_string($cytoscape)) {
             $cytoscape = '';
+        }
+        if (!\is_string($viewController)) {
+            $viewController = '';
         }
         if (!\is_string($themeSupport)) {
             $themeSupport = '';
@@ -97,10 +101,11 @@ class Zigbee2MQTTNetworkMap extends IPSModuleStrict
             'links'     => []
         ], JSON_HEX_TAG | JSON_HEX_APOS | JSON_HEX_AMP | JSON_HEX_QUOT);
         return str_replace(
-            ['__THEME_SUPPORT__', '__CYTOSCAPE__', '__INITIAL_DATA__'],
+            ['__THEME_SUPPORT__', '__CYTOSCAPE__', '__CYTOSCAPE_VIEW_CONTROLLER__', '__INITIAL_DATA__'],
             [
                 $themeSupport,
                 $cytoscape,
+                $viewController,
                 \is_string($initialData) ? $initialData : '{}'
             ],
             $html
