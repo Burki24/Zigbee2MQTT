@@ -132,6 +132,8 @@ class NetworkMapTest extends TestCase
         $this->assertStringContainsString("requestAction('RefreshVisualization', true)", $tile);
         $this->assertStringContainsString("window.addEventListener('pageshow', requestCurrentState)", $tile);
         $this->assertStringContainsString('setTimeout(requestCurrentState, 50)', $tile);
+        $this->assertStringContainsString('document.documentElement.requestFullscreen()', $tile);
+        $this->assertStringContainsString("fullscreenButton.addEventListener('click', toggleFullscreen)", $tile);
         $this->assertStringNotContainsString('__INITIAL_DATA__', $tile);
         $this->assertStringNotContainsString('__CYTOSCAPE__', $tile);
         $this->assertStringNotContainsString('__THEME_SUPPORT__', $tile);

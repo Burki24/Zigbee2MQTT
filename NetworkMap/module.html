@@ -43,6 +43,7 @@
         }
         .tools { display: flex; flex-wrap: wrap; justify-content: flex-end; gap: 6px; }
         .tools[hidden], #status[hidden], .summary[hidden] { display: none; }
+        :fullscreen header { padding-top: 14px; }
         button, input, select { font: inherit; color: inherit; }
         button {
             min-height: 30px;
@@ -74,7 +75,7 @@
         @media (max-width: 520px) {
             header { grid-template-columns: 1fr; }
             .tools { justify-content: flex-start; }
-            .tools button:nth-child(n+3) { display: none; }
+            .tools button:nth-child(3) { display: none; }
         }
     </style>
     __THEME_SUPPORT__
@@ -90,6 +91,7 @@
         <button type="button" id="fit" title="Ansicht einpassen">Einpassen</button>
         <button type="button" id="weak" title="Schwache Verbindungen hervorheben">Schwache LQI</button>
         <button type="button" id="routes" title="Nur Verbindungen mit Routen anzeigen">Routen</button>
+        <button type="button" id="fullscreen" title="Netzwerkkarte im Vollbild anzeigen">Vollbild</button>
     </div>
 </header>
 <main>
@@ -220,6 +222,18 @@
         resizeFrame = requestAnimationFrame(() => resizeGraph(true));
     }
 
+    async function toggleFullscreen() {
+        try {
+            if (document.fullscreenElement) {
+                await document.exitFullscreen();
+                return;
+            }
+            await document.documentElement.requestFullscreen();
+        } catch (error) {
+            showRenderError(`Das Vollbild konnte nicht geöffnet werden: ${error?.message || error}`);
+        }
+    }
+
     function requestCurrentState() {
         if (stateRequestPending || typeof requestAction !== 'function') {
             return;
@@ -252,6 +266,13 @@
     document.getElementById('fit').addEventListener('click', () => cy?.fit(undefined, 30));
     document.getElementById('weak').addEventListener('click', event => { weakOnly = !weakOnly; event.target.style.opacity = weakOnly ? '1' : '0.8'; applyFilters(); });
     document.getElementById('routes').addEventListener('click', event => { routesOnly = !routesOnly; event.target.style.opacity = routesOnly ? '1' : '0.8'; applyFilters(); });
+    const fullscreenButton = document.getElementById('fullscreen');
+    fullscreenButton.hidden = !document.fullscreenEnabled;
+    fullscreenButton.addEventListener('click', toggleFullscreen);
+    document.addEventListener('fullscreenchange', () => {
+        fullscreenButton.textContent = document.fullscreenElement ? 'Vollbild schließen' : 'Vollbild';
+        scheduleGraphResize();
+    });
     window.addEventListener('resize', scheduleGraphResize);
     window.addEventListener('pageshow', requestCurrentState);
     document.addEventListener('visibilitychange', () => {
