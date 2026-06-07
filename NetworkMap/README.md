@@ -16,6 +16,14 @@ Zigbee2MQTT fragt während einer Netzwerkanalyse jeden erreichbaren Router nache
 - **Verbindungen analysieren** fordert LQI- und Nachbarschaftsdaten ohne Routing-Tabellen an.
 - **Verbindungen und Routen analysieren** liest zusätzlich die Routing-Tabellen der Router.
 
+Beim Start von **Verbindungen und Routen analysieren** erscheint deshalb zunächst ein Bestätigungsdialog:
+
+![Bestätigung vor einer vollständigen Netzwerkanalyse](imgs/vollstaendige-netzwerkanalyse.png)
+
+Die vollständige Analyse sollte nur gestartet werden, wenn die Routing-Tabellen tatsächlich für eine tiefergehende Diagnose benötigt werden. Sie fragt zusätzlich die Routing-Tabelle jedes erreichbaren Routers ab, kann dadurch deutlich länger dauern und die normale Zigbee-Kommunikation während des Scans spürbar belasten. In großen Netzwerken sind Laufzeiten von 20 Minuten oder länger möglich.
+
+Mit **Vollständige Analyse starten** wird die Analyse verbindlich gestartet. **Abbrechen** schließt den Dialog, ohne eine Anfrage an Zigbee2MQTT zu senden. Für eine schnelle Prüfung der Geräte, Nachbarschaften und LQI-Werte genügt normalerweise **Verbindungen analysieren**.
+
 Die Anfrage läuft vollständig asynchron. Die Symcon-Instanz wartet nicht blockierend auf die Antwort und zeigt währenddessen die verstrichene Zeit an. Bei großen Netzwerken kann die Analyse lange dauern. In einem Netzwerk mit ungefähr 100 Geräten und 69 Routern dauerte die Analyse ohne Routen etwa vier Minuten und mit Routen etwa 18 Minuten.
 
 Während einer laufenden Analyse kann keine zweite Analyse gestartet werden. Falls Zigbee2MQTT keine Antwort mehr liefert, setzt **Scanstatus zurücksetzen** ausschließlich den lokalen Symcon-Status zurück.
