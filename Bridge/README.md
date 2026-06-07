@@ -108,6 +108,22 @@ Der vorhandene Schalter **Beitritt zum Netzwerk zulassen** bleibt für Skripte u
 
 Der Diagnosebereich bündelt zentrale Prüfungen für die Zigbee2MQTT-Installation. Er führt Health Check und Coordinator Check aus, fordert die Netzwerkkarte an und zeigt auffällige Zustände wie fehlende Router, nicht unterstützte Geräte, Interview-Probleme, Bridge-Events sowie Warnungen und Fehler an. Wenn Zigbee2MQTT nicht läuft oder nicht auf MQTT antwortet, zeigen Health Check und Coordinator Check in der Bridge-Konfiguration eine lesbare Meldung anstatt einer technischen Symcon-Notice.
 
+![Diagnose der Zigbee2MQTT-Bridge](imgs/diagnostics.png)
+
+| Bereich | Bedeutung |
+| --- | --- |
+| **Health-Status / Health Check ausführen** | Prüft, ob Zigbee2MQTT erreichbar ist und Health-Daten liefert. Der zuletzt empfangene Status wird mit Zeitstempel angezeigt. |
+| **Coordinator-Status / Coordinator Check ausführen** | Prüft die Verbindung und Funktionsbereitschaft des Zigbee-Coordinators. |
+| **Netzwerkkarte anfordern** | Fordert die bisherige Graphviz-Netzwerkkarte von Zigbee2MQTT an. Für eine ausführliche und interaktive Netzwerkanalyse eignet sich das eigenständige Netzwerkkarten-Modul. |
+| **Diagnoseverlauf löschen** | Löscht die von der Bridge gesammelten Diagnoseereignisse, Warnungen und Fehler sowie die Listen nicht unterstützter Geräte und Geräte mit Interview-Problemen. Geräte und Zigbee2MQTT-Einstellungen werden dadurch nicht verändert. |
+| **Fehlende Router** | Zeigt Router, die von der Diagnose als fehlend gemeldet wurden. |
+| **Nicht unterstützte Geräte** | Zeigt Geräte, für die Zigbee2MQTT keine unterstützte Gerätedefinition gefunden hat. |
+| **Interview-Probleme** | Zeigt Geräte mit einem unvollständigen oder fehlgeschlagenen Interview. |
+| **Letzte Bridge-Events** | Zeigt zuletzt empfangene Bridge-Ereignisse, beispielsweise die erneute Anmeldung eines Geräts am Netzwerk. |
+| **Letzte Warnungen und Fehler** | Zeigt die zuletzt von Zigbee2MQTT gemeldeten Warnungen und Fehler zur weiteren Fehlersuche. |
+
+Die Schnellfilter oberhalb der Listen erleichtern die Suche in größeren Installationen. Ein Eintrag ist zunächst ein Diagnosehinweis und nicht automatisch der Nachweis eines Hardwaredefekts.
+
 Für eine strukturierte Analyse mit Geräte-, Verbindungs-, Routen- und Fehlerlisten sowie einer interaktiven grafischen Darstellung steht zusätzlich das eigenständige Modul [Zigbee2MQTT Netzwerkkarte](../NetworkMap/README.md) zur Verfügung. Die bisherige Bridge-Funktion zur Graphviz-Anforderung bleibt aus Kompatibilitätsgründen erhalten.
 
 ### 5.3 Netzwerksicherheit
