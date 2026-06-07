@@ -58,6 +58,12 @@ Im Abschnitt **Ansicht** der Instanzkonfiguration werden das beim Öffnen verwen
 
 ![Ansicht der Netzwerkkarte konfigurieren](imgs/ansicht-konfiguration.png)
 
+### Warum gibt es einen eigenen Vollbildmodus?
+
+Der Button **Vollbild** ist aufgrund einer Einschränkung von IP-Symcon erforderlich. Der reguläre Vergrößerungspfeil einer individuellen HTML-SDK-Kachel öffnet lediglich die normale Detailansicht der Instanz. Das PHP-SDK von Symcon bietet derzeit keine Möglichkeit, für diese maximierte Detailansicht eine eigene HTML-Darstellung bereitzustellen.
+
+Da die Netzwerkkarten-Instanz keine darzustellenden Kindobjekte benötigt, bleibt die von Symcon geöffnete Detailansicht leer. Für eine große, weiterhin interaktive Darstellung stellt das Modul deshalb den eigenen Button **Vollbild** innerhalb der Netzwerkkarte bereit.
+
 ### Routing-Ansicht
 
 Der Button **Routen** reduziert die Darstellung auf Verbindungen, denen Zigbee2MQTT während der letzten Analyse mindestens einen Routing-Eintrag zuordnen konnte. Diese Ansicht steht deshalb nur sinnvoll zur Verfügung, wenn zuvor **Verbindungen und Routen analysieren** ausgeführt wurde.
@@ -86,12 +92,6 @@ Nach einem Klick auf ein Gerät erscheint unten links eine Detailkarte. Sie zeig
 Der Hinweis `Scanfehler: routingTable` bedeutet, dass Zigbee2MQTT die Routing-Tabelle dieses Routers während der letzten Analyse nicht erfolgreich lesen konnte. Das Gerät ist dadurch nicht automatisch offline oder defekt. Mögliche Ursachen sind beispielsweise eine Zeitüberschreitung, eine vorübergehend gestörte Kommunikation oder eine vom Gerät nicht beantwortete Routing-Abfrage. Ein erneuter Scan kann deshalb ein anderes Ergebnis liefern.
 
 Ein Klick auf eine freie Stelle der Netzwerkkarte schließt die Detailkarte wieder.
-
-### Warum gibt es einen eigenen Vollbildmodus?
-
-Der Button **Vollbild** ist aufgrund einer Einschränkung von IP-Symcon erforderlich. Der reguläre Vergrößerungspfeil einer individuellen HTML-SDK-Kachel öffnet lediglich die normale Detailansicht der Instanz. Das PHP-SDK von Symcon bietet derzeit keine Möglichkeit, für diese maximierte Detailansicht eine eigene HTML-Darstellung bereitzustellen.
-
-Da die Netzwerkkarten-Instanz keine darzustellenden Kindobjekte benötigt, bleibt die von Symcon geöffnete Detailansicht leer. Für eine große, weiterhin interaktive Darstellung stellt das Modul deshalb den eigenen Button **Vollbild** innerhalb der Netzwerkkarte bereit.
 
 Für die lokale Graphdarstellung wird [Cytoscape.js](https://js.cytoscape.org/) unter MIT-Lizenz mitgeliefert. Es werden keine externen Webressourcen nachgeladen.
 
