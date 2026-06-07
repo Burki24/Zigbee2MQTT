@@ -41,7 +41,7 @@ Die HTML-SDK-Kachel bietet eine interaktive Darstellung der zuletzt gespeicherte
 - Über **Ansicht** stehen die Layouts Übersicht, Hierarchie, Kreis, Raster und Netzstruktur zur Verfügung.
 - Die Gerätesuche findet Knoten anhand von Name, Modell, Typ oder Adresse und kann ein einzelnes Gerät oder dessen direktes Netzwerkumfeld hervorheben.
 - Beschriftungen lassen sich für eine ruhigere Darstellung großer Netze ausblenden.
-- **Vollbild** öffnet die Netzwerkkarte als bildschirmfüllende Darstellung und lässt sich über denselben Button oder `Esc` wieder schließen.
+- **Vollbild** öffnet die Netzwerkkarte als bildschirmfüllende Darstellung und lässt sich über denselben Button oder `Esc` wieder schließen. Die transparente Kachel übernimmt dabei automatisch eine zum aktuellen hellen oder dunklen Symcon-Profil passende kontrastierende Vollbildfläche.
 - Die Kachel startet selbst keine Netzwerkanalyse.
 
 Im Abschnitt **Ansicht** der Instanzkonfiguration werden das beim Öffnen verwendete Standardlayout und die anfängliche Sichtbarkeit der Beschriftungen festgelegt. Änderungen über den Button **Ansicht** innerhalb der Kachel gelten nur für die aktuell geöffnete Darstellung und verändern diese gespeicherten Vorgaben nicht.

@@ -136,6 +136,9 @@ class NetworkMapTest extends TestCase
         $this->assertStringContainsString('setTimeout(requestCurrentState, 50)', $tile);
         $this->assertStringContainsString('document.documentElement.requestFullscreen()', $tile);
         $this->assertStringContainsString("fullscreenButton.addEventListener('click', toggleFullscreen)", $tile);
+        $this->assertStringContainsString('prepareFullscreenTheme()', $tile);
+        $this->assertStringContainsString('html:fullscreen::backdrop', $tile);
+        $this->assertStringContainsString('--fullscreen-background', $tile);
         $this->assertStringContainsString('class CytoscapeViewController', $tile);
         $this->assertStringContainsString('viewController.runLayout(selectedLayout)', $tile);
         $this->assertStringContainsString("searchFields: ['id', 'label', 'model', 'type']", $tile);

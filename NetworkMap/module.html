@@ -43,6 +43,12 @@
         }
         .tools { display: flex; flex-wrap: wrap; justify-content: flex-end; gap: 6px; }
         .tools[hidden], #status[hidden], .summary[hidden] { display: none; }
+        html:fullscreen,
+        html:fullscreen body {
+            color: var(--fullscreen-color, currentColor);
+            background: var(--fullscreen-background, Canvas);
+        }
+        html:fullscreen::backdrop { background: var(--fullscreen-background, Canvas); }
         :fullscreen header { padding-top: 14px; }
         button, input, select { font: inherit; color: inherit; }
         button {
@@ -350,10 +356,20 @@
                 await document.exitFullscreen();
                 return;
             }
+            prepareFullscreenTheme();
             await document.documentElement.requestFullscreen();
         } catch (error) {
             showRenderError(`Das Vollbild konnte nicht geöffnet werden: ${error?.message || error}`);
         }
+    }
+
+    function prepareFullscreenTheme() {
+        const textColor = getComputedStyle(document.body).color;
+        const components = textColor.match(/\d+(?:\.\d+)?/g)?.slice(0, 3).map(Number) || [0, 0, 0];
+        const luminance = components.reduce((sum, component, index) => sum + component * [0.2126, 0.7152, 0.0722][index], 0) / 255;
+        const background = luminance < 0.5 ? 'rgb(255, 255, 255)' : 'rgb(52, 54, 59)';
+        document.documentElement.style.setProperty('--fullscreen-color', textColor);
+        document.documentElement.style.setProperty('--fullscreen-background', background);
     }
 
     function requestCurrentState() {
