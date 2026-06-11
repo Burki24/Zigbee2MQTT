@@ -151,6 +151,15 @@ Die OTA-Verwaltung bietet nur Geräte an, die Zigbee2MQTT in den Bridge-Geräted
 
 ![OTA-Updates](imgs/ota-updates.png)
 
+| Nr. | Bereich | Bedeutung |
+| --- | --- | --- |
+| **1** | Status aktualisieren | Liest OTA-Fähigkeiten und den aktuellen Zustand erneut aus den bekannten Geräteinstanzen ein und aktualisiert alle OTA-Listen. |
+| **2** | Zusammenfassung | Zeigt die Anzahl bekannter OTA-Geräte, verfügbarer Updates sowie aktiver oder geplanter Updates. |
+| **3** | Bekannte OTA-Geräte | Zeigt alle Geräte, die Zigbee2MQTT ausdrücklich als OTA-fähig meldet. Über **Update prüfen** wird ein einzelnes Gerät aktiv auf eine neuere Firmware geprüft. |
+| **4** | Verfügbare OTA-Updates | Zeigt geprüfte Geräte mit einer verfügbaren neueren Firmware. Updates können sofort gestartet oder für die nächste OTA-Anfrage des Geräts geplant werden. |
+| **5** | Aktive und geplante OTA-Updates | Zeigt laufende und geplante Updates mit Status, Fortschritt und Restzeit. Geplante Updates können aufgehoben und angeforderte oder laufende Updates abgebrochen werden. |
+| **6** | Letzte OTA-Update-Ergebnisse | Zeigt den Ergebnisverlauf abgeschlossener, abgebrochener oder fehlgeschlagener OTA-Vorgänge. |
+
 ### 5.5 Variablen-Wartung
 
 Die Variablen-Wartung befindet sich unter **Erweiterte Administration** und ist der unterstützte Weg, um alte Zigbee2MQTT-Variablen aufzuräumen. Über **Verwaiste Variablen suchen** werden klare Löschkandidaten, Review-Kandidaten und Hinweise getrennt angezeigt. Die Listen zeigen zusätzlich, ob eine Variable archiviert ist und wann sie zuletzt beschrieben wurde. Archivierte oder von anderen Symcon-Objekten referenzierte Variablen werden in der Bridge-Oberfläche nicht gelöscht. Jeder Löschvorgang betrifft genau eine Variable und muss über ein Popup bestätigt werden.
