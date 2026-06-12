@@ -568,7 +568,7 @@ class Zigbee2MQTTConfigurator extends IPSModuleStrict
      *
      * @uses Zigbee2MQTTConfigurator::SendData()
      */
-    public function getDevices(): array
+    private function getDevices(): array
     {
         $Devices = $this->ReadCachedNetworkDevicesFromBridge();
         if ($Devices !== []) {
@@ -591,7 +591,7 @@ class Zigbee2MQTTConfigurator extends IPSModuleStrict
      *
      * @uses Zigbee2MQTTConfigurator::SendData()
      */
-    public function getGroups(): array
+    private function getGroups(): array
     {
         $Result = @$this->SendData(self::SYMCON_EXTENSION_LIST_REQUEST . 'getGroups');
         if (\is_array($Result) && \is_array($Result['list'] ?? null)) {
@@ -609,7 +609,7 @@ class Zigbee2MQTTConfigurator extends IPSModuleStrict
      * @uses trigger_error()
      * @uses isset()
      */
-    public function RequestOptions(): bool
+    private function RequestOptions(): bool
     {
         $Topic = '/bridge/request/options';
         $Payload = [

@@ -292,13 +292,13 @@ Details stehen in der [Dokumentation des Geräte-Moduls](Device/README.md#42-vis
 
 Geräte-Instanzen führen einen lokalen Variablenkatalog. Dadurch kann in der Instanz-Konfiguration gesteuert werden, welche bekannten Variablen automatisch angelegt werden dürfen. Vom Anwender gelöschte Variablen werden nicht automatisch wieder erzeugt und können später gezielt wieder angelegt werden.
 
-Details stehen in der [Dokumentation des Geräte-Moduls](Device/README.md#47-variablenverwaltung).
+Details stehen in der [Dokumentation des Geräte-Moduls](Device/README.md#49-variablenverwaltung).
 
 Geräte- und Gruppenoptionen aus Zigbee2MQTT können ebenfalls direkt in Symcon gepflegt werden. Soweit Zigbee2MQTT Typinformationen liefert oder das Modul die Option kennt, werden passende Editoren für Schalter, Auswahllisten, Zahlen, Text, JSON-Objekte und Attributlisten angezeigt.
 
 ### 4.3 Wartung verwaister Variablen
 
-Die [Bridge-Funktionen](Bridge/README.md#54-variablen-wartung) enthalten eine Variablen-Wartung. Sie sucht alte Zigbee2MQTT-Variablen, die nicht mehr durch aktuelle Exposes oder das zuletzt bekannte Payload abgedeckt sind, und trennt klare Löschkandidaten von Review-Kandidaten.
+Die [Bridge-Funktionen](Bridge/README.md#55-variablen-wartung) enthalten eine Variablen-Wartung. Sie sucht alte Zigbee2MQTT-Variablen, die nicht mehr durch aktuelle Exposes oder das zuletzt bekannte Payload abgedeckt sind, und trennt klare Löschkandidaten von Review-Kandidaten.
 
 Die Bridge-Oberfläche ist der unterstützte Weg: Archivierte oder referenzierte Variablen sind geschützt, Archivstatus und letzter Schreibzeitpunkt sind sichtbar, und jede Löschung betrifft genau eine Variable, die vorher per Popup bestätigt werden muss.
 
@@ -406,6 +406,16 @@ Die Änderungen sind anhand der funktionalen Commits chronologisch gegliedert. A
 - Die Netzwerkkarten-Kachel bietet mehrere Layouts, eine Gerätesuche, fokussierte Umfeldansichten und optional ausblendbare Beschriftungen. Die allgemeine Cytoscape-Bedienlogik ist dabei von der Zigbee-spezifischen Darstellung getrennt und kann nach Stabilisierung der Schnittstelle als wiederverwendbarer Helfer ausgegliedert werden.
 - Standardlayout und anfängliche Sichtbarkeit der Beschriftungen können im Abschnitt **Ansicht** der Netzwerkkarten-Instanz dauerhaft konfiguriert werden.
 - Der eigene Vollbildmodus der Netzwerkkarte leitet aus der aktuellen Symcon-Schriftfarbe automatisch eine kontrastierende Vollbildfläche ab, sodass Beschriftungen sowohl im hellen als auch im dunklen Profil lesbar bleiben.
+
+### 8. bis 12. Juni 2026: Dokumentation und Schnittstellenbereinigung
+
+- Die READMEs aller enthaltenen Module wurden mit den tatsächlich verfügbaren Formularbereichen, Aktionen und öffentlichen Funktionen abgeglichen.
+- Aktuelle und einheitlich nummerierte Screenshots erläutern die Konfiguration von Bridge, Konfigurator, Geräten, Gruppen und Netzwerkkarte.
+- Die Bridge-Dokumentation beschreibt Netzwerksicherheit, Diagnose, Anlernen, OTA-Verwaltung und Variablen-Wartung anhand der aktuellen Bedienoberfläche.
+- Veraltete Sprungmarken der Hauptdokumentation wurden korrigiert und sämtliche lokalen README-Verweise sowie Bilddateien geprüft.
+- Die interne Cache-Funktion `Z2M_GetCachedNetworkDevices` wurde in der Bridge-Funktionsreferenz ergänzt.
+- Ausschließlich intern genutzte Hilfsmethoden des Konfigurators sind nicht länger als öffentliche Modul-Funktionen sichtbar.
+- Die in `library.json` hinterlegte Mindestversion wurde an die dokumentierte und erforderliche Mindestversion IP-Symcon 9.0 angeglichen.
 
 **Version 5.42:**  
 

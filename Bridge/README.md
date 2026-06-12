@@ -545,6 +545,18 @@ Diese Funktion wird von den Device-Instanzen genutzt, um den Bereich **Binding u
 
 ---
 
+### Z2M_GetCachedNetworkDevices <!-- omit in toc -->
+
+```php
+string Z2M_GetCachedNetworkDevices(int $InstanzID);
+```
+
+Liefert die in der Bridge zwischengespeicherten Geräteinformationen aus dem retained Zigbee2MQTT-Topic `bridge/devices` als JSON-Liste.
+
+Die Funktion wird intern vom Konfigurator und von Geräteformularen genutzt, um bekannte Geräte, Endpoints und Cluster ohne zusätzlichen Zigbee2MQTT-Request bereitzustellen. Der Cache wird mit jedem empfangenen `bridge/devices` Payload aktualisiert.
+
+---
+
 ### Z2M_ConfigureReporting <!-- omit in toc -->
 
 ```php
