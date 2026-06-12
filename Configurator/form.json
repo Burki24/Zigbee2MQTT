@@ -157,26 +157,13 @@
             "visible": false,
             "popup": {
                 "closeCaption": "Close",
-                "buttons": [
-                    {
-                        "caption": "Fix it!",
-                        "onClick": [
-                            "$SplitterId = IPS_GetInstance($id)['ConnectionID'];",
-                            "foreach ($WrongConnectedInstances as $Instance){",
-                            "   @IPS_DisconnectInstance($Instance['instanceId']);",
-                            "   @IPS_ConnectInstance($Instance['instanceId'], $SplitterId);",
-                            "}",
-                            "IPS_RequestAction($id, 'ReloadForm', true);"
-                        ]
-                    }
-                ],
                 "items": [
                     {
                         "name": "ErrorTitle",
                         "type": "Label",
                         "bold": true,
                         "color": 16711680,
-                        "caption": "Devices that the configurator has found but are connected to the wrong MQTT splitter in Symcon."
+                        "caption": "Instances found with the same MQTT base topic but connected to another MQTT splitter. Repair them individually."
                     },
                     {
                         "type": "List",
@@ -203,6 +190,13 @@
                                 "caption": "InstanceId",
                                 "name": "instanceIdStr",
                                 "width": "75px"
+                            },
+                            {
+                                "caption": "Action",
+                                "name": "action",
+                                "width": "100px",
+                                "align": "center",
+                                "onClick": "IPS_RequestAction($id, 'RepairWrongConnection', $WrongConnectedInstances['instanceId']);"
                             }
                         ]
                     }

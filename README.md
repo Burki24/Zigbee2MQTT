@@ -416,6 +416,7 @@ Die Änderungen sind anhand der funktionalen Commits chronologisch gegliedert. A
 - Die interne Cache-Funktion `Z2M_GetCachedNetworkDevices` wurde in der Bridge-Funktionsreferenz ergänzt.
 - Ausschließlich intern genutzte Hilfsmethoden des Konfigurators sind nicht länger als öffentliche Modul-Funktionen sichtbar.
 - Die in `library.json` hinterlegte Mindestversion wurde an die dokumentierte und erforderliche Mindestversion IP-Symcon 9.0 angeglichen.
+- Der Konfigurator ordnet ausschließlich Instanzen mit demselben MQTT-Splitter und MQTT-Basistopic regulär zu. Falsch verbundene Instanzen blockieren die Erstellung von Doppelinstanzen und können in einem getrennten Reparaturdialog einzeln mit dem richtigen Splitter verbunden werden.
 
 **Version 5.42:**  
 
