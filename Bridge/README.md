@@ -196,6 +196,20 @@ Install-Codes können einmalig gesendet oder mit einer frei wählbaren Bezeichnu
 
 Touchlink-Scan und Touchlink-Factory-Reset können die Zigbee-Kommunikation kurzfristig stören. Ein Factory-Reset ohne ausgewähltes Ziel kann das nächste per Touchlink erreichbare Gerät zurücksetzen und sollte daher nur bewusst genutzt werden.
 
+![Touchlink](imgs/touchlink.png)
+
+| Nr. | Bereich | Bedeutung |
+| --- | --- | --- |
+| **1** | Sicherheitshinweis | Weist darauf hin, dass Touchlink-Scan und Factory-Reset die Zigbee-Kommunikation vorübergehend stören können. |
+| **2** | Touchlink-Scan | Sucht nach erreichbaren Touchlink-Geräten. Der Scan kann bis zu etwa einer Minute dauern und füllt anschließend die Ergebnisliste. |
+| **3** | Touchlink-Identifikation | Lässt das ausgewählte Touchlink-Gerät eine Identifikationsaktion ausführen, damit es vor weiteren Aktionen eindeutig erkannt werden kann. |
+| **4** | Touchlink-Factory-Reset | Setzt das ausgewählte Gerät über Touchlink auf Werkseinstellungen zurück. Ohne ausgewähltes Ziel kann Zigbee2MQTT das nächstgelegene erreichbare Touchlink-Gerät zurücksetzen. |
+| **5** | Touchlink-Scan-Ergebnisse | Zeigt gefundene Geräte mit IEEE-Adresse und Zigbee-Kanal. Über die Aktion einer Zeile wird das Gerät als Ziel übernommen. |
+| **6** | Zielgerät | Zeigt beziehungsweise übernimmt IEEE-Adresse und Kanal des ausgewählten Scan-Ergebnisses. Beide Werte können für ein bekanntes Ziel auch manuell eingetragen werden. |
+
+> [!WARNING]
+> Verwenden Sie den Factory-Reset möglichst nur mit einer zuvor per Scan ausgewählten und identifizierten IEEE-Adresse. Ein Reset ohne eindeutiges Ziel kann unbeabsichtigt ein anderes, nahe gelegenes Touchlink-Gerät zurücksetzen.
+
 ## 6. Statusvariablen
 
 | Name                               | Typ     | Profil              | Beschreibung                                 |
