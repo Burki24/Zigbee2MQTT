@@ -853,7 +853,10 @@ abstract class ModulBase extends \IPSModuleStrict
         $Payload = [$Property => ''];
 
         // MQTT-Topic für den Get-Befehl generieren
-        $Topic = '/' . $this->ReadPropertyString(self::MQTT_TOPIC) . '/get';
+        $Topic = $this->BuildConfiguredMQTTTopic(self::MQTT_TOPIC, 'get');
+        if ($Topic === null) {
+            return false;
+        }
 
         // Debug-Ausgabe des zu sendenden Payloads
         $this->SendDebug(__FUNCTION__ . ' :: ' . __LINE__ . ' :: zu sendendes Payload: ', json_encode($Payload), 0);
@@ -884,7 +887,10 @@ abstract class ModulBase extends \IPSModuleStrict
     public function SendSetCommand(array $Payload): bool
     {
         // MQTT-Topic für den Set-Befehl generieren
-        $Topic = '/' . $this->ReadPropertyString(self::MQTT_TOPIC) . '/set';
+        $Topic = $this->BuildConfiguredMQTTTopic(self::MQTT_TOPIC, 'set');
+        if ($Topic === null) {
+            return false;
+        }
 
         // Debug-Ausgabe des zu sendenden Payloads
         $this->SendDebug(__FUNCTION__ . ' :: ' . __LINE__ . ' :: zu sendendes Payload: ', json_encode($Payload), 0);
@@ -915,7 +921,10 @@ abstract class ModulBase extends \IPSModuleStrict
     public function SendGetCommand(): bool
     {
         // MQTT-Topic für den Get-Befehl generieren
-        $Topic = '/' . $this->ReadPropertyString(self::MQTT_TOPIC) . '/get';
+        $Topic = $this->BuildConfiguredMQTTTopic(self::MQTT_TOPIC, 'get');
+        if ($Topic === null) {
+            return false;
+        }
 
         // Geraetespezifische filtered_attributes aus Z2M laden
         $aFiltered = $this->ReadAttributeArray(self::ATTRIBUTE_FILTERED);

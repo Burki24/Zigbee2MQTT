@@ -116,6 +116,60 @@ class MQTTHelperTest extends TestCase
         $this->assertStringNotContainsString('SECRET', json_encode($helper->debugMessages));
     }
 
+    public function testUnavailableInstanceInterfaceStopsBeforeSending(): void
+    {
+        $helper = new class() {
+            use \Zigbee2MQTT\SendData {
+                SendData as public sendMqttData;
+            }
+
+            public bool $sent = false;
+
+            public function ReadPropertyString(string $name): string
+            {
+                trigger_error('InstanceInterface is not available', E_USER_WARNING);
+                return '';
+            }
+
+            public function SendDebug(string $message, mixed $data, int $format): void
+            {
+            }
+
+            public function SendDataToParent(string $data): void
+            {
+                $this->sent = true;
+            }
+        };
+
+        $this->assertFalse($helper->sendMqttData('/bridge/request/health_check', [], 0));
+        $this->assertFalse($helper->sent);
+    }
+
+    public function testUnavailableParentInterfaceStopsWithoutWarning(): void
+    {
+        $helper = new class() {
+            use \Zigbee2MQTT\SendData {
+                SendData as public sendMqttData;
+            }
+
+            public function ReadPropertyString(string $name): string
+            {
+                return 'zigbee2mqtt';
+            }
+
+            public function SendDebug(string $message, mixed $data, int $format): void
+            {
+            }
+
+            public function SendDataToParent(string $data): void
+            {
+                trigger_error('InstanceInterface is not available', E_USER_WARNING);
+            }
+        };
+
+        $this->assertFalse($helper->sendMqttData('/bridge/request/health_check', [], 0));
+    }
+
     public function testResponseWithoutTransactionIsMatchedByResponseTopic(): void
     {
         $helper = new class() {

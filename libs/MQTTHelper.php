@@ -39,7 +39,12 @@ trait SendData
             return false;
         }
 
-        return $this->SendData('/' . $this->ReadPropertyString(self::MQTT_TOPIC) . '/' . $topic, $payload, 0);
+        $configuredTopic = $this->BuildConfiguredMQTTTopic(self::MQTT_TOPIC, $topic);
+        if ($configuredTopic === null) {
+            return false;
+        }
+
+        return $this->SendData($configuredTopic, $payload, 0);
     }
 
     /**
@@ -151,16 +156,32 @@ trait SendData
      */
     private function SendDataInternal(string $Topic, array $Payload, int $Timeout, bool $Sensitive): array|bool
     {
+        $TransactionId = null;
         if ($Timeout) {
-            $TransactionId = $this->AddTransaction($Payload, $Topic);
+            $TransactionId = $this->ExecuteWithAvailableInstanceInterface(
+                function () use (&$Payload, $Topic): int
+                {
+                    return $this->AddTransaction($Payload, $Topic);
+                },
+                null
+            );
+            if (!\is_int($TransactionId)) {
+                return false;
+            }
         }
 
         $DebugMethod = $Sensitive ? 'SendSensitiveData' : 'SendData';
         $this->SendDebug($DebugMethod . ':Topic', $Topic, 0);
         $this->SendLimitedDebug($DebugMethod . ':Payload', $Sensitive ? '[redacted]' : json_encode($Payload), 0);
         $this->SendDebug($DebugMethod . ':Timeout', (string) $Timeout, 0);
-        $DataJSON = self::BuildRequest($this->ReadPropertyString(self::MQTT_BASE_TOPIC) . $Topic, $Payload);
-        $this->SendDataToParent($DataJSON);
+        $configuredTopic = $this->BuildConfiguredMQTTTopic(self::MQTT_BASE_TOPIC, $Topic);
+        if ($configuredTopic === null
+            || !$this->SendDataToParentSafely(self::BuildRequest($configuredTopic, $Payload))) {
+            if ($TransactionId !== null) {
+                $this->RemoveTransactionSafely($TransactionId);
+            }
+            return false;
+        }
 
         if ($Timeout) {
             $Result = $this->WaitForTransactionEnd($TransactionId, $Timeout);
@@ -172,6 +193,92 @@ trait SendData
             return $Result;
         }
         return true;
+    }
+
+    /**
+     * Baut ein MQTT-Topic aus einer konfigurierten Property und einem optionalen Suffix.
+     *
+     * Während eines Modul-Updates kann Symcon die Instanzschnittstelle kurzzeitig
+     * entladen. In diesem Fall wird kein unvollständiges Topic erzeugt.
+     */
+    private function BuildConfiguredMQTTTopic(string $Property, string $Suffix = ''): ?string
+    {
+        $configuredTopic = $this->ExecuteWithAvailableInstanceInterface(
+            fn (): string => $this->ReadPropertyString($Property),
+            null
+        );
+        if (!\is_string($configuredTopic) || trim($configuredTopic, '/') === '') {
+            return null;
+        }
+
+        $topicParts = [trim($configuredTopic, '/')];
+        if (trim($Suffix, '/') !== '') {
+            $topicParts[] = trim($Suffix, '/');
+        }
+
+        return '/' . implode('/', $topicParts);
+    }
+
+    /**
+     * Sendet Daten an den Parent, sofern dessen Instanzschnittstelle verfügbar ist.
+     */
+    private function SendDataToParentSafely(string $Data): bool
+    {
+        return $this->ExecuteWithAvailableInstanceInterface(
+            function () use ($Data): bool
+            {
+                $this->SendDataToParent($Data);
+                return true;
+            },
+            false
+        ) === true;
+    }
+
+    /**
+     * Entfernt eine abgebrochene Transaktion ohne Warnung während eines Modul-Updates.
+     */
+    private function RemoveTransactionSafely(int $TransactionId): void
+    {
+        $this->ExecuteWithAvailableInstanceInterface(
+            function () use ($TransactionId): bool
+            {
+                $this->RemoveTransaction($TransactionId);
+                return true;
+            },
+            false
+        );
+    }
+
+    /**
+     * Führt eine Instanzoperation aus und fängt ausschließlich das kurze
+     * InstanceInterface-Fenster während eines Symcon-Modul-Updates ab.
+     */
+    private function ExecuteWithAvailableInstanceInterface(\Closure $Operation, mixed $Fallback): mixed
+    {
+        $interfaceUnavailable = false;
+        set_error_handler(
+            static function (int $severity, string $message) use (&$interfaceUnavailable): bool
+            {
+                if (str_contains($message, 'InstanceInterface is not available')) {
+                    $interfaceUnavailable = true;
+                    return true;
+                }
+                return false;
+            }
+        );
+
+        try {
+            $result = $Operation();
+        } catch (\Throwable $throwable) {
+            if (!$interfaceUnavailable) {
+                throw $throwable;
+            }
+            return $Fallback;
+        } finally {
+            restore_error_handler();
+        }
+
+        return $interfaceUnavailable ? $Fallback : $result;
     }
 
     /**
