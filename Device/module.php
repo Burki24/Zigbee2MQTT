@@ -24,6 +24,7 @@ class Zigbee2MQTTDevice extends \Zigbee2MQTT\ModulBase
 
         $this->RegisterPropertyString('IEEE', '');
         $this->RegisterAttributeString('IEEE', '');
+        $this->RegisterAttributeString('PendingIEEE', '');
         $this->RegisterAttributeString('Model', '');
         $this->RegisterAttributeString('Icon', '');
         $this->RegisterMessage($this->InstanceID, IM_CHANGEATTRIBUTE);
@@ -131,9 +132,15 @@ class Zigbee2MQTTDevice extends \Zigbee2MQTT\ModulBase
         if ($ident == 'UpdateInfo') {
             if (!$this->UpdateDeviceInfo()) {
                 $this->ShowDeviceInfoRequestError();
+            } elseif ($this->ShowPendingIEEEConfirmation()) {
+                return;
             } else {
                 $this->ShowDeviceInfoRequestSuccess();
             }
+            return;
+        }
+        if ($ident == 'ConfirmDetectedIEEE') {
+            $this->ConfirmDetectedIEEE();
             return;
         }
         if ($ident == 'RequestDeviceInterview') {
@@ -289,11 +296,12 @@ class Zigbee2MQTTDevice extends \Zigbee2MQTT\ModulBase
             $Result['ieeeAddr'] = '';
         }
 
-        // IEEE-Adresse bei Modulupdate von 4.x auf 5.x in der Instanz-Konfig ergänzen.
         $currentIEEE = $this->ReadPropertyString('IEEE');
-        if (empty($currentIEEE) && ($currentIEEE !== $Result['ieeeAddr'])) {
-            IPS_SetProperty($this->InstanceID, 'IEEE', $Result['ieeeAddr']);
-            IPS_ApplyChanges($this->InstanceID);
+        $detectedIEEE = trim((string) $Result['ieeeAddr']);
+        if ($currentIEEE === '' && $detectedIEEE !== '') {
+            $this->WriteAttributeString('PendingIEEE', $detectedIEEE);
+        } elseif ($currentIEEE !== '') {
+            $this->WriteAttributeString('PendingIEEE', '');
         }
 
         // Model und Icon verarbeiten
@@ -341,6 +349,40 @@ class Zigbee2MQTTDevice extends \Zigbee2MQTT\ModulBase
     private function ShowDeviceInfoRequestSuccess(): void
     {
         $this->UpdateFormField('DeviceInfoRequestSuccess', 'visible', true);
+    }
+
+    /**
+     * Zeigt die explizite Bestaetigung fuer eine erkannte, aber noch nicht konfigurierte IEEE-Adresse.
+     */
+    private function ShowPendingIEEEConfirmation(): bool
+    {
+        $pendingIEEE = trim($this->ReadAttributeString('PendingIEEE'));
+        if ($pendingIEEE === '' || $this->ReadPropertyString('IEEE') !== '') {
+            return false;
+        }
+
+        $this->UpdateFormField('DetectedIEEEAddress', 'caption', $pendingIEEE);
+        $this->UpdateFormField('DetectedIEEEConfirmation', 'visible', true);
+
+        return true;
+    }
+
+    /**
+     * Uebernimmt eine erkannte IEEE-Adresse erst nach ausdruecklicher Bestaetigung.
+     */
+    private function ConfirmDetectedIEEE(): void
+    {
+        $pendingIEEE = trim($this->ReadAttributeString('PendingIEEE'));
+        if ($pendingIEEE === '' || $this->ReadPropertyString('IEEE') !== '') {
+            $this->WriteAttributeString('PendingIEEE', '');
+            $this->UpdateFormField('DetectedIEEEConfirmation', 'visible', false);
+            return;
+        }
+
+        $this->UpdateFormField('DetectedIEEEConfirmation', 'visible', false);
+        IPS_SetProperty($this->InstanceID, 'IEEE', $pendingIEEE);
+        $this->WriteAttributeString('PendingIEEE', '');
+        IPS_ApplyChanges($this->InstanceID);
     }
 
     /**

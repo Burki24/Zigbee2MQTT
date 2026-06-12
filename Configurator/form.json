@@ -134,19 +134,13 @@
                     {
                         "name": "ErrorText",
                         "type": "Label",
-                        "caption": "The Symcon extension in Zigbee2MQTT is not installed or not up to date.\r\nPlease install or update the extension within the Bridge instance configuration."
+                        "caption": "The Symcon extension in Zigbee2MQTT is not installed or not up to date.\r\nCreate or open the matching Bridge instance in the device list, then install or update the extension within its configuration."
                     },
                     {
                         "type": "OpenObjectButton",
                         "caption": "Open bridge instance",
                         "objectID": 0,
                         "visible": false
-                    },
-                    {
-                        "type": "Button",
-                        "caption": "Create bridge instance",
-                        "visible": false,
-                        "onClick": []
                     }
                 ]
             }

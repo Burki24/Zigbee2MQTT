@@ -65,6 +65,28 @@ class ConfiguratorTest extends DumpInclude
         $this->assertStringContainsString("'RepairWrongConnection'", $actionColumn['onClick']);
     }
 
+    public function testMissingBridgeUsesRegularConfiguratorCreateDescriptor(): void
+    {
+        $configuratorID = IPS_CreateInstance(self::CONFIGURATOR_MODULE_ID);
+        $configurator = IPS\InstanceManager::getInstanceInterface($configuratorID);
+        $method = new ReflectionMethod($configurator, 'BuildBridgeCreateDescriptor');
+
+        $descriptor = $method->invoke($configurator, 'zigbee2mqtt', ['Zigbee']);
+
+        $this->assertSame('{00160D82-9E2F-D1BD-6D0B-952F945332C5}', $descriptor['moduleID']);
+        $this->assertSame(['Zigbee'], $descriptor['location']);
+        $this->assertSame(['MQTTBaseTopic' => 'zigbee2mqtt'], $descriptor['configuration']);
+
+        $form = json_decode(file_get_contents(__DIR__ . '/../Configurator/form.json'), true);
+        $errorPopup = $form['actions'][2]['popup'];
+        $this->assertCount(3, $errorPopup['items']);
+
+        $source = file_get_contents(__DIR__ . '/../Configurator/module.php');
+        $this->assertStringNotContainsString('IPS_CreateInstance(', $source);
+        $this->assertStringNotContainsString('IPS_SetProperty(', $source);
+        $this->assertStringNotContainsString('IPS_ApplyChanges(', $source);
+    }
+
     private function CreateConfiguredDevice(string $BaseTopic, string $Topic, int $SplitterID): int
     {
         $instanceID = IPS_CreateInstance(self::DEVICE_MODULE_ID);

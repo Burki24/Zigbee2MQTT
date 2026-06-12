@@ -220,34 +220,33 @@ class Zigbee2MQTTConfigurator extends IPSModuleStrict
         $IPSBridgeIDs = $this->GetIPSInstancesByBaseTopic(self::GUID_MODULE_BRIDGE, $BaseTopic); // Bridge-Instanzen mit gleichem BaseTopic holen
         $this->SendDebug('IPS Bridge Instances', json_encode($IPSBridgeIDs), 0);
         if (!count($Devices)) {
-            // Ausblenden der Konfiguratoren
-            $Form['actions'][0]['expanded'] = false;
+            // Gruppen ausblenden, die Bridge aber ueber den regulaeren Konfigurator-Mechanismus anbieten.
             $Form['actions'][1]['expanded'] = false;
 
             if ($WrongBridgeInstances !== []) {
                 $this->ConfigureWrongConnectedInstancesPopup($Form, $InstancedWithWrongIo);
                 return json_encode($Form);
             }
+
+            $bridgeValue = self::$DeviceValues;
+            $bridgeValue['id'] = 1;
+            $bridgeValue['name'] = 'Zigbee2MQTT Bridge';
+            $bridgeValue['topic'] = 'bridge';
+            $bridgeValue['type'] = 'Bridge';
+            $bridgeValue['vendor'] = 'Zigbee2MQTT';
+            $bridgeValue['description'] = 'Zigbee2MQTT Bridge';
             if (count($IPSBridgeIDs)) {
-                $Form['actions'][2]['popup']['items'][2]['objectID'] = array_key_first($IPSBridgeIDs);
+                $bridgeID = array_key_first($IPSBridgeIDs);
+                $bridgeValue['name'] = IPS_GetName($bridgeID);
+                $bridgeValue['instanceID'] = $bridgeID;
+                $Form['actions'][2]['popup']['items'][2]['objectID'] = $bridgeID;
                 $Form['actions'][2]['popup']['items'][2]['visible'] = true;
             } else {
-                $Form['actions'][2]['popup']['items'][3]['onClick'] = [
-                    '$BaseTopic= \'' . $BaseTopic . '\';',
-                    '$SplitterId = ' . IPS_GetInstance($this->InstanceID)['ConnectionID'] . ';',
-                    '$id = IPS_CreateInstance(\'' . self::GUID_MODULE_BRIDGE . '\');',
-                    'IPS_SetName($id, \'Zigbee2MQTT Bridge (\'.$BaseTopic.\')\');',
-                    'if (IPS_GetInstance($id)[\'ConnectionID\'] != $SplitterId){',
-                    '   @IPS_DisconnectInstance($id);',
-                    '   @IPS_ConnectInstance($id, $SplitterId);',
-                    '}',
-                    '@IPS_SetProperty($id,\'MQTTBaseTopic\', $BaseTopic);',
-                    '@IPS_ApplyChanges($id);',
-                    'IPS_RequestAction(' . $this->InstanceID . ', \'ReloadForm\', true);'
-                ];
-                $Form['actions'][2]['popup']['items'][3]['visible'] = true;
-
+                $bridgeValue['create'] = $this->BuildBridgeCreateDescriptor($BaseTopic);
             }
+
+            $Form['actions'][0]['items'][0]['values'] = [$bridgeValue];
+            $Form['actions'][0]['items'][0]['rowCount'] = 2;
             $Form['actions'][2]['visible'] = true;
             return json_encode($Form);
         }
@@ -277,13 +276,7 @@ class Zigbee2MQTTConfigurator extends IPSModuleStrict
                 $value['vendor'] = 'Zigbee2MQTT';
                 $value['description'] = 'Zigbee2MQTT Bridge';
                 if ($WrongBridgeInstances === []) {
-                    $value['create'] = [
-                        'moduleID'      => self::GUID_MODULE_BRIDGE,
-                        'location'      => $Location,
-                        'configuration' => [
-                            self::MQTT_BASE_TOPIC    => $BaseTopic
-                        ]
-                    ];
+                    $value['create'] = $this->BuildBridgeCreateDescriptor($BaseTopic, $Location);
                 }
                 array_push($valuesDevices, $value);
                 $CoordinatorFound = true;
@@ -561,6 +554,25 @@ class Zigbee2MQTTConfigurator extends IPSModuleStrict
             $this->UpdateTransactionByResponseTopic(substr($ReceiveTopic, \strlen($BaseTopic)), $Payload);
         }
         return '';
+    }
+
+    /**
+     * Builds the regular Symcon configurator descriptor for a missing Bridge instance.
+     *
+     * @param string   $BaseTopic
+     * @param string[] $Location
+     *
+     * @return array<string, mixed>
+     */
+    private function BuildBridgeCreateDescriptor(string $BaseTopic, array $Location = []): array
+    {
+        return [
+            'moduleID'      => self::GUID_MODULE_BRIDGE,
+            'location'      => $Location,
+            'configuration' => [
+                self::MQTT_BASE_TOPIC => $BaseTopic
+            ]
+        ];
     }
 
     /**

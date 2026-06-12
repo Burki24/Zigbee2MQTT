@@ -204,6 +204,52 @@ class DevicesTest extends DumpInclude
         $this->assertArrayNotHasKey('DeviceInfoRequestError', $device->updatedFields);
     }
 
+    public function testDetectedIEEERequiresExplicitConfirmation(): void
+    {
+        $device = new class(990008) extends Zigbee2MQTTDevice {
+            public array $updatedFields = [];
+
+            protected function UpdateDeviceInfo(): bool
+            {
+                $this->WriteAttributeString('PendingIEEE', '0x00124b0000000001');
+                return true;
+            }
+
+            protected function UpdateFormField(string $Field, string $Parameter, mixed $Value): bool
+            {
+                $this->updatedFields[$Field][$Parameter] = $Value;
+                return true;
+            }
+
+            protected function SendDebug(string $Message, string $Data, int $Format): bool
+            {
+                return true;
+            }
+        };
+        $device->Create();
+
+        $device->RequestAction('UpdateInfo', true);
+
+        $this->assertSame('', $device->GetProperty('IEEE'));
+        $this->assertSame('0x00124b0000000001', $device->updatedFields['DetectedIEEEAddress']['caption']);
+        $this->assertSame(true, $device->updatedFields['DetectedIEEEConfirmation']['visible']);
+        $this->assertArrayNotHasKey('DeviceInfoRequestSuccess', $device->updatedFields);
+    }
+
+    public function testConfirmedDetectedIEEEIsApplied(): void
+    {
+        $instanceID = IPS_CreateInstance('{E5BB36C6-A70B-EB23-3716-9151A09AC8A2}');
+        $device = IPS\InstanceManager::getInstanceInterface($instanceID);
+        $writeAttribute = new ReflectionMethod($device, 'WriteAttributeString');
+        $writeAttribute->invoke($device, 'PendingIEEE', '0x00124b0000000002');
+
+        $this->assertSame('', IPS_GetProperty($instanceID, 'IEEE'));
+
+        $device->RequestAction('ConfirmDetectedIEEE', true);
+
+        $this->assertSame('0x00124b0000000002', IPS_GetProperty($instanceID, 'IEEE'));
+    }
+
     public function testDeviceMaintenanceIsShownForConfiguredDevice(): void
     {
         [$iid] = $this->createTestInstance('MixedLightSensor.json');

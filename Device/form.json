@@ -815,6 +815,37 @@
             }
         },
         {
+            "name": "DetectedIEEEConfirmation",
+            "type": "PopupAlert",
+            "visible": false,
+            "popup": {
+                "closeCaption": "Keep current configuration",
+                "buttons": [
+                    {
+                        "caption": "Use detected IEEE address",
+                        "onClick": "IPS_RequestAction($id, 'ConfirmDetectedIEEE', true);"
+                    }
+                ],
+                "items": [
+                    {
+                        "type": "Label",
+                        "bold": true,
+                        "caption": "Apply detected IEEE address?"
+                    },
+                    {
+                        "type": "Label",
+                        "caption": "The device information was loaded successfully. The instance has no configured IEEE address. Apply the detected address only if it belongs to this instance."
+                    },
+                    {
+                        "type": "Label",
+                        "name": "DetectedIEEEAddress",
+                        "bold": true,
+                        "caption": ""
+                    }
+                ]
+            }
+        },
+        {
             "name": "DeviceInterviewWarning",
             "type": "PopupAlert",
             "visible": false,
