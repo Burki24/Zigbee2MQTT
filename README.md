@@ -417,6 +417,7 @@ Die Änderungen sind anhand der funktionalen Commits chronologisch gegliedert. A
 - Ausschließlich intern genutzte Hilfsmethoden des Konfigurators sind nicht länger als öffentliche Modul-Funktionen sichtbar.
 - Die in `library.json` hinterlegte Mindestversion wurde an die dokumentierte und erforderliche Mindestversion IP-Symcon 9.0 angeglichen.
 - Der Konfigurator ordnet ausschließlich Instanzen mit demselben MQTT-Splitter und MQTT-Basistopic regulär zu. Falsch verbundene Instanzen blockieren die Erstellung von Doppelinstanzen und können in einem getrennten Reparaturdialog einzeln mit dem richtigen Splitter verbunden werden.
+- Gruppeninstanzen begrenzen auch ihre lokale Geräteauswahl auf denselben MQTT-Splitter und dasselbe MQTT-Basistopic. Mehrere Zigbee2MQTT-Systeme können dadurch keine Geräte des jeweils anderen Netzes als Gruppenmitglied anbieten.
 - Eine beim Abruf von Geräteinformationen erkannte IEEE-Adresse wird in bestehenden Instanzen nicht mehr automatisch als Eigenschaft gesetzt. Ist die Eigenschaft leer, muss die Übernahme ausdrücklich bestätigt werden.
 - Fehlende Bridge-Instanzen werden ausschließlich über den regulären Symcon-Konfigurator erstellt. Formularskripte erzeugen oder konfigurieren keine Instanzen mehr direkt.
 - MQTT-Befehle brechen während des kurzen Instanzschnittstellen-Wechsels eines Modul-Updates kontrolliert ab. Laufende Ereignisse erzeugen dadurch keine `InstanceInterface is not available`-Warnungen und senden keine unvollständigen MQTT-Topics.

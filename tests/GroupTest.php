@@ -11,6 +11,7 @@ class GroupTest extends DumpInclude
 {
     private const DEVICE_MODULE_ID = '{E5BB36C6-A70B-EB23-3716-9151A09AC8A2}';
     private const GROUP_MODULE_ID = '{11BF3773-E940-469B-9DD7-FB9ACD7199A2}';
+    private const VIRTUAL_IO_MODULE_ID = '{6179ED6A-FC31-413C-BB8E-1204150CF376}';
 
     public function testGroupInformationRefreshIsTopLevelAction(): void
     {
@@ -44,6 +45,23 @@ class GroupTest extends DumpInclude
         $input = $this->findFormItemByName($form, 'GroupMemberDevice');
         $this->assertNotNull($input);
         $this->assertSame('ValidationTextBox', $input['type']);
+    }
+
+    public function testGroupAvailableDeviceListOnlyUsesDevicesFromSameSplitter(): void
+    {
+        $splitterID = IPS_CreateInstance(self::VIRTUAL_IO_MODULE_ID);
+        $otherSplitterID = IPS_CreateInstance(self::VIRTUAL_IO_MODULE_ID);
+
+        $this->createConfiguredDevice('zigbee2mqtt', 'Flur/Beleuchtung/Richtig', $splitterID);
+        $this->createConfiguredDevice('zigbee2mqtt', 'Flur/Beleuchtung/Fremd', $otherSplitterID);
+        $groupID = $this->createConfiguredGroup('zigbee2mqtt', 'Flur/Beleuchtung/Gruppe', $splitterID);
+
+        $group = IPS\InstanceManager::getInstanceInterface($groupID);
+        $method = new ReflectionMethod($group, 'LoadGroupMemberDevicesFromInstances');
+        $values = array_column($method->invoke($group), 'value');
+
+        $this->assertContains('Flur/Beleuchtung/Richtig', $values);
+        $this->assertNotContains('Flur/Beleuchtung/Fremd', $values);
     }
 
     public function testGroupAvailableDeviceListKeepsUnknownExistingMembersSelectable(): void
@@ -332,7 +350,7 @@ class GroupTest extends DumpInclude
         $this->assertSame(['retain' => false], json_decode($group->calledArguments[1], true));
     }
 
-    private function createConfiguredDevice(string $baseTopic, string $mqttTopic): int
+    private function createConfiguredDevice(string $baseTopic, string $mqttTopic, int $splitterID = 0): int
     {
         $instanceID = IPS_CreateInstance(self::DEVICE_MODULE_ID);
         IPS_SetName($instanceID, basename(str_replace('\\', '/', $mqttTopic)));
@@ -341,12 +359,15 @@ class GroupTest extends DumpInclude
             'MQTTTopic'     => $mqttTopic,
             'IEEE'          => '0x' . substr(sha1($mqttTopic), 0, 16)
         ]));
+        if ($splitterID > 0) {
+            IPS_ConnectInstance($instanceID, $splitterID);
+        }
         IPS_ApplyChanges($instanceID);
 
         return $instanceID;
     }
 
-    private function createConfiguredGroup(string $baseTopic, string $mqttTopic): int
+    private function createConfiguredGroup(string $baseTopic, string $mqttTopic, int $splitterID = 0): int
     {
         $instanceID = IPS_CreateInstance(self::GROUP_MODULE_ID);
         IPS_SetConfiguration($instanceID, json_encode([
@@ -354,6 +375,9 @@ class GroupTest extends DumpInclude
             'MQTTTopic'     => $mqttTopic,
             'GroupId'       => 9
         ]));
+        if ($splitterID > 0) {
+            IPS_ConnectInstance($instanceID, $splitterID);
+        }
         IPS_ApplyChanges($instanceID);
 
         return $instanceID;

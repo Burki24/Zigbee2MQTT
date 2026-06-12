@@ -369,7 +369,7 @@ class Zigbee2MQTTGroup extends \Zigbee2MQTT\ModulBase
     }
 
     /**
-     * Liest bekannte Device-Instanzen mit gleichem BaseTopic als lokale Fallback-Liste.
+     * Liest bekannte Device-Instanzen mit gleichem BaseTopic und MQTT-Splitter als lokale Fallback-Liste.
      */
     private function LoadGroupMemberDevicesFromInstances(): array
     {
@@ -378,9 +378,15 @@ class Zigbee2MQTTGroup extends \Zigbee2MQTT\ModulBase
             return [];
         }
 
+        $connectionID = IPS_InstanceExists($this->InstanceID)
+            ? (int) IPS_GetInstance($this->InstanceID)['ConnectionID']
+            : 0;
         $devices = [];
         foreach (IPS_GetInstanceListByModuleID(self::GUID_MODULE_DEVICE) as $instanceID) {
             if (@IPS_GetProperty($instanceID, self::MQTT_BASE_TOPIC) !== $baseTopic) {
+                continue;
+            }
+            if ((int) IPS_GetInstance($instanceID)['ConnectionID'] !== $connectionID) {
                 continue;
             }
 
