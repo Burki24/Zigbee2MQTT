@@ -391,7 +391,7 @@ trait DeviceFormHelper
     private function ConfigureDeviceFormHeader(array &$form): void
     {
         $model = $this->ReadAttributeString('Model');
-        $this->SetDeviceFormField($form, 'DeviceImage', 'image', $this->ReadAttributeString('Icon'));
+        $this->SetDeviceFormField($form, 'DeviceImage', 'image', $this->ReadDeviceIconForForm());
 
         if ($model !== '') {
             $modelUrl = str_replace([' ', '/'], '_', $model);

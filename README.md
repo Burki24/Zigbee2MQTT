@@ -420,6 +420,7 @@ Die Änderungen sind anhand der funktionalen Commits chronologisch gegliedert. A
 - Eine beim Abruf von Geräteinformationen erkannte IEEE-Adresse wird in bestehenden Instanzen nicht mehr automatisch als Eigenschaft gesetzt. Ist die Eigenschaft leer, muss die Übernahme ausdrücklich bestätigt werden.
 - Fehlende Bridge-Instanzen werden ausschließlich über den regulären Symcon-Konfigurator erstellt. Formularskripte erzeugen oder konfigurieren keine Instanzen mehr direkt.
 - MQTT-Befehle brechen während des kurzen Instanzschnittstellen-Wechsels eines Modul-Updates kontrolliert ab. Laufende Ereignisse erzeugen dadurch keine `InstanceInterface is not available`-Warnungen und senden keine unvollständigen MQTT-Topics.
+- Gerätebilder werden modellbezogen unter `user/IPSZigbee2MQTT/icons` zwischengespeichert und nur beim Öffnen der Geräte-Konfiguration geladen. Bestehende Base64-Bildattribute werden automatisch migriert, wodurch `IPS_GetSnapshot()` und darauf aufbauende Visualisierungen deutlich weniger Arbeitsspeicher benötigen.
 
 **Version 5.42:**  
 

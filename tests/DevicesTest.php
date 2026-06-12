@@ -17,6 +17,35 @@ class DevicesTest extends DumpInclude
         $this->assertSame('Refresh device information', $form['elements'][2]['caption']);
     }
 
+    public function testPersistedDeviceIconIsMigratedToSharedFileCache(): void
+    {
+        $iid = IPS_CreateInstance('{E5BB36C6-A70B-EB23-3716-9151A09AC8A2}');
+        $model = 'Icon cache test ' . $iid;
+        $imageRaw = 'cached-device-image';
+        $dataUri = 'data:image/png;base64,' . base64_encode($imageRaw);
+        $cacheFile = rtrim(IPS_GetKernelDir(), '\\/')
+            . DIRECTORY_SEPARATOR . 'user'
+            . DIRECTORY_SEPARATOR . 'IPSZigbee2MQTT'
+            . DIRECTORY_SEPARATOR . 'icons'
+            . DIRECTORY_SEPARATOR . hash('sha256', $model) . '.png';
+
+        $this->writeStubAttributeString($iid, 'Model', $model);
+        $this->writeStubAttributeString($iid, 'Icon', $dataUri);
+
+        IPS_ApplyChanges($iid);
+
+        $this->assertSame('', $this->readStubAttributeString($iid, 'Icon'));
+        $this->assertFileExists($cacheFile);
+        $this->assertSame($imageRaw, file_get_contents($cacheFile));
+
+        $form = json_decode(IPS_GetConfigurationForm($iid), true);
+        $deviceImage = $this->findFormItemByName($form, 'DeviceImage');
+        $this->assertNotNull($deviceImage);
+        $this->assertSame($dataUri, $deviceImage['image']);
+
+        @unlink($cacheFile);
+    }
+
     public function testTRV06()
     {
         [$iid,$Debug] = $this->createTestInstance('TRV06.json');
@@ -1871,6 +1900,25 @@ class DevicesTest extends DumpInclude
     }
 
     private function writeStubAttributeBoolean(int $iid, string $name, bool $value): void
+    {
+        $module = $this->getStubModule($iid);
+        $reflection = new \ReflectionClass(IPSModule::class);
+        $attributeProperty = $reflection->getProperty('attributes');
+        $attributeProperty->setAccessible(true);
+
+        $attributes = $attributeProperty->getValue($module);
+        $this->assertArrayHasKey($name, $attributes, 'Attribute not found: ' . $name);
+        $attributes[$name]['Current'] = $value;
+        $attributeProperty->setValue($module, $attributes);
+    }
+
+    private function readStubAttributeString(int $iid, string $name): string
+    {
+        $attributes = $this->readStubAttributes($iid);
+        return (string) ($attributes[$name]['Current'] ?? '');
+    }
+
+    private function writeStubAttributeString(int $iid, string $name, string $value): void
     {
         $module = $this->getStubModule($iid);
         $reflection = new \ReflectionClass(IPSModule::class);

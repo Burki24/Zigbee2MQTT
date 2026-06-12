@@ -9,6 +9,8 @@ require_once dirname(__DIR__) . '/libs/ModulBase.php';
  */
 class Zigbee2MQTTDevice extends \Zigbee2MQTT\ModulBase
 {
+    private const ICON_CACHE_DIRECTORY = 'icons';
+
     /** @var mixed $ExtensionTopic Topic für den ReceiveFilter*/
     protected static $ExtensionTopic = 'getDeviceInfo/';
 
@@ -51,6 +53,7 @@ class Zigbee2MQTTDevice extends \Zigbee2MQTT\ModulBase
 
         // Führe parent::ApplyChanges zuerst aus
         parent::ApplyChanges();
+        $this->MigratePersistedDeviceIconToCache();
     }
 
     /**
@@ -336,6 +339,26 @@ class Zigbee2MQTTDevice extends \Zigbee2MQTT\ModulBase
     }
 
     /**
+     * Liefert das Geraetebild nur fuer das geoeffnete Konfigurationsformular.
+     *
+     * Das Bild wird bewusst nicht dauerhaft als Base64-Attribut gespeichert, da
+     * Instanzattribute Bestandteil von IPS_GetSnapshot() sind.
+     */
+    protected function ReadDeviceIconForForm(): string
+    {
+        $model = $this->ReadAttributeString('Model');
+        if ($model !== '') {
+            $imageRaw = @file_get_contents($this->GetDeviceIconCacheFile($model));
+            if ($imageRaw !== false) {
+                return 'data:image/png;base64,' . base64_encode($imageRaw);
+            }
+        }
+
+        // Kompatibilitaetsfallback bis ein bestehendes Base64-Attribut migriert wurde.
+        return $this->ReadAttributeString('Icon');
+    }
+
+    /**
      * Zeigt eine lesbare Meldung, wenn die Symcon-Extension nicht antwortet.
      */
     private function ShowDeviceInfoRequestError(): void
@@ -527,18 +550,87 @@ class Zigbee2MQTTDevice extends \Zigbee2MQTT\ModulBase
      */
     private function UpdateDeviceIcon(string $Model): void
     {
+        if ($this->HasCachedDeviceIcon($Model)) {
+            $this->WriteAttributeString('Icon', '');
+            $this->WriteAttributeString('Model', $Model);
+            return;
+        }
+
         // Leerzeichen durch Bindestriche für URL ersetzen
         $ModelUrl = str_replace([' ', '/'], '-', $Model);
 
         $Url = 'https://raw.githubusercontent.com/Koenkk/zigbee2mqtt.io/master/public/images/devices/' . $ModelUrl . '.png';
         $this->SendDebug('loadImage', $Url, 0);
         $ImageRaw = @file_get_contents($Url);
-        if ($ImageRaw !== false) {
-            $Icon = 'data:image/png;base64,' . base64_encode($ImageRaw);
-            $this->WriteAttributeString('Icon', $Icon);
+        if ($ImageRaw !== false && $this->WriteDeviceIconCache($Model, $ImageRaw)) {
+            $this->WriteAttributeString('Icon', '');
             $this->WriteAttributeString('Model', $Model);
         } else {
             $this->LogMessage($this->Translate('Error downloading icon from URL: ') . $Url, KL_WARNING);
         }
+    }
+
+    /**
+     * Migriert das bis Version 6.0 verwendete Base64-Attribut in den Dateicache.
+     */
+    private function MigratePersistedDeviceIconToCache(): void
+    {
+        $icon = $this->ReadAttributeString('Icon');
+        if ($icon === '') {
+            return;
+        }
+
+        $model = $this->ReadAttributeString('Model');
+        if ($model === ''
+            || preg_match('#^data:image/[^;]+;base64,(.+)$#s', $icon, $matches) !== 1
+        ) {
+            return;
+        }
+
+        $imageRaw = base64_decode($matches[1], true);
+        if ($imageRaw !== false && $this->WriteDeviceIconCache($model, $imageRaw)) {
+            $this->WriteAttributeString('Icon', '');
+        }
+    }
+
+    /**
+     * Prueft, ob fuer das Modell bereits ein gemeinsam nutzbares Bild vorliegt.
+     */
+    private function HasCachedDeviceIcon(string $model): bool
+    {
+        return is_file($this->GetDeviceIconCacheFile($model));
+    }
+
+    /**
+     * Speichert ein Geraetebild modellbezogen im Symcon-Benutzerverzeichnis.
+     */
+    private function WriteDeviceIconCache(string $model, string $imageRaw): bool
+    {
+        $directory = $this->GetDeviceIconCacheDirectory();
+        if (!is_dir($directory) && !@mkdir($directory, 0777, true)) {
+            return false;
+        }
+
+        return @file_put_contents($this->GetDeviceIconCacheFile($model), $imageRaw, LOCK_EX) !== false;
+    }
+
+    /**
+     * Liefert das Verzeichnis fuer gemeinsam genutzte Geraetebilder.
+     */
+    private function GetDeviceIconCacheDirectory(): string
+    {
+        return rtrim(IPS_GetKernelDir(), '\\/')
+            . DIRECTORY_SEPARATOR . 'user'
+            . DIRECTORY_SEPARATOR . 'IPSZigbee2MQTT'
+            . DIRECTORY_SEPARATOR . self::ICON_CACHE_DIRECTORY;
+    }
+
+    /**
+     * Liefert den kollisionsfreien Cachepfad eines Geraetemodells.
+     */
+    private function GetDeviceIconCacheFile(string $model): string
+    {
+        return $this->GetDeviceIconCacheDirectory()
+            . DIRECTORY_SEPARATOR . hash('sha256', $model) . '.png';
     }
 }
