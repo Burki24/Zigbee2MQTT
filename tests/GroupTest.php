@@ -21,6 +21,21 @@ class GroupTest extends DumpInclude
         $this->assertNotNull($this->findFormItemByName($form, 'LocalVariableMaintenance'));
         $this->assertNotNull($this->findFormItemByName($form, 'LocalStaleVariableClearCandidates'));
         $this->assertNotNull($this->findFormItemByName($form, 'LocalStaleVariableDeleteWarning'));
+
+        $expertTools = array_values(array_filter(
+            $form['actions'],
+            static fn (array $item): bool => ($item['caption'] ?? '') === 'Expert tools'
+        ))[0];
+        $expertItemKeys = array_map(
+            static fn (array $item): string => (string) ($item['name'] ?? $item['type'] ?? ''),
+            $expertTools['items']
+        );
+
+        $this->assertArrayNotHasKey('width', $expertTools);
+        $this->assertSame(
+            ['LocalVariableMaintenance', 'TestCenter'],
+            array_values(array_intersect($expertItemKeys, ['LocalVariableMaintenance', 'TestCenter']))
+        );
     }
 
     public function testGroupInformationRefreshIsTopLevelAction(): void

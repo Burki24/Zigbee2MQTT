@@ -99,7 +99,7 @@ Antwortet ein Gerät bei einem Gruppenbefehl nicht, zeigt die Gruppeninstanz ein
 
 **Variablen-Wartung**
 
-Unter **Expertenwerkzeuge → Variablen-Wartung** prüft die Gruppeninstanz ausschließlich ihre eigenen direkten Variablen. Klare Löschkandidaten werden von Review-Kandidaten und Suchlauf-Hinweisen getrennt. Archivierte oder referenzierte Variablen bleiben geschützt; eine klare Kandidatenvariable wird erst nach erneuter Prüfung und ausdrücklicher Bestätigung gelöscht. Die Bridge zeigt ergänzend eine kompakte Übersicht betroffener Geräte- und Gruppeninstanzen und kann die zuständige Instanz direkt öffnen.
+Unter **Expertenwerkzeuge → Variablen-Wartung**, vor dem Testcenter, prüft die Gruppeninstanz ausschließlich ihre eigenen direkten Variablen. Klare Löschkandidaten werden von Review-Kandidaten und Suchlauf-Hinweisen getrennt. Archivierte oder referenzierte Variablen bleiben geschützt; eine klare Kandidatenvariable wird erst nach erneuter Prüfung und ausdrücklicher Bestätigung gelöscht. Die Bridge zeigt ergänzend eine kompakte Übersicht betroffener Geräte- und Gruppeninstanzen und kann die zuständige Instanz direkt öffnen.
 
 **Gruppenoptionen**
 

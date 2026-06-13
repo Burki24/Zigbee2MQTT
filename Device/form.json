@@ -995,7 +995,6 @@
             "type": "ExpansionPanel",
             "caption": "Expert tools",
             "expanded": false,
-            "width": "800px",
             "items": [
                 {
                     "type": "RowLayout",

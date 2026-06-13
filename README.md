@@ -423,6 +423,7 @@ Die Änderungen sind anhand der funktionalen Commits chronologisch gegliedert. A
 - MQTT-Befehle brechen während des kurzen Instanzschnittstellen-Wechsels eines Modul-Updates kontrolliert ab. Laufende Ereignisse erzeugen dadurch keine `InstanceInterface is not available`-Warnungen und senden keine unvollständigen MQTT-Topics.
 - Gerätebilder werden modellbezogen unter `user/IPSZigbee2MQTT/icons` zwischengespeichert und nur beim Öffnen der Geräte-Konfiguration geladen. Bestehende Base64-Bildattribute werden automatisch migriert, wodurch `IPS_GetSnapshot()` und darauf aufbauende Visualisierungen deutlich weniger Arbeitsspeicher benötigen.
 - Die Variablen-Wartung folgt den Instanz- und Systemgrenzen: Die Bridge zeigt nur noch eine kompakte, nach Geräten und Gruppen desselben MQTT-Splitters und MQTT-Basistopics zusammengefasste Übersicht. Prüfung und bestätigtes Löschen erfolgen direkt in der zuständigen Instanz, die ausschließlich ihre eigenen direkten Variablen verwalten darf.
+- Expertenwerkzeuge in Geräte- und Gruppeninstanzen nutzen die verfügbare Formularbreite. Die instanzbezogene Variablen-Wartung erscheint vor dem Testcenter und bei Geräten direkt unterhalb der erweiterten Geräteentfernung.
 
 **Version 5.42:**  
 
