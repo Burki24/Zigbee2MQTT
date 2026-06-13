@@ -14,6 +14,9 @@ class Zigbee2MQTTDevice extends \Zigbee2MQTT\ModulBase
     /** @var mixed $ExtensionTopic Topic für den ReceiveFilter*/
     protected static $ExtensionTopic = 'getDeviceInfo/';
 
+    /** Detected IEEE address prepared only for the currently handled configuration form request. */
+    private string $detectedIEEEFormValue = '';
+
     /**
      * Create
      *
@@ -26,7 +29,6 @@ class Zigbee2MQTTDevice extends \Zigbee2MQTT\ModulBase
 
         $this->RegisterPropertyString('IEEE', '');
         $this->RegisterAttributeString('IEEE', '');
-        $this->RegisterAttributeString('PendingIEEE', '');
         $this->RegisterAttributeString('Model', '');
         $this->RegisterAttributeString('Icon', '');
         $this->RegisterMessage($this->InstanceID, IM_CHANGEATTRIBUTE);
@@ -135,15 +137,10 @@ class Zigbee2MQTTDevice extends \Zigbee2MQTT\ModulBase
         if ($ident == 'UpdateInfo') {
             if (!$this->UpdateDeviceInfo()) {
                 $this->ShowDeviceInfoRequestError();
-            } elseif ($this->ShowPendingIEEEConfirmation()) {
-                return;
             } else {
+                $this->PopulateDetectedIEEEFormField();
                 $this->ShowDeviceInfoRequestSuccess();
             }
-            return;
-        }
-        if ($ident == 'ConfirmDetectedIEEE') {
-            $this->ConfirmDetectedIEEE();
             return;
         }
         if ($ident == 'RequestDeviceInterview') {
@@ -284,6 +281,8 @@ class Zigbee2MQTTDevice extends \Zigbee2MQTT\ModulBase
      */
     protected function UpdateDeviceInfo(): bool
     {
+        $this->detectedIEEEFormValue = '';
+
         // Aufruf der Methode aus der ModulBase-Klasse
         $Result = $this->LoadDeviceInfo();
         if (!$Result) {
@@ -302,9 +301,7 @@ class Zigbee2MQTTDevice extends \Zigbee2MQTT\ModulBase
         $currentIEEE = $this->ReadPropertyString('IEEE');
         $detectedIEEE = trim((string) $Result['ieeeAddr']);
         if ($currentIEEE === '' && $detectedIEEE !== '') {
-            $this->WriteAttributeString('PendingIEEE', $detectedIEEE);
-        } elseif ($currentIEEE !== '') {
-            $this->WriteAttributeString('PendingIEEE', '');
+            $this->detectedIEEEFormValue = $detectedIEEE;
         }
 
         // Model und Icon verarbeiten
@@ -375,37 +372,16 @@ class Zigbee2MQTTDevice extends \Zigbee2MQTT\ModulBase
     }
 
     /**
-     * Zeigt die explizite Bestaetigung fuer eine erkannte, aber noch nicht konfigurierte IEEE-Adresse.
+     * Traegt eine erkannte IEEE-Adresse nur als noch nicht gespeicherten Formularwert ein.
      */
-    private function ShowPendingIEEEConfirmation(): bool
+    private function PopulateDetectedIEEEFormField(): void
     {
-        $pendingIEEE = trim($this->ReadAttributeString('PendingIEEE'));
-        if ($pendingIEEE === '' || $this->ReadPropertyString('IEEE') !== '') {
-            return false;
-        }
-
-        $this->UpdateFormField('DetectedIEEEAddress', 'caption', $pendingIEEE);
-        $this->UpdateFormField('DetectedIEEEConfirmation', 'visible', true);
-
-        return true;
-    }
-
-    /**
-     * Uebernimmt eine erkannte IEEE-Adresse erst nach ausdruecklicher Bestaetigung.
-     */
-    private function ConfirmDetectedIEEE(): void
-    {
-        $pendingIEEE = trim($this->ReadAttributeString('PendingIEEE'));
-        if ($pendingIEEE === '' || $this->ReadPropertyString('IEEE') !== '') {
-            $this->WriteAttributeString('PendingIEEE', '');
-            $this->UpdateFormField('DetectedIEEEConfirmation', 'visible', false);
+        if ($this->detectedIEEEFormValue === '') {
             return;
         }
 
-        $this->UpdateFormField('DetectedIEEEConfirmation', 'visible', false);
-        IPS_SetProperty($this->InstanceID, 'IEEE', $pendingIEEE);
-        $this->WriteAttributeString('PendingIEEE', '');
-        IPS_ApplyChanges($this->InstanceID);
+        $this->UpdateFormField('IEEE', 'value', $this->detectedIEEEFormValue);
+        $this->detectedIEEEFormValue = '';
     }
 
     /**

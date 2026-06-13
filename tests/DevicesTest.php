@@ -272,15 +272,21 @@ class DevicesTest extends DumpInclude
         $this->assertArrayNotHasKey('DeviceInfoRequestError', $device->updatedFields);
     }
 
-    public function testDetectedIEEERequiresExplicitConfirmation(): void
+    public function testDetectedIEEEIsOnlyInsertedIntoFormUntilUserApplies(): void
     {
         $device = new class(990008) extends Zigbee2MQTTDevice {
             public array $updatedFields = [];
 
-            protected function UpdateDeviceInfo(): bool
+            protected function LoadDeviceInfo(): array
             {
-                $this->WriteAttributeString('PendingIEEE', '0x00124b0000000001');
-                return true;
+                return [
+                    'ieeeAddr' => '0x00124b0000000001',
+                    'exposes'  => []
+                ];
+            }
+
+            protected function mapExposesToVariables(array $exposes): void
+            {
             }
 
             protected function UpdateFormField(string $Field, string $Parameter, mixed $Value): bool
@@ -299,23 +305,16 @@ class DevicesTest extends DumpInclude
         $device->RequestAction('UpdateInfo', true);
 
         $this->assertSame('', $device->GetProperty('IEEE'));
-        $this->assertSame('0x00124b0000000001', $device->updatedFields['DetectedIEEEAddress']['caption']);
-        $this->assertSame(true, $device->updatedFields['DetectedIEEEConfirmation']['visible']);
-        $this->assertArrayNotHasKey('DeviceInfoRequestSuccess', $device->updatedFields);
+        $this->assertSame('0x00124b0000000001', $device->updatedFields['IEEE']['value']);
+        $this->assertSame(true, $device->updatedFields['DeviceInfoRequestSuccess']['visible']);
     }
 
-    public function testConfirmedDetectedIEEEIsApplied(): void
+    public function testDeviceDoesNotProgrammaticallyPersistDetectedIEEE(): void
     {
-        $instanceID = IPS_CreateInstance('{E5BB36C6-A70B-EB23-3716-9151A09AC8A2}');
-        $device = IPS\InstanceManager::getInstanceInterface($instanceID);
-        $writeAttribute = new ReflectionMethod($device, 'WriteAttributeString');
-        $writeAttribute->invoke($device, 'PendingIEEE', '0x00124b0000000002');
-
-        $this->assertSame('', IPS_GetProperty($instanceID, 'IEEE'));
-
-        $device->RequestAction('ConfirmDetectedIEEE', true);
-
-        $this->assertSame('0x00124b0000000002', IPS_GetProperty($instanceID, 'IEEE'));
+        $source = file_get_contents(__DIR__ . '/../Device/module.php');
+        $this->assertStringNotContainsString('IPS_SetProperty(', $source);
+        $this->assertStringNotContainsString('IPS_ApplyChanges(', $source);
+        $this->assertStringNotContainsString('PendingIEEE', $source);
     }
 
     public function testDeviceMaintenanceIsShownForConfiguredDevice(): void

@@ -809,38 +809,7 @@
                     },
                     {
                         "type": "Label",
-                        "caption": "The device information was loaded successfully from Zigbee2MQTT."
-                    }
-                ]
-            }
-        },
-        {
-            "name": "DetectedIEEEConfirmation",
-            "type": "PopupAlert",
-            "visible": false,
-            "popup": {
-                "closeCaption": "Keep current configuration",
-                "buttons": [
-                    {
-                        "caption": "Use detected IEEE address",
-                        "onClick": "IPS_RequestAction($id, 'ConfirmDetectedIEEE', true);"
-                    }
-                ],
-                "items": [
-                    {
-                        "type": "Label",
-                        "bold": true,
-                        "caption": "Apply detected IEEE address?"
-                    },
-                    {
-                        "type": "Label",
-                        "caption": "The device information was loaded successfully. The instance has no configured IEEE address. Apply the detected address only if it belongs to this instance."
-                    },
-                    {
-                        "type": "Label",
-                        "name": "DetectedIEEEAddress",
-                        "bold": true,
-                        "caption": ""
+                        "caption": "The device information was loaded successfully from Zigbee2MQTT. If an IEEE address was inserted into the form, verify it and apply the configuration."
                     }
                 ]
             }
