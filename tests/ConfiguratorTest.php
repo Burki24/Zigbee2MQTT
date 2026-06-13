@@ -81,6 +81,20 @@ class ConfiguratorTest extends DumpInclude
         $this->assertStringNotContainsString('IPS_ApplyChanges(', $source);
     }
 
+    public function testDiscoveredExistingInstancesKeepCreateDescriptors(): void
+    {
+        $source = file_get_contents(__DIR__ . '/../Configurator/module.php');
+
+        $this->assertDoesNotMatchRegularExpression(
+            '/if\s*\(\!\$instanceID\)\s*\{\s*\$value\[[\'"]create[\'"]\]/',
+            $source
+        );
+        $this->assertSame(
+            2,
+            substr_count($source, 'The create descriptor also marks an existing instance as still discovered by the configurator.')
+        );
+    }
+
     private function CreateConfiguredDevice(string $BaseTopic, string $Topic, int $SplitterID): int
     {
         $instanceID = IPS_CreateInstance(self::DEVICE_MODULE_ID);

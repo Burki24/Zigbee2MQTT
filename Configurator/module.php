@@ -292,17 +292,16 @@ class Zigbee2MQTTConfigurator extends IPSModuleStrict
             $value['modelID'] = $device['modelID'] ?? $this->Translate('Unknown');
             $value['description'] = $device['description'] ?? $this->Translate('Unknown');
             $value['power_source'] = isset($device['powerSource']) ? $this->Translate($device['powerSource']) : $this->Translate('Unknown');
-            if (!$instanceID) {
-                $value['create'] = [
-                    'moduleID'      => self::GUID_MODULE_DEVICE,
-                    'location'      => $Location,
-                    'configuration' => [
-                        self::MQTT_BASE_TOPIC    => $BaseTopic,
-                        self::MQTT_TOPIC         => $device['friendly_name'],
-                        'IEEE'                   => $device['ieeeAddr']
-                    ]
-                ];
-            }
+            // The create descriptor also marks an existing instance as still discovered by the configurator.
+            $value['create'] = [
+                'moduleID'      => self::GUID_MODULE_DEVICE,
+                'location'      => $Location,
+                'configuration' => [
+                    self::MQTT_BASE_TOPIC    => $BaseTopic,
+                    self::MQTT_TOPIC         => $device['friendly_name'],
+                    'IEEE'                   => $device['ieeeAddr']
+                ]
+            ];
             array_push($valuesDevices, $value);
         }
         /** Coordinator Sonderbehandlung */
@@ -415,17 +414,16 @@ class Zigbee2MQTTConfigurator extends IPSModuleStrict
             $value['ID'] = $group['ID'];
             $value['topic'] = $group['friendly_name'];
             $value['DevicesCount'] = (string) count($group['devices']);
-            if (!$instanceID) {
-                $value['create'] = [
-                    'moduleID'      => self::GUID_MODULE_GROUP,
-                    'location'      => $Location,
-                    'configuration' => [
-                        self::MQTT_BASE_TOPIC    => $BaseTopic,
-                        self::MQTT_TOPIC         => $group['friendly_name'],
-                        'GroupId'                => $group['ID']
-                    ]
-                ];
-            }
+            // The create descriptor also marks an existing instance as still discovered by the configurator.
+            $value['create'] = [
+                'moduleID'      => self::GUID_MODULE_GROUP,
+                'location'      => $Location,
+                'configuration' => [
+                    self::MQTT_BASE_TOPIC    => $BaseTopic,
+                    self::MQTT_TOPIC         => $group['friendly_name'],
+                    'GroupId'                => $group['ID']
+                ]
+            ];
             array_push($valuesGroups, $value);
         }
         foreach ($IPSGroupById as $instanceID => $ID) {
