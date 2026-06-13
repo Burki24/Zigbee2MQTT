@@ -175,6 +175,12 @@ trait SendData
         $this->SendLimitedDebug($DebugMethod . ':Payload', $Sensitive ? '[redacted]' : json_encode($Payload), 0);
         $this->SendDebug($DebugMethod . ':Timeout', (string) $Timeout, 0);
         $configuredTopic = $this->BuildConfiguredMQTTTopic(self::MQTT_BASE_TOPIC, $Topic);
+        if ($configuredTopic !== null) {
+            // MQTT topics are relative names. A leading slash creates a different
+            // topic tree which Zigbee2MQTT does not subscribe to.
+            $configuredTopic = ltrim($configuredTopic, '/');
+            $this->SendDebug($DebugMethod . ':ConfiguredTopic', $configuredTopic, 0);
+        }
         if ($configuredTopic === null
             || !$this->SendDataToParentSafely(self::BuildRequest($configuredTopic, $Payload))) {
             if ($TransactionId !== null) {

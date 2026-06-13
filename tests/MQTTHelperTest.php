@@ -143,7 +143,7 @@ class MQTTHelperTest extends TestCase
         };
 
         $this->assertTrue($helper->Command('set', '{"state":"OFF"}'));
-        $this->assertSame('/Z2M-2/Wohnbereich/Beleuchtung/Wohnzimmer/Couchlicht/set', $helper->sentRequests[0]['Topic']);
+        $this->assertSame('Z2M-2/Wohnbereich/Beleuchtung/Wohnzimmer/Couchlicht/set', $helper->sentRequests[0]['Topic']);
         $this->assertSame(['state' => 'OFF'], json_decode(hex2bin($helper->sentRequests[0]['Payload']) ?: '', true));
     }
 
