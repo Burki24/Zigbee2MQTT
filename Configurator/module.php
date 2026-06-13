@@ -584,7 +584,7 @@ class Zigbee2MQTTConfigurator extends IPSModuleStrict
      *
      * @return bool
      *
-     * @uses Zigbee2MQTTConfigurator::SendData()
+     * @uses Zigbee2MQTTConfigurator::SendDataQuiet()
      * @uses trigger_error()
      * @uses isset()
      */
@@ -594,7 +594,7 @@ class Zigbee2MQTTConfigurator extends IPSModuleStrict
         $Payload = [
             'options'=> []
         ];
-        $Result = $this->SendData($Topic, $Payload);
+        $Result = $this->SendDataQuiet($Topic, $Payload, self::TIMEOUT_ZIGBEE_OPTIONS_REQUEST);
         if (isset($Result['error'])) {
             trigger_error($Result['error'], E_USER_NOTICE);
         }

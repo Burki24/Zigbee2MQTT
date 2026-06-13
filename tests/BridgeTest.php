@@ -715,6 +715,18 @@ class BridgeTest extends TestCase
         $this->assertSame('', $bridge->lastTopic);
     }
 
+    public function testRequestOptionsUsesTolerantAvailabilityTimeout(): void
+    {
+        $bridge = $this->createBridgeTestDouble([
+            'status' => 'ok',
+            'data'   => []
+        ]);
+
+        $this->assertTrue($bridge->RequestOptions());
+        $this->assertSame('/bridge/request/options', $bridge->lastTopic);
+        $this->assertSame(20000, $bridge->lastTimeout);
+    }
+
     public function testSetBlocklistUsesBridgeOptionsRequest(): void
     {
         $bridge = $this->createBridgeTestDouble([

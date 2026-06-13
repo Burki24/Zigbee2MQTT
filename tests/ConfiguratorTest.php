@@ -49,6 +49,16 @@ class ConfiguratorTest extends DumpInclude
         $this->assertStringNotContainsString('IPS_DisconnectInstance(', $source);
     }
 
+    public function testConfiguratorUsesTolerantQuietAvailabilityCheck(): void
+    {
+        $source = file_get_contents(__DIR__ . '/../Configurator/module.php');
+
+        $this->assertStringContainsString(
+            '$this->SendDataQuiet($Topic, $Payload, self::TIMEOUT_ZIGBEE_OPTIONS_REQUEST)',
+            $source
+        );
+    }
+
     public function testMissingBridgeUsesRegularConfiguratorCreateDescriptor(): void
     {
         $configuratorID = IPS_CreateInstance(self::CONFIGURATOR_MODULE_ID);

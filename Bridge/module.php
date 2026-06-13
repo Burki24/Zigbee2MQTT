@@ -642,9 +642,7 @@ class Zigbee2MQTTBridge extends IPSModuleStrict
      *
      * @return bool
      *
-     * @uses Zigbee2MQTTBridge::SendData()
-     * @uses trigger_error()
-     * @uses isset()
+     * @uses Zigbee2MQTTBridge::SendQuietCheckedBridgeRequest()
      */
     public function RequestOptions(): bool
     {
@@ -652,7 +650,7 @@ class Zigbee2MQTTBridge extends IPSModuleStrict
         $Payload = [
             'options'=> []
         ];
-        return $this->SendCheckedBridgeRequest($Topic, $Payload) !== false;
+        return $this->SendQuietCheckedBridgeRequest($Topic, $Payload, self::TIMEOUT_ZIGBEE_OPTIONS_REQUEST) !== false;
     }
 
     /**

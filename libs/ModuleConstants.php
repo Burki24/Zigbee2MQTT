@@ -97,6 +97,8 @@ trait Constants
     protected const PROPERTY_HEATING_TILE_PRESET_3 = 'HeatingTilePreset3';
     /** @var int Wartezeit fuer Symcon-Extension Detailinformationen in Millisekunden */
     protected const TIMEOUT_SYMCON_EXTENSION_INFO = 20000;
+    /** @var int Wartezeit fuer den Zigbee2MQTT-Erreichbarkeitstest per Options-Request in Millisekunden */
+    protected const TIMEOUT_ZIGBEE_OPTIONS_REQUEST = 20000;
     /** @var int Wartezeit fuer Zigbee2MQTT-Backup-Requests in Millisekunden */
     protected const TIMEOUT_ZIGBEE_BACKUP_REQUEST = 300000;
     /** @var int Wartezeit fuer Zigbee-Binding-Requests in Millisekunden */
