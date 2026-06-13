@@ -6,6 +6,7 @@ namespace Zigbee2MQTT;
 
 require_once __DIR__ . '/AttributeArrayHelper.php';
 require_once __DIR__ . '/BufferHelper.php';
+require_once __DIR__ . '/InstanceConnectionHelper.php';
 require_once __DIR__ . '/SemaphoreHelper.php';
 require_once __DIR__ . '/VariableProfileHelper.php';
 require_once __DIR__ . '/Localization/TranslationHelper.php';
@@ -39,6 +40,7 @@ abstract class ModulBase extends \IPSModuleStrict
 {
     use AttributeArrayHelper;
     use BufferHelper;
+    use InstanceConnectionHelper;
     use Semaphore;
     use ColorHelper;
     use VariableProfileHelper;

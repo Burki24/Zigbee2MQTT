@@ -462,6 +462,57 @@ class BridgeTest extends TestCase
         $this->assertNotContains($stateID, $bridge->readDiagnosticAttribute('OTAMonitoredVariables'));
     }
 
+    public function testOTADeviceRowsAndSubscriptionsIgnoreDifferentSplitter(): void
+    {
+        $bridge = $this->createBridgeTestDouble(true);
+        $bridge->setBaseTopicForTest('zigbee2mqtt');
+        $bridge->ReceiveData(json_encode([
+            'Topic'   => 'zigbee2mqtt/bridge/devices',
+            'Payload' => bin2hex(json_encode([
+                [
+                    'friendly_name' => 'Owned/Light',
+                    'ieee_address'  => '0x000b57fffec6a5b2',
+                    'definition'    => ['model' => 'OWNED', 'supports_ota' => true]
+                ],
+                [
+                    'friendly_name' => 'Foreign/Light',
+                    'ieee_address'  => '0x000b57fffec6a5b3',
+                    'definition'    => ['model' => 'FOREIGN', 'supports_ota' => true]
+                ]
+            ]))
+        ]));
+
+        $ownedDeviceID = $this->createConfiguredVariableMaintenanceInstance(
+            self::DEVICE_MODULE_ID,
+            'zigbee2mqtt',
+            'Owned/Light',
+            0
+        );
+        $foreignSplitterID = IPS_CreateInstance(self::VIRTUAL_IO_MODULE_ID);
+        $foreignDeviceID = $this->createConfiguredVariableMaintenanceInstance(
+            self::DEVICE_MODULE_ID,
+            'zigbee2mqtt',
+            'Foreign/Light',
+            $foreignSplitterID
+        );
+        $ownedStateID = IPS_CreateVariable(VARIABLETYPE_STRING);
+        IPS_SetParent($ownedStateID, $ownedDeviceID);
+        IPS_SetIdent($ownedStateID, 'update__state');
+        $foreignStateID = IPS_CreateVariable(VARIABLETYPE_STRING);
+        IPS_SetParent($foreignStateID, $foreignDeviceID);
+        IPS_SetIdent($foreignStateID, 'update__state');
+
+        $rowsMethod = new ReflectionMethod(Zigbee2MQTTBridge::class, 'BuildOTADeviceRows');
+        $rows = $rowsMethod->invoke($bridge);
+        $this->assertSame(['Owned/Light'], array_column($rows, 'device_name'));
+
+        $subscriptionsMethod = new ReflectionMethod(Zigbee2MQTTBridge::class, 'SynchronizeOTAMessageSubscriptions');
+        $subscriptionsMethod->invoke($bridge);
+        $this->assertSame([$ownedDeviceID], $bridge->readDiagnosticAttribute('OTAMonitoredDevices'));
+        $this->assertSame([$ownedStateID], $bridge->readDiagnosticAttribute('OTAMonitoredVariables'));
+        $this->assertNotContains($foreignStateID, $bridge->readDiagnosticAttribute('OTAMonitoredVariables'));
+    }
+
     public function testBridgeOTAUpdateActionRequiresConfirmationAndStartsAsyncRequest(): void
     {
         $bridge = $this->createBridgeTestDouble(true);
@@ -724,6 +775,36 @@ class BridgeTest extends TestCase
 
         $this->assertContains('0x000b57fffec6a5b2', array_column($values, 'ieee_address'));
         $this->assertStringContainsString('Kitchen/Light', implode("\n", array_column($values, 'device')));
+    }
+
+    public function testNetworkSecurityAvailableDevicesIgnoreDifferentSplitter(): void
+    {
+        $bridge = $this->createBridgeTestDouble(true);
+        $bridge->setBaseTopicForTest('zigbee2mqtt');
+        $ownedDeviceID = IPS_CreateInstance(self::DEVICE_MODULE_ID);
+        IPS_SetConfiguration($ownedDeviceID, json_encode([
+            'MQTTBaseTopic' => 'zigbee2mqtt',
+            'MQTTTopic'     => 'Owned/Light',
+            'IEEE'          => '0x000b57fffec6a5b2'
+        ]));
+        IPS_ApplyChanges($ownedDeviceID);
+
+        $foreignSplitterID = IPS_CreateInstance(self::VIRTUAL_IO_MODULE_ID);
+        $foreignDeviceID = IPS_CreateInstance(self::DEVICE_MODULE_ID);
+        IPS_SetConfiguration($foreignDeviceID, json_encode([
+            'MQTTBaseTopic' => 'zigbee2mqtt',
+            'MQTTTopic'     => 'Foreign/Light',
+            'IEEE'          => '0x000b57fffec6a5b3'
+        ]));
+        IPS_ApplyChanges($foreignDeviceID);
+        IPS_ConnectInstance($foreignDeviceID, $foreignSplitterID);
+
+        $method = new ReflectionMethod(Zigbee2MQTTBridge::class, 'BuildNetworkSecurityAvailableDeviceFormValues');
+        $values = $method->invoke($bridge);
+        $addresses = array_column($values, 'ieee_address');
+
+        $this->assertContains('0x000b57fffec6a5b2', $addresses);
+        $this->assertNotContains('0x000b57fffec6a5b3', $addresses);
     }
 
     public function testRefreshNetworkSecurityAvailableDevicesUpdatesOpenForm(): void

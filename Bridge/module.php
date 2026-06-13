@@ -2,6 +2,7 @@
 
 declare(strict_types=1);
 require_once dirname(__DIR__) . '/libs/BufferHelper.php';
+require_once dirname(__DIR__) . '/libs/InstanceConnectionHelper.php';
 require_once dirname(__DIR__) . '/libs/SemaphoreHelper.php';
 require_once dirname(__DIR__) . '/libs/VariableProfileHelper.php';
 require_once dirname(__DIR__) . '/libs/MQTTHelper.php';
@@ -21,6 +22,7 @@ require_once dirname(__DIR__) . '/libs/Maintenance/StaleVariableCleanupHelper.ph
 class Zigbee2MQTTBridge extends IPSModuleStrict
 {
     use \Zigbee2MQTT\BufferHelper;
+    use \Zigbee2MQTT\InstanceConnectionHelper;
     use \Zigbee2MQTT\Semaphore;
     use \Zigbee2MQTT\VariableProfileHelper;
     use \Zigbee2MQTT\SendData;
@@ -2631,7 +2633,9 @@ class Zigbee2MQTTBridge extends IPSModuleStrict
         $pendingRequests = $this->ReadActiveOTAPendingRequests();
         $rows = [];
         foreach (IPS_GetInstanceListByModuleID(self::GUID_MODULE_DEVICE) as $instanceID) {
-            if (@IPS_GetProperty($instanceID, self::MQTT_BASE_TOPIC) !== $baseTopic) {
+            if (@IPS_GetProperty($instanceID, self::MQTT_BASE_TOPIC) !== $baseTopic
+                || !$this->IsInstanceConnectedToSameSplitter($instanceID)
+            ) {
                 continue;
             }
 
@@ -2917,7 +2921,9 @@ class Zigbee2MQTTBridge extends IPSModuleStrict
         if ($baseTopic !== '') {
             $networkDevices = $this->BuildOTANetworkDeviceMap();
             foreach (IPS_GetInstanceListByModuleID(self::GUID_MODULE_DEVICE) as $instanceID) {
-                if (@IPS_GetProperty($instanceID, self::MQTT_BASE_TOPIC) !== $baseTopic) {
+                if (@IPS_GetProperty($instanceID, self::MQTT_BASE_TOPIC) !== $baseTopic
+                    || !$this->IsInstanceConnectedToSameSplitter($instanceID)
+                ) {
                     continue;
                 }
 
@@ -3809,7 +3815,7 @@ class Zigbee2MQTTBridge extends IPSModuleStrict
     }
 
     /**
-     * Liest bekannte Device-Instanzen mit gleichem BaseTopic.
+     * Liest bekannte Device-Instanzen mit gleichem BaseTopic und MQTT-Splitter.
      */
     private function LoadNetworkSecurityDevicesFromInstances(): array
     {
@@ -3820,7 +3826,9 @@ class Zigbee2MQTTBridge extends IPSModuleStrict
 
         $devices = [];
         foreach (IPS_GetInstanceListByModuleID(self::GUID_MODULE_DEVICE) as $instanceID) {
-            if (@IPS_GetProperty($instanceID, self::MQTT_BASE_TOPIC) !== $baseTopic) {
+            if (@IPS_GetProperty($instanceID, self::MQTT_BASE_TOPIC) !== $baseTopic
+                || !$this->IsInstanceConnectedToSameSplitter($instanceID)
+            ) {
                 continue;
             }
 

@@ -1331,6 +1331,68 @@ class DevicesTest extends DumpInclude
         $this->assertSame('', $device->sentTopic);
     }
 
+    public function testBridgeLookupAndBindingTargetsRequireSameSplitter(): void
+    {
+        [$iid] = $this->createTestInstance('MixedLightSensor.json');
+        $baseTopic = IPS_GetProperty($iid, 'MQTTBaseTopic');
+        $splitterID = IPS_CreateInstance('{6179ED6A-FC31-413C-BB8E-1204150CF376}');
+        $otherSplitterID = IPS_CreateInstance('{6179ED6A-FC31-413C-BB8E-1204150CF376}');
+        IPS_ConnectInstance($iid, $splitterID);
+
+        $foreignBridgeID = IPS_CreateInstance('{00160D82-9E2F-D1BD-6D0B-952F945332C5}');
+        IPS_SetProperty($foreignBridgeID, 'MQTTBaseTopic', $baseTopic);
+        IPS_ApplyChanges($foreignBridgeID);
+        IPS_ConnectInstance($foreignBridgeID, $otherSplitterID);
+
+        $ownedBridgeID = IPS_CreateInstance('{00160D82-9E2F-D1BD-6D0B-952F945332C5}');
+        IPS_SetProperty($ownedBridgeID, 'MQTTBaseTopic', $baseTopic);
+        IPS_ApplyChanges($ownedBridgeID);
+        IPS_ConnectInstance($ownedBridgeID, $splitterID);
+
+        $ownedDeviceID = IPS_CreateInstance('{E5BB36C6-A70B-EB23-3716-9151A09AC8A2}');
+        IPS_SetConfiguration($ownedDeviceID, json_encode([
+            'MQTTBaseTopic' => $baseTopic,
+            'MQTTTopic'     => 'Binding/Owned/Device'
+        ]));
+        IPS_ApplyChanges($ownedDeviceID);
+        IPS_ConnectInstance($ownedDeviceID, $splitterID);
+
+        $foreignDeviceID = IPS_CreateInstance('{E5BB36C6-A70B-EB23-3716-9151A09AC8A2}');
+        IPS_SetConfiguration($foreignDeviceID, json_encode([
+            'MQTTBaseTopic' => $baseTopic,
+            'MQTTTopic'     => 'Binding/Foreign/Device'
+        ]));
+        IPS_ApplyChanges($foreignDeviceID);
+        IPS_ConnectInstance($foreignDeviceID, $otherSplitterID);
+
+        $ownedGroupID = IPS_CreateInstance('{11BF3773-E940-469B-9DD7-FB9ACD7199A2}');
+        IPS_SetConfiguration($ownedGroupID, json_encode([
+            'MQTTBaseTopic' => $baseTopic,
+            'MQTTTopic'     => 'Binding/Owned/Group'
+        ]));
+        IPS_ApplyChanges($ownedGroupID);
+        IPS_ConnectInstance($ownedGroupID, $splitterID);
+
+        $foreignGroupID = IPS_CreateInstance('{11BF3773-E940-469B-9DD7-FB9ACD7199A2}');
+        IPS_SetConfiguration($foreignGroupID, json_encode([
+            'MQTTBaseTopic' => $baseTopic,
+            'MQTTTopic'     => 'Binding/Foreign/Group'
+        ]));
+        IPS_ApplyChanges($foreignGroupID);
+        IPS_ConnectInstance($foreignGroupID, $otherSplitterID);
+
+        $device = IPS\InstanceManager::getInstanceInterface($iid);
+        $bridgeMethod = new \ReflectionMethod($device, 'FindMatchingBridgeInstanceID');
+        $this->assertSame($ownedBridgeID, $bridgeMethod->invoke($device));
+
+        $targetMethod = new \ReflectionMethod($device, 'BuildBindingTargetOptions');
+        $targetValues = array_column($targetMethod->invoke($device), 'value');
+        $this->assertContains('Binding/Owned/Device', $targetValues);
+        $this->assertContains('Binding/Owned/Group', $targetValues);
+        $this->assertNotContains('Binding/Foreign/Device', $targetValues);
+        $this->assertNotContains('Binding/Foreign/Group', $targetValues);
+    }
+
     public function testBindingClusterSelectionUpdatesForSelectedEndpoint(): void
     {
         $device = $this->createDeviceOptionFormTestDouble();

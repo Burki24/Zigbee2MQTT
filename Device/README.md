@@ -237,7 +237,7 @@ Wird eine Option über `Bearbeiten` ausgewählt, passt sich der Editor an den Op
 
 ![Geräteoptionen Editor](imgs/geraeteoptionen-editor.png)
 
-Die Änderung wird über `bridge/request/device/options` an Zigbee2MQTT gesendet. Wenn eine passende Bridge-Instanz mit gleichem MQTT-Basistopic vorhanden ist, wird diese für die Anfrage genutzt und die Zigbee2MQTT-Antwort geprüft.
+Die Änderung wird über `bridge/request/device/options` an Zigbee2MQTT gesendet. Wenn eine passende Bridge-Instanz mit gleichem MQTT-Basistopic und demselben verbundenen MQTT-Splitter vorhanden ist, wird diese für die Anfrage genutzt und die Zigbee2MQTT-Antwort geprüft.
 
 Soweit der Typ bekannt ist, zeigt das Formular passende Editoren:
 
@@ -278,7 +278,7 @@ Wenn Zigbee2MQTT Endpoint-Daten liefert, zeigt die Instanz-Konfiguration unter *
 
 Vorhandene Bindings und Reportings werden aus dem von Zigbee2MQTT veröffentlichten `bridge/devices` Cache gelesen. Zigbee2MQTT stellt dafür keinen separaten "Binding lesen"-Request bereit. Wenn ein Binding gerade erst angelegt oder in Zigbee2MQTT geändert wurde, kann die Anzeige zunächst leer bleiben. Mit **Endpoint-Daten aktualisieren** liest die Device-Konfiguration den aktuellen Bridge-Cache erneut ein und baut die Übersichten neu auf. Der Button ruft keine Geräteinformationen über die Symcon-Extension ab und ist deshalb unabhängig vom `getDeviceInfo` Request.
 
-Über den Binding-Bereich können Geräte oder Gruppen direkt gebunden oder wieder gelöst werden. Der Quell-Endpoint wird aus den bekannten Endpoints des Geräts als Auswahl angeboten. Als Ziel können lokale Zigbee2MQTT-Geräte- und Gruppeninstanzen sowie von Zigbee2MQTT gemeldete Geräte und Gruppen ausgewählt werden. Die Cluster-Auswahl wird aus den bekannten Clustern des Quell-Endpoints aufgebaut und beim Wechsel von Endpoint oder Zielgerät aktualisiert. Bleibt der Quell-Endpoint leer, wird das Gerät ohne Endpoint-Suffix verwendet.
+Über den Binding-Bereich können Geräte oder Gruppen direkt gebunden oder wieder gelöst werden. Der Quell-Endpoint wird aus den bekannten Endpoints des Geräts als Auswahl angeboten. Als Ziel können lokale Zigbee2MQTT-Geräte- und Gruppeninstanzen desselben MQTT-Splitters und MQTT-Basistopics sowie von der zugehörigen Bridge gemeldete Geräte und Gruppen ausgewählt werden. Die Cluster-Auswahl wird aus den bekannten Clustern des Quell-Endpoints aufgebaut und beim Wechsel von Endpoint oder Zielgerät aktualisiert. Bleibt der Quell-Endpoint leer, wird das Gerät ohne Endpoint-Suffix verwendet.
 
 ![Binding konfigurieren](imgs/binding-editor.png)
 

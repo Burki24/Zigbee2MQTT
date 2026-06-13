@@ -429,6 +429,7 @@ Die Änderungen sind anhand der funktionalen Commits chronologisch gegliedert. A
 - Expertenwerkzeuge in Geräte- und Gruppeninstanzen nutzen die verfügbare Formularbreite. Die instanzbezogene Variablen-Wartung erscheint vor dem Testcenter und bei Geräten direkt unterhalb der erweiterten Geräteentfernung.
 - Dynamisch erzeugte Texte der instanzbezogenen Variablen-Wartung werden vollständig übersetzt. Die Dokumentation erläutert Suchlauf-Hinweise als diagnostische Meldungen für übersprungene oder unvollständig prüfbare Instanzen.
 - Erkannte IEEE-Adressen werden review-konform nur noch in das Konfigurationsformular eingetragen. Sie werden ausschließlich durch das reguläre **Übernehmen** der Instanzkonfiguration gespeichert.
+- Bridge-Suche, Binding-Ziele, OTA-Verwaltung und Netzwerksicherheitslisten berücksichtigen neben dem MQTT-Basistopic immer auch den tatsächlich verbundenen MQTT-Splitter. Mehrere Zigbee2MQTT-Systeme bleiben dadurch selbst bei identischem Basistopic vollständig voneinander getrennt.
 
 **Version 5.42:**  
 

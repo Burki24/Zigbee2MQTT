@@ -371,13 +371,15 @@ trait DeviceFormHelper
     }
 
     /**
-     * Findet die Bridge-Instanz zum gleichen MQTT-Basistopic.
+     * Findet die Bridge-Instanz zum gleichen MQTT-Basistopic und MQTT-Splitter.
      */
     protected function FindMatchingBridgeInstanceID(): int|false
     {
         $baseTopic = $this->ReadPropertyString(self::MQTT_BASE_TOPIC);
         foreach (IPS_GetInstanceListByModuleID(self::GUID_MODULE_BRIDGE) as $bridgeID) {
-            if (@IPS_GetProperty($bridgeID, self::MQTT_BASE_TOPIC) === $baseTopic) {
+            if (@IPS_GetProperty($bridgeID, self::MQTT_BASE_TOPIC) === $baseTopic
+                && $this->IsInstanceConnectedToSameSplitter($bridgeID)
+            ) {
                 return $bridgeID;
             }
         }
@@ -1711,7 +1713,7 @@ trait DeviceFormHelper
     }
 
     /**
-     * Liest lokale Zigbee2MQTT-Geraeteinstanzen als Binding-Ziele.
+     * Liest lokale Zigbee2MQTT-Geraeteinstanzen desselben Systems als Binding-Ziele.
      */
     private function LoadBindingTargetDevicesFromInstances(): array
     {
@@ -1722,7 +1724,10 @@ trait DeviceFormHelper
 
         $targets = [];
         foreach (IPS_GetInstanceListByModuleID(self::GUID_MODULE_DEVICE) as $instanceID) {
-            if ($instanceID === $this->InstanceID || @IPS_GetProperty($instanceID, self::MQTT_BASE_TOPIC) !== $baseTopic) {
+            if ($instanceID === $this->InstanceID
+                || @IPS_GetProperty($instanceID, self::MQTT_BASE_TOPIC) !== $baseTopic
+                || !$this->IsInstanceConnectedToSameSplitter($instanceID)
+            ) {
                 continue;
             }
 
@@ -1741,7 +1746,7 @@ trait DeviceFormHelper
     }
 
     /**
-     * Liest lokale Zigbee2MQTT-Gruppeninstanzen als Binding-Ziele.
+     * Liest lokale Zigbee2MQTT-Gruppeninstanzen desselben Systems als Binding-Ziele.
      */
     private function LoadBindingTargetGroupsFromInstances(): array
     {
@@ -1752,7 +1757,9 @@ trait DeviceFormHelper
 
         $targets = [];
         foreach (IPS_GetInstanceListByModuleID(self::GUID_MODULE_GROUP) as $instanceID) {
-            if (@IPS_GetProperty($instanceID, self::MQTT_BASE_TOPIC) !== $baseTopic) {
+            if (@IPS_GetProperty($instanceID, self::MQTT_BASE_TOPIC) !== $baseTopic
+                || !$this->IsInstanceConnectedToSameSplitter($instanceID)
+            ) {
                 continue;
             }
 
