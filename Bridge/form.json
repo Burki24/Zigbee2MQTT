@@ -609,53 +609,6 @@
             }
         },
         {
-            "name": "StaleVariableDeleteWarning",
-            "type": "PopupAlert",
-            "visible": false,
-            "popup": {
-                "closeCaption": "Cancel",
-                "buttons": [
-                    {
-                        "caption": "Delete variable",
-                        "onClick": "IPS_RequestAction($id, 'ConfirmDeleteStaleVariable', true);"
-                    }
-                ],
-                "items": [
-                    {
-                        "type": "Label",
-                        "bold": true,
-                        "caption": "Delete variable?"
-                    },
-                    {
-                        "name": "StaleVariableDeleteWarningText",
-                        "type": "Label",
-                        "caption": "The selected variable will be deleted."
-                    }
-                ]
-            }
-        },
-        {
-            "name": "StaleVariableMessage",
-            "type": "PopupAlert",
-            "visible": false,
-            "popup": {
-                "closeCaption": "Close",
-                "items": [
-                    {
-                        "type": "Label",
-                        "name": "StaleVariableMessageTitle",
-                        "bold": true,
-                        "caption": "Variable maintenance"
-                    },
-                    {
-                        "name": "StaleVariableMessageText",
-                        "type": "Label",
-                        "caption": ""
-                    }
-                ]
-            }
-        },
-        {
             "name": "InstallCodeDeleteWarning",
             "type": "PopupAlert",
             "visible": false,
@@ -904,9 +857,13 @@
                             ]
                         },
                         {
+                            "type": "Label",
+                            "caption": "The bridge provides a compact overview. Review and delete candidates in the owning device or group instance."
+                        },
+                        {
                             "type": "List",
-                            "name": "StaleVariableClearCandidates",
-                            "caption": "Clear deletion candidates",
+                            "name": "StaleVariableInstanceSummary",
+                            "caption": "Instances requiring attention",
                             "add": false,
                             "delete": false,
                             "rowCount": 3,
@@ -919,121 +876,39 @@
                                     "quickFilter": true
                                 },
                                 {
-                                    "caption": "Variable",
-                                    "name": "variable",
-                                    "width": "220px",
-                                    "quickFilter": true
-                                },
-                                {
-                                    "caption": "Ident",
-                                    "name": "ident",
-                                    "width": "180px",
-                                    "quickFilter": true
-                                },
-                                {
-                                    "caption": "Archived",
-                                    "name": "archived",
-                                    "width": "90px",
+                                    "caption": "Clear candidates",
+                                    "name": "clear_count",
+                                    "width": "140px",
                                     "align": "center"
                                 },
                                 {
-                                    "caption": "Last written",
-                                    "name": "last_update",
-                                    "width": "150px"
+                                    "caption": "Review candidates",
+                                    "name": "review_count",
+                                    "width": "150px",
+                                    "align": "center"
                                 },
                                 {
-                                    "caption": "Reason",
-                                    "name": "reason",
-                                    "width": "240px"
-                                },
-                                {
-                                    "caption": "Protection",
-                                    "name": "protection",
-                                    "width": "160px"
+                                    "caption": "Scan hints",
+                                    "name": "hint_count",
+                                    "width": "120px",
+                                    "align": "center"
                                 },
                                 {
                                     "caption": "Action",
                                     "name": "action",
                                     "width": "100px",
                                     "align": "center",
-                                    "onClick": "IPS_RequestAction($id, 'RequestDeleteStaleVariable', json_encode(['variable_id' => $StaleVariableClearCandidates['variable_id']]));"
+                                    "onClick": "IPS_RequestAction($id, 'SelectStaleVariableMaintenanceInstance', json_encode(['instance_id' => $StaleVariableInstanceSummary['instance_id']]));"
                                 }
                             ],
                             "values": []
                         },
                         {
-                            "type": "List",
-                            "name": "StaleVariableReviewCandidates",
-                            "caption": "Review candidates",
-                            "add": false,
-                            "delete": false,
-                            "rowCount": 3,
-                            "loadValuesFromConfiguration": false,
-                            "columns": [
-                                {
-                                    "caption": "Instance",
-                                    "name": "instance",
-                                    "width": "auto",
-                                    "quickFilter": true
-                                },
-                                {
-                                    "caption": "Variable",
-                                    "name": "variable",
-                                    "width": "220px",
-                                    "quickFilter": true
-                                },
-                                {
-                                    "caption": "Ident",
-                                    "name": "ident",
-                                    "width": "180px",
-                                    "quickFilter": true
-                                },
-                                {
-                                    "caption": "Archived",
-                                    "name": "archived",
-                                    "width": "90px",
-                                    "align": "center"
-                                },
-                                {
-                                    "caption": "Last written",
-                                    "name": "last_update",
-                                    "width": "150px"
-                                },
-                                {
-                                    "caption": "Reason",
-                                    "name": "reason",
-                                    "width": "240px"
-                                },
-                                {
-                                    "caption": "Protection",
-                                    "name": "protection",
-                                    "width": "160px"
-                                }
-                            ],
-                            "values": []
-                        },
-                        {
-                            "type": "List",
-                            "name": "StaleVariableErrors",
-                            "caption": "Scan hints",
-                            "add": false,
-                            "delete": false,
-                            "rowCount": 2,
-                            "loadValuesFromConfiguration": false,
-                            "columns": [
-                                {
-                                    "caption": "Instance",
-                                    "name": "instance",
-                                    "width": "auto",
-                                    "quickFilter": true
-                                },
-                                {
-                                    "caption": "Message",
-                                    "name": "message",
-                                    "width": "auto"
-                                }
-                            ],
-                            "values": []
+                            "type": "OpenObjectButton",
+                            "name": "StaleVariableOpenInstance",
+                            "caption": "Open selected instance",
+                            "objectID": 0,
+                            "visible": false
                         }
                     ]
                 },

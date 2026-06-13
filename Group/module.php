@@ -133,7 +133,7 @@ class Zigbee2MQTTGroup extends \Zigbee2MQTT\ModulBase
     public function GetConfigurationForm(): string
     {
         $Form = json_decode(file_get_contents(__DIR__ . '/form.json'), true);
-        return json_encode($this->BuildGroupConfigurationForm($Form));
+        return json_encode($this->PrepareLocalVariableMaintenanceForm($this->BuildGroupConfigurationForm($Form)));
     }
 
     /**

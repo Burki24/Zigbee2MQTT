@@ -41,8 +41,13 @@ final class StaleVariableCleanupHelper
      */
     public static function Scan(array $options = []): array
     {
+        $hasInstanceFilter = array_key_exists('instanceIDs', $options);
         $options = array_replace(self::DEFAULT_OPTIONS, $options);
         self::$referenceIndex = null;
+        $instanceFilter = array_values(array_unique(array_filter(array_map(
+            'intval',
+            \is_array($options['instanceIDs'] ?? null) ? $options['instanceIDs'] : []
+        ))));
 
         if (!\function_exists('IPS_GetInstanceListByModuleID') || !\function_exists('Z2M_UIExportDebugData')) {
             return [
@@ -76,6 +81,10 @@ final class StaleVariableCleanupHelper
 
         foreach ($moduleIDs as $moduleType => $moduleID) {
             foreach (IPS_GetInstanceListByModuleID($moduleID) as $instanceID) {
+                if ($hasInstanceFilter && !\in_array((int) $instanceID, $instanceFilter, true)) {
+                    continue;
+                }
+
                 ++$instanceCount;
                 $debugData = self::DecodeExportData((int) $instanceID);
                 if (isset($debugData['error'])) {
@@ -165,6 +174,20 @@ final class StaleVariableCleanupHelper
     }
 
     /**
+     * Scans a single Zigbee2MQTT device or group instance.
+     *
+     * @param int   $instanceID Instance to scan.
+     * @param array $options    Scan options, merged with DEFAULT_OPTIONS.
+     */
+    public static function ScanInstance(int $instanceID, array $options = []): array
+    {
+        $options['includeGroups'] = true;
+        $options['instanceIDs'] = [$instanceID];
+
+        return self::Scan($options);
+    }
+
+    /**
      * Deletes selected variables if they are candidates in the provided scan result.
      *
      * @param array $scanResult Result from Scan().
@@ -176,6 +199,7 @@ final class StaleVariableCleanupHelper
     public static function DeleteSelected(array $scanResult, array $variableIDs, array $options = []): array
     {
         $options = array_replace(self::DEFAULT_OPTIONS, $options);
+        $ownerInstanceID = (int) ($options['ownerInstanceID'] ?? 0);
         $candidateByID = [];
         foreach (array_merge($scanResult['clearCandidates'] ?? [], $scanResult['reviewCandidates'] ?? []) as $row) {
             if (isset($row['variableID'])) {
@@ -192,6 +216,24 @@ final class StaleVariableCleanupHelper
             }
 
             $row = $candidateByID[$variableID];
+            if ($ownerInstanceID > 0) {
+                if ((int) ($row['instanceID'] ?? 0) !== $ownerInstanceID) {
+                    $skipped[] = ['variableID' => $variableID, 'reason' => 'Variable gehoert nicht zu dieser Instanz.'];
+                    continue;
+                }
+
+                try {
+                    $variable = IPS_GetObject($variableID);
+                } catch (\Throwable) {
+                    $variable = [];
+                }
+
+                if ((int) ($variable['ParentID'] ?? 0) !== $ownerInstanceID) {
+                    $skipped[] = ['variableID' => $variableID, 'reason' => 'Variable ist kein direktes Kind dieser Instanz.'];
+                    continue;
+                }
+            }
+
             if ((bool) $options['protectArchivedVariables'] && ($row['archived'] ?? false)) {
                 $skipped[] = ['variableID' => $variableID, 'reason' => 'Variable ist archiviert.'];
                 continue;
@@ -219,6 +261,25 @@ final class StaleVariableCleanupHelper
             'deleted' => $deleted,
             'skipped' => $skipped,
         ];
+    }
+
+    /**
+     * Deletes selected candidates only when they are direct children of the owning instance.
+     *
+     * @param int   $ownerInstanceID Owning Device or Group instance.
+     * @param array $scanResult      Result from ScanInstance().
+     * @param array $variableIDs     Variable object IDs to delete.
+     * @param array $options         Protection options, merged with DEFAULT_OPTIONS.
+     */
+    public static function DeleteSelectedForInstance(
+        int $ownerInstanceID,
+        array $scanResult,
+        array $variableIDs,
+        array $options = []
+    ): array {
+        $options['ownerInstanceID'] = $ownerInstanceID;
+
+        return self::DeleteSelected($scanResult, $variableIDs, $options);
     }
 
     /**

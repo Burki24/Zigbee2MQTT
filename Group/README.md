@@ -97,6 +97,10 @@ Beim Entfernen kann **Reporting beim Entfernen behalten** aktiviert bleiben. Dan
 
 Antwortet ein Gerät bei einem Gruppenbefehl nicht, zeigt die Gruppeninstanz eine verständliche Meldung **Gerät offline** im Formular. Die technische Zigbee2MQTT-Fehlermeldung wird weiter im Debug protokolliert.
 
+**Variablen-Wartung**
+
+Unter **Expertenwerkzeuge → Variablen-Wartung** prüft die Gruppeninstanz ausschließlich ihre eigenen direkten Variablen. Klare Löschkandidaten werden von Review-Kandidaten und Suchlauf-Hinweisen getrennt. Archivierte oder referenzierte Variablen bleiben geschützt; eine klare Kandidatenvariable wird erst nach erneuter Prüfung und ausdrücklicher Bestätigung gelöscht. Die Bridge zeigt ergänzend eine kompakte Übersicht betroffener Geräte- und Gruppeninstanzen und kann die zuständige Instanz direkt öffnen.
+
 **Gruppenoptionen**
 
 Das Modul kennt die wichtigsten Zigbee2MQTT-Gruppenoptionen:

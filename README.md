@@ -211,7 +211,7 @@ Die Bridge installiert beziehungsweise aktualisiert die Extension im Normalfall 
 
 Die folgenden Funktionen werden durch das Update nur bereitgestellt und verändern bestehende Installationen nicht automatisch:
 
-- **Variablen-Wartung:** Die Bridge kann verwaiste Variablen suchen. Es wird nichts automatisch gelöscht. Löschkandidaten sollten einzeln geprüft und nur bewusst entfernt werden.
+- **Variablen-Wartung:** Die Bridge kann verwaiste Variablen zentral suchen und zeigt betroffene Instanzen kompakt an. Die Prüfung und ein mögliches Löschen erfolgen ausschließlich in der jeweils zuständigen Geräte- oder Gruppeninstanz. Es wird nichts automatisch gelöscht.
 - **Binding und Reporting:** Bestehende Bindings bleiben erhalten. Für eine aktuelle Anzeige in einer Geräteinstanz zunächst **Endpoint-Daten aktualisieren** verwenden. Batteriegeräte müssen gegebenenfalls aufgeweckt werden.
 - **Blocklist und Passlist:** Die Passlist ist restriktiv und kann Geräte aus dem Zigbee-Netz entfernen, wenn diese nicht enthalten sind. Änderungen deshalb nur mit Bedacht durchführen.
 - **Zigbee2MQTT-Backup:** Erstellte ZIP-Dateien werden unter `user/IPSZigbee2MQTT/backups` auf dem Symcon-Server gespeichert und nicht direkt im Browser heruntergeladen.
@@ -298,9 +298,9 @@ Geräte- und Gruppenoptionen aus Zigbee2MQTT können ebenfalls direkt in Symcon 
 
 ### 4.3 Wartung verwaister Variablen
 
-Die [Bridge-Funktionen](Bridge/README.md#55-variablen-wartung) enthalten eine Variablen-Wartung. Sie sucht alte Zigbee2MQTT-Variablen, die nicht mehr durch aktuelle Exposes oder das zuletzt bekannte Payload abgedeckt sind, und trennt klare Löschkandidaten von Review-Kandidaten.
+Die [Bridge-Funktionen](Bridge/README.md#55-variablen-wartung) enthalten eine kompakte Variablen-Wartungsübersicht. Sie sucht innerhalb des zugehörigen MQTT-Splitters und MQTT-Basistopics nach alten Zigbee2MQTT-Variablen, die nicht mehr durch aktuelle Exposes oder das zuletzt bekannte Payload abgedeckt sind, und fasst klare Löschkandidaten, Review-Kandidaten und Suchlauf-Hinweise pro betroffener Instanz zusammen.
 
-Die Bridge-Oberfläche ist der unterstützte Weg: Archivierte oder referenzierte Variablen sind geschützt, Archivstatus und letzter Schreibzeitpunkt sind sichtbar, und jede Löschung betrifft genau eine Variable, die vorher per Popup bestätigt werden muss.
+Die eigentliche Prüfung und ein mögliches Löschen erfolgen unter **Expertenwerkzeuge → Variablen-Wartung** in der zuständigen Geräte- oder Gruppeninstanz. Diese darf ausschließlich ihre eigenen direkten Variablen verwalten. Archivierte oder referenzierte Variablen sind geschützt, Archivstatus und letzter Schreibzeitpunkt sind sichtbar, und jede Löschung betrifft genau eine Variable, die vorher erneut geprüft und per Popup bestätigt werden muss.
 
 ## 5. Changelog  
 
@@ -362,8 +362,8 @@ Die Änderungen sind anhand der funktionalen Commits chronologisch gegliedert. A
 
 ### 27. bis 31. Mai 2026: Bridge-Wartung, Stabilität und zentrale OTA-Verwaltung
 
-- Die Bridge erhielt eine Variablen-Wartung. Sie trennt verwaiste Variablen in klare Löschkandidaten und Review-Kandidaten, schützt archivierte oder referenzierte Variablen und löscht einzelne Kandidaten erst nach Bestätigung.
-- Das zwischenzeitlich vorhandene externe Bereinigungsscript wurde entfernt. Die Bridge-Variablen-Wartung ist der einzige unterstützte Weg zum Aufräumen verwaister Variablen.
+- Die Bridge erhielt eine Variablen-Wartung. Sie trennt verwaiste Variablen in klare Löschkandidaten und Review-Kandidaten und schützt archivierte oder referenzierte Variablen.
+- Das zwischenzeitlich vorhandene externe Bereinigungsscript wurde entfernt. Die integrierte Variablen-Wartung ist der unterstützte Weg zum Aufräumen verwaister Variablen.
 - Konfigurator und Geräteformulare laden schneller und nutzen bevorzugt den Bridge-Cache. Extension-Antworten ohne Transaction-ID werden bei Bedarf über das Response-Topic zugeordnet.
 - Die MQTT-Transaktionsverwaltung wurde deadline-basiert und stabiler aufgebaut. Lange Bridge-Antworten wie Zigbee2MQTT-Backups blockieren nicht mehr durch zu kurze Wartezeiten oder instabile Buffer.
 - Zigbee2MQTT-Backups werden wegen der Symcon-Ausgabegrenze chunkweise als ZIP-Datei unter `user/IPSZigbee2MQTT/backups` gespeichert. Eine öffentliche Base64-Rückgabe wird bewusst nicht angeboten.
@@ -379,7 +379,7 @@ Die Änderungen sind anhand der funktionalen Commits chronologisch gegliedert. A
 - Bestehende Übergangsaktionen werden nur noch für Zigbee2MQTT-Geräte und -Gruppen angeboten. Die Aktionen sind in Symcon als zielspezifisch kategorisiert und erhielten ergänzte Beschreibungen sowie Übersetzungen.
 - Farbübergänge werden für reine Tunable-White-Leuchtmittel nicht als native RGB-Befehle versendet. Deren abgeleitete Farbvariable bleibt eine reine Visualisierungsdarstellung.
 - Übersetzungen verwenden während eines laufenden Modul-Updates einen sicheren Originaltext-Fallback. Kurzzeitig noch nicht verfügbare Sprachdateien oder Instanzschnittstellen unterbrechen dadurch keine OTA-Formularaktualisierung mehr.
-- Geräte- und Bridge-Formulare erhielten gezielte Aktualisieren-Schaltflächen für den Variablenkatalog, verfügbare Netzwerksicherheitsgeräte und sämtliche OTA-Tabellen. Der manuelle Variablen-Refresh baut den Device-Katalog neu aus aktuellen Exposes und dem zuletzt empfangenen Geräte-Payload auf. Historische fachfremde Einträge verschwinden aus der Liste, ohne vorhandene Symcon-Variablen zu löschen. Bei laut Zigbee2MQTT OTA-fähigen Geräten bleiben stabile OTA-Metadaten erhalten; temporäre Fortschrittswerte werden nur geführt, solange Zigbee2MQTT sie aktuell liefert. Bestehende Symcon-Variablen bleiben für eine kontrollierte Prüfung über die Bridge-Variablenwartung erhalten.
+- Geräte- und Bridge-Formulare erhielten gezielte Aktualisieren-Schaltflächen für den Variablenkatalog, verfügbare Netzwerksicherheitsgeräte und sämtliche OTA-Tabellen. Der manuelle Variablen-Refresh baut den Device-Katalog neu aus aktuellen Exposes und dem zuletzt empfangenen Geräte-Payload auf. Historische fachfremde Einträge verschwinden aus der Liste, ohne vorhandene Symcon-Variablen zu löschen. Bei laut Zigbee2MQTT OTA-fähigen Geräten bleiben stabile OTA-Metadaten erhalten; temporäre Fortschrittswerte werden nur geführt, solange Zigbee2MQTT sie aktuell liefert. Bestehende Symcon-Variablen bleiben für eine kontrollierte Prüfung über die integrierte Variablen-Wartung erhalten.
 - Die Variablenverwaltung in Geräteinstanzen aktualisiert die Liste nach Einzelaktionen gezielt, ohne dass das Formular nach jedem Anlegen oder Deaktivieren an den Anfang der Konfiguration springt.
 - Von Zigbee2MQTT berechnete oder nachgelieferte Werte können auch bei unvollständiger Expose-Kennung nachträglich angelegt werden. Numeric-, Binary- und Enum-Variablen ergänzen fehlende `name`- oder `property`-Felder typunabhängig aus der jeweils vorhandenen Kennung.
 - Der von Zigbee2MQTT berechnete Taupunkt `dewpoint` wird bei nachträglicher Anlage als übersetzte Float-Variable `Taupunkt` mit dem Symcon-Temperaturprofil `~Temperature` angelegt.
@@ -422,6 +422,7 @@ Die Änderungen sind anhand der funktionalen Commits chronologisch gegliedert. A
 - Fehlende Bridge-Instanzen werden ausschließlich über den regulären Symcon-Konfigurator erstellt. Formularskripte erzeugen oder konfigurieren keine Instanzen mehr direkt.
 - MQTT-Befehle brechen während des kurzen Instanzschnittstellen-Wechsels eines Modul-Updates kontrolliert ab. Laufende Ereignisse erzeugen dadurch keine `InstanceInterface is not available`-Warnungen und senden keine unvollständigen MQTT-Topics.
 - Gerätebilder werden modellbezogen unter `user/IPSZigbee2MQTT/icons` zwischengespeichert und nur beim Öffnen der Geräte-Konfiguration geladen. Bestehende Base64-Bildattribute werden automatisch migriert, wodurch `IPS_GetSnapshot()` und darauf aufbauende Visualisierungen deutlich weniger Arbeitsspeicher benötigen.
+- Die Variablen-Wartung folgt den Instanz- und Systemgrenzen: Die Bridge zeigt nur noch eine kompakte, nach Geräten und Gruppen desselben MQTT-Splitters und MQTT-Basistopics zusammengefasste Übersicht. Prüfung und bestätigtes Löschen erfolgen direkt in der zuständigen Instanz, die ausschließlich ihre eigenen direkten Variablen verwalten darf.
 
 **Version 5.42:**  
 

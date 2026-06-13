@@ -11,6 +11,7 @@ require_once __DIR__ . '/VariableProfileHelper.php';
 require_once __DIR__ . '/Localization/TranslationHelper.php';
 require_once __DIR__ . '/Configuration/DeviceFormHelper.php';
 require_once __DIR__ . '/Configuration/VariableCatalogHelper.php';
+require_once __DIR__ . '/Maintenance/VariableMaintenanceHelper.php';
 require_once __DIR__ . '/Visualization/VariablePresentationHelper.php';
 require_once __DIR__ . '/Visualization/TileHelpers/MeteredSwitchTileHelper.php';
 require_once __DIR__ . '/Visualization/TileHelpers/HeatingTileHelper.php';
@@ -43,6 +44,7 @@ abstract class ModulBase extends \IPSModuleStrict
     use VariableProfileHelper;
     use TranslationHelper;
     use VariableCatalogHelper;
+    use \Zigbee2MQTT\Maintenance\VariableMaintenanceHelper;
     use DeviceFormHelper;
     use VariablePresentationHelper;
     use MeteredSwitchTileHelper;
@@ -439,6 +441,7 @@ abstract class ModulBase extends \IPSModuleStrict
         $this->RegisterAttributeArray(self::ATTRIBUTE_DISABLED_VARIABLES, []);
         $this->RegisterAttributeArray(self::ATTRIBUTE_DELETED_VARIABLES, []);
         $this->RegisterAttributeFloat(self::ATTRIBUTE_MODUL_VERSION, 5.0);
+        $this->InitializeLocalVariableMaintenance();
 
         // Init Buffers
         $this->BUFFER_MQTT_SUSPENDED = true;
@@ -1590,6 +1593,11 @@ abstract class ModulBase extends \IPSModuleStrict
      */
     private function handleRequestAction(string $ident, mixed $value): bool
     {
+        $maintenanceResult = $this->HandleLocalVariableMaintenanceAction($ident, $value);
+        if ($maintenanceResult !== null) {
+            return $maintenanceResult;
+        }
+
         $tileResult = $this->handleTileRequestAction($ident, $value);
         if ($tileResult !== null) {
             return $tileResult;

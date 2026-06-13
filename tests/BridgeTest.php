@@ -11,7 +11,10 @@ use PHPUnit\Framework\TestCase;
  */
 class BridgeTest extends TestCase
 {
+    private const BRIDGE_MODULE_ID = '{00160D82-9E2F-D1BD-6D0B-952F945332C5}';
     private const DEVICE_MODULE_ID = '{E5BB36C6-A70B-EB23-3716-9151A09AC8A2}';
+    private const GROUP_MODULE_ID = '{11BF3773-E940-469B-9DD7-FB9ACD7199A2}';
+    private const VIRTUAL_IO_MODULE_ID = '{6179ED6A-FC31-413C-BB8E-1204150CF376}';
 
     public function setUp(): void
     {
@@ -52,6 +55,74 @@ class BridgeTest extends TestCase
         $this->assertFalse($actions['SetLastSeen']['enabled']);
         $this->assertSame('last_seen setting is correct', $actions['SetLastSeen']['caption']);
         $this->assertTrue($actions['PermitJoinOption']['visible']);
+    }
+
+    public function testConfigurationFormShowsCompactReadOnlyVariableMaintenanceOverview(): void
+    {
+        $form = json_decode(file_get_contents(__DIR__ . '/../Bridge/form.json'), true);
+
+        $this->assertNotNull($this->findFormField($form, 'StaleVariableInstanceSummary'));
+        $this->assertNotNull($this->findFormField($form, 'StaleVariableOpenInstance'));
+        $this->assertNull($this->findFormField($form, 'StaleVariableClearCandidates'));
+        $this->assertNull($this->findFormField($form, 'StaleVariableDeleteWarning'));
+    }
+
+    public function testVariableMaintenanceOnlyIncludesInstancesFromSameSplitterAndBaseTopic(): void
+    {
+        $splitterID = IPS_CreateInstance(self::VIRTUAL_IO_MODULE_ID);
+        $otherSplitterID = IPS_CreateInstance(self::VIRTUAL_IO_MODULE_ID);
+        $bridgeID = IPS_CreateInstance(self::BRIDGE_MODULE_ID);
+        IPS_SetConfiguration($bridgeID, json_encode(['MQTTBaseTopic' => 'zigbee2mqtt']));
+        IPS_ApplyChanges($bridgeID);
+        IPS_ConnectInstance($bridgeID, $splitterID);
+
+        $ownedDeviceID = $this->createConfiguredVariableMaintenanceInstance(
+            self::DEVICE_MODULE_ID,
+            'zigbee2mqtt',
+            'Owned/Device',
+            $splitterID
+        );
+        $ownedGroupID = $this->createConfiguredVariableMaintenanceInstance(
+            self::GROUP_MODULE_ID,
+            'zigbee2mqtt',
+            'Owned/Group',
+            $splitterID
+        );
+        $this->createConfiguredVariableMaintenanceInstance(
+            self::DEVICE_MODULE_ID,
+            'zigbee2mqtt',
+            'Foreign/Splitter',
+            $otherSplitterID
+        );
+        $this->createConfiguredVariableMaintenanceInstance(
+            self::DEVICE_MODULE_ID,
+            'other_base',
+            'Foreign/Base',
+            $splitterID
+        );
+
+        $bridge = IPS\InstanceManager::getInstanceInterface($bridgeID);
+        $method = new ReflectionMethod($bridge, 'GetStaleVariableMaintenanceInstanceIDs');
+        $expected = [$ownedDeviceID, $ownedGroupID];
+        sort($expected);
+
+        $this->assertSame($expected, $method->invoke($bridge));
+    }
+
+    public function testExplicitEmptyVariableMaintenanceInstanceFilterScansNothing(): void
+    {
+        $this->createConfiguredVariableMaintenanceInstance(
+            self::DEVICE_MODULE_ID,
+            'zigbee2mqtt',
+            'Existing/Device',
+            0
+        );
+
+        $scan = \Zigbee2MQTT\Maintenance\StaleVariableCleanupHelper::Scan(['instanceIDs' => []]);
+
+        $this->assertSame(0, $scan['instanceCount']);
+        $this->assertSame([], $scan['clearCandidates']);
+        $this->assertSame([], $scan['reviewCandidates']);
     }
 
     public function testConfigurationFormOffersCoordinatorAndKnownRoutersAsPairingTargets(): void
@@ -1486,6 +1557,25 @@ class BridgeTest extends TestCase
         ]));
         IPS_ApplyChanges($deviceID);
         return $deviceID;
+    }
+
+    private function createConfiguredVariableMaintenanceInstance(
+        string $moduleID,
+        string $baseTopic,
+        string $mqttTopic,
+        int $splitterID
+    ): int {
+        $instanceID = IPS_CreateInstance($moduleID);
+        IPS_SetConfiguration($instanceID, json_encode([
+            'MQTTBaseTopic' => $baseTopic,
+            'MQTTTopic'     => $mqttTopic,
+        ]));
+        IPS_ApplyChanges($instanceID);
+        if ($splitterID > 0) {
+            IPS_ConnectInstance($instanceID, $splitterID);
+        }
+
+        return $instanceID;
     }
 
     private function readOTADeviceState(Zigbee2MQTTBridge $bridge): string

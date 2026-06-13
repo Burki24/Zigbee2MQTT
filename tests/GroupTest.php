@@ -13,6 +13,16 @@ class GroupTest extends DumpInclude
     private const GROUP_MODULE_ID = '{11BF3773-E940-469B-9DD7-FB9ACD7199A2}';
     private const VIRTUAL_IO_MODULE_ID = '{6179ED6A-FC31-413C-BB8E-1204150CF376}';
 
+    public function testGroupConfigurationFormContainsOwnerScopedVariableMaintenance(): void
+    {
+        $groupID = $this->createConfiguredGroup('zigbee2mqtt', 'Test/Group');
+        $form = json_decode(IPS_GetConfigurationForm($groupID), true);
+
+        $this->assertNotNull($this->findFormItemByName($form, 'LocalVariableMaintenance'));
+        $this->assertNotNull($this->findFormItemByName($form, 'LocalStaleVariableClearCandidates'));
+        $this->assertNotNull($this->findFormItemByName($form, 'LocalStaleVariableDeleteWarning'));
+    }
+
     public function testGroupInformationRefreshIsTopLevelAction(): void
     {
         $form = json_decode(file_get_contents(__DIR__ . '/../Group/form.json'), true);

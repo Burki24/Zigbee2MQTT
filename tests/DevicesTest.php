@@ -9,6 +9,16 @@ include_once __DIR__ . '/DumpInclude.php';
  */
 class DevicesTest extends DumpInclude
 {
+    public function testDeviceConfigurationFormContainsOwnerScopedVariableMaintenance(): void
+    {
+        $iid = IPS_CreateInstance('{E5BB36C6-A70B-EB23-3716-9151A09AC8A2}');
+        $form = json_decode(IPS_GetConfigurationForm($iid), true);
+
+        $this->assertNotNull($this->findFormItemByName($form, 'LocalVariableMaintenance'));
+        $this->assertNotNull($this->findFormItemByName($form, 'LocalStaleVariableClearCandidates'));
+        $this->assertNotNull($this->findFormItemByName($form, 'LocalStaleVariableDeleteWarning'));
+    }
+
     public function testDeviceInformationRefreshIsTopLevelAction(): void
     {
         $form = json_decode(file_get_contents(__DIR__ . '/../Device/form.json'), true);

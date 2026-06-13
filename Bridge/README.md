@@ -42,7 +42,7 @@
 - Globale Zigbee2MQTT-Blocklist und -Passlist verwalten
 - Diagnosebereich für Health Check, Coordinator Check, Bridge-Events, Warnungen/Fehler und auffällige Geräte
 - Zentrale OTA-Verwaltung für Update-Prüfung, Planung, Start, Fortschritt und Abschlussmeldungen
-- Variablen-Wartung zum Finden und gezielten Löschen verwaister Zigbee2MQTT-Variablen
+- Kompakte Variablen-Wartungsübersicht zum Finden betroffener Geräte- und Gruppeninstanzen
 - Zigbee2MQTT-Wartung für Zigbee2MQTT-Backup, Install-Code und Touchlink-Scan/Identify/Factory-Reset
 - Viele PHP-Funktionen um interne Zigbee2MQTT Funktionen auszuführen (Gruppen verwalten, Geräte umbenennen usw...)
   
@@ -83,7 +83,7 @@ Die Oberfläche trennt häufig benötigte Funktionen von administrativen Werkzeu
 | Diagnose | Führt Health Check und Coordinator Check aus, fordert die Netzwerkkarte an und zeigt fehlende Router, nicht unterstützte Geräte, Interview-Probleme, Bridge-Events sowie Warnungen und Fehler an. |
 | Netzwerksicherheit | Verwaltet `blocklist` und `passlist` direkt über bekannte Zigbee2MQTT-Geräte oder manuelle IEEE-Adressen. |
 | OTA-Updates | Listet bekannte OTA-fähige Geräte, prüft einzelne Geräte auf Updates, plant Aktualisierungen für die nächste Geräteanfrage und startet genau ein aktives Update gleichzeitig. Geplante Updates können aufgehoben, laufende Updates abgebrochen und Fortschritt, Restzeit sowie Abschlussmeldungen zentral angezeigt werden. |
-| Variablen-Wartung | Sucht alte Zigbee2MQTT-Variablen, die nicht mehr zu aktuellen Exposes oder Payloads passen, und löscht einzelne klare Kandidaten erst nach Bestätigung. |
+| Variablen-Wartung | Sucht alte Zigbee2MQTT-Variablen, fasst den Prüfbedarf pro Geräte- oder Gruppeninstanz zusammen und öffnet die zuständige Instanz für die eigentliche Prüfung. |
 | Zigbee2MQTT-Wartung | Erstellt ein Zigbee2MQTT-Backup als ZIP-Datei auf dem Symcon-Server, sendet Zigbee-3.0-Install-Codes und bietet Touchlink-Scan, Identify und Factory-Reset an. |
 
 ### 5.1 Anlernen
@@ -162,18 +162,13 @@ Die OTA-Verwaltung bietet nur Geräte an, die Zigbee2MQTT in den Bridge-Geräted
 
 ### 5.5 Variablen-Wartung
 
-Die Variablen-Wartung befindet sich unter **Erweiterte Administration** und ist der unterstützte Weg, um alte Zigbee2MQTT-Variablen aufzuräumen. Über **Verwaiste Variablen suchen** werden klare Löschkandidaten, Review-Kandidaten und Hinweise getrennt angezeigt. Die Listen zeigen zusätzlich, ob eine Variable archiviert ist und wann sie zuletzt beschrieben wurde. Archivierte oder von anderen Symcon-Objekten referenzierte Variablen werden in der Bridge-Oberfläche nicht gelöscht. Jeder Löschvorgang betrifft genau eine Variable und muss über ein Popup bestätigt werden.
+Die Variablen-Wartung befindet sich unter **Erweiterte Administration** und dient als kompakte, zentrale Übersicht. Über **Verwaiste Variablen suchen** prüft die Bridge ausschließlich Zigbee2MQTT-Geräte- und Gruppeninstanzen, die mit demselben MQTT-Splitter verbunden sind und dasselbe MQTT-Basistopic verwenden. Das Ergebnis wird nach Instanzen zusammengefasst und zeigt je Instanz die Anzahl klarer Löschkandidaten, Review-Kandidaten und Suchlauf-Hinweise.
+
+Nach Auswahl einer Zeile öffnet **Ausgewählte Instanz öffnen** direkt die zuständige Geräte- oder Gruppeninstanz. Die konkrete Prüfung und ein mögliches Löschen erfolgen dort unter **Expertenwerkzeuge → Variablen-Wartung**. Dadurch kann eine Instanz ausschließlich ihre eigenen direkten Variablen verwalten; die Bridge löscht keine Variablen fremder Instanzen.
+
+In der lokalen Wartung bleiben archivierte oder von anderen Symcon-Objekten referenzierte Variablen geschützt. Jeder Löschvorgang betrifft genau eine klare Kandidatenvariable, wird unmittelbar vor dem Löschen erneut geprüft und muss über ein Popup bestätigt werden.
 
 Bei OTA-fähigen Geräten bleiben stabile Update-Metadaten wie installierte Version, neueste Version und Status geschützt. Fortschritt und verbleibende Dauer sind hingegen temporäre Werte und werden nur berücksichtigt, solange Zigbee2MQTT sie im aktuellen Payload liefert. Dadurch bleiben bei Geräten ohne OTA-Fähigkeit keine historischen Update-Reste dauerhaft geschützt.
-
-![Variablen-Wartung](imgs/variable-maintenance.png)
-
-| Nr. | Bereich | Bedeutung |
-| --- | --- | --- |
-| **1** | Verwaiste Variablen suchen | Prüft die Zigbee2MQTT-Geräteinstanzen erneut und baut die Kandidatenlisten aus den aktuellen Exposes und Payload-Daten auf. |
-| **2** | Zusammenfassung | Zeigt die Anzahl geprüfter Instanzen sowie die Anzahl klarer Lösch- und Review-Kandidaten. |
-| **3** | Klare Löschkandidaten | Enthält Variablen, die weder durch aktuelle Exposes noch durch aktuelle Payload-Daten abgedeckt sind. Nicht geschützte Variablen können einzeln über **Löschen** entfernt werden; jeder Löschvorgang muss bestätigt werden. |
-| **4** | Review-Kandidaten | Enthält unsichere Fälle, beispielsweise Variablen, die nur im letzten Payload vorkamen. Diese Einträge werden nicht direkt zum Löschen angeboten und müssen vor einer Bereinigung manuell beurteilt werden. |
 
 ### 5.6 Zigbee2MQTT-Wartung
 

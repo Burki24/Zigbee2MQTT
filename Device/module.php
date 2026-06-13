@@ -89,7 +89,7 @@ class Zigbee2MQTTDevice extends \Zigbee2MQTT\ModulBase
     {
         $form = json_decode(file_get_contents(__DIR__ . '/form.json'), true);
 
-        return json_encode($this->BuildDeviceConfigurationForm($form));
+        return json_encode($this->PrepareLocalVariableMaintenanceForm($this->BuildDeviceConfigurationForm($form)));
     }
 
     /**

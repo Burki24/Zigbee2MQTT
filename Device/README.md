@@ -318,7 +318,7 @@ Die Instanz merkt sich alle aus Exposes, Payloads und Systemmeldungen bekannten 
 
 ![Variablenverwaltung](imgs/variablenverwaltung.png)
 
-Über **Variablen aktualisieren** wird die Liste bewusst neu aus den aktuellen Exposes und dem zuletzt empfangenen Geräte-Payload aufgebaut. Dadurch verschwinden historische Einträge, die das Gerät nicht mehr liefert. Die zugehörigen Symcon-Variablen werden dabei nicht gelöscht und können anschließend kontrolliert über die Variablen-Wartung der Bridge geprüft werden. Ausdrücklich deaktivierte oder gelöschte Einträge bleiben erhalten, solange sie weiterhin fachlich zum aktuellen Gerät gehören.
+Über **Variablen aktualisieren** wird die Liste bewusst neu aus den aktuellen Exposes und dem zuletzt empfangenen Geräte-Payload aufgebaut. Dadurch verschwinden historische Einträge, die das Gerät nicht mehr liefert. Die zugehörigen Symcon-Variablen werden dabei nicht gelöscht und können anschließend kontrolliert in derselben Instanz unter **Expertenwerkzeuge → Variablen-Wartung** geprüft werden. Ausdrücklich deaktivierte oder gelöschte Einträge bleiben erhalten, solange sie weiterhin fachlich zum aktuellen Gerät gehören.
 
 Einzelne Variablen können über die Aktion in der jeweiligen Zeile angelegt, aktiviert oder deaktiviert werden. Die Liste wird dabei nur aktualisiert und das Formular springt nicht mehr an den Anfang der Konfiguration.
 
@@ -343,6 +343,10 @@ Typische Fälle in der Praxis:
 | Update- und Systemwerte wie `update__*` oder `last_seen` fehlen in den Exposes | Das ist normal. Diese Werte kommen oft erst später über Payloads oder Systemmeldungen. Bei einem laut Zigbee2MQTT OTA-fähigen Gerät bleiben stabile OTA-Metadaten wie installierte und neueste Version oder Update-Status beim manuellen Aktualisieren der Variablenliste erhalten. Temporäre Werte wie `update__progress` und `update__remaining` bleiben nur sichtbar, solange sie im zuletzt empfangenen Geräte-Payload tatsächlich enthalten sind. Historische OTA-Werte werden nicht dauerhaft für Geräte ohne gemeldete OTA-Fähigkeit geführt. |
 
 Composite-Exposes werden dabei auf die tatsächlich anlegbaren Untervariablen reduziert. Ein nicht selbst nutzbarer Composite-Elternknoten wird nicht als eigene Variable angeboten, während Unterwerte wie `options__motor_speed` sauber im Variablenkatalog erscheinen.
+
+Unter **Expertenwerkzeuge → Variablen-Wartung** kann die Geräteinstanz ausschließlich ihre eigenen direkten Variablen auf veraltete Expose- oder Payload-Zuordnungen prüfen. Klare Löschkandidaten werden getrennt von unsicheren Review-Kandidaten und Suchlauf-Hinweisen dargestellt. Archivierte oder von anderen Symcon-Objekten referenzierte Variablen sind geschützt. Eine klare Kandidatenvariable kann erst nach einer erneuten Schutz- und Besitzprüfung sowie einer ausdrücklichen Bestätigung gelöscht werden.
+
+Die zentrale Variablen-Wartung der Bridge zeigt ergänzend eine kompakte Übersicht aller betroffenen Instanzen und kann die jeweils zuständige Geräte- oder Gruppeninstanz direkt öffnen.
 
 ### 4.10 Troubleshooting
 
