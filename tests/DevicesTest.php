@@ -9,6 +9,17 @@ include_once __DIR__ . '/DumpInclude.php';
  */
 class DevicesTest extends DumpInclude
 {
+    public function testDynamicVariableMaintenanceValuesUseGlobalTranslations(): void
+    {
+        $iid = IPS_CreateInstance('{E5BB36C6-A70B-EB23-3716-9151A09AC8A2}');
+        $device = IPS\InstanceManager::getInstanceInterface($iid);
+
+        $this->assertSame('Ja', $device->Translate('Yes'));
+        $this->assertSame('Nein', $device->Translate('No'));
+        $this->assertSame('Geschützt', $device->Translate('Protected'));
+        $this->assertSame('Löschen', $device->Translate('Delete'));
+    }
+
     public function testDeviceConfigurationFormContainsOwnerScopedVariableMaintenance(): void
     {
         $iid = IPS_CreateInstance('{E5BB36C6-A70B-EB23-3716-9151A09AC8A2}');
