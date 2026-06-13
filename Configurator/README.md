@@ -58,13 +58,11 @@ Für eine kompaktere Standardansicht ist die Geräteliste geöffnet und die Grup
 
 Weitere allgemeine Hinweise zu Konfiguratoren sind der [Symcon Dokumentation](https://www.symcon.de/de/service/dokumentation/grundlagen/instanzen/konfiguratoren/) zu entnehmen.
 
-### Falsch verbundene Instanzen reparieren
+### Trennung mehrerer Zigbee2MQTT-Installationen
 
-Jeder Konfigurator verwaltet ausschließlich die Bridge-, Geräte- und Gruppeninstanzen, die mit demselben MQTT-Splitter und MQTT-Basistopic verbunden sind. Dadurch können mehrere Zigbee2MQTT-Installationen und MQTT-Verbindungen sauber voneinander getrennt betrieben werden.
+Jeder Konfigurator verwaltet und zeigt ausschließlich die Bridge-, Geräte- und Gruppeninstanzen an, die mit demselben MQTT-Splitter und MQTT-Basistopic verbunden sind. Instanzen an einem anderen MQTT-Splitter bleiben vollständig unberücksichtigt. Dadurch können mehrere Zigbee2MQTT-Installationen und MQTT-Verbindungen sauber voneinander getrennt betrieben werden.
 
-Findet der Konfigurator eine Instanz mit passendem MQTT-Basistopic an einem anderen MQTT-Splitter, wird diese **nicht** als reguläre Instanz zugeordnet. Für das betroffene Gerät oder die Gruppe wird außerdem keine weitere Instanz zum Erstellen angeboten, damit keine Doppelinstanz entsteht.
-
-Stattdessen öffnet sich ein eigener Reparaturdialog. Über **Reparieren** wird ausschließlich die ausgewählte Instanz mit dem MQTT-Splitter des Konfigurators verbunden. Instanz-ID, Einstellungen, Variablen und Verknüpfungen bleiben dabei erhalten. Andere gefundene Instanzen werden nicht verändert.
+Existiert ein Gerät oder eine Gruppe im aktuellen Zigbee2MQTT-Netz, aber nur als Symcon-Instanz an einem anderen MQTT-Splitter, wird für den aktuellen Konfigurator eine eigene passende Instanz zur Erstellung angeboten. Eine versehentlich falsch verbundene Instanz muss der Anwender über die regulären Symcon-Funktionen prüfen und korrigieren.
 
 ## 4. Statusvariablen
 

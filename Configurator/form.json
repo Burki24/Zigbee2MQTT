@@ -146,58 +146,6 @@
             }
         },
         {
-            "type": "PopupAlert",
-            "name": "WrongConnectedInstancesPopup",
-            "visible": false,
-            "popup": {
-                "closeCaption": "Close",
-                "items": [
-                    {
-                        "name": "ErrorTitle",
-                        "type": "Label",
-                        "bold": true,
-                        "color": 16711680,
-                        "caption": "Instances found with the same MQTT base topic but connected to another MQTT splitter. Repair them individually."
-                    },
-                    {
-                        "type": "List",
-                        "name": "WrongConnectedInstances",
-                        "add": false,
-                        "delete": false,
-                        "rowCount": 0,
-                        "sort": {
-                            "column": "name",
-                            "direction": "ascending"
-                        },
-                        "columns": [
-                            {
-                                "caption": "Topic",
-                                "name": "topic",
-                                "width": "300px"
-                            },
-                            {
-                                "caption": "Name",
-                                "name": "name",
-                                "width": "auto"
-                            },
-                            {
-                                "caption": "InstanceId",
-                                "name": "instanceIdStr",
-                                "width": "75px"
-                            },
-                            {
-                                "caption": "Action",
-                                "name": "action",
-                                "width": "100px",
-                                "align": "center",
-                                "onClick": "IPS_RequestAction($id, 'RepairWrongConnection', $WrongConnectedInstances['instanceId']);"
-                            }
-                        ]
-                    }
-                ]
-            }
-        },
-        {
             "type": "Label",
             "caption": "Donations"
         },

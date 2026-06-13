@@ -108,9 +108,6 @@ class Zigbee2MQTTConfigurator extends IPSModuleStrict
             case 'ReloadForm':
                 $this->ReloadForm();
                 break;
-            case 'RepairWrongConnection':
-                $this->RepairWrongConnection((int) $value);
-                break;
         }
     }
 
@@ -195,20 +192,6 @@ class Zigbee2MQTTConfigurator extends IPSModuleStrict
             return json_encode($Form);
         }
 
-        $WrongDeviceInstances = $this->GetIPSInstancesWithWrongConnectionByBaseTopic(self::GUID_MODULE_DEVICE, $BaseTopic);
-        $WrongGroupInstances = $this->GetIPSInstancesWithWrongConnectionByBaseTopic(self::GUID_MODULE_GROUP, $BaseTopic);
-        $WrongBridgeInstances = $this->GetIPSInstancesWithWrongConnectionByBaseTopic(self::GUID_MODULE_BRIDGE, $BaseTopic);
-        $InstancedWithWrongIo = $this->BuildWrongConnectedInstanceValues(
-            array_keys($WrongDeviceInstances + $WrongGroupInstances + $WrongBridgeInstances)
-        );
-        $WrongDevicesByIEEE = [];
-        foreach (array_keys($WrongDeviceInstances) as $instanceID) {
-            $WrongDevicesByIEEE[$instanceID] = (string) @IPS_GetProperty($instanceID, 'IEEE');
-        }
-        $WrongGroupsById = [];
-        foreach (array_keys($WrongGroupInstances) as $instanceID) {
-            $WrongGroupsById[$instanceID] = (int) @IPS_GetProperty($instanceID, 'GroupId');
-        }
         $Devices = [];
         $Groups = [];
         $Devices = $this->getDevices(); // Alle Geräte von Z2M laden
@@ -222,11 +205,6 @@ class Zigbee2MQTTConfigurator extends IPSModuleStrict
         if (!count($Devices)) {
             // Gruppen ausblenden, die Bridge aber ueber den regulaeren Konfigurator-Mechanismus anbieten.
             $Form['actions'][1]['expanded'] = false;
-
-            if ($WrongBridgeInstances !== []) {
-                $this->ConfigureWrongConnectedInstancesPopup($Form, $InstancedWithWrongIo);
-                return json_encode($Form);
-            }
 
             $bridgeValue = self::$DeviceValues;
             $bridgeValue['id'] = 1;
@@ -275,9 +253,7 @@ class Zigbee2MQTTConfigurator extends IPSModuleStrict
                 $value['type'] = 'Bridge';
                 $value['vendor'] = 'Zigbee2MQTT';
                 $value['description'] = 'Zigbee2MQTT Bridge';
-                if ($WrongBridgeInstances === []) {
-                    $value['create'] = $this->BuildBridgeCreateDescriptor($BaseTopic, $Location);
-                }
+                $value['create'] = $this->BuildBridgeCreateDescriptor($BaseTopic, $Location);
                 array_push($valuesDevices, $value);
                 $CoordinatorFound = true;
                 continue;
@@ -298,11 +274,6 @@ class Zigbee2MQTTConfigurator extends IPSModuleStrict
                     }
                 }
             }
-            $wrongInstanceID = array_search($device['ieeeAddr'], $WrongDevicesByIEEE);
-            if (!$wrongInstanceID) {
-                $wrongInstanceID = array_search($device['friendly_name'], $WrongDeviceInstances);
-            }
-
             if ($instanceID) {
                 $value['name'] = IPS_GetName($instanceID);
                 $value['instanceID'] = $instanceID;
@@ -321,7 +292,7 @@ class Zigbee2MQTTConfigurator extends IPSModuleStrict
             $value['modelID'] = $device['modelID'] ?? $this->Translate('Unknown');
             $value['description'] = $device['description'] ?? $this->Translate('Unknown');
             $value['power_source'] = isset($device['powerSource']) ? $this->Translate($device['powerSource']) : $this->Translate('Unknown');
-            if (!$instanceID && !$wrongInstanceID) {
+            if (!$instanceID) {
                 $value['create'] = [
                     'moduleID'      => self::GUID_MODULE_DEVICE,
                     'location'      => $Location,
@@ -429,10 +400,6 @@ class Zigbee2MQTTConfigurator extends IPSModuleStrict
                     }
                 }
             }
-            $wrongInstanceID = array_search((int) $group['ID'], $WrongGroupsById, true);
-            if (!$wrongInstanceID) {
-                $wrongInstanceID = array_search($group['friendly_name'], $WrongGroupInstances);
-            }
             $Location = explode('/', $group['friendly_name']);
             $Name = array_pop($Location);
             if ($instanceID) {
@@ -448,7 +415,7 @@ class Zigbee2MQTTConfigurator extends IPSModuleStrict
             $value['ID'] = $group['ID'];
             $value['topic'] = $group['friendly_name'];
             $value['DevicesCount'] = (string) count($group['devices']);
-            if (!$instanceID && !$wrongInstanceID) {
+            if (!$instanceID) {
                 $value['create'] = [
                     'moduleID'      => self::GUID_MODULE_GROUP,
                     'location'      => $Location,
@@ -499,8 +466,6 @@ class Zigbee2MQTTConfigurator extends IPSModuleStrict
         $Form['actions'][0]['items'][0]['rowCount'] = (count($valuesDevices) > 15 ? 15 : count($valuesDevices) + 1);
         $Form['actions'][1]['items'][0]['values'] = $valuesGroups;
         $Form['actions'][1]['items'][0]['rowCount'] = (count($valuesGroups) > 15 ? 15 : count($valuesGroups) + 1);
-        $this->SendDebug('defect', json_encode($InstancedWithWrongIo), 0);
-        $this->ConfigureWrongConnectedInstancesPopup($Form, $InstancedWithWrongIo);
         $this->SendDebug('Form', json_encode($Form), 0);
         return json_encode($Form);
     }
@@ -573,34 +538,6 @@ class Zigbee2MQTTConfigurator extends IPSModuleStrict
                 self::MQTT_BASE_TOPIC => $BaseTopic
             ]
         ];
-    }
-
-    /**
-     * Connects one explicitly selected Zigbee2MQTT instance to the configurator's MQTT splitter.
-     */
-    private function RepairWrongConnection(int $InstanceID): void
-    {
-        if (!IPS_InstanceExists($InstanceID)) {
-            return;
-        }
-
-        $instance = IPS_GetInstance($InstanceID);
-        $moduleID = (string) ($instance['ModuleInfo']['ModuleID'] ?? '');
-        if (!in_array($moduleID, [self::GUID_MODULE_BRIDGE, self::GUID_MODULE_DEVICE, self::GUID_MODULE_GROUP], true)) {
-            return;
-        }
-        if ((string) @IPS_GetProperty($InstanceID, self::MQTT_BASE_TOPIC) !== $this->ReadPropertyString(self::MQTT_BASE_TOPIC)) {
-            return;
-        }
-
-        $splitterID = (int) IPS_GetInstance($this->InstanceID)['ConnectionID'];
-        if ($splitterID <= 0 || (int) $instance['ConnectionID'] === $splitterID) {
-            return;
-        }
-
-        @IPS_DisconnectInstance($InstanceID);
-        IPS_ConnectInstance($InstanceID, $splitterID);
-        $this->ReloadForm();
     }
 
     /**
@@ -864,79 +801,6 @@ class Zigbee2MQTTConfigurator extends IPSModuleStrict
             }
         }
         return $Devices;
-    }
-
-    /**
-     * Returns instances with the requested base topic that are connected to another MQTT splitter.
-     *
-     * @param string $GUID
-     * @param string $BaseTopic
-     *
-     * @return array<int, string>
-     */
-    private function GetIPSInstancesWithWrongConnectionByBaseTopic(string $GUID, string $BaseTopic): array
-    {
-        $instances = [];
-        foreach (IPS_GetInstanceListByModuleID($GUID) as $instanceID) {
-            if ($this->FilterInstancesByConnection($instanceID)) {
-                continue;
-            }
-            if ((string) @IPS_GetProperty($instanceID, self::MQTT_BASE_TOPIC) !== $BaseTopic) {
-                continue;
-            }
-            $instances[$instanceID] = (string) @IPS_GetProperty($instanceID, self::MQTT_TOPIC);
-        }
-
-        return $instances;
-    }
-
-    /**
-     * Builds the dedicated repair list for instances connected to another MQTT splitter.
-     *
-     * @param int[] $InstanceIDs
-     *
-     * @return array<int, array<string, int|string>>
-     */
-    private function BuildWrongConnectedInstanceValues(array $InstanceIDs): array
-    {
-        $values = [];
-        foreach ($InstanceIDs as $instanceID) {
-            if (!IPS_InstanceExists($instanceID)) {
-                continue;
-            }
-
-            $instance = IPS_GetInstance($instanceID);
-            $topic = (string) @IPS_GetProperty($instanceID, self::MQTT_TOPIC);
-            if (($instance['ModuleInfo']['ModuleID'] ?? '') === self::GUID_MODULE_BRIDGE) {
-                $topic = 'bridge';
-            }
-            $values[] = [
-                'name'          => IPS_GetName($instanceID),
-                'topic'         => $topic,
-                'instanceIdStr' => '#' . $instanceID,
-                'instanceId'    => $instanceID,
-                'action'        => $this->Translate('Repair')
-            ];
-        }
-
-        return $values;
-    }
-
-    /**
-     * Shows the dedicated repair popup for instances connected to another MQTT splitter.
-     *
-     * @param array<string, mixed>                         $Form
-     * @param array<int, array<string, int|string>> $Values
-     */
-    private function ConfigureWrongConnectedInstancesPopup(array &$Form, array $Values): void
-    {
-        if ($Values === []) {
-            return;
-        }
-
-        $Form['actions'][3]['visible'] = true;
-        $Form['actions'][3]['popup']['items'][1]['rowCount'] = min(count($Values) + 1, 20);
-        $Form['actions'][3]['popup']['items'][1]['values'] = $Values;
     }
 
     /**

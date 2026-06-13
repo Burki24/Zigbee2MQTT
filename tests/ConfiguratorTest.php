@@ -5,7 +5,7 @@ declare(strict_types=1);
 include_once __DIR__ . '/DumpInclude.php';
 
 /**
- * Tests splitter-safe configurator instance assignment and repair.
+ * Tests splitter-safe configurator instance assignment.
  */
 class ConfiguratorTest extends DumpInclude
 {
@@ -13,7 +13,7 @@ class ConfiguratorTest extends DumpInclude
     private const DEVICE_MODULE_ID = '{E5BB36C6-A70B-EB23-3716-9151A09AC8A2}';
     private const VIRTUAL_IO_MODULE_ID = '{6179ED6A-FC31-413C-BB8E-1204150CF376}';
 
-    public function testConfiguratorSeparatesAndRepairsWrongSplitterInstances(): void
+    public function testConfiguratorOnlyReturnsInstancesFromItsOwnSplitter(): void
     {
         $splitterID = IPS_CreateInstance(self::VIRTUAL_IO_MODULE_ID);
         $otherSplitterID = IPS_CreateInstance(self::VIRTUAL_IO_MODULE_ID);
@@ -23,46 +23,30 @@ class ConfiguratorTest extends DumpInclude
         IPS_ApplyChanges($configuratorID);
 
         $correctDeviceID = $this->CreateConfiguredDevice('zigbee2mqtt', 'Wohnzimmer/Licht', $splitterID);
-        $wrongDeviceID = $this->CreateConfiguredDevice('zigbee2mqtt', 'Kueche/Licht', $otherSplitterID);
-        $otherWrongDeviceID = $this->CreateConfiguredDevice('zigbee2mqtt', 'Flur/Licht', $otherSplitterID);
+        $this->CreateConfiguredDevice('zigbee2mqtt', 'Kueche/Licht', $otherSplitterID);
+        $this->CreateConfiguredDevice('zigbee2mqtt', 'Flur/Licht', $otherSplitterID);
         $otherBaseDeviceID = $this->CreateConfiguredDevice('other_base', 'Nicht/Anzeigen', $otherSplitterID);
 
         $configurator = IPS\InstanceManager::getInstanceInterface($configuratorID);
         $matchingMethod = new ReflectionMethod($configurator, 'GetIPSInstancesByBaseTopic');
         $matchingMethod->setAccessible(true);
-        $wrongMethod = new ReflectionMethod($configurator, 'GetIPSInstancesWithWrongConnectionByBaseTopic');
-        $wrongMethod->setAccessible(true);
 
         $this->assertSame(
             [$correctDeviceID => 'Wohnzimmer/Licht'],
             $matchingMethod->invoke($configurator, self::DEVICE_MODULE_ID, 'zigbee2mqtt')
         );
-        $this->assertSame(
-            [
-                $wrongDeviceID      => 'Kueche/Licht',
-                $otherWrongDeviceID => 'Flur/Licht'
-            ],
-            $wrongMethod->invoke($configurator, self::DEVICE_MODULE_ID, 'zigbee2mqtt')
-        );
         $this->assertNotContains($otherBaseDeviceID, array_keys($matchingMethod->invoke($configurator, self::DEVICE_MODULE_ID, 'zigbee2mqtt')));
-
-        $configurator->RequestAction('RepairWrongConnection', $otherBaseDeviceID);
-        $this->assertSame($otherSplitterID, IPS_GetInstance($otherBaseDeviceID)['ConnectionID']);
-
-        $configurator->RequestAction('RepairWrongConnection', $wrongDeviceID);
-
-        $this->assertSame($splitterID, IPS_GetInstance($wrongDeviceID)['ConnectionID']);
-        $this->assertSame($otherSplitterID, IPS_GetInstance($otherWrongDeviceID)['ConnectionID']);
     }
 
-    public function testRepairPopupUsesExplicitPerInstanceAction(): void
+    public function testConfiguratorDoesNotExposeOrManipulateForeignSplitterInstances(): void
     {
         $form = json_decode(file_get_contents(__DIR__ . '/../Configurator/form.json'), true);
-        $repairPopup = $form['actions'][3]['popup'];
-        $actionColumn = array_column($repairPopup['items'][1]['columns'], null, 'name')['action'];
+        $source = file_get_contents(__DIR__ . '/../Configurator/module.php');
 
-        $this->assertArrayNotHasKey('buttons', $repairPopup);
-        $this->assertStringContainsString("'RepairWrongConnection'", $actionColumn['onClick']);
+        $this->assertNotContains('WrongConnectedInstancesPopup', array_column($form['actions'], 'name'));
+        $this->assertStringNotContainsString('RepairWrongConnection', $source);
+        $this->assertStringNotContainsString('IPS_ConnectInstance(', $source);
+        $this->assertStringNotContainsString('IPS_DisconnectInstance(', $source);
     }
 
     public function testMissingBridgeUsesRegularConfiguratorCreateDescriptor(): void

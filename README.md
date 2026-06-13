@@ -419,7 +419,7 @@ Die Änderungen sind anhand der funktionalen Commits chronologisch gegliedert. A
 - Die interne Cache-Funktion `Z2M_GetCachedNetworkDevices` wurde in der Bridge-Funktionsreferenz ergänzt.
 - Ausschließlich intern genutzte Hilfsmethoden des Konfigurators sind nicht länger als öffentliche Modul-Funktionen sichtbar.
 - Die in `library.json` hinterlegte Mindestversion wurde an die dokumentierte und erforderliche Mindestversion IP-Symcon 9.0 angeglichen.
-- Der Konfigurator ordnet ausschließlich Instanzen mit demselben MQTT-Splitter und MQTT-Basistopic regulär zu. Falsch verbundene Instanzen blockieren die Erstellung von Doppelinstanzen und können in einem getrennten Reparaturdialog einzeln mit dem richtigen Splitter verbunden werden.
+- Der Konfigurator zeigt und verwaltet ausschließlich Instanzen mit demselben MQTT-Splitter und MQTT-Basistopic. Instanzen anderer Splitter bleiben vollständig unberücksichtigt; passende Geräte und Gruppen des aktuellen Zigbee2MQTT-Netzes werden regulär zur Erstellung angeboten.
 - Gruppeninstanzen begrenzen auch ihre lokale Geräteauswahl auf denselben MQTT-Splitter und dasselbe MQTT-Basistopic. Mehrere Zigbee2MQTT-Systeme können dadurch keine Geräte des jeweils anderen Netzes als Gruppenmitglied anbieten.
 - Eine beim Abruf von Geräteinformationen erkannte IEEE-Adresse wird in bestehenden Instanzen ausschließlich als noch nicht gespeicherter Formularwert eingetragen. Erst das reguläre **Übernehmen** der Instanzkonfiguration speichert die Adresse; das Modul ändert oder übernimmt die Eigenschaft nicht selbstständig.
 - Fehlende Bridge-Instanzen werden ausschließlich über den regulären Symcon-Konfigurator erstellt. Formularskripte erzeugen oder konfigurieren keine Instanzen mehr direkt.
@@ -434,6 +434,7 @@ Die Änderungen sind anhand der funktionalen Commits chronologisch gegliedert. A
 - Erkannte IEEE-Adressen werden review-konform nur noch in das Konfigurationsformular eingetragen. Sie werden ausschließlich durch das reguläre **Übernehmen** der Instanzkonfiguration gespeichert.
 - Bridge-Suche, Binding-Ziele, OTA-Verwaltung und Netzwerksicherheitslisten berücksichtigen neben dem MQTT-Basistopic immer auch den tatsächlich verbundenen MQTT-Splitter. Mehrere Zigbee2MQTT-Systeme bleiben dadurch selbst bei identischem Basistopic vollständig voneinander getrennt.
 - Empfohlene Custom-Presentations werden nur noch beim erstmaligen Anlegen einer Variable automatisch gesetzt. Bestehende benutzerdefinierte Darstellungen bleiben bei `ApplyChanges`, Payloads und Expose-Aktualisierungen unverändert und können ausschließlich über eine bestätigte Einmal-Aktion bewusst durch die Modul-Empfehlungen ersetzt oder entfernt werden.
+- Der Konfigurator listet und verändert keine Zigbee2MQTT-Instanzen fremder MQTT-Splitter mehr. Der bisherige Reparaturdialog wurde entfernt; Geräte und Gruppen des aktuellen Netzes werden stattdessen ausschließlich über den regulären Symcon-Konfigurator zur Erstellung angeboten.
 - Die Discovery lässt den Anwender über `mqtt://` oder `mqtts://` ausdrücklich zwischen unverschlüsseltem MQTT und geprüftem TLS wählen. Bei TLS werden Zertifikat und Hostname zwingend geprüft; ein automatischer Rückfall auf eine unverschlüsselte Verbindung findet nicht statt. Unsichere TLS-Verbindungen mit deaktivierter Zertifikatsprüfung werden nicht mehr aufgebaut.
 
 **Version 5.42:**  

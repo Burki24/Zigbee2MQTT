@@ -24,10 +24,7 @@
             "Zigbee2MQTT did not response!": "Zigbee2MQTT antwortet nicht!",
             "Zigbee2MQTT did not response on Topic %s": "Zigbee2MQTT antwortet nicht auf Topic %s",
             "Transaction Data is locked": "Transaktionen Daten sind gesperrt",
-            "Instances found with the same MQTT base topic but connected to another MQTT splitter. Repair them individually.": "Gefundene Instanzen mit gleichem MQTT-Basistopic, die mit einem anderen MQTT-Splitter verbunden sind. Reparieren Sie diese einzeln.",
-            "InstanceId": "InstanzID",
-            "Action": "Aktion",
-            "Repair": "Reparieren"
+            "Action": "Aktion"
         }
     }
 }
