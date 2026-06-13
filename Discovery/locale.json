@@ -8,13 +8,17 @@
             "Edit configuration": "Konfiguration ändern",
             "No MQTT Server or Client in Symcon found!": "Kein MQTT Server oder Client in Symcon gefunden!",
             "If an external MQTT broker is used, it can be specified here for verification:": "Wenn ein externer MQTT Broker genutzt wird,\r\nso kann dieser hier zur Überprüfung angegeben werden:",
-            "Url (mqtt:// or mqtts://)": "Url (mqtt:// oder mqtts://)",
+            "Use mqtt:// for an unencrypted connection or mqtts:// for a verified TLS connection. TLS always verifies the certificate and hostname and never falls back to an unencrypted connection.": "Verwenden Sie mqtt:// für eine unverschlüsselte Verbindung oder mqtts:// für eine geprüfte TLS-Verbindung. TLS prüft immer das Zertifikat und den Hostnamen und fällt niemals auf eine unverschlüsselte Verbindung zurück.",
+            "Broker address (mqtt:// or mqtts://)": "Broker-Adresse (mqtt:// oder mqtts://)",
             "Username": "Benutzername",
             "Password": "Passwort",
             "Save": "Speichern",
             "Please wait": "Bitte warte",
             "Configurator": "Konfigurator",
             "Could not connect to broker!": "Verbindung zum Broker konnte\r\nnicht hergestellt werden!",
+            "Check the broker address, port, credentials and whether Zigbee2MQTT is online.": "Prüfen Sie Broker-Adresse, Port, Zugangsdaten und ob Zigbee2MQTT online ist.",
+            "The verified TLS connection failed. Check whether the certificate is trusted and valid for the configured hostname. Discovery never falls back to an unencrypted connection.": "Die geprüfte TLS-Verbindung ist fehlgeschlagen. Prüfen Sie, ob das Zertifikat vertrauenswürdig und für den eingetragenen Hostnamen gültig ist. Die Discovery fällt niemals auf eine unverschlüsselte Verbindung zurück.",
+            "The unencrypted MQTT connection failed. Check the broker address, port, credentials and whether anonymous access is permitted.": "Die unverschlüsselte MQTT-Verbindung ist fehlgeschlagen. Prüfen Sie Broker-Adresse, Port, Zugangsdaten und ob anonymer Zugriff erlaubt ist.",
             "Transaction Data is locked": "Transaktionen Daten sind gesperrt"
         }
     }

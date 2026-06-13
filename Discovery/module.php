@@ -68,6 +68,7 @@ class Zigbee2MQTTDiscovery extends IPSModuleStrict
      * @uses parse_url()
      * @uses empty()
      * @uses isset()
+     * @uses in_array()
      */
     public function RequestAction(string $ident, mixed $value): void
     {
@@ -76,7 +77,10 @@ class Zigbee2MQTTDiscovery extends IPSModuleStrict
                 $Config = json_decode($value, true);
                 $this->SendDebug('Manuel CheckMQTTBroker', (string) $value, 0);
                 $Url = \is_array($Config) ? parse_url((string) ($Config['Url'] ?? '')) : false;
-                if (!\is_array($Config) || !\is_array($Url) || empty($Url['host'])) {
+                if (!\is_array($Config)
+                    || !\is_array($Url)
+                    || empty($Url['host'])
+                    || !\in_array($Url['scheme'] ?? '', ['mqtt', 'mqtts'], true)) {
                     $this->ManuelTopics = [];
                     $this->ManuelBrokerConfig = [];
                     $this->ReloadForm();
@@ -96,6 +100,15 @@ class Zigbee2MQTTDiscovery extends IPSModuleStrict
                     if ($Topics == null) {
                         $this->UpdateFormField('CheckMQTTBroker', 'caption', $this->Translate('Save'));
                         $this->UpdateFormField('CheckMQTTBroker', 'enabled', true);
+                        $this->UpdateFormField(
+                            'ErrorText',
+                            'caption',
+                            $this->Translate(
+                                $Config['UseSSL']
+                                    ? 'The verified TLS connection failed. Check whether the certificate is trusted and valid for the configured hostname. Discovery never falls back to an unencrypted connection.'
+                                    : 'The unencrypted MQTT connection failed. Check the broker address, port, credentials and whether anonymous access is permitted.'
+                            )
+                        );
                         $this->UpdateFormField('ErrorPopup', 'visible', true);
                     } else {
                         $this->SendDebug('Found Zigbee2MQTT', json_encode($Topics), 0);

@@ -50,9 +50,13 @@
                         "caption": "If an external MQTT broker is used, it can be specified here for verification:"
                     },
                     {
+                        "type": "Label",
+                        "caption": "Use mqtt:// for an unencrypted connection or mqtts:// for a verified TLS connection. TLS always verifies the certificate and hostname and never falls back to an unencrypted connection."
+                    },
+                    {
                         "type": "ValidationTextBox",
                         "name": "Url",
-                        "caption": "Url (mqtt:// or mqtts://)",
+                        "caption": "Broker address (mqtt:// or mqtts://)",
                         "validate": "((mqtt:\\/\\/)|(mqtts:\\/\\/)).*",
                         "value": "mqtt://"
                     },
@@ -96,6 +100,11 @@
                         "color": 16711680,
                         "bold": true,
                         "caption": "Could not connect to broker!"
+                    },
+                    {
+                        "name": "ErrorText",
+                        "type": "Label",
+                        "caption": "Check the broker address, port, credentials and whether Zigbee2MQTT is online."
                     }
                 ]
             }

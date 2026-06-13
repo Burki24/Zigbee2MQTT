@@ -175,6 +175,9 @@ Version 6.0 migriert die Module auf `IPSModuleStrict` und erweitert Geräte-, Gr
 4. **Meldungsfenster öffnen**
    Während des Updates sollte das Fenster [Meldungen](https://www.symcon.de/de/service/dokumentation/komponenten/verwaltungskonsole/meldungen/) geöffnet bleiben. So lassen sich eventuelle Hinweise während der Migration nachvollziehen.
 
+5. **TLS externer MQTT-Broker prüfen**
+   Die Discovery akzeptiert für ihre direkte Suche an externen MQTT-Brokern weiterhin unverschlüsselte `mqtt://`-Verbindungen oder geprüfte `mqtts://`-Verbindungen. Bei `mqtts://` werden Zertifikat und Hostname zwingend geprüft. Soll die Discovery einen externen TLS-Broker nach dem Update weiterhin direkt finden, müssen selbstsignierte, abgelaufene oder nicht zum Host passende Zertifikate korrigiert beziehungsweise deren ausstellende private CA auf dem Symcon-System als vertrauenswürdig hinterlegt werden. Bereits konfigurierte Zigbee2MQTT-Instanzen verwenden weiterhin ihren vorhandenen Symcon-MQTT-Splitter und sind von dieser Discovery-Prüfung nicht betroffen.
+
 #### II. Modulupdate <!-- omit in toc -->
 
 Das Update kann anschließend über den [Modul-Store](https://www.symcon.de/de/service/dokumentation/komponenten/verwaltungskonsole/module-store/) durchgeführt werden.
@@ -431,7 +434,7 @@ Die Änderungen sind anhand der funktionalen Commits chronologisch gegliedert. A
 - Erkannte IEEE-Adressen werden review-konform nur noch in das Konfigurationsformular eingetragen. Sie werden ausschließlich durch das reguläre **Übernehmen** der Instanzkonfiguration gespeichert.
 - Bridge-Suche, Binding-Ziele, OTA-Verwaltung und Netzwerksicherheitslisten berücksichtigen neben dem MQTT-Basistopic immer auch den tatsächlich verbundenen MQTT-Splitter. Mehrere Zigbee2MQTT-Systeme bleiben dadurch selbst bei identischem Basistopic vollständig voneinander getrennt.
 - Empfohlene Custom-Presentations werden nur noch beim erstmaligen Anlegen einer Variable automatisch gesetzt. Bestehende benutzerdefinierte Darstellungen bleiben bei `ApplyChanges`, Payloads und Expose-Aktualisierungen unverändert und können ausschließlich über eine bestätigte Einmal-Aktion bewusst durch die Modul-Empfehlungen ersetzt oder entfernt werden.
-- Die Discovery prüft bei verschlüsselten Verbindungen zu externen MQTT-Brokern das Serverzertifikat und den Hostnamen. Unsichere TLS-Verbindungen mit deaktivierter Zertifikatsprüfung werden nicht mehr aufgebaut.
+- Die Discovery lässt den Anwender über `mqtt://` oder `mqtts://` ausdrücklich zwischen unverschlüsseltem MQTT und geprüftem TLS wählen. Bei TLS werden Zertifikat und Hostname zwingend geprüft; ein automatischer Rückfall auf eine unverschlüsselte Verbindung findet nicht statt. Unsichere TLS-Verbindungen mit deaktivierter Zertifikatsprüfung werden nicht mehr aufgebaut.
 
 **Version 5.42:**  
 
