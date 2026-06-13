@@ -298,8 +298,10 @@ class Zigbee2MQTTDiscovery extends IPSModuleStrict
             $mqtt->setSslContextOptions(
                 [
                     'ssl' => [
-                        'verify_peer'      => false,
-                        'verify_peer_name' => false
+                        'verify_peer'      => true,
+                        'verify_peer_name' => true,
+                        'SNI_enabled'      => true,
+                        'peer_name'        => $Config['Host']
                     ]
                 ]
             );

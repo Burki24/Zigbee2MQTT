@@ -518,8 +518,6 @@ abstract class ModulBase extends \IPSModuleStrict
         $this->SetReceiveDataFilter('.*(' . $Filter1 . '|' . $Filter2 . '|' . $Filter3 . ').*');
         $this->SetStatus(IS_ACTIVE);
         $this->RefreshExposeVariableCatalog();
-        $this->RefreshColorTemperaturePresentation();
-        $this->ApplyDurationPresentation('update__remaining');
         $this->UpdateCustomTileVisualizationType();
     }
 
@@ -1384,6 +1382,10 @@ abstract class ModulBase extends \IPSModuleStrict
                 // Features in der Gruppe verarbeiten
                 if (isset($expose['features']) && \is_array($expose['features'])) {
                     foreach ($expose['features'] as $feature) {
+                        // Gruppentyp auch im Variablenkatalog erhalten, damit spaetere
+                        // ausdrueckliche Benutzeraktionen die passende Darstellung erkennen.
+                        $feature['group_type'] = $expose['type'];
+
                         // Gefilterte Attribute gemaess Z2M-Konfiguration ueberspringen
                         $sProperty = $feature['property'] ?? '';
                         if ($sProperty !== '' && !$this->IsExposeCompositeContainer($feature) && !isset($feature['color_mode'])) {
@@ -1395,8 +1397,6 @@ abstract class ModulBase extends \IPSModuleStrict
                         }
 
                         $this->SendDebug(__FUNCTION__ . ' :: Line ' . __LINE__ . ' :: Processing feature in group: ', json_encode($feature), 0);
-                        // Setze den Gruppentyp als zusätzlichen Wert
-                        $feature['group_type'] = $expose['type'];
                         // Variablen für die einzelnen Features registrieren
                         $this->registerVariable($feature);
 
@@ -4485,6 +4485,7 @@ abstract class ModulBase extends \IPSModuleStrict
         }
 
         $ident = str_replace('&', '_and_', $property);
+        $isNewVariable = $this->GetObjectIDByIdent($ident) === false;
         if (!$this->registerFeatureVariableByType($feature, $ident, $property, $variableType, $profileName, $exposeType)) {
             return;
         }
@@ -4492,7 +4493,7 @@ abstract class ModulBase extends \IPSModuleStrict
         // Zentrale EnableAction-Prüfung für die Hauptvariable, außer bei composite
         if ($variableType != 'composite') {
             $this->checkAndEnableAction($ident, $feature);
-            $this->ApplyFeaturePresentation($ident, $feature, $groupType);
+            $this->ApplyFeaturePresentation($ident, $feature, $groupType, $isNewVariable);
         }
 
         $this->registerColorTemperatureKelvinVariable($property, $feature);
@@ -4776,9 +4777,10 @@ abstract class ModulBase extends \IPSModuleStrict
             return;
         }
 
+        $isNewVariable = $this->GetObjectIDByIdent($kelvinIdent) === false;
         $this->RegisterVariableInteger($kelvinIdent, $this->Translate('Color Temperature Kelvin'), '~TWColor');
         $this->MarkVariableCreated($kelvinIdent);
-        $this->ApplyColorTemperaturePresentation($kelvinIdent, $feature);
+        $this->ApplyColorTemperaturePresentation($kelvinIdent, $feature, $isNewVariable);
         $this->checkAndEnableAction($kelvinIdent, null, true);
 
         $this->registerColorTemperatureWhiteColorVariable();
@@ -5069,6 +5071,7 @@ abstract class ModulBase extends \IPSModuleStrict
             $value = $this->adjustSpecialValue($ident, $feature['value']);
         }
 
+        $isNewVariable = $this->GetObjectIDByIdent($ident) === false;
         switch ($varDef['type']) {
             case VARIABLETYPE_FLOAT:
                 $this->RegisterVariableFloat($ident, $this->Translate($formattedLabel), $varDef['profile']);
@@ -5088,7 +5091,7 @@ abstract class ModulBase extends \IPSModuleStrict
         // Zentrale EnableAction-Prüfung für spezielle Variable
         $this->checkAndEnableAction($ident, $feature);
         if ($ident === 'update__remaining') {
-            $this->ApplyDurationPresentation($ident);
+            $this->ApplyDurationPresentation($ident, $isNewVariable);
         }
 
         return;

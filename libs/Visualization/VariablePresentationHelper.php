@@ -12,9 +12,9 @@ trait VariablePresentationHelper
     /**
      * Setzt automatisch eine passende Tile-Darstellung fuer bekannte Expose-Typen.
      */
-    protected function ApplyFeaturePresentation(string $ident, array $feature, ?string $groupType = null): void
+    protected function ApplyFeaturePresentation(string $ident, array $feature, ?string $groupType = null, bool $allowChange = false): void
     {
-        if (!isset($feature['type'])) {
+        if (!$allowChange || !isset($feature['type'])) {
             return;
         }
 
@@ -42,8 +42,12 @@ trait VariablePresentationHelper
      * wird die zusaetzliche color_temp_kelvin-Variable verwendet und der Bereich
      * aus den Mired-Grenzen des Exposes nach Kelvin umgerechnet.
      */
-    protected function ApplyColorTemperaturePresentation(string $ident, array $feature): void
+    protected function ApplyColorTemperaturePresentation(string $ident, array $feature, bool $allowChange = false): void
     {
+        if (!$allowChange) {
+            return;
+        }
+
         [$minKelvin, $maxKelvin] = $this->GetColorTemperaturePresentationRange($feature);
 
         $this->ApplySliderPresentation($ident, [
@@ -60,28 +64,11 @@ trait VariablePresentationHelper
     }
 
     /**
-     * Aktualisiert die Farbtemperaturdarstellung anhand gespeicherter Exposes.
-     */
-    protected function RefreshColorTemperaturePresentation(): void
-    {
-        if ($this->GetObjectIDByIdent('color_temp_kelvin') === false) {
-            return;
-        }
-
-        $feature = $this->FindColorTemperatureFeature($this->ReadAttributeArray(self::ATTRIBUTE_EXPOSES));
-        if ($feature === null) {
-            return;
-        }
-
-        $this->ApplyColorTemperaturePresentation('color_temp_kelvin', $feature);
-    }
-
-    /**
      * Setzt fuer Sekundenwerte eine lesbare Dauerdarstellung.
      */
-    protected function ApplyDurationPresentation(string $ident): void
+    protected function ApplyDurationPresentation(string $ident, bool $allowChange = false): void
     {
-        if (!$this->SupportsDurationPresentation()) {
+        if (!$allowChange || !$this->SupportsDurationPresentation()) {
             return;
         }
 
@@ -101,6 +88,57 @@ trait VariablePresentationHelper
             'FORMAT'         => 2,
             'MILLISECONDS'   => false
         ]);
+    }
+
+    /**
+     * Wendet die vom Modul empfohlenen Darstellungen nach ausdruecklicher Benutzeraktion an.
+     *
+     * Bestehende Custom-Presentations werden dabei bewusst ersetzt oder entfernt. Diese
+     * Methode darf daher nicht aus ApplyChanges oder der normalen Payload-Verarbeitung
+     * aufgerufen werden.
+     */
+    protected function ApplyRecommendedVariablePresentations(): void
+    {
+        foreach ($this->ReadAttributeArray(self::ATTRIBUTE_VARIABLE_CATALOG) as $ident => $entry) {
+            if (!\is_array($entry) || !isset($entry['feature']) || !\is_array($entry['feature'])) {
+                continue;
+            }
+
+            $feature = $entry['feature'];
+            $this->ApplyFeaturePresentation(
+                (string) $ident,
+                $feature,
+                isset($feature['group_type']) ? (string) $feature['group_type'] : null,
+                true
+            );
+        }
+
+        $colorTemperatureFeature = $this->FindColorTemperatureFeature($this->ReadAttributeArray(self::ATTRIBUTE_EXPOSES));
+        if ($colorTemperatureFeature !== null) {
+            $this->ApplyColorTemperaturePresentation('color_temp_kelvin', $colorTemperatureFeature, true);
+        }
+
+        $this->ApplyDurationPresentation('update__remaining', true);
+    }
+
+    /**
+     * Prueft, ob fuer mindestens eine vorhandene Variable eine Modul-Empfehlung existiert.
+     */
+    protected function HasRecommendedVariablePresentations(): bool
+    {
+        foreach ($this->ReadAttributeArray(self::ATTRIBUTE_VARIABLE_CATALOG) as $ident => $entry) {
+            if ($this->GetObjectIDByIdent((string) $ident) === false || !\is_array($entry)) {
+                continue;
+            }
+
+            $feature = $entry['feature'] ?? null;
+            if (\is_array($feature) && \in_array($feature['type'] ?? '', ['binary', 'numeric', 'enum'], true)) {
+                return true;
+            }
+        }
+
+        return $this->GetObjectIDByIdent('color_temp_kelvin') !== false
+            || $this->GetObjectIDByIdent('update__remaining') !== false;
     }
 
     /**

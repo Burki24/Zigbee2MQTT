@@ -56,6 +56,23 @@
                     "caption": ""
                 },
                 {
+                    "type": "ExpansionPanel",
+                    "name": "VariablePresentationSettings",
+                    "caption": "Variable presentations",
+                    "expanded": false,
+                    "items": [
+                        {
+                            "type": "Label",
+                            "caption": "Existing custom presentations are preserved automatically. Apply the module recommendations only when you intentionally want to replace them."
+                        },
+                        {
+                            "type": "Button",
+                            "caption": "Apply recommended variable presentations",
+                            "onClick": "IPS_RequestAction($id, 'RequestApplyRecommendedPresentations', true);"
+                        }
+                    ]
+                },
+                {
                     "type": "CheckBox",
                     "name": "DisableMeteredSwitchTile",
                     "caption": "Disable switch tile",
@@ -935,6 +952,31 @@
                     {
                         "type": "Label",
                         "caption": "Zigbee2MQTT will remove the device and add it to the blocklist so it cannot join the network again. The Symcon instance and its variables remain unchanged."
+                    }
+                ]
+            }
+        },
+        {
+            "name": "RecommendedPresentationsWarning",
+            "type": "PopupAlert",
+            "visible": false,
+            "popup": {
+                "closeCaption": "Cancel",
+                "buttons": [
+                    {
+                        "caption": "Apply presentations",
+                        "onClick": "IPS_RequestAction($id, 'ConfirmApplyRecommendedPresentations', true);"
+                    }
+                ],
+                "items": [
+                    {
+                        "type": "Label",
+                        "bold": true,
+                        "caption": "Replace custom variable presentations?"
+                    },
+                    {
+                        "type": "Label",
+                        "caption": "All recognized variables of this instance will receive the presentations recommended by the module. Existing custom presentations may be replaced or removed."
                     }
                 ]
             }

@@ -495,7 +495,7 @@ trait DeviceFormHelper
             $hasVisibleTileOption = $hasVisibleTileOption || $visible;
         }
 
-        $this->SetDeviceFormField($form, 'VisualizationSettings', 'visible', $hasVisibleTileOption);
+        $this->SetDeviceFormField($form, 'VisualizationSettings', 'visible', $hasVisibleTileOption || $this->HasRecommendedVariablePresentations());
         $this->SetDeviceFormField(
             $form,
             'VisualizationStatus',

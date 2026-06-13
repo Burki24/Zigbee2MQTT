@@ -144,6 +144,8 @@ Die höher priorisierte Kachel kann in der Instanz-Konfiguration deaktiviert wer
 
 Für Gerätetypen, die Symcon bereits nativ gut darstellen kann, erstellt das Modul bewusst keine eigene HTML-Kachel. Rollladen/Jalousien mit `type: "cover"` und `position` werden über die Symcon-Shutter-Darstellung bzw. das Standardprofil `~Shutter.Reversed` abgebildet. Einfache Türschlösser, Lüfter oder Sirenen bleiben bei den passenden Standarddarstellungen wie Schalter, Slider oder Aufzählung, solange die Exposes keine eigenständige zusammengefasste Kachel nötig machen.
 
+Empfohlene moderne Variablendarstellungen werden nur beim erstmaligen Anlegen einer Variable automatisch gesetzt. Danach bleiben benutzerdefinierte Darstellungen auch bei **Übernehmen**, neuen Payloads und aktualisierten Geräteinformationen unverändert. Sollen die Empfehlungen des Moduls bewusst erneut angewendet werden, steht im Bereich **Visualisierung → Variablendarstellungen** eine bestätigungspflichtige Einmal-Aktion zur Verfügung. Diese kann vorhandene benutzerdefinierte Darstellungen ersetzen oder bei Variablen ohne empfohlene Darstellung entfernen.
+
 ### 4.3 Temperatur-Visualisierung
 
 Für Temperatur-Exposes setzt das Modul automatisch eine moderne Tile-Darstellung. Wenn Zigbee2MQTT `value_min` und `value_max` liefert, werden diese Werte für den Darstellungsbereich genutzt.

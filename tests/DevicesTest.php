@@ -157,6 +157,24 @@ class DevicesTest extends DumpInclude
         $this->assertSame(VARIABLE_PRESENTATION_SHUTTER, $variable['VariableCustomPresentation']['PRESENTATION'] ?? null);
         $this->assertSame(100.0, $variable['VariableCustomPresentation']['OPEN_OUTSIDE_VALUE'] ?? null);
         $this->assertSame(0.0, $variable['VariableCustomPresentation']['CLOSE_INSIDE_VALUE'] ?? null);
+
+        IPS_SetVariableCustomPresentation($positionID, [
+            'PRESENTATION' => VARIABLE_PRESENTATION_SLIDER,
+            'MIN'          => 10,
+            'MAX'          => 90
+        ]);
+        IPS_ApplyChanges($iid);
+
+        $variable = IPS_GetVariable($positionID);
+        $this->assertSame(VARIABLE_PRESENTATION_SLIDER, $variable['VariableCustomPresentation']['PRESENTATION'] ?? null);
+        $this->assertSame(10, $variable['VariableCustomPresentation']['MIN'] ?? null);
+        $this->assertSame(90, $variable['VariableCustomPresentation']['MAX'] ?? null);
+
+        IPS\InstanceManager::getInstanceInterface($iid)->RequestAction('ConfirmApplyRecommendedPresentations', true);
+        $variable = IPS_GetVariable($positionID);
+        $this->assertSame(VARIABLE_PRESENTATION_SHUTTER, $variable['VariableCustomPresentation']['PRESENTATION'] ?? null);
+        $this->assertSame(100.0, $variable['VariableCustomPresentation']['OPEN_OUTSIDE_VALUE'] ?? null);
+        $this->assertSame(0.0, $variable['VariableCustomPresentation']['CLOSE_INSIDE_VALUE'] ?? null);
     }
 
     public function testCoverStateActionKeepsEnumValue(): void
@@ -940,6 +958,11 @@ class DevicesTest extends DumpInclude
         IPS_SetProperty($iid, 'ColorTemperaturePresentationMax', 5000);
         IPS_ApplyChanges($iid);
 
+        $presentation = IPS_GetVariable($kelvinID)['VariableCustomPresentation'];
+        $this->assertSame(1801, $presentation['MIN']);
+        $this->assertSame(6535, $presentation['MAX']);
+
+        $interface->RequestAction('ConfirmApplyRecommendedPresentations', true);
         $presentation = IPS_GetVariable($kelvinID)['VariableCustomPresentation'];
         $this->assertSame(2202, $presentation['MIN']);
         $this->assertSame(5000, $presentation['MAX']);
@@ -1770,6 +1793,10 @@ class DevicesTest extends DumpInclude
         IPS_SetVariableCustomPresentation($remainingID, []);
         IPS_ApplyChanges($iid);
 
+        $presentation = IPS_GetVariable($remainingID)['VariableCustomPresentation'];
+        $this->assertSame([], $presentation);
+
+        $interface->RequestAction('ConfirmApplyRecommendedPresentations', true);
         $presentation = IPS_GetVariable($remainingID)['VariableCustomPresentation'];
         $this->assertSame(VARIABLE_PRESENTATION_DURATION, $presentation['PRESENTATION']);
     }

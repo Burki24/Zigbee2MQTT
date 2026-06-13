@@ -647,8 +647,20 @@ trait VariableCatalogHelper
      *
      * @return array<int,string> Gueltige Variablen-Idents aus den Exposes.
      */
-    private function RememberExposeFeatureRecursive(array $feature): array
+    private function RememberExposeFeatureRecursive(array $feature, ?string $groupType = null): array
     {
+        if (isset($feature['group_type']) && \is_string($feature['group_type'])) {
+            $groupType = $feature['group_type'];
+        } elseif (isset($feature['features'])
+            && \is_array($feature['features'])
+            && \in_array($feature['type'] ?? '', ['light', 'switch', 'lock', 'cover', 'climate', 'fan', 'text'], true)
+        ) {
+            $groupType = (string) $feature['type'];
+        }
+        if ($groupType !== null) {
+            $feature['group_type'] = $groupType;
+        }
+
         if (isset($feature['color_mode'])) {
             return [];
         }
@@ -670,7 +682,8 @@ trait VariableCatalogHelper
                 }
 
                 $idents = array_merge($idents, $this->RememberExposeFeatureRecursive(
-                    $this->BuildCompositeSubFeature($subFeature, $parentIdent, $parentLabel)
+                    $this->BuildCompositeSubFeature($subFeature, $parentIdent, $parentLabel),
+                    $groupType
                 ));
             }
 
@@ -690,7 +703,7 @@ trait VariableCatalogHelper
 
         foreach ($feature['features'] as $subFeature) {
             if (\is_array($subFeature)) {
-                $idents = array_merge($idents, $this->RememberExposeFeatureRecursive($subFeature));
+                $idents = array_merge($idents, $this->RememberExposeFeatureRecursive($subFeature, $groupType));
             }
         }
 

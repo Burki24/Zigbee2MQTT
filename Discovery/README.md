@@ -39,6 +39,8 @@ Mit dieser Instanz werden alle mit MQTT-Brokern(Servern) verbundenen Zigbee2MQTT
 ![Übersicht Konfigurator](imgs/config1.png)
 ![Übersicht Konfigurator](imgs/config2.png)
 
+Bei einer verschlüsselten Verbindung zu einem externen MQTT-Broker prüft die Discovery das Serverzertifikat und den Hostnamen. Der Broker benötigt deshalb ein gültiges, vom Symcon-System als vertrauenswürdig erkanntes TLS-Zertifikat, dessen Name zum eingetragenen Host passt. Broker mit selbstsignierten, abgelaufenen oder für einen anderen Host ausgestellten Zertifikaten werden aus Sicherheitsgründen nicht verbunden.
+
 Wird eine Zeile selektiert und die Schaltfläche `Erstellen` betätigt, so wird automatisch eine [Konfigurator](../Configurator/README.md)-Instanz, und bei Angabe eines externen Brokern auch der benötigten MQTT-Client mit  Client Socket, in Symcon angelegt.  
 
 Über den Button `Konfigurieren` wird die weitere Konfiguration in der [Konfigurator](../Configurator/README.md)-Instanz fortgesetzt.  

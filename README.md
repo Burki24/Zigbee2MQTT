@@ -430,6 +430,8 @@ Die Änderungen sind anhand der funktionalen Commits chronologisch gegliedert. A
 - Dynamisch erzeugte Texte der instanzbezogenen Variablen-Wartung werden vollständig übersetzt. Die Dokumentation erläutert Suchlauf-Hinweise als diagnostische Meldungen für übersprungene oder unvollständig prüfbare Instanzen.
 - Erkannte IEEE-Adressen werden review-konform nur noch in das Konfigurationsformular eingetragen. Sie werden ausschließlich durch das reguläre **Übernehmen** der Instanzkonfiguration gespeichert.
 - Bridge-Suche, Binding-Ziele, OTA-Verwaltung und Netzwerksicherheitslisten berücksichtigen neben dem MQTT-Basistopic immer auch den tatsächlich verbundenen MQTT-Splitter. Mehrere Zigbee2MQTT-Systeme bleiben dadurch selbst bei identischem Basistopic vollständig voneinander getrennt.
+- Empfohlene Custom-Presentations werden nur noch beim erstmaligen Anlegen einer Variable automatisch gesetzt. Bestehende benutzerdefinierte Darstellungen bleiben bei `ApplyChanges`, Payloads und Expose-Aktualisierungen unverändert und können ausschließlich über eine bestätigte Einmal-Aktion bewusst durch die Modul-Empfehlungen ersetzt oder entfernt werden.
+- Die Discovery prüft bei verschlüsselten Verbindungen zu externen MQTT-Brokern das Serverzertifikat und den Hostnamen. Unsichere TLS-Verbindungen mit deaktivierter Zertifikatsprüfung werden nicht mehr aufgebaut.
 
 **Version 5.42:**  
 
