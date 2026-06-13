@@ -431,6 +431,7 @@ class DevicesTest extends DumpInclude
     public function testSwitchStateActionStillMapsBooleanToOnOff(): void
     {
         $device = $this->createDeviceActionTestDouble();
+        $stateID = $device->registerBooleanVariableForTest('state');
         $device->setExposesForTest([
             [
                 'type'     => 'switch',
@@ -449,9 +450,11 @@ class DevicesTest extends DumpInclude
 
         $device->RequestAction('state', true);
         $this->assertSame(['state' => 'ON'], $device->sentPayload);
+        $this->assertTrue(GetValue($stateID));
 
         $device->RequestAction('state', false);
         $this->assertSame(['state' => 'OFF'], $device->sentPayload);
+        $this->assertFalse(GetValue($stateID));
     }
 
     public function testCommandRejectsInvalidJsonPayloadWithoutTypeError(): void
@@ -2258,6 +2261,12 @@ class DevicesTest extends DumpInclude
             public function setExposesForTest(array $exposes): void
             {
                 $this->WriteAttributeArray(self::ATTRIBUTE_EXPOSES, $exposes);
+            }
+
+            public function registerBooleanVariableForTest(string $ident): int
+            {
+                $this->RegisterVariableBoolean($ident, $ident);
+                return $this->GetIDForIdent($ident);
             }
 
             public function setColorModeForTest(string $colorMode): void

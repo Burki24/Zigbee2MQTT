@@ -1286,7 +1286,7 @@ abstract class ModulBase extends \IPSModuleStrict
         // Wert entsprechend Variablentyp konvertieren
         switch (IPS_GetVariable($variableID)['VariableType']) {
             case VARIABLETYPE_BOOLEAN:
-                $value = (bool) $value;
+                $value = $this->adjustBooleanValueByType($ident, $value);
                 $debugVarType = 'bool';
                 break;
             case VARIABLETYPE_INTEGER:

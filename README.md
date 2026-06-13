@@ -428,6 +428,7 @@ Die Änderungen sind anhand der funktionalen Commits chronologisch gegliedert. A
 
 ### 13. Juni 2026: Instanzbezogene Variablen-Wartung
 
+- Binäre Statusaktionen schreiben Zigbee2MQTT-Werte wie `ON` und `OFF` nach dem Senden wieder typgerecht als Boolean in die Symcon-Variable. Dadurch springt ein ausgeschalteter Status nicht mehr durch PHPs String-Konvertierung unmittelbar auf `Ein` zurück.
 - Die Variablen-Wartung folgt den Instanz- und Systemgrenzen: Die Bridge zeigt nur noch eine kompakte, nach Geräten und Gruppen desselben MQTT-Splitters und MQTT-Basistopics zusammengefasste Übersicht. Prüfung und bestätigtes Löschen erfolgen direkt in der zuständigen Instanz, die ausschließlich ihre eigenen direkten Variablen verwalten darf.
 - Expertenwerkzeuge in Geräte- und Gruppeninstanzen nutzen die verfügbare Formularbreite. Die instanzbezogene Variablen-Wartung erscheint vor dem Testcenter und bei Geräten direkt unterhalb der erweiterten Geräteentfernung.
 - Dynamisch erzeugte Texte der instanzbezogenen Variablen-Wartung werden vollständig übersetzt. Die Dokumentation erläutert Suchlauf-Hinweise als diagnostische Meldungen für übersprungene oder unvollständig prüfbare Instanzen.

@@ -116,6 +116,37 @@ class MQTTHelperTest extends TestCase
         $this->assertStringNotContainsString('SECRET', json_encode($helper->debugMessages));
     }
 
+    public function testDeviceCommandCombinesTopicsAndPreservesOffPayload(): void
+    {
+        $helper = new class() {
+            use \Zigbee2MQTT\SendData;
+
+            public array $sentRequests = [];
+
+            public function ReadPropertyString(string $name): string
+            {
+                return match ($name) {
+                    'MQTTBaseTopic' => 'Z2M-2',
+                    'MQTTTopic'     => 'Wohnbereich/Beleuchtung/Wohnzimmer/Couchlicht',
+                    default         => ''
+                };
+            }
+
+            public function SendDebug(string $message, mixed $data, int $format): void
+            {
+            }
+
+            public function SendDataToParent(string $data): void
+            {
+                $this->sentRequests[] = json_decode($data, true);
+            }
+        };
+
+        $this->assertTrue($helper->Command('set', '{"state":"OFF"}'));
+        $this->assertSame('/Z2M-2/Wohnbereich/Beleuchtung/Wohnzimmer/Couchlicht/set', $helper->sentRequests[0]['Topic']);
+        $this->assertSame(['state' => 'OFF'], json_decode(hex2bin($helper->sentRequests[0]['Payload']) ?: '', true));
+    }
+
     public function testUnavailableInstanceInterfaceStopsBeforeSending(): void
     {
         $helper = new class() {
