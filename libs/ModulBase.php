@@ -1280,6 +1280,7 @@ abstract class ModulBase extends \IPSModuleStrict
         }
 
         // Wert entsprechend Variablentyp konvertieren
+        $debugVarType = 'unknown';
         switch (IPS_GetVariable($variableID)['VariableType']) {
             case VARIABLETYPE_BOOLEAN:
                 $value = $this->adjustBooleanValueByType($ident, $value);
@@ -1700,7 +1701,7 @@ abstract class ModulBase extends \IPSModuleStrict
      */
     private function SetModuleValue(string $ident, int $variableID, mixed $value): bool
     {
-        if (\defined('PHPUNIT_TESTSUITE') && PHPUNIT_TESTSUITE) {
+        if (\defined('PHPUNIT_TESTSUITE') && \constant('PHPUNIT_TESTSUITE')) {
             \SetValue($variableID, $value);
             return true;
         }

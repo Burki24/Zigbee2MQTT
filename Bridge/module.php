@@ -1711,7 +1711,7 @@ class Zigbee2MQTTBridge extends IPSModuleStrict
             return false;
         }
 
-        if (\defined('PHPUNIT_TESTSUITE') && PHPUNIT_TESTSUITE) {
+        if (\defined('PHPUNIT_TESTSUITE') && \constant('PHPUNIT_TESTSUITE')) {
             \SetValue($variableID, $Value);
             return true;
         }
