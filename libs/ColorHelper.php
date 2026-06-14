@@ -80,15 +80,20 @@ trait ColorHelper
      */
     protected function HSVToInt($hue, $saturation, int $bri = 254): int
     {
+        $hue = fmod((float) $hue, 360.0);
+        if ($hue < 0) {
+            $hue += 360.0;
+        }
         $hue /= 360;
-        $saturation /= 100;
+        $saturation = max(0.0, min(100.0, (float) $saturation)) / 100;
         // Normalisierung der Brightness (0-1)
-        $value = $bri / 255;
+        $value = max(0, min(255, $bri)) / 255;
         $i = floor($hue * 6);
         $f = $hue * 6 - $i;
         $p = $value * (1 - $saturation);
         $q = $value * (1 - $f * $saturation);
         $t = $value * (1 - (1 - $f) * $saturation);
+        $r = $g = $b = 0.0;
         switch ($i % 6) {
             case 0: $r = $value;
                 $g = $t;
