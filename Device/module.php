@@ -10,6 +10,9 @@ require_once dirname(__DIR__) . '/libs/ModulBase.php';
 class Zigbee2MQTTDevice extends \Zigbee2MQTT\ModulBase
 {
     private const ICON_CACHE_DIRECTORY = 'icons';
+    private const ICON_DOWNLOAD_MAX_BYTES = 2 * 1024 * 1024;
+    private const ICON_DOWNLOAD_TIMEOUT_SECONDS = 5;
+    private const ICON_MAX_DIMENSION = 4096;
 
     /** @var mixed $ExtensionTopic Topic für den ReceiveFilter*/
     protected static $ExtensionTopic = 'getDeviceInfo/';
@@ -358,14 +361,17 @@ class Zigbee2MQTTDevice extends \Zigbee2MQTT\ModulBase
     {
         $model = $this->ReadAttributeString('Model');
         if ($model !== '') {
-            $imageRaw = @file_get_contents($this->GetDeviceIconCacheFile($model));
-            if ($imageRaw !== false) {
+            $imageRaw = $this->ReadDeviceIconCache($model);
+            if ($imageRaw !== null) {
                 return 'data:image/png;base64,' . base64_encode($imageRaw);
             }
         }
 
         // Kompatibilitaetsfallback bis ein bestehendes Base64-Attribut migriert wurde.
-        return $this->ReadAttributeString('Icon');
+        $imageRaw = $this->ReadPersistedDeviceIcon();
+        return $imageRaw !== null
+            ? 'data:image/png;base64,' . base64_encode($imageRaw)
+            : '';
     }
 
     /**
@@ -550,8 +556,8 @@ class Zigbee2MQTTDevice extends \Zigbee2MQTT\ModulBase
 
         $Url = 'https://raw.githubusercontent.com/Koenkk/zigbee2mqtt.io/master/public/images/devices/' . $ModelUrl . '.png';
         $this->SendDebug('loadImage', $Url, 0);
-        $ImageRaw = @file_get_contents($Url);
-        if ($ImageRaw !== false && $this->WriteDeviceIconCache($Model, $ImageRaw)) {
+        $ImageRaw = $this->DownloadDeviceIcon($Url);
+        if ($ImageRaw !== null && $this->WriteDeviceIconCache($Model, $ImageRaw)) {
             $this->WriteAttributeString('Icon', '');
             $this->WriteAttributeString('Model', $Model);
         } else {
@@ -564,20 +570,13 @@ class Zigbee2MQTTDevice extends \Zigbee2MQTT\ModulBase
      */
     private function MigratePersistedDeviceIconToCache(): void
     {
-        $icon = $this->ReadAttributeString('Icon');
-        if ($icon === '') {
-            return;
-        }
-
         $model = $this->ReadAttributeString('Model');
-        if ($model === ''
-            || preg_match('#^data:image/[^;]+;base64,(.+)$#s', $icon, $matches) !== 1
-        ) {
+        $imageRaw = $this->ReadPersistedDeviceIcon();
+        if ($model === '' || $imageRaw === null) {
             return;
         }
 
-        $imageRaw = base64_decode($matches[1], true);
-        if ($imageRaw !== false && $this->WriteDeviceIconCache($model, $imageRaw)) {
+        if ($this->WriteDeviceIconCache($model, $imageRaw)) {
             $this->WriteAttributeString('Icon', '');
         }
     }
@@ -587,7 +586,73 @@ class Zigbee2MQTTDevice extends \Zigbee2MQTT\ModulBase
      */
     private function HasCachedDeviceIcon(string $model): bool
     {
-        return is_file($this->GetDeviceIconCacheFile($model));
+        return $this->ReadDeviceIconCache($model) !== null;
+    }
+
+    /**
+     * Laedt ein Geraetebild mit begrenzter Laufzeit und Groesse.
+     */
+    private function DownloadDeviceIcon(string $url): ?string
+    {
+        $context = stream_context_create([
+            'http' => [
+                'follow_location' => 0,
+                'timeout'         => self::ICON_DOWNLOAD_TIMEOUT_SECONDS,
+                'user_agent'      => 'IP-Symcon Zigbee2MQTT'
+            ],
+            'ssl' => [
+                'verify_peer'      => true,
+                'verify_peer_name' => true
+            ]
+        ]);
+        $imageRaw = @file_get_contents(
+            $url,
+            false,
+            $context,
+            0,
+            self::ICON_DOWNLOAD_MAX_BYTES + 1
+        );
+        if (!\is_string($imageRaw) || !$this->IsValidDeviceIcon($imageRaw)) {
+            return null;
+        }
+
+        return $imageRaw;
+    }
+
+    /**
+     * Liest nur valide PNG-Dateien aus dem gemeinsam genutzten Cache.
+     */
+    private function ReadDeviceIconCache(string $model): ?string
+    {
+        $cacheFile = $this->GetDeviceIconCacheFile($model);
+        if (!is_file($cacheFile)) {
+            return null;
+        }
+
+        $imageRaw = @file_get_contents($cacheFile, false, null, 0, self::ICON_DOWNLOAD_MAX_BYTES + 1);
+        if (!\is_string($imageRaw) || !$this->IsValidDeviceIcon($imageRaw)) {
+            return null;
+        }
+
+        return $imageRaw;
+    }
+
+    /**
+     * Liest ein historisch im Attribut gespeichertes Geraetebild nur als valides PNG.
+     */
+    private function ReadPersistedDeviceIcon(): ?string
+    {
+        $icon = $this->ReadAttributeString('Icon');
+        if (preg_match('#^data:image/png;base64,(.+)$#s', $icon, $matches) !== 1) {
+            return null;
+        }
+
+        $imageRaw = base64_decode($matches[1], true);
+        if (!\is_string($imageRaw) || !$this->IsValidDeviceIcon($imageRaw)) {
+            return null;
+        }
+
+        return $imageRaw;
     }
 
     /**
@@ -595,12 +660,41 @@ class Zigbee2MQTTDevice extends \Zigbee2MQTT\ModulBase
      */
     private function WriteDeviceIconCache(string $model, string $imageRaw): bool
     {
+        if (!$this->IsValidDeviceIcon($imageRaw)) {
+            return false;
+        }
+
         $directory = $this->GetDeviceIconCacheDirectory();
         if (!is_dir($directory) && !@mkdir($directory, 0777, true)) {
             return false;
         }
 
         return @file_put_contents($this->GetDeviceIconCacheFile($model), $imageRaw, LOCK_EX) !== false;
+    }
+
+    /**
+     * Akzeptiert ausschliesslich kleine, technisch lesbare PNG-Geraetebilder.
+     */
+    private function IsValidDeviceIcon(string $imageRaw): bool
+    {
+        $length = \strlen($imageRaw);
+        if ($length === 0 || $length > self::ICON_DOWNLOAD_MAX_BYTES
+            || !str_starts_with($imageRaw, "\x89PNG\r\n\x1a\n")) {
+            return false;
+        }
+
+        $imageInfo = @getimagesizefromstring($imageRaw);
+        if (!\is_array($imageInfo)
+            || ($imageInfo[2] ?? null) !== IMAGETYPE_PNG
+            || ($imageInfo['mime'] ?? '') !== 'image/png') {
+            return false;
+        }
+
+        $width = (int) ($imageInfo[0] ?? 0);
+        $height = (int) ($imageInfo[1] ?? 0);
+        return $width > 0 && $height > 0
+            && $width <= self::ICON_MAX_DIMENSION
+            && $height <= self::ICON_MAX_DIMENSION;
     }
 
     /**

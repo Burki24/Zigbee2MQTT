@@ -448,6 +448,7 @@ Die Änderungen sind anhand der funktionalen Commits chronologisch gegliedert. A
 - Bestehende Variablenprofile werden bei abweichendem Typ, Wertebereich oder abweichenden Assoziationen weder verändert noch gelöscht. Vollständig passende Profile werden wiederverwendet; bei Namenskonflikten erstellt das Modul ein eindeutig benanntes kompatibles Profil und weist dieses der betreffenden Variable zu.
 - Die öffentlichen Funktionsreferenzen für Geräte und Gruppen dokumentieren `Z2M_CommandExt()` und den Rückgabewert von `Z2M_ReadValue()` jetzt entsprechend den tatsächlich bereitgestellten Schnittstellen.
 - Eine versehentlich eingecheckte Chromium-Debugausgabe wurde entfernt; `debug.log` wird künftig durch `.gitignore` vom Repository ausgeschlossen.
+- Gerätebilder werden mit geprüftem TLS, einem Timeout von fünf Sekunden und einer Größenbegrenzung von zwei MiB geladen. Nur technisch lesbare PNG-Dateien mit begrenzten Bildabmessungen werden gespeichert oder aus einem bestehenden Cache übernommen.
 
 **Version 5.42:**  
 

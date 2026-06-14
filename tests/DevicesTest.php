@@ -68,7 +68,7 @@ class DevicesTest extends DumpInclude
     {
         $iid = IPS_CreateInstance('{E5BB36C6-A70B-EB23-3716-9151A09AC8A2}');
         $model = 'Icon cache test ' . $iid;
-        $imageRaw = 'cached-device-image';
+        $imageRaw = $this->getMinimalPng();
         $dataUri = 'data:image/png;base64,' . base64_encode($imageRaw);
         $cacheFile = rtrim(IPS_GetKernelDir(), '\\/')
             . DIRECTORY_SEPARATOR . 'user'
@@ -91,6 +91,43 @@ class DevicesTest extends DumpInclude
         $this->assertSame($dataUri, $deviceImage['image']);
 
         @unlink($cacheFile);
+    }
+
+    public function testDeviceIconValidationRejectsInvalidAndOversizedContent(): void
+    {
+        $iid = IPS_CreateInstance('{E5BB36C6-A70B-EB23-3716-9151A09AC8A2}');
+        $device = IPS\InstanceManager::getInstanceInterface($iid);
+        $method = new ReflectionMethod($device, 'IsValidDeviceIcon');
+        $reflection = new ReflectionClass($device);
+
+        $this->assertSame(5, $reflection->getConstant('ICON_DOWNLOAD_TIMEOUT_SECONDS'));
+        $this->assertSame(2 * 1024 * 1024, $reflection->getConstant('ICON_DOWNLOAD_MAX_BYTES'));
+        $this->assertTrue($method->invoke($device, $this->getMinimalPng()));
+        $this->assertFalse($method->invoke($device, '<html>Not an image</html>'));
+        $this->assertFalse($method->invoke($device, "\x89PNG\r\n\x1a\n" . str_repeat('x', (2 * 1024 * 1024) + 1)));
+    }
+
+    public function testInvalidPersistedDeviceIconIsNotMigratedToSharedFileCache(): void
+    {
+        $iid = IPS_CreateInstance('{E5BB36C6-A70B-EB23-3716-9151A09AC8A2}');
+        $model = 'Invalid icon cache test ' . $iid;
+        $dataUri = 'data:image/png;base64,' . base64_encode('not-a-png');
+        $cacheFile = rtrim(IPS_GetKernelDir(), '\\/')
+            . DIRECTORY_SEPARATOR . 'user'
+            . DIRECTORY_SEPARATOR . 'IPSZigbee2MQTT'
+            . DIRECTORY_SEPARATOR . 'icons'
+            . DIRECTORY_SEPARATOR . hash('sha256', $model) . '.png';
+
+        $this->writeStubAttributeString($iid, 'Model', $model);
+        $this->writeStubAttributeString($iid, 'Icon', $dataUri);
+
+        IPS_ApplyChanges($iid);
+
+        $this->assertSame($dataUri, $this->readStubAttributeString($iid, 'Icon'));
+        $this->assertFileDoesNotExist($cacheFile);
+        $device = IPS\InstanceManager::getInstanceInterface($iid);
+        $method = new ReflectionMethod($device, 'ReadDeviceIconForForm');
+        $this->assertSame('', $method->invoke($device));
     }
 
     public function testTRV06()
@@ -2301,5 +2338,15 @@ class DevicesTest extends DumpInclude
             ],
             JSON_UNESCAPED_SLASHES
         );
+    }
+
+    private function getMinimalPng(): string
+    {
+        $png = base64_decode(
+            'iVBORw0KGgoAAAANSUhEUgAAAAEAAAABCAQAAAC1HAwCAAAAC0lEQVR42mNk+A8AAQUBAScY42YAAAAASUVORK5CYII=',
+            true
+        );
+        $this->assertIsString($png);
+        return $png;
     }
 }
