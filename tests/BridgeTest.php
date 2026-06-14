@@ -67,6 +67,20 @@ class BridgeTest extends TestCase
         $this->assertNull($this->findFormField($form, 'StaleVariableDeleteWarning'));
     }
 
+    public function testConfigurationFormShowsTestCenterAtTopLevel(): void
+    {
+        $form = json_decode(file_get_contents(__DIR__ . '/../Bridge/form.json'), true);
+
+        $this->assertSame(
+            1,
+            count(array_filter(
+                $form['actions'],
+                static fn (array $item): bool => ($item['type'] ?? '') === 'TestCenter'
+            ))
+        );
+        $this->assertNull($this->findFormField($form, 'BridgeExpertTools'));
+    }
+
     public function testVariableMaintenanceOnlyIncludesInstancesFromSameSplitterAndBaseTopic(): void
     {
         $splitterID = IPS_CreateInstance(self::VIRTUAL_IO_MODULE_ID);

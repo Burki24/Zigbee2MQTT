@@ -33,8 +33,16 @@ class GroupTest extends DumpInclude
 
         $this->assertArrayNotHasKey('width', $expertTools);
         $this->assertSame(
-            ['LocalVariableMaintenance', 'TestCenter'],
-            array_values(array_intersect($expertItemKeys, ['LocalVariableMaintenance', 'TestCenter']))
+            ['LocalVariableMaintenance'],
+            array_values(array_intersect($expertItemKeys, ['LocalVariableMaintenance']))
+        );
+        $this->assertNotContains('TestCenter', $expertItemKeys);
+        $this->assertSame(
+            1,
+            count(array_filter(
+                $form['actions'],
+                static fn (array $item): bool => ($item['type'] ?? '') === 'TestCenter'
+            ))
         );
     }
 

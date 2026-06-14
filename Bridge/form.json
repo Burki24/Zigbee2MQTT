@@ -1093,16 +1093,8 @@
             ]
         },
         {
-            "type": "ExpansionPanel",
-            "name": "BridgeExpertTools",
-            "caption": "Expert tools",
-            "expanded": false,
-            "items": [
-                {
-                    "caption": "Testcenter",
-                    "type": "TestCenter"
-                }
-            ]
+            "caption": "Testcenter",
+            "type": "TestCenter"
         },
         {
             "type": "Label",

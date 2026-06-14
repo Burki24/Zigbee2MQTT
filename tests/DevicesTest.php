@@ -40,10 +40,18 @@ class DevicesTest extends DumpInclude
 
         $this->assertArrayNotHasKey('width', $expertTools);
         $this->assertSame(
-            ['AdvancedDeviceRemovalSettings', 'LocalVariableMaintenance', 'TestCenter'],
+            ['AdvancedDeviceRemovalSettings', 'LocalVariableMaintenance'],
             array_values(array_intersect(
                 $expertItemKeys,
-                ['AdvancedDeviceRemovalSettings', 'LocalVariableMaintenance', 'TestCenter']
+                ['AdvancedDeviceRemovalSettings', 'LocalVariableMaintenance']
+            ))
+        );
+        $this->assertNotContains('TestCenter', $expertItemKeys);
+        $this->assertSame(
+            1,
+            count(array_filter(
+                $form['actions'],
+                static fn (array $item): bool => ($item['type'] ?? '') === 'TestCenter'
             ))
         );
     }

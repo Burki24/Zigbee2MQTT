@@ -402,8 +402,7 @@ trait VariableMaintenanceHelper
      * Inserts the local panel into the existing expert tools section.
      *
      * Device instances place it directly after the advanced removal controls.
-     * Other instances place it before the TestCenter so maintenance controls do
-     * not appear below the potentially long variable test interface.
+     * Other instances append it to the expert tools section.
      */
     private function AppendLocalVariableMaintenancePanel(array &$items, array $panel): bool
     {
@@ -422,10 +421,6 @@ trait VariableMaintenanceHelper
                     if (($expertItem['name'] ?? '') === 'AdvancedDeviceRemovalSettings') {
                         $insertAt = $index + 1;
                         break;
-                    }
-
-                    if (($expertItem['type'] ?? '') === 'TestCenter') {
-                        $insertAt = $index;
                     }
                 }
 

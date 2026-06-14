@@ -1065,12 +1065,12 @@
                             ]
                         }
                     ]
-                },
-                {
-                    "caption": "Testcenter",
-                    "type": "TestCenter"
                 }
             ]
+        },
+        {
+            "caption": "Testcenter",
+            "type": "TestCenter"
         },
         {
             "name": "ShowMissingTranslations",

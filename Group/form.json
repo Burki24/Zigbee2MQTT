@@ -462,12 +462,12 @@
                             "onClick": "IPS_RequestAction($id, 'ShowGroupIdEditWarning', true);"
                         }
                     ]
-                },
-                {
-                    "caption": "Testcenter",
-                    "type": "TestCenter"
                 }
             ]
+        },
+        {
+            "caption": "Testcenter",
+            "type": "TestCenter"
         },
         {
             "name": "ShowMissingTranslations",

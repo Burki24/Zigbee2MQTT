@@ -69,13 +69,13 @@
 | **5** | **Diagnose** | Enthält Health Check, Coordinator Check, Bridge-Ereignisse, Warnungen sowie Übersichten auffälliger oder nicht vollständig interviewter Geräte. |
 | **6** | **OTA-Updates** | Verwaltet verfügbare, geplante und laufende Geräte-Firmwareupdates zentral. |
 | **7** | **Erweiterte Administration** | Enthält die seltener benötigten Bereiche Netzwerksicherheit, Variablen-Wartung und Zigbee2MQTT-Wartung. |
-| **8** | **Expertenwerkzeuge** | Enthält das Testcenter für die direkte Prüfung und Bedienung der Bridge-Statusvariablen. |
+| **8** | **Testcenter** | Direkte Prüfung und Bedienung der Bridge-Statusvariablen auf der obersten Formularebene. |
 
 ## 5. Bridge-Funktionen
 
 Zusätzlich zu den Grundeinstellungen enthält die Bridge folgende Funktionsbereiche:
 
-Die Oberfläche trennt häufig benötigte Funktionen von administrativen Werkzeugen. Die Schaltflächen für Erweiterungsstatus, `last_seen` und `permit_join` sind direkt sichtbar. **Diagnose** und **OTA-Updates** bilden die regulären Arbeitsbereiche. **Netzwerksicherheit**, **Variablen-Wartung** und **Zigbee2MQTT-Wartung** sind unter **Erweiterte Administration** zusammengefasst. Das Testcenter befindet sich unter **Expertenwerkzeuge**.
+Die Oberfläche trennt häufig benötigte Funktionen von administrativen Werkzeugen. Die Schaltflächen für Erweiterungsstatus, `last_seen` und `permit_join` sind direkt sichtbar. **Diagnose** und **OTA-Updates** bilden die regulären Arbeitsbereiche. **Netzwerksicherheit**, **Variablen-Wartung** und **Zigbee2MQTT-Wartung** sind unter **Erweiterte Administration** zusammengefasst. Das Testcenter ist als eigener Bereich direkt auf der obersten Formularebene erreichbar.
 
 | Bereich | Beschreibung |
 | ------- | ------------ |
