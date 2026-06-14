@@ -482,7 +482,7 @@ Die Statusvariablen werden je nach Funktion und Fähigkeiten der Geräte dynamis
 ### Z2M_ReadValue <!-- omit in toc -->
 
    ```php
-   bool Z2M_ReadValue(int $InstanzId, string $Property);
+   mixed Z2M_ReadValue(int $InstanzId, string $Property);
    ```
 
    Mit dieser Funktion wird eine Leseanfrage für eine bestimmte Eigenschaft an das Gerät gesendet.
@@ -553,10 +553,10 @@ Die Statusvariablen werden je nach Funktion und Fähigkeiten der Geräte dynamis
 
 ---
 
-### Z2M_CommandEx <!-- omit in toc -->
+### Z2M_CommandExt <!-- omit in toc -->
 
    ```php
-   bool Z2M_CommandEx(int $InstanzId, string $FullTopic, string $Value);
+   bool Z2M_CommandExt(int $InstanzId, string $FullTopic, string $Value);
    ```
 
    Mit dieser Funktion kann ein beliebiger Payload (Datensatz) an Z2M gesendet werden.
@@ -565,7 +565,7 @@ Die Statusvariablen werden je nach Funktion und Fähigkeiten der Geräte dynamis
 
    ```php
    $Payload['state'] = '';
-   Z2M_CommandEx(12345, 'Keller/Lampe1/get', json_encode($Payload));
+   Z2M_CommandExt(12345, 'Keller/Lampe1/get', json_encode($Payload));
    ```
 
    Dieses Beispiel ruft `state` von `{BaseTopic}Keller/Lampe1` ab.

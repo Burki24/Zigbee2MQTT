@@ -838,7 +838,7 @@ abstract class ModulBase extends \IPSModuleStrict
      * Leseanforderung für ein Value an das Gerät senden.
      *
      * @param  string $Property
-     * @return bool
+     * @return mixed Ergebnis der Leseanforderung oder false, wenn kein gueltiges Topic aufgebaut werden konnte
      *
      * @throws \Exception Bei Fehlern während des Sendens
      *
