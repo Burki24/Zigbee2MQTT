@@ -257,7 +257,6 @@ abstract class ModulBase extends \IPSModuleStrict
     protected static $ExtensionTopic = '';
 
     /**
-     * @var array<array{type: string, feature: string, profile: string, variableType: string}
      * Ein Array, das Standardprofile für bestimmte Gerätetypen und Eigenschaften definiert.
      *
      * Jedes Element des Arrays enthält folgende Schlüssel:
@@ -265,15 +264,12 @@ abstract class ModulBase extends \IPSModuleStrict
      * - 'group_type' (string): Der Gerätetyp, z. B. 'cover' oder 'light'. Ein leerer Wert ('') bedeutet, dass der Typ nicht relevant ist.
      * - 'feature' (string): Die spezifische Eigenschaft oder das Feature des Geräts, z. B. 'position', 'temperature'.
      * - 'profile' (string): Das Symcon-Profil, das für dieses Feature verwendet wird, z. B. '~Shutter.Reversed' oder '~Battery.100'.
-     * - 'variableType' (string): Der Variablentyp, der für dieses Profil verwendet wird, z. B. VARIABLETYPE_INTEGER für Integer oder VARIABLETYPE_FLOAT für Gleitkommazahlen.
+     * - 'variableType' (int): Der Variablentyp, der für dieses Profil verwendet wird, z. B. VARIABLETYPE_INTEGER für Integer oder VARIABLETYPE_FLOAT für Gleitkommazahlen.
      *
      * Beispieleintrag:
-     * @var array<string,array{
-     *   'group_type' => 'cover',
-     *   'feature' => 'position',
-     *   'profile' => '~Shutter.Reversed',
-     *   'variableType' => VARIABLETYPE_INTEGER
-     * }>
+     * ['group_type' => 'cover', 'feature' => 'position', 'profile' => '~Shutter.Reversed', 'variableType' => VARIABLETYPE_INTEGER]
+     *
+     * @var array<int, array{group_type:string, feature:string, profile:string, variableType:int}>
      */
     protected static $VariableUseStandardProfile = [
         ['group_type' => 'cover', 'feature' => 'position', 'profile' => '~Shutter.Reversed', 'variableType' => VARIABLETYPE_INTEGER],
