@@ -169,10 +169,10 @@ class Zigbee2MQTTBridge extends IPSModuleStrict
 
         $this->SetSummary($BaseTopic);
 
-        $this->RegisterProfileIntegerEx('Z2M.bridge.restart', '', '', '', [
+        $restartProfile = $this->RegisterProfileIntegerEx('Z2M.bridge.restart', '', '', '', [
             [0, $this->Translate('Restart'), '', 0xFF0000],
         ]);
-        $this->RegisterProfileStringEx('Z2M.brigde.loglevel', '', '', '', [
+        $logLevelProfile = $this->RegisterProfileStringEx('Z2M.brigde.loglevel', '', '', '', [
             ['error', $this->Translate('Error'), '', 0x00FF00],
             ['warning', $this->Translate('Warning'), '', 0x00FF00],
             ['info', $this->Translate('Information'), '', 0x00FF00],
@@ -182,7 +182,7 @@ class Zigbee2MQTTBridge extends IPSModuleStrict
         $this->RegisterVariableBoolean('extension_loaded', $this->Translate('Extension Loaded'));
         $this->RegisterVariableString('extension_version', $this->Translate('Extension Version'));
         $this->RegisterVariableBoolean('extension_is_current', $this->Translate('Extension is up to date'));
-        $this->RegisterVariableString('log_level', $this->Translate('Log Level'), 'Z2M.brigde.loglevel');
+        $this->RegisterVariableString('log_level', $this->Translate('Log Level'), $logLevelProfile);
         $this->EnableAction('log_level');
         $this->RegisterVariableBoolean('permit_join', $this->Translate('Allow joining the network'), '~Switch');
         $this->EnableAction('permit_join');
@@ -190,7 +190,7 @@ class Zigbee2MQTTBridge extends IPSModuleStrict
         $this->RegisterVariableInteger('permit_join_remaining', $this->Translate('Pairing time remaining'), '~Duration');
         $this->RegisterVariableString('permit_join_target', $this->Translate('Pairing target'));
         $this->RegisterVariableBoolean('restart_required', $this->Translate('Restart Required'));
-        $this->RegisterVariableInteger('restart_request', $this->Translate('Perform a restart'), 'Z2M.bridge.restart');
+        $this->RegisterVariableInteger('restart_request', $this->Translate('Perform a restart'), $restartProfile);
         $this->EnableAction('restart_request');
         $this->RegisterVariableString('version', $this->Translate('Version'));
         $this->RegisterVariableString('zigbee_herdsman_converters', $this->Translate('Zigbee Herdsman Converters Version'));

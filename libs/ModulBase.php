@@ -1896,7 +1896,17 @@ abstract class ModulBase extends \IPSModuleStrict
         if (!$this->CanCreateVariable('device_status', ['property' => 'device_status', 'type' => 'binary', 'label' => 'Availability'], 'system')) {
             return true;
         }
-        $this->RegisterVariableBoolean('device_status', $this->Translate('Availability'), 'Z2M.DeviceStatus');
+        $deviceStatusProfile = $this->RegisterProfileBooleanEx(
+            'Z2M.DeviceStatus',
+            'Network',
+            '',
+            '',
+            [
+                [false, 'Offline', '', 0xFF0000],
+                [true, 'Online', '', 0x00FF00]
+            ]
+        );
+        $this->RegisterVariableBoolean('device_status', $this->Translate('Availability'), $deviceStatusProfile);
         $this->MarkVariableCreated('device_status');
         if (isset($payload['state'])) {
             $this->SetValueDirect('device_status', $payload['state'] == 'online');
@@ -3664,7 +3674,7 @@ abstract class ModulBase extends \IPSModuleStrict
             [true, $this->convertLabelToName((string) $valueOn), '', 0x00FF00]
         ];
 
-        $this->RegisterProfileBooleanEx(
+        $profileName = $this->RegisterProfileBooleanEx(
             $ProfileName,
             'Power',
             '',
@@ -3673,7 +3683,7 @@ abstract class ModulBase extends \IPSModuleStrict
         );
 
         $this->SendDebug(__FUNCTION__, 'Custom Boolean-Profil erstellt: ' . $ProfileName . ' mit Werten: ' . json_encode($profileValues), 0);
-        return $ProfileName;
+        return $profileName;
     }
 
     /**
@@ -4003,7 +4013,7 @@ abstract class ModulBase extends \IPSModuleStrict
         }
 
         // Registriere das Profil
-        $this->RegisterProfileStringEx(
+        $ProfileName = $this->RegisterProfileStringEx(
             $ProfileName,
             'Menu',
             '',
@@ -4089,10 +4099,10 @@ abstract class ModulBase extends \IPSModuleStrict
 
         // Profil entsprechend Variablentyp erstellen
         if ($variableType === 'float') {
-            $this->RegisterProfileFloat($fullRangeProfileName, '', '', $unitWithSpace, (float) $min, (float) $max, (float) $step, 2);
+            $fullRangeProfileName = $this->RegisterProfileFloat($fullRangeProfileName, '', '', $unitWithSpace, (float) $min, (float) $max, (float) $step, 2);
             $this->SendDebug(__FUNCTION__, 'Created Float Profile: ' . $fullRangeProfileName, 0);
         } else {
-            $this->RegisterProfileInteger($fullRangeProfileName, '', '', $unitWithSpace, (int) $min, (int) $max, (float) $step);
+            $fullRangeProfileName = $this->RegisterProfileInteger($fullRangeProfileName, '', '', $unitWithSpace, (int) $min, (int) $max, (float) $step);
             $this->SendDebug(__FUNCTION__, 'Created Integer Profile: ' . $fullRangeProfileName, 0);
         }
 
@@ -4113,7 +4123,9 @@ abstract class ModulBase extends \IPSModuleStrict
      *
      * Diese Funktion generiert ein Profil für eine Preset-Variable, das verschiedene vordefinierte Werte enthält.
      * Der Profilname wird dynamisch basierend auf dem übergebenen Label und den Min- und Max-Werten erstellt.
-     * Falls ein Profil mit diesem Namen bereits existiert, wird es gelöscht und neu erstellt.
+     * Ein vollständig passendes vorhandenes Profil wird wiederverwendet. Bei einem
+     * Namenskonflikt bleibt das bestehende Profil unverändert und ein kompatibles
+     * Profil mit eindeutigem Namen wird erstellt.
      *
      * Jedes Preset im übergebenen Array wird mit seinem Namen und Wert dem Profil hinzugefügt. Der Name des Presets
      * wird dabei ins Lesbare umgewandelt (z.B. von snake_case in normaler Text), und die zugehörigen Werte werden
@@ -4185,9 +4197,9 @@ abstract class ModulBase extends \IPSModuleStrict
 
         // Neues Profil anlegen
         if ($variableType === 'float') {
-            $this->RegisterProfileFloatEx($profileName, '', '', '', $associations);
+            $profileName = $this->RegisterProfileFloatEx($profileName, '', '', '', $associations);
         } else {
-            $this->RegisterProfileIntegerEx($profileName, '', '', '', $associations);
+            $profileName = $this->RegisterProfileIntegerEx($profileName, '', '', '', $associations);
         }
 
         return $profileName;
@@ -5208,11 +5220,11 @@ abstract class ModulBase extends \IPSModuleStrict
         // Prüfe auf vordefinierte States wenn kein state pattern matched
         if (isset(static::$stateDefinitions[$featureId])) {
             // Registriere gefundenes StateMappingProfil
-            $this->registerStateMappingProfile($featureId);
+            $profileName = $this->registerStateMappingProfile($featureId);
             $stateConfig = static::$stateDefinitions[$featureId];
             // Stelle sicher, dass ident und profile Keys existieren
             $stateConfig['ident'] = $stateConfig['ident'] ?? $featureId;
-            $stateConfig['profile'] = $stateConfig['profile'] ?? '';
+            $stateConfig['profile'] = $profileName;
             return $stateConfig;
         }
 
@@ -5268,7 +5280,7 @@ abstract class ModulBase extends \IPSModuleStrict
     private function registerStateMappingProfile(string $featureProperty): ?string
     {
         $stateInfo = self::$stateDefinitions[$featureProperty];
-        $this->RegisterProfileStringEx(
+        $profileName = $this->RegisterProfileStringEx(
             $stateInfo['profile'],
             '',
             '',
@@ -5279,8 +5291,8 @@ abstract class ModulBase extends \IPSModuleStrict
             ]
         );
 
-        $this->SendDebug(__FUNCTION__, 'State mapping profile created for: ' . $stateInfo['profile'], 0);
-        return $stateInfo['profile'];
+        $this->SendDebug(__FUNCTION__, 'State mapping profile created for: ' . $profileName, 0);
+        return $profileName;
     }
 
     /**

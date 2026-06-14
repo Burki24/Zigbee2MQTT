@@ -29,10 +29,12 @@ trait VariableProfileHelper
      * @param string $Prefix       Prefix für die Darstellung.
      * @param string $Suffix       Suffix für die Darstellung.
      * @param array  $Associations Assoziationen der Werte als Array.
+     *
+     * @return string Tatsächlich verwendeter Profilname.
      */
-    protected function RegisterProfileBooleanEx(string $Name, string $Icon, string $Prefix, string $Suffix, array $Associations): void
+    protected function RegisterProfileBooleanEx(string $Name, string $Icon, string $Prefix, string $Suffix, array $Associations): string
     {
-        $this->RegisterProfileEx(VARIABLETYPE_BOOLEAN, $Name, $Icon, $Prefix, $Suffix, $Associations);
+        return $this->RegisterProfileEx(VARIABLETYPE_BOOLEAN, $Name, $Icon, $Prefix, $Suffix, $Associations);
     }
 
     /**
@@ -43,10 +45,12 @@ trait VariableProfileHelper
      * @param string $Prefix       Prefix für die Darstellung.
      * @param string $Suffix       Suffix für die Darstellung.
      * @param array  $Associations Assoziationen der Werte als Array.
+     *
+     * @return string Tatsächlich verwendeter Profilname.
      */
-    protected function RegisterProfileIntegerEx(string $Name, string $Icon, string $Prefix, string $Suffix, array $Associations, int $MaxValue = -1, float $StepSize = 0): void
+    protected function RegisterProfileIntegerEx(string $Name, string $Icon, string $Prefix, string $Suffix, array $Associations, int $MaxValue = -1, float $StepSize = 0): string
     {
-        $this->RegisterProfileEx(VARIABLETYPE_INTEGER, $Name, $Icon, $Prefix, $Suffix, $Associations, $MaxValue, $StepSize);
+        return $this->RegisterProfileEx(VARIABLETYPE_INTEGER, $Name, $Icon, $Prefix, $Suffix, $Associations, $MaxValue, $StepSize);
     }
 
     /**
@@ -57,10 +61,12 @@ trait VariableProfileHelper
      * @param string $Prefix       Prefix für die Darstellung.
      * @param string $Suffix       Suffix für die Darstellung.
      * @param array  $Associations Assoziationen der Werte als Array.
+     *
+     * @return string Tatsächlich verwendeter Profilname.
      */
-    protected function RegisterProfileFloatEx(string $Name, string $Icon, string $Prefix, string $Suffix, array $Associations, float $MaxValue = -1, float $StepSize = 0, int $Digits = 0): void
+    protected function RegisterProfileFloatEx(string $Name, string $Icon, string $Prefix, string $Suffix, array $Associations, float $MaxValue = -1, float $StepSize = 0, int $Digits = 0): string
     {
-        $this->RegisterProfileEx(VARIABLETYPE_FLOAT, $Name, $Icon, $Prefix, $Suffix, $Associations, $MaxValue, $StepSize, $Digits);
+        return $this->RegisterProfileEx(VARIABLETYPE_FLOAT, $Name, $Icon, $Prefix, $Suffix, $Associations, $MaxValue, $StepSize, $Digits);
     }
 
     /**
@@ -71,10 +77,12 @@ trait VariableProfileHelper
      * @param string $Prefix       Prefix für die Darstellung.
      * @param string $Suffix       Suffix für die Darstellung.
      * @param array  $Associations Assoziationen der Werte als Array.
+     *
+     * @return string Tatsächlich verwendeter Profilname.
      */
-    protected function RegisterProfileStringEx(string $Name, string $Icon, string $Prefix, string $Suffix, array $Associations): void
+    protected function RegisterProfileStringEx(string $Name, string $Icon, string $Prefix, string $Suffix, array $Associations): string
     {
-        $this->RegisterProfileEx(VARIABLETYPE_STRING, $Name, $Icon, $Prefix, $Suffix, $Associations);
+        return $this->RegisterProfileEx(VARIABLETYPE_STRING, $Name, $Icon, $Prefix, $Suffix, $Associations);
     }
 
     /**
@@ -84,10 +92,12 @@ trait VariableProfileHelper
      * @param string $Icon   Name des Icon.
      * @param string $Prefix Prefix für die Darstellung.
      * @param string $Suffix Suffix für die Darstellung.
+     *
+     * @return string Tatsächlich verwendeter Profilname.
      */
-    protected function RegisterProfileBoolean(string $Name, string $Icon, string $Prefix, string $Suffix): void
+    protected function RegisterProfileBoolean(string $Name, string $Icon, string $Prefix, string $Suffix): string
     {
-        $this->RegisterProfile(VARIABLETYPE_BOOLEAN, $Name, $Icon, $Prefix, $Suffix, 0, 0, 0);
+        return $this->RegisterProfile(VARIABLETYPE_BOOLEAN, $Name, $Icon, $Prefix, $Suffix, 0, 0, 0);
     }
 
     /**
@@ -100,10 +110,12 @@ trait VariableProfileHelper
      * @param int    $MinValue Minimaler Wert.
      * @param int    $MaxValue Maximaler wert.
      * @param float  $StepSize Schrittweite
+     *
+     * @return string Tatsächlich verwendeter Profilname.
      */
-    protected function RegisterProfileInteger(string $Name, string $Icon, string $Prefix, string $Suffix, int $MinValue, int $MaxValue, float $StepSize): void
+    protected function RegisterProfileInteger(string $Name, string $Icon, string $Prefix, string $Suffix, int $MinValue, int $MaxValue, float $StepSize): string
     {
-        $this->RegisterProfile(VARIABLETYPE_INTEGER, $Name, $Icon, $Prefix, $Suffix, $MinValue, $MaxValue, $StepSize);
+        return $this->RegisterProfile(VARIABLETYPE_INTEGER, $Name, $Icon, $Prefix, $Suffix, $MinValue, $MaxValue, $StepSize);
     }
 
     /**
@@ -116,10 +128,12 @@ trait VariableProfileHelper
      * @param float  $MinValue Minimaler Wert.
      * @param float  $MaxValue Maximaler wert.
      * @param float  $StepSize Schrittweite
+     *
+     * @return string Tatsächlich verwendeter Profilname.
      */
-    protected function RegisterProfileFloat(string $Name, string $Icon, string $Prefix, string $Suffix, float $MinValue, float $MaxValue, float $StepSize, int $Digits): void
+    protected function RegisterProfileFloat(string $Name, string $Icon, string $Prefix, string $Suffix, float $MinValue, float $MaxValue, float $StepSize, int $Digits): string
     {
-        $this->RegisterProfile(VARIABLETYPE_FLOAT, $Name, $Icon, $Prefix, $Suffix, $MinValue, $MaxValue, $StepSize, $Digits);
+        return $this->RegisterProfile(VARIABLETYPE_FLOAT, $Name, $Icon, $Prefix, $Suffix, $MinValue, $MaxValue, $StepSize, $Digits);
     }
 
     /**
@@ -130,13 +144,14 @@ trait VariableProfileHelper
      * @param string $Icon         Name des Icon.
      * @param string $Prefix       Prefix für die Darstellung.
      * @param string $Suffix       Suffix für die Darstellung.
-     * @param int|array  $Associations Assoziationen der Werte als Array.
+     * @param int|array $Associations Assoziationen der Werte als Array.
+     *
+     * @return string Tatsächlich verwendeter Profilname.
      */
-    protected function RegisterProfileEx(int $VarTyp, string $Name, string $Icon, string $Prefix, string $Suffix, mixed $Associations, float $MaxValue = -1, float $StepSize = 0, int $Digits = 0): void
+    protected function RegisterProfileEx(int $VarTyp, string $Name, string $Icon, string $Prefix, string $Suffix, mixed $Associations, float $MaxValue = -1, float $StepSize = 0, int $Digits = 0): string
     {
         if (is_int($Associations)) {
-            $this->RegisterProfile($VarTyp, $Name, $Icon, $Prefix, $Suffix, $Associations, $MaxValue, $StepSize, $Digits);
-            return;
+            return $this->RegisterProfile($VarTyp, $Name, $Icon, $Prefix, $Suffix, $Associations, $MaxValue, $StepSize, $Digits);
         }
         if ((count($Associations) === 0) || ($VarTyp === VARIABLETYPE_BOOLEAN) || ($VarTyp === VARIABLETYPE_STRING)) {
             $MinValue = 0;
@@ -146,24 +161,31 @@ trait VariableProfileHelper
             sort($MinMax);
             $MinValue = $MinMax[0];
             if ($MaxValue == -1) {
-                $MaxValue = $Associations[count($Associations) - 1][0];
-            } else {
                 $MaxValue = array_pop($MinMax);
             }
         }
-        $this->RegisterProfile($VarTyp, $Name, $Icon, $Prefix, $Suffix, $MinValue, $MaxValue, $StepSize, $Digits);
-        $old = IPS_GetVariableProfile($Name)['Associations'];
-        $OldValues = array_column($old, 'Value');
+        $translatedAssociations = [];
         foreach ($Associations as $Association) {
-            IPS_SetVariableProfileAssociation($Name, $Association[0], $this->Translate($Association[1]), $Association[2], $Association[3]);
-            $OldKey = array_search($Association[0], $OldValues);
-            if (!($OldKey === false)) {
-                unset($OldValues[$OldKey]);
-            }
+            $translatedAssociations[] = [
+                'Value' => $Association[0],
+                'Name'  => $this->Translate($Association[1]),
+                'Icon'  => $Association[2],
+                'Color' => $Association[3]
+            ];
         }
-        foreach ($OldValues as $OldKey => $OldValue) {
-            IPS_SetVariableProfileAssociation($Name, $OldValue, '', '', 0);
-        }
+
+        return $this->RegisterProfile(
+            $VarTyp,
+            $Name,
+            $Icon,
+            $Prefix,
+            $Suffix,
+            $MinValue,
+            $MaxValue,
+            $StepSize,
+            $Digits,
+            $translatedAssociations
+        );
     }
 
     /**
@@ -177,52 +199,157 @@ trait VariableProfileHelper
      * @param float  $MinValue Minimaler Wert.
      * @param float  $MaxValue Maximaler wert.
      * @param float  $StepSize Schrittweite
+     *
+     * @param array $Associations Bereits übersetzte Profilassoziationen.
+     *
+     * @return string Tatsächlich verwendeter Profilname.
      */
-    protected function RegisterProfile(int $VarTyp, string $Name, string $Icon, string $Prefix, string $Suffix, float $MinValue, float $MaxValue, float $StepSize, int $Digits = 0): void
+    protected function RegisterProfile(int $VarTyp, string $Name, string $Icon, string $Prefix, string $Suffix, float $MinValue, float $MaxValue, float $StepSize, int $Digits = 0, array $Associations = []): string
     {
-        if (!IPS_VariableProfileExists($Name)) {
-            IPS_CreateVariableProfile($Name, $VarTyp);
-        } else {
-            $profile = IPS_GetVariableProfile($Name);
-            if ($profile['ProfileType'] != $VarTyp) {
-                IPS_DeleteVariableProfile($Name);
-                $this->LogMessage('Variable profile type does not match for profile ' . $Name, KL_WARNING);
-                //throw new \Exception('Variable profile type does not match for profile ' . $Name, E_USER_WARNING);
-            }
+        $definition = [
+            'ProfileType'  => $VarTyp,
+            'Icon'         => $Icon,
+            'Prefix'       => $this->Translate($Prefix),
+            'Suffix'       => $this->Translate($Suffix),
+            'MinValue'     => $MinValue,
+            'MaxValue'     => $MaxValue,
+            'StepSize'     => $StepSize,
+            'Digits'       => $Digits,
+            'Associations' => array_values($Associations)
+        ];
+        $profileName = $this->ResolveCompatibleProfileName($Name, $definition);
+        if (IPS_VariableProfileExists($profileName)) {
+            return $profileName;
         }
 
-        IPS_SetVariableProfileIcon($Name, $Icon);
-        IPS_SetVariableProfileText($Name, $this->Translate($Prefix), $this->Translate($Suffix));
+        IPS_CreateVariableProfile($profileName, $VarTyp);
+        IPS_SetVariableProfileIcon($profileName, $Icon);
+        IPS_SetVariableProfileText($profileName, $definition['Prefix'], $definition['Suffix']);
         if (($VarTyp != VARIABLETYPE_BOOLEAN) && ($VarTyp != VARIABLETYPE_STRING)) {
-            IPS_SetVariableProfileValues($Name, $MinValue, $MaxValue, $StepSize);
+            IPS_SetVariableProfileValues($profileName, $MinValue, $MaxValue, $StepSize);
         }
         if ($VarTyp == VARIABLETYPE_FLOAT) {
-            IPS_SetVariableProfileDigits($Name, $Digits);
+            IPS_SetVariableProfileDigits($profileName, $Digits);
         }
+        foreach ($Associations as $Association) {
+            IPS_SetVariableProfileAssociation(
+                $profileName,
+                $Association['Value'],
+                $Association['Name'],
+                $Association['Icon'],
+                $Association['Color']
+            );
+        }
+
+        if ($profileName !== $Name) {
+            $this->LogMessage(
+                sprintf('Variable profile %s differs from the required definition. Created compatible profile %s.', $Name, $profileName),
+                KL_WARNING
+            );
+        }
+
+        return $profileName;
     }
 
     /**
-     * Löscht ein Variablenprofile, sofern es nicht außerhalb dieser Instanz noch verwendet wird.
+     * Ermittelt einen vorhandenen kompatiblen Profilnamen oder einen freien,
+     * deterministischen Alternativnamen.
      *
-     * @param string $Name Name des zu löschenden Profils.
+     * Bestehende Profile werden niemals verändert oder gelöscht. Stimmt das
+     * gewünschte Profil nicht vollständig mit der vorhandenen Definition
+     * überein, wird ein eigener Profilname aus der Soll-Definition abgeleitet.
+     *
+     * @param string $Name Gewünschter Profilname.
+     * @param array $Definition Vollständige Soll-Definition.
+     *
+     * @return string Kompatibler oder freier Profilname.
      */
-    protected function UnregisterProfile(string $Name): void
+    private function ResolveCompatibleProfileName(string $Name, array $Definition): string
     {
-        if (!IPS_VariableProfileExists($Name)) {
-            return;
+        if (!IPS_VariableProfileExists($Name) || $this->ProfileMatchesDefinition(IPS_GetVariableProfile($Name), $Definition)) {
+            return $Name;
         }
-        foreach (IPS_GetVariableList() as $VarID) {
-            if (IPS_GetParent($VarID) == $this->InstanceID) {
-                continue;
+
+        $hash = substr(hash('sha256', serialize($Definition)), 0, 12);
+        $attempt = 0;
+        do {
+            $suffix = '.Z2M.' . $hash . ($attempt === 0 ? '' : '.' . $attempt);
+            $profileName = substr($Name, 0, max(1, 64 - strlen($suffix))) . $suffix;
+            if (!IPS_VariableProfileExists($profileName)
+                || $this->ProfileMatchesDefinition(IPS_GetVariableProfile($profileName), $Definition)
+            ) {
+                return $profileName;
             }
-            if (IPS_GetVariable($VarID)['VariableCustomProfile'] == $Name) {
-                return;
-            }
-            if (IPS_GetVariable($VarID)['VariableProfile'] == $Name) {
-                return;
-            }
+            ++$attempt;
+        } while (true);
+    }
+
+    /**
+     * Prüft, ob ein vorhandenes Profil vollständig der Soll-Definition entspricht.
+     *
+     * @param array $Profile Vorhandenes Symcon-Profil.
+     * @param array $Definition Vollständige Soll-Definition.
+     *
+     * @return bool True bei vollständiger Übereinstimmung.
+     */
+    private function ProfileMatchesDefinition(array $Profile, array $Definition): bool
+    {
+        if ((int) ($Profile['ProfileType'] ?? -1) !== (int) $Definition['ProfileType']
+            || (string) ($Profile['Icon'] ?? '') !== (string) $Definition['Icon']
+            || (string) ($Profile['Prefix'] ?? '') !== (string) $Definition['Prefix']
+            || (string) ($Profile['Suffix'] ?? '') !== (string) $Definition['Suffix']
+            || !$this->ProfileNumbersMatch($Profile['MinValue'] ?? 0, $Definition['MinValue'])
+            || !$this->ProfileNumbersMatch($Profile['MaxValue'] ?? 0, $Definition['MaxValue'])
+            || !$this->ProfileNumbersMatch($Profile['StepSize'] ?? 0, $Definition['StepSize'])
+            || (int) ($Profile['Digits'] ?? 0) !== (int) $Definition['Digits']
+        ) {
+            return false;
         }
-        IPS_DeleteVariableProfile($Name);
+
+        return $this->NormalizeProfileAssociations($Profile['Associations'] ?? [], (int) $Definition['ProfileType'])
+            === $this->NormalizeProfileAssociations($Definition['Associations'], (int) $Definition['ProfileType']);
+    }
+
+    /**
+     * Vergleicht numerische Profilwerte tolerant gegenüber int-/float-Typen.
+     */
+    private function ProfileNumbersMatch(mixed $Left, mixed $Right): bool
+    {
+        return abs((float) $Left - (float) $Right) < 0.000001;
+    }
+
+    /**
+     * Normalisiert Profilassoziationen für einen stabilen Definitionsvergleich.
+     *
+     * @param array $Associations Symcon-Profilassoziationen.
+     * @param int $ProfileType Symcon-Variablentyp des Profils.
+     *
+     * @return array Normalisierte Assoziationen.
+     */
+    private function NormalizeProfileAssociations(array $Associations, int $ProfileType): array
+    {
+        $normalized = array_values(array_map(
+            static fn (array $Association): array => [
+                'Value' => match ($ProfileType) {
+                    VARIABLETYPE_BOOLEAN => (bool) ($Association['Value'] ?? false),
+                    VARIABLETYPE_INTEGER => (int) ($Association['Value'] ?? 0),
+                    VARIABLETYPE_FLOAT   => (float) ($Association['Value'] ?? 0),
+                    default              => (string) ($Association['Value'] ?? '')
+                },
+                'Name'  => (string) ($Association['Name'] ?? ''),
+                'Icon'  => (string) ($Association['Icon'] ?? ''),
+                'Color' => (int) ($Association['Color'] ?? 0)
+            ],
+            $Associations
+        ));
+        if ($ProfileType !== VARIABLETYPE_STRING) {
+            usort(
+                $normalized,
+                static fn (array $Left, array $Right): int => $Left['Value'] <=> $Right['Value']
+            );
+        }
+
+        return $normalized;
     }
 }
 

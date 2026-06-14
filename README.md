@@ -441,10 +441,11 @@ Die Änderungen sind anhand der funktionalen Commits chronologisch gegliedert. A
 - Die Discovery lässt den Anwender über `mqtt://` oder `mqtts://` ausdrücklich zwischen unverschlüsseltem MQTT und geprüftem TLS wählen. Bei TLS werden Zertifikat und Hostname zwingend geprüft; ein automatischer Rückfall auf eine unverschlüsselte Verbindung findet nicht statt. Unsichere TLS-Verbindungen mit deaktivierter Zertifikatsprüfung werden nicht mehr aufgebaut.
 - Bereits vorhandene Geräte- und Gruppeninstanzen werden im Konfigurator wieder korrekt als weiterhin von Zigbee2MQTT erkannte Einträge dargestellt. Die rote Symcon-Markierung bleibt damit ausschließlich tatsächlich nicht mehr gefundenen Instanzen vorbehalten.
 
-### 14. Juni 2026: Direkter Zugriff auf Testcenter
+### 14. Juni 2026: Review-sichere Formulare und Profilverwaltung
 
 - Die Testcenter von Bridge, Geräte- und Gruppeninstanzen befinden sich als eigenständige Bereiche auf der obersten Formularebene und sind nicht mehr in Erweiterungs- oder Expertenmenüs verschachtelt.
 - Das dadurch leere Bridge-Untermenü **Expertenwerkzeuge** wurde entfernt; Dokumentation und Regressionstests wurden an die einheitliche Formularstruktur angepasst.
+- Bestehende Variablenprofile werden bei abweichendem Typ, Wertebereich oder abweichenden Assoziationen weder verändert noch gelöscht. Vollständig passende Profile werden wiederverwendet; bei Namenskonflikten erstellt das Modul ein eindeutig benanntes kompatibles Profil und weist dieses der betreffenden Variable zu.
 
 **Version 5.42:**  
 
