@@ -60,6 +60,34 @@ class VariableProfileHelperTest extends DumpInclude
         $this->assertCount($profileCount, IPS_GetVariableProfileList());
     }
 
+    public function testDuplicateAssociationValuesDoNotCreateRepeatedCompatibleProfiles(): void
+    {
+        $helper = $this->createProfileHelper();
+        $associations = [
+            [153, 'Coolest', '', -1],
+            [250, 'Cool', '', -1],
+            [370, 'Neutral', '', -1],
+            [454, 'Warm', '', -1],
+            [454, 'Warmest', '', -1]
+        ];
+
+        $firstProfileName = $helper->registerIntegerAssociationProfile('Z2M.Color_Temp_153_454_Presets', $associations);
+        $profileCount = count(IPS_GetVariableProfileList());
+        $secondProfileName = $helper->registerIntegerAssociationProfile('Z2M.Color_Temp_153_454_Presets', $associations);
+
+        $this->assertSame($firstProfileName, $secondProfileName);
+        $this->assertCount($profileCount, IPS_GetVariableProfileList());
+        $this->assertSame(
+            [
+                ['Value' => 153, 'Name' => 'Coolest', 'Icon' => '', 'Color' => -1],
+                ['Value' => 250, 'Name' => 'Cool', 'Icon' => '', 'Color' => -1],
+                ['Value' => 370, 'Name' => 'Neutral', 'Icon' => '', 'Color' => -1],
+                ['Value' => 454, 'Name' => 'Warmest', 'Icon' => '', 'Color' => -1]
+            ],
+            IPS_GetVariableProfile($firstProfileName)['Associations']
+        );
+    }
+
     private function createProfileHelper(): object
     {
         return new class() {

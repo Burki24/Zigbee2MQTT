@@ -328,8 +328,10 @@ trait VariableProfileHelper
      */
     private function NormalizeProfileAssociations(array $Associations, int $ProfileType): array
     {
-        $normalized = array_values(array_map(
-            static fn (array $Association): array => [
+        $normalized = [];
+        $associationIndexes = [];
+        foreach ($Associations as $Association) {
+            $normalizedAssociation = [
                 'Value' => match ($ProfileType) {
                     VARIABLETYPE_BOOLEAN => (bool) ($Association['Value'] ?? false),
                     VARIABLETYPE_INTEGER => (int) ($Association['Value'] ?? 0),
@@ -339,9 +341,16 @@ trait VariableProfileHelper
                 'Name'  => (string) ($Association['Name'] ?? ''),
                 'Icon'  => (string) ($Association['Icon'] ?? ''),
                 'Color' => (int) ($Association['Color'] ?? 0)
-            ],
-            $Associations
-        ));
+            ];
+            $valueKey = serialize($normalizedAssociation['Value']);
+            if (isset($associationIndexes[$valueKey])) {
+                // Symcon stores only one association per value; the last write wins.
+                $normalized[$associationIndexes[$valueKey]] = $normalizedAssociation;
+                continue;
+            }
+            $associationIndexes[$valueKey] = count($normalized);
+            $normalized[] = $normalizedAssociation;
+        }
         if ($ProfileType !== VARIABLETYPE_STRING) {
             usort(
                 $normalized,

@@ -443,6 +443,7 @@ Die Änderungen sind anhand der funktionalen Commits chronologisch gegliedert. A
 
 ### 14. Juni 2026: Review-sichere Formulare und Profilverwaltung
 
+- Der Profilvergleich berücksichtigt nun, dass Symcon bei mehrfach definierten Assoziationen mit demselben Wert nur den zuletzt gesetzten Eintrag speichert. Dadurch werden beispielsweise bei Farbtemperatur-Presets keine fortlaufenden kompatiblen Ersatzprofile mehr erzeugt.
 - Die Testcenter von Bridge, Geräte- und Gruppeninstanzen befinden sich als eigenständige Bereiche auf der obersten Formularebene und sind nicht mehr in Erweiterungs- oder Expertenmenüs verschachtelt.
 - Das dadurch leere Bridge-Untermenü **Expertenwerkzeuge** wurde entfernt; Dokumentation und Regressionstests wurden an die einheitliche Formularstruktur angepasst.
 - Bestehende Variablenprofile werden bei abweichendem Typ, Wertebereich oder abweichenden Assoziationen weder verändert noch gelöscht. Vollständig passende Profile werden wiederverwendet; bei Namenskonflikten erstellt das Modul ein eindeutig benanntes kompatibles Profil und weist dieses der betreffenden Variable zu.
