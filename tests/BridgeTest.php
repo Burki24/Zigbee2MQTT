@@ -67,6 +67,17 @@ class BridgeTest extends TestCase
         $this->assertNull($this->findFormField($form, 'StaleVariableDeleteWarning'));
     }
 
+    public function testConfigurationFormShowsReadOnlyVariableProfileDiagnostics(): void
+    {
+        $form = json_decode(file_get_contents(__DIR__ . '/../Bridge/form.json'), true);
+
+        $this->assertNotNull($this->findFormField($form, 'VariableProfileDiagnostics'));
+        $diagnosticsList = $this->findFormField($form, 'VariableProfileDiagnosticsList');
+        $this->assertNotNull($diagnosticsList);
+        $this->assertFalse($diagnosticsList['add']);
+        $this->assertFalse($diagnosticsList['delete']);
+    }
+
     public function testConfigurationFormShowsTestCenterAtTopLevel(): void
     {
         $form = json_decode(file_get_contents(__DIR__ . '/../Bridge/form.json'), true);

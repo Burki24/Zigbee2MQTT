@@ -23,6 +23,8 @@ class VariableProfileHelperTest extends DumpInclude
         $this->assertTrue(IPS_VariableProfileExists($profileName));
         $this->assertSame(VARIABLETYPE_INTEGER, IPS_GetVariableProfile($profileName)['ProfileType']);
         $this->assertSame(100.0, IPS_GetVariableProfile($profileName)['MaxValue']);
+        $this->assertStringContainsString('Profile type: 0 -> 1', $helper->logs[0] ?? '');
+        $this->assertStringContainsString('Maximum: 0 -> 100', $helper->logs[0] ?? '');
     }
 
     public function testConflictingAssociationsArePreservedAndCompatibleProfileIsCreated(): void
@@ -88,10 +90,81 @@ class VariableProfileHelperTest extends DumpInclude
         );
     }
 
+    public function testExistingSemanticallyMatchingCompatibleProfileIsReused(): void
+    {
+        $helper = $this->createProfileHelper();
+        IPS_CreateVariableProfile('Z2M.SemanticConflict', VARIABLETYPE_INTEGER);
+        IPS_SetVariableProfileValues('Z2M.SemanticConflict', 0, 100, 1);
+
+        IPS_CreateVariableProfile('Z2M.SemanticConflict.Z2M.aaaaaaaaaaaa', VARIABLETYPE_INTEGER);
+        IPS_SetVariableProfileValues('Z2M.SemanticConflict.Z2M.aaaaaaaaaaaa', 153, 454, 0);
+        IPS_SetVariableProfileAssociation('Z2M.SemanticConflict.Z2M.aaaaaaaaaaaa', 153, 'Coolest', '', -1);
+        IPS_SetVariableProfileAssociation('Z2M.SemanticConflict.Z2M.aaaaaaaaaaaa', 454, 'Warmest', '', -1);
+        $profileCount = count(IPS_GetVariableProfileList());
+
+        $profileName = $helper->registerIntegerAssociationProfile('Z2M.SemanticConflict', [
+            [153, 'Unused duplicate', '', -1],
+            [153, 'Coolest', '', -1],
+            [454, 'Warm', '', -1],
+            [454, 'Warmest', '', -1]
+        ]);
+
+        $this->assertSame('Z2M.SemanticConflict.Z2M.aaaaaaaaaaaa', $profileName);
+        $this->assertCount($profileCount, IPS_GetVariableProfileList());
+    }
+
+    public function testProfileDiagnosticsListCurrentDifferencesUsageAndIdenticalProfiles(): void
+    {
+        $helper = $this->createProfileHelper();
+        IPS_CreateVariableProfile('Z2M.DiagnosticConflict', VARIABLETYPE_INTEGER);
+        IPS_SetVariableProfileValues('Z2M.DiagnosticConflict', 0, 100, 1);
+
+        $compatibleProfile = $helper->registerIntegerProfile('Z2M.DiagnosticConflict', 0, 200, 1);
+        $duplicateProfile = $compatibleProfile . '.1';
+        $this->copyProfile($compatibleProfile, $duplicateProfile);
+
+        $variableID = IPS_CreateVariable(VARIABLETYPE_INTEGER);
+        IPS_SetVariableCustomProfile($variableID, $compatibleProfile);
+
+        $rows = $helper->getProfileDiagnostics();
+        $rowsByName = array_column($rows, null, 'compatible_profile');
+
+        $this->assertArrayHasKey($compatibleProfile, $rowsByName);
+        $this->assertArrayHasKey($duplicateProfile, $rowsByName);
+        $this->assertStringContainsString('Maximum: 100 -> 200', $rowsByName[$compatibleProfile]['deviations']);
+        $this->assertSame(1, $rowsByName[$compatibleProfile]['usage_count']);
+        $this->assertSame(0, $rowsByName[$duplicateProfile]['usage_count']);
+        $this->assertSame(2, $rowsByName[$compatibleProfile]['identical_count']);
+        $this->assertSame(
+            $rowsByName[$compatibleProfile]['definition_fingerprint'],
+            $rowsByName[$duplicateProfile]['definition_fingerprint']
+        );
+    }
+
+    public function testProfileDiagnosticsIncludeIdenticalCanonicalProfileInCount(): void
+    {
+        $helper = $this->createProfileHelper();
+        IPS_CreateVariableProfile('Z2M.IdenticalCanonical', VARIABLETYPE_INTEGER);
+        IPS_SetVariableProfileValues('Z2M.IdenticalCanonical', 0, 100, 1);
+
+        $compatibleProfile = $helper->registerIntegerProfile('Z2M.IdenticalCanonical', 0, 200, 1);
+        $duplicateProfile = $compatibleProfile . '.1';
+        $this->copyProfile($compatibleProfile, $duplicateProfile);
+        IPS_SetVariableProfileValues('Z2M.IdenticalCanonical', 0, 200, 1);
+
+        $rowsByName = array_column($helper->getProfileDiagnostics(), null, 'compatible_profile');
+
+        $this->assertSame(3, $rowsByName[$compatibleProfile]['identical_count']);
+        $this->assertSame(3, $rowsByName[$duplicateProfile]['identical_count']);
+        $this->assertSame('No current deviations', $rowsByName[$compatibleProfile]['deviations']);
+    }
+
     private function createProfileHelper(): object
     {
         return new class() {
             use \Zigbee2MQTT\VariableProfileHelper;
+
+            public array $logs = [];
 
             public function registerIntegerProfile(string $name, int $minValue, int $maxValue, float $stepSize): string
             {
@@ -108,6 +181,11 @@ class VariableProfileHelperTest extends DumpInclude
                 return $this->RegisterProfileIntegerEx($name, '', '', '', $associations);
             }
 
+            public function getProfileDiagnostics(): array
+            {
+                return $this->BuildVariableProfileDiagnostics();
+            }
+
             protected function Translate(string $text): string
             {
                 return $text;
@@ -115,8 +193,33 @@ class VariableProfileHelperTest extends DumpInclude
 
             protected function LogMessage(string $message, int $type): bool
             {
+                $this->logs[] = $message;
+
                 return true;
             }
         };
+    }
+
+    private function copyProfile(string $sourceName, string $targetName): void
+    {
+        $source = IPS_GetVariableProfile($sourceName);
+        IPS_CreateVariableProfile($targetName, $source['ProfileType']);
+        IPS_SetVariableProfileIcon($targetName, $source['Icon']);
+        IPS_SetVariableProfileText($targetName, $source['Prefix'], $source['Suffix']);
+        if (!\in_array($source['ProfileType'], [VARIABLETYPE_BOOLEAN, VARIABLETYPE_STRING], true)) {
+            IPS_SetVariableProfileValues($targetName, $source['MinValue'], $source['MaxValue'], $source['StepSize']);
+        }
+        if ($source['ProfileType'] === VARIABLETYPE_FLOAT) {
+            IPS_SetVariableProfileDigits($targetName, $source['Digits']);
+        }
+        foreach ($source['Associations'] as $association) {
+            IPS_SetVariableProfileAssociation(
+                $targetName,
+                $association['Value'],
+                $association['Name'],
+                $association['Icon'],
+                $association['Color']
+            );
+        }
     }
 }

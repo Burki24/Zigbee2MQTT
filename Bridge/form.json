@@ -833,6 +833,75 @@
                 },
                 {
                     "type": "ExpansionPanel",
+                    "name": "VariableProfileDiagnostics",
+                    "caption": "Variable profile diagnostics",
+                    "expanded": false,
+                    "items": [
+                        {
+                            "type": "Label",
+                            "caption": "Lists compatible profiles created because an existing canonical profile differed from the required definition. The deviations describe the current difference and may not represent the original creation state if profiles were changed later."
+                        },
+                        {
+                            "type": "RowLayout",
+                            "items": [
+                                {
+                                    "type": "Button",
+                                    "caption": "Refresh profile diagnostics",
+                                    "onClick": "IPS_RequestAction($id, 'RefreshVariableProfileDiagnostics', true);"
+                                },
+                                {
+                                    "type": "Label",
+                                    "name": "VariableProfileDiagnosticsStatus",
+                                    "caption": "Compatible profiles: 0, identical duplicate profiles: 0, used profiles: 0"
+                                }
+                            ]
+                        },
+                        {
+                            "type": "List",
+                            "name": "VariableProfileDiagnosticsList",
+                            "caption": "Compatible profiles created due to conflicts",
+                            "add": false,
+                            "delete": false,
+                            "rowCount": 4,
+                            "loadValuesFromConfiguration": false,
+                            "columns": [
+                                {
+                                    "caption": "Canonical profile",
+                                    "name": "canonical_profile",
+                                    "width": "260px",
+                                    "quickFilter": true
+                                },
+                                {
+                                    "caption": "Compatible profile",
+                                    "name": "compatible_profile",
+                                    "width": "300px",
+                                    "quickFilter": true
+                                },
+                                {
+                                    "caption": "Current deviations",
+                                    "name": "deviations",
+                                    "width": "auto",
+                                    "quickFilter": true
+                                },
+                                {
+                                    "caption": "Used by variables",
+                                    "name": "usage_count",
+                                    "width": "120px",
+                                    "align": "center"
+                                },
+                                {
+                                    "caption": "Identical profiles",
+                                    "name": "identical_count",
+                                    "width": "120px",
+                                    "align": "center"
+                                }
+                            ],
+                            "values": []
+                        }
+                    ]
+                },
+                {
+                    "type": "ExpansionPanel",
                     "name": "VariableMaintenance",
                     "caption": "Variable maintenance",
                     "expanded": false,

@@ -301,7 +301,7 @@ Geräte- und Gruppenoptionen aus Zigbee2MQTT können ebenfalls direkt in Symcon 
 
 ### 4.3 Wartung verwaister Variablen
 
-Die [Bridge-Funktionen](Bridge/README.md#55-variablen-wartung) enthalten eine kompakte Variablen-Wartungsübersicht. Sie sucht innerhalb des zugehörigen MQTT-Splitters und MQTT-Basistopics nach alten Zigbee2MQTT-Variablen, die nicht mehr durch aktuelle Exposes oder das zuletzt bekannte Payload abgedeckt sind, und fasst klare Löschkandidaten, Review-Kandidaten und Suchlauf-Hinweise pro betroffener Instanz zusammen.
+Die [Bridge-Funktionen](Bridge/README.md#56-variablen-wartung) enthalten eine kompakte Variablen-Wartungsübersicht. Sie sucht innerhalb des zugehörigen MQTT-Splitters und MQTT-Basistopics nach alten Zigbee2MQTT-Variablen, die nicht mehr durch aktuelle Exposes oder das zuletzt bekannte Payload abgedeckt sind, und fasst klare Löschkandidaten, Review-Kandidaten und Suchlauf-Hinweise pro betroffener Instanz zusammen.
 
 Die eigentliche Prüfung und ein mögliches Löschen erfolgen unter **Expertenwerkzeuge → Variablen-Wartung** in der zuständigen Geräte- oder Gruppeninstanz. Diese darf ausschließlich ihre eigenen direkten Variablen verwalten. Archivierte oder referenzierte Variablen sind geschützt, Archivstatus und letzter Schreibzeitpunkt sind sichtbar, und jede Löschung betrifft genau eine Variable, die vorher erneut geprüft und per Popup bestätigt werden muss.
 
@@ -440,6 +440,10 @@ Die Änderungen sind anhand der funktionalen Commits chronologisch gegliedert. A
 - Der Erreichbarkeitstest von Bridge und Konfigurator wartet bei ausgelasteten Zigbee2MQTT-Systemen bis zu 20 Sekunden auf den Options-Request und unterdrückt technische Zwischen-Notices. Dadurch wird Zigbee2MQTT nicht mehr bereits nach dem bisherigen Fünf-Sekunden-Limit fälschlich als nicht erreichbar gemeldet.
 - Die Discovery lässt den Anwender über `mqtt://` oder `mqtts://` ausdrücklich zwischen unverschlüsseltem MQTT und geprüftem TLS wählen. Bei TLS werden Zertifikat und Hostname zwingend geprüft; ein automatischer Rückfall auf eine unverschlüsselte Verbindung findet nicht statt. Unsichere TLS-Verbindungen mit deaktivierter Zertifikatsprüfung werden nicht mehr aufgebaut.
 - Bereits vorhandene Geräte- und Gruppeninstanzen werden im Konfigurator wieder korrekt als weiterhin von Zigbee2MQTT erkannte Einträge dargestellt. Die rote Symcon-Markierung bleibt damit ausschließlich tatsächlich nicht mehr gefundenen Instanzen vorbehalten.
+
+### 15. Juni 2026: Variablenprofil-Diagnose
+
+- Die Bridge erhielt eine rein lesende Variablenprofil-Diagnose. Sie listet konfliktbedingt erzeugte kompatible Profile mit ihren aktuellen Abweichungen, ihrer Verwendung und identischen Dubletten auf. Neue Profilkonflikte protokollieren zusätzlich die konkreten Unterschiede zur vorhandenen Definition.
 
 ### 14. Juni 2026: Review-sichere Formulare und Profilverwaltung
 
