@@ -426,7 +426,7 @@ Die Änderungen sind anhand der funktionalen Commits chronologisch gegliedert. A
 - MQTT-Befehle brechen während des kurzen Instanzschnittstellen-Wechsels eines Modul-Updates kontrolliert ab. Laufende Ereignisse erzeugen dadurch keine `InstanceInterface is not available`-Warnungen und senden keine unvollständigen MQTT-Topics.
 - Gerätebilder werden modellbezogen unter `user/IPSZigbee2MQTT/icons` zwischengespeichert und nur beim Öffnen der Geräte-Konfiguration geladen. Bestehende Base64-Bildattribute werden automatisch migriert, wodurch `IPS_GetSnapshot()` und darauf aufbauende Visualisierungen deutlich weniger Arbeitsspeicher benötigen.
 
-### 13. Juni 2026: Instanzbezogene Variablen-Wartung
+### 13. bis 15. Juni 2026: Instanzbezogene Variablen-Wartung
 
 - Ausgehende MQTT-Befehle verwenden wieder den von Zigbee2MQTT abonnierten Topic-Baum ohne führenden Slash. Geräte- und Gruppenaktionen erreichen dadurch den konfigurierten Zigbee2MQTT-Basistopic wieder korrekt.
 - Binäre Statusaktionen schreiben Zigbee2MQTT-Werte wie `ON` und `OFF` nach dem Senden wieder typgerecht als Boolean in die Symcon-Variable. Dadurch springt ein ausgeschalteter Status nicht mehr durch PHPs String-Konvertierung unmittelbar auf `Ein` zurück.
@@ -440,13 +440,7 @@ Die Änderungen sind anhand der funktionalen Commits chronologisch gegliedert. A
 - Der Erreichbarkeitstest von Bridge und Konfigurator wartet bei ausgelasteten Zigbee2MQTT-Systemen bis zu 20 Sekunden auf den Options-Request und unterdrückt technische Zwischen-Notices. Dadurch wird Zigbee2MQTT nicht mehr bereits nach dem bisherigen Fünf-Sekunden-Limit fälschlich als nicht erreichbar gemeldet.
 - Die Discovery lässt den Anwender über `mqtt://` oder `mqtts://` ausdrücklich zwischen unverschlüsseltem MQTT und geprüftem TLS wählen. Bei TLS werden Zertifikat und Hostname zwingend geprüft; ein automatischer Rückfall auf eine unverschlüsselte Verbindung findet nicht statt. Unsichere TLS-Verbindungen mit deaktivierter Zertifikatsprüfung werden nicht mehr aufgebaut.
 - Bereits vorhandene Geräte- und Gruppeninstanzen werden im Konfigurator wieder korrekt als weiterhin von Zigbee2MQTT erkannte Einträge dargestellt. Die rote Symcon-Markierung bleibt damit ausschließlich tatsächlich nicht mehr gefundenen Instanzen vorbehalten.
-
-### 15. Juni 2026: Variablenprofil-Diagnose
-
 - Die Bridge erhielt eine rein lesende Variablenprofil-Diagnose. Sie listet konfliktbedingt erzeugte kompatible Profile mit ihren aktuellen Abweichungen, ihrer Verwendung und identischen Dubletten auf. Neue Profilkonflikte protokollieren zusätzlich die konkreten Unterschiede zur vorhandenen Definition.
-
-### 14. Juni 2026: Review-sichere Formulare und Profilverwaltung
-
 - Der Profilvergleich berücksichtigt nun, dass Symcon bei mehrfach definierten Assoziationen mit demselben Wert nur den zuletzt gesetzten Eintrag speichert. Dadurch werden beispielsweise bei Farbtemperatur-Presets keine fortlaufenden kompatiblen Ersatzprofile mehr erzeugt.
 - Die Testcenter von Bridge, Geräte- und Gruppeninstanzen befinden sich als eigenständige Bereiche auf der obersten Formularebene und sind nicht mehr in Erweiterungs- oder Expertenmenüs verschachtelt.
 - Das dadurch leere Bridge-Untermenü **Expertenwerkzeuge** wurde entfernt; Dokumentation und Regressionstests wurden an die einheitliche Formularstruktur angepasst.
