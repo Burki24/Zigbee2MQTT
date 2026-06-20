@@ -21,7 +21,7 @@
             "No devices found!": "Keine Geräte gefunden!",
             "The Symcon extension in Zigbee2MQTT is not installed or not up to date.\r\nCreate or open the matching Bridge instance in the device list, then install or update the extension within its configuration.": "Die Symcon-Erweiterung in Zigbee2MQTT ist nicht installiert oder nicht auf dem neuesten Stand.\r\nErstellen oder öffnen Sie die passende Bridge-Instanz über die Geräteliste und installieren oder aktualisieren Sie anschließend die Erweiterung in deren Konfiguration.",
             "Open bridge instance": "Bridge-Instanz öffnen",
-            "Zigbee2MQTT did not response!": "Zigbee2MQTT antwortet nicht!",
+            "Zigbee2MQTT does not respond!": "Zigbee2MQTT antwortet nicht!",
             "Zigbee2MQTT did not response on Topic %s": "Zigbee2MQTT antwortet nicht auf Topic %s",
             "Transaction Data is locked": "Transaktionen Daten sind gesperrt",
             "Action": "Aktion"

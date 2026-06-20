@@ -161,7 +161,7 @@ class Zigbee2MQTTConfigurator extends IPSModuleStrict
                 'popup' => [
                     'items' => [[
                         'type'    => 'Label',
-                        'caption' => 'Instance has no active parent.'
+                        'caption' => $this->Translate('Instance has no active parent.')
                     ]]
                 ]
             ];
@@ -184,7 +184,7 @@ class Zigbee2MQTTConfigurator extends IPSModuleStrict
                         'type'    => 'Label',
                         'color'   => 16711680,
                         'bold'    => true,
-                        'caption' => 'Zigbee2MQTT did not response!'
+                        'caption' => $this->Translate('Zigbee2MQTT does not respond!')
                     ]]
                 ]
             ];
