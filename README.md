@@ -475,6 +475,7 @@ Die Änderungen sind anhand der funktionalen Commits chronologisch gegliedert. A
 - Antworten der SymconExtension werden zusätzlich über ihr Response-Topic einer offenen Anfrage zugeordnet, wenn eine alte, fehlende oder nicht mehr passende `transaction` im Payload steht. Dadurch können Configurator, Geräte- und Gruppenformulare auch mit Legacy- oder retained Extension-Antworten wieder Geräte- und Gruppenlisten auswerten.
 - Der Konfigurator verarbeitet nur noch die für ihn relevanten MQTT-Antworten und protokolliert große Geräte- und Gruppenlisten nicht mehr vollständig als Debug-JSON.
 - Die Symcon-Extension stellt für den Konfigurator eine kompakte `getDevicesLight`-Listenabfrage bereit. Detaildaten wie Exposes, Endpoints, Geräteoptionen und OTA-Informationen bleiben in der regulären Geräteabfrage sowie beim gezielten Abruf der Geräteinformationen erhalten. Dadurch sinkt der Speicherbedarf bei frischen Installationen und großen Zigbee2MQTT-Netzen deutlich, ohne Binding-, OTA- oder Gruppenfunktionen zu beschneiden.
+- Der Bridge-Formularaufbau fragt Geräte für Anlernen und Netzwerksicherheit nicht mehr mehrfach synchron über die Symcon-Extension ab. Beim Öffnen werden Cache und vorhandene Instanzen genutzt; die Live-Abfrage erfolgt nur noch über die explizite Aktualisieren-Aktion. Der automatische Bridge-Onlinecheck beim Übernehmen nutzt wieder einen kurzen Fünf-Sekunden-Timeout.
 
 **Version 5.42:**  
 

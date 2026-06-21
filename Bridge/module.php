@@ -75,6 +75,7 @@ class Zigbee2MQTTBridge extends IPSModuleStrict
     private const OTA_PENDING_REQUEST_LIFETIME = 300;
     private const MAX_PERMIT_JOIN_DURATION = 254;
     private const TIMER_PERMIT_JOIN_STATUS = 'UpdatePermitJoinStatus';
+    private const TIMEOUT_BRIDGE_APPLY_OPTIONS_REQUEST = 5000;
 
     /**
      * Create
@@ -203,7 +204,7 @@ class Zigbee2MQTTBridge extends IPSModuleStrict
         $online = false;
         if (!empty($BaseTopic)) {
             if (($this->HasActiveParent()) && (IPS_GetKernelRunlevel() == KR_READY)) {
-                $online = @$this->RequestOptions();
+                $online = @$this->RequestOptions(self::TIMEOUT_BRIDGE_APPLY_OPTIONS_REQUEST);
             }
         }
         $this->SendDebug('Online', $online ? 'true' : 'false', 0);
@@ -646,13 +647,13 @@ class Zigbee2MQTTBridge extends IPSModuleStrict
      *
      * @uses Zigbee2MQTTBridge::SendQuietCheckedBridgeRequest()
      */
-    public function RequestOptions(): bool
+    public function RequestOptions(int $Timeout = self::TIMEOUT_ZIGBEE_OPTIONS_REQUEST): bool
     {
         $Topic = '/bridge/request/options';
         $Payload = [
             'options'=> []
         ];
-        return $this->SendQuietCheckedBridgeRequest($Topic, $Payload, self::TIMEOUT_ZIGBEE_OPTIONS_REQUEST) !== false;
+        return $this->SendQuietCheckedBridgeRequest($Topic, $Payload, $Timeout) !== false;
     }
 
     /**
@@ -2496,14 +2497,14 @@ class Zigbee2MQTTBridge extends IPSModuleStrict
     /**
      * Baut den lesbaren Pairing-Status fuer das Formular.
      */
-    private function BuildPairingStatusCaption(): string
+    private function BuildPairingStatusCaption(?array $devices = null): string
     {
         if (!(bool) $this->GetValue('permit_join')) {
             return $this->Translate('Pairing mode is closed.');
         }
 
         $remaining = (int) $this->GetValue('permit_join_remaining');
-        $target = $this->FormatPairingTarget($this->PermitJoinTarget);
+        $target = $this->FormatPairingTarget($this->PermitJoinTarget, $devices);
         if ($remaining <= 0) {
             return sprintf($this->Translate('Pairing mode is open via %s.'), $target);
         }
@@ -2518,14 +2519,14 @@ class Zigbee2MQTTBridge extends IPSModuleStrict
     /**
      * Baut die Auswahl aus gesamtem Netzwerk, Coordinator und vorhandenen Routern.
      */
-    private function BuildPairingTargetOptions(): array
+    private function BuildPairingTargetOptions(?array $devices = null): array
     {
         $options = [
             ['caption' => $this->Translate('Entire network'), 'value' => ''],
             ['caption' => $this->Translate('Coordinator'), 'value' => 'coordinator']
         ];
         $routers = [];
-        foreach ($this->BuildNetworkSecurityDevices() as $device) {
+        foreach (($devices ?? $this->BuildNetworkSecurityDevices()) as $device) {
             if (!\is_array($device) || strcasecmp((string) ($device['type'] ?? ''), 'Router') !== 0) {
                 continue;
             }
@@ -2550,7 +2551,7 @@ class Zigbee2MQTTBridge extends IPSModuleStrict
     /**
      * Formatiert ein Pairing-Ziel fuer Statusvariable und Formular.
      */
-    private function FormatPairingTarget(string $target): string
+    private function FormatPairingTarget(string $target, ?array $devices = null): string
     {
         $target = trim($target);
         if ($target === '') {
@@ -2560,7 +2561,7 @@ class Zigbee2MQTTBridge extends IPSModuleStrict
             return $this->Translate('Coordinator');
         }
 
-        foreach ($this->BuildNetworkSecurityDevices() as $device) {
+        foreach (($devices ?? $this->BuildNetworkSecurityDevices()) as $device) {
             if (!\is_array($device) || strcasecmp((string) ($device['ieee_address'] ?? ''), $target) !== 0) {
                 continue;
             }
@@ -2578,15 +2579,16 @@ class Zigbee2MQTTBridge extends IPSModuleStrict
     private function BuildBridgeConfigurationForm(array $form): array
     {
         $this->SynchronizeOTAMessageSubscriptions();
-        $this->SetBridgeFormField($form, 'PairingTarget', 'options', $this->BuildPairingTargetOptions());
-        $this->SetBridgeFormField($form, 'PairingStatus', 'caption', $this->BuildPairingStatusCaption());
+        $networkSecurityDevices = $this->BuildNetworkSecurityDevices();
+        $this->SetBridgeFormField($form, 'PairingTarget', 'options', $this->BuildPairingTargetOptions($networkSecurityDevices));
+        $this->SetBridgeFormField($form, 'PairingStatus', 'caption', $this->BuildPairingStatusCaption($networkSecurityDevices));
         $this->SetBridgeFormField($form, 'StartPairing', 'enabled', !$this->GetValue('permit_join'));
         $this->SetBridgeFormField($form, 'StopPairing', 'enabled', $this->GetValue('permit_join'));
-        $availableDevices = $this->BuildNetworkSecurityAvailableDeviceFormValues();
+        $availableDevices = $this->BuildNetworkSecurityAvailableDeviceFormValues($networkSecurityDevices);
         $this->SetBridgeFormField($form, 'NetworkSecurityAvailableDeviceList', 'values', $availableDevices);
         $this->SetBridgeFormField($form, 'NetworkSecurityAvailableDeviceList', 'rowCount', min(10, max(4, \count($availableDevices) + 1)));
-        $this->SetBridgeFormField($form, 'NetworkSecurityBlocklist', 'values', $this->BuildNetworkSecurityListFormValues('blocklist'));
-        $this->SetBridgeFormField($form, 'NetworkSecurityPasslist', 'values', $this->BuildNetworkSecurityListFormValues('passlist'));
+        $this->SetBridgeFormField($form, 'NetworkSecurityBlocklist', 'values', $this->BuildNetworkSecurityListFormValues('blocklist', $networkSecurityDevices));
+        $this->SetBridgeFormField($form, 'NetworkSecurityPasslist', 'values', $this->BuildNetworkSecurityListFormValues('passlist', $networkSecurityDevices));
         $this->SetBridgeFormField($form, 'DiagnosticHealthStatus', 'caption', $this->BuildHealthStatusCaption());
         $this->SetBridgeFormField($form, 'DiagnosticCoordinatorStatus', 'caption', $this->BuildCoordinatorStatusCaption());
         $this->SetBridgeFormField($form, 'DiagnosticMissingRoutersList', 'values', $this->BuildMissingRouterFormValues());
@@ -3739,10 +3741,10 @@ class Zigbee2MQTTBridge extends IPSModuleStrict
     /**
      * Baut die Device-Liste fuer Blocklist und Passlist.
      */
-    private function BuildNetworkSecurityAvailableDeviceFormValues(): array
+    private function BuildNetworkSecurityAvailableDeviceFormValues(?array $devices = null): array
     {
         $values = [];
-        foreach ($this->BuildNetworkSecurityDevices() as $device) {
+        foreach (($devices ?? $this->BuildNetworkSecurityDevices()) as $device) {
             if (!\is_array($device)) {
                 continue;
             }
@@ -3771,14 +3773,14 @@ class Zigbee2MQTTBridge extends IPSModuleStrict
     /**
      * Baut die Formularzeilen fuer blocklist oder passlist.
      */
-    private function BuildNetworkSecurityListFormValues(string $listName): array
+    private function BuildNetworkSecurityListFormValues(string $listName, ?array $devices = null): array
     {
         $attribute = $this->GetNetworkSecurityAttribute($listName);
         if ($attribute === '') {
             return [];
         }
 
-        $deviceNames = $this->BuildNetworkSecurityDeviceNameMap();
+        $deviceNames = $this->BuildNetworkSecurityDeviceNameMap($devices);
         $values = [];
         foreach ($this->ReadAttributeArray($attribute) as $ieeeAddress) {
             $ieeeAddress = (string) $ieeeAddress;
@@ -3795,10 +3797,10 @@ class Zigbee2MQTTBridge extends IPSModuleStrict
     /**
      * Baut eine IEEE-zu-Name-Map fuer Listenanzeigen.
      */
-    private function BuildNetworkSecurityDeviceNameMap(): array
+    private function BuildNetworkSecurityDeviceNameMap(?array $devices = null): array
     {
         $names = [];
-        foreach ($this->BuildNetworkSecurityDevices() as $device) {
+        foreach (($devices ?? $this->BuildNetworkSecurityDevices()) as $device) {
             if (!\is_array($device)) {
                 continue;
             }
@@ -3819,11 +3821,12 @@ class Zigbee2MQTTBridge extends IPSModuleStrict
      */
     private function UpdateNetworkSecurityFormLists(): void
     {
-        $availableDevices = $this->BuildNetworkSecurityAvailableDeviceFormValues();
+        $devices = $this->BuildNetworkSecurityDevices(true);
+        $availableDevices = $this->BuildNetworkSecurityAvailableDeviceFormValues($devices);
         $this->UpdateFormField('NetworkSecurityAvailableDeviceList', 'values', json_encode($availableDevices));
         $this->UpdateFormField('NetworkSecurityAvailableDeviceList', 'rowCount', min(10, max(4, \count($availableDevices) + 1)));
-        $this->UpdateFormField('NetworkSecurityBlocklist', 'values', json_encode($this->BuildNetworkSecurityListFormValues('blocklist')));
-        $this->UpdateFormField('NetworkSecurityPasslist', 'values', json_encode($this->BuildNetworkSecurityListFormValues('passlist')));
+        $this->UpdateFormField('NetworkSecurityBlocklist', 'values', json_encode($this->BuildNetworkSecurityListFormValues('blocklist', $devices)));
+        $this->UpdateFormField('NetworkSecurityPasslist', 'values', json_encode($this->BuildNetworkSecurityListFormValues('passlist', $devices)));
     }
 
     /**
@@ -3836,9 +3839,9 @@ class Zigbee2MQTTBridge extends IPSModuleStrict
     }
 
     /**
-     * Baut die bekannten Geraete aus Cache, Instanzen und Extension-Fallback.
+     * Baut die bekannten Geraete aus Cache, Instanzen und optionalem Extension-Fallback.
      */
-    private function BuildNetworkSecurityDevices(): array
+    private function BuildNetworkSecurityDevices(bool $includeExtensionFallback = false): array
     {
         $devices = [];
         foreach ($this->ReadAttributeArray(self::ATTRIBUTE_NETWORK_DEVICES) as $device) {
@@ -3847,7 +3850,7 @@ class Zigbee2MQTTBridge extends IPSModuleStrict
         foreach ($this->LoadNetworkSecurityDevicesFromInstances() as $device) {
             $this->AddNetworkSecurityDevice($devices, $device);
         }
-        if ($devices === []) {
+        if ($devices === [] && $includeExtensionFallback) {
             foreach ($this->LoadNetworkSecurityDevicesFromExtension() as $device) {
                 $this->AddNetworkSecurityDevice($devices, $device);
             }
