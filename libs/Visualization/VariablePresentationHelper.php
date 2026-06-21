@@ -418,16 +418,33 @@ trait VariablePresentationHelper
     }
 
     /**
-     * Erstellt fuer Enum-Exposes eine Aufzaehlungs-Darstellung.
+     * Erstellt fuer Enum-Exposes eine passende native Darstellung.
+     *
+     * Beschreibbare Enums erhalten die interaktive Aufzaehlung. Reine
+     * Statuswerte verwenden dagegen die normale Wertanzeige, weil die
+     * Aufzaehlungsdarstellung in Symcon eine Variablenaktion voraussetzt.
      */
     protected function BuildEnumerationPresentation(array $feature): ?array
     {
-        if (!$this->SupportsEnumerationPresentation() || !isset($feature['values']) || !\is_array($feature['values'])) {
+        if (!isset($feature['values']) || !\is_array($feature['values'])) {
             return null;
         }
 
+        $options = $this->BuildEnumerationPresentationOptions($feature['values']);
+        if ($this->IsWritableFeature($feature)) {
+            return $this->BuildWritableEnumerationPresentation($feature, $options);
+        }
+
+        return $this->BuildReadOnlyEnumerationPresentation($feature, $options);
+    }
+
+    /**
+     * Erstellt die Optionsliste fuer Enum-Darstellungen.
+     */
+    private function BuildEnumerationPresentationOptions(array $values): array
+    {
         $options = [];
-        foreach ($feature['values'] as $value) {
+        foreach ($values as $value) {
             $options[] = [
                 'Value'      => (string) $value,
                 'Caption'    => $this->CreatePresentationCaption((string) $value),
@@ -437,12 +454,43 @@ trait VariablePresentationHelper
             ];
         }
 
+        return $options;
+    }
+
+    /**
+     * Erstellt fuer beschreibbare Enums die interaktive Aufzaehlung.
+     */
+    private function BuildWritableEnumerationPresentation(array $feature, array $options): ?array
+    {
+        if (!$this->SupportsEnumerationPresentation()) {
+            return null;
+        }
+
         return [
             'PRESENTATION' => \constant('VARIABLE_PRESENTATION_ENUMERATION'),
             'OPTIONS'      => json_encode($options),
             'LAYOUT'       => count($options) <= 3 ? 1 : 0,
             'DISPLAY'      => 0,
             'ICON'         => $this->GetEnumerationPresentationIcon($feature)
+        ];
+    }
+
+    /**
+     * Erstellt fuer nicht beschreibbare Enums eine reine Wertanzeige.
+     */
+    private function BuildReadOnlyEnumerationPresentation(array $feature, array $options): ?array
+    {
+        if (!$this->SupportsValuePresentation()) {
+            return null;
+        }
+
+        return [
+            'PRESENTATION' => \constant('VARIABLE_PRESENTATION_VALUE_PRESENTATION'),
+            'ICON'         => $this->GetEnumerationPresentationIcon($feature),
+            'COLOR'        => -1,
+            'PREFIX'       => '',
+            'SUFFIX'       => '',
+            'OPTIONS'      => json_encode($options)
         ];
     }
 

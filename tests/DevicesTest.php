@@ -750,19 +750,42 @@ class DevicesTest extends DumpInclude
                 'values' => ['local', 'remote']
             ]
         ];
+        $catalog['generated_writable_enum'] = [
+            'ident'     => 'generated_writable_enum',
+            'property'  => 'generated_writable_enum',
+            'label'     => 'Generated Writable Enum',
+            'source'    => 'payload',
+            'type'      => 'enum',
+            'created'   => false,
+            'lastValue' => 'local',
+            'feature'   => [
+                'name'   => 'generated_writable_enum',
+                'type'   => 'enum',
+                'access' => 7,
+                'values' => ['local', 'remote']
+            ]
+        ];
         $this->writeStubAttributeArray($iid, 'VariableCatalog', $catalog);
 
         IPS_RequestAction($iid, 'ToggleVariableCreation', 'generated_binary');
         IPS_RequestAction($iid, 'ToggleVariableCreation', 'generated_enum');
+        IPS_RequestAction($iid, 'ToggleVariableCreation', 'generated_writable_enum');
 
         $binaryID = @IPS_GetObjectIDByIdent('generated_binary', $iid);
         $enumID = @IPS_GetObjectIDByIdent('generated_enum', $iid);
+        $writableEnumID = @IPS_GetObjectIDByIdent('generated_writable_enum', $iid);
         $this->assertNotFalse($binaryID);
         $this->assertNotFalse($enumID);
+        $this->assertNotFalse($writableEnumID);
         $this->assertSame('Z2M.generated_binary', IPS_GetVariable($binaryID)['VariableProfile']);
         $enumVariable = IPS_GetVariable($enumID);
         $this->assertSame('', $enumVariable['VariableProfile']);
-        $this->assertSame(VARIABLE_PRESENTATION_ENUMERATION, $enumVariable['VariablePresentation']['PRESENTATION'] ?? null);
+        $this->assertSame(VARIABLE_PRESENTATION_VALUE_PRESENTATION, $enumVariable['VariablePresentation']['PRESENTATION'] ?? null);
+        $this->assertFalse(HasAction($enumID));
+        $writableEnumVariable = IPS_GetVariable($writableEnumID);
+        $this->assertSame('', $writableEnumVariable['VariableProfile']);
+        $this->assertSame(VARIABLE_PRESENTATION_ENUMERATION, $writableEnumVariable['VariablePresentation']['PRESENTATION'] ?? null);
+        $this->assertTrue(HasAction($writableEnumID));
     }
 
     public function testVariableSelectionRefreshRemovesHistoricalEntriesWithoutDeletingVariables(): void
