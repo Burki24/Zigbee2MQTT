@@ -553,7 +553,11 @@ class Zigbee2MQTTConfigurator extends IPSModuleStrict
             return $Devices;
         }
 
-        $Result = @$this->SendData(self::SYMCON_EXTENSION_LIST_REQUEST . 'getDevices');
+        $Result = @$this->SendData(
+            self::SYMCON_EXTENSION_LIST_REQUEST . 'getDevices',
+            [],
+            self::TIMEOUT_SYMCON_EXTENSION_LIST_REQUEST
+        );
         if (\is_array($Result) && \is_array($Result['list'] ?? null)) {
             return $Result['list'];
         }
@@ -570,7 +574,11 @@ class Zigbee2MQTTConfigurator extends IPSModuleStrict
      */
     private function getGroups(): array
     {
-        $Result = @$this->SendData(self::SYMCON_EXTENSION_LIST_REQUEST . 'getGroups');
+        $Result = @$this->SendData(
+            self::SYMCON_EXTENSION_LIST_REQUEST . 'getGroups',
+            [],
+            self::TIMEOUT_SYMCON_EXTENSION_LIST_REQUEST
+        );
         if (\is_array($Result) && \is_array($Result['list'] ?? null)) {
             return $Result['list'];
         }

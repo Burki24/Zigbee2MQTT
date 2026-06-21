@@ -4485,29 +4485,63 @@ abstract class ModulBase extends \IPSModuleStrict
         // Bestimmen des Variablentyps basierend auf Typ, Feature und Einheit
         $variableType = $this->getVariableTypeFromProfile($type, $property, $unit, $step, $groupType);
 
-        // Überprüfen, ob ein Standardprofil verwendet werden soll
+        // Ueberpruefen, ob ein Standardprofil verwendet werden soll.
         $profileName = $this->getStandardProfile($type, $property, $groupType);
 
-        // Profil vor der Variablenerstellung erstellen, falls kein Standardprofil verwendet wird
-        if ($profileName === '') {
-            $profileName = $this->registerVariableProfile($feature);
-        }
-
         $ident = str_replace('&', '_and_', $property);
-        $isNewVariable = $this->GetObjectIDByIdent($ident) === false;
-        if (!$this->registerFeatureVariableByType($feature, $ident, $property, $variableType, $profileName, $exposeType)) {
+        $existingVariableID = $this->GetObjectIDByIdent($ident);
+        $isNewVariable = $existingVariableID === false;
+        if ($isNewVariable) {
+            $presentation = $this->BuildFeaturePresentation($feature, \is_string($groupType) ? $groupType : null, $profileName);
+            if ($presentation !== null) {
+                $profileOrPresentation = $presentation;
+            } else {
+                if ($profileName === '') {
+                    $profileName = $this->registerVariableProfile($feature);
+                }
+                $profileOrPresentation = $profileName;
+            }
+        } else {
+            if ($profileName === '') {
+                $profileName = $this->GetExistingVariableProfile((int) $existingVariableID);
+            }
+            $profileOrPresentation = $profileName;
+        }
+        if (!$this->registerFeatureVariableByType($feature, $ident, $property, $variableType, $profileOrPresentation, $exposeType)) {
             return;
         }
 
         // Zentrale EnableAction-Prüfung für die Hauptvariable, außer bei composite
         if ($variableType != 'composite') {
             $this->checkAndEnableAction($ident, $feature);
-            $this->ApplyFeaturePresentation($ident, $feature, $groupType, $isNewVariable);
         }
 
         $this->registerColorTemperatureKelvinVariable($property, $feature);
         $this->registerFeaturePresetVariables($feature, $property, $type, $unit, $step, $groupType);
         return;
+    }
+
+    /**
+     * Liefert das aktuell gesetzte Modulprofil einer vorhandenen Variable.
+     *
+     * Bestehende Variablen sollen beim erneuten Uebernehmen der Instanz nicht
+     * zwangsweise auf neue dynamische Z2M-Profile umgestellt werden. Das Modul
+     * nutzt deshalb das vorhandene Modulprofil weiter, sofern kein fachliches
+     * Standardprofil fest vorgegeben ist.
+     *
+     * @param int $variableID Objekt-ID der vorhandenen Variable.
+     *
+     * @return string Profilname oder leer, wenn kein Profil gesetzt ist.
+     */
+    private function GetExistingVariableProfile(int $variableID): string
+    {
+        try {
+            $variable = IPS_GetVariable($variableID);
+        } catch (\Throwable) {
+            return '';
+        }
+
+        return \is_string($variable['VariableProfile'] ?? null) ? $variable['VariableProfile'] : '';
     }
 
     /**
@@ -4627,32 +4661,32 @@ abstract class ModulBase extends \IPSModuleStrict
      * @param string $ident Symcon-Ident.
      * @param string $property Expose-Property.
      * @param string $variableType Interner Variablentyp (`bool`, `int`, `float`, `string`, `text`, `composite`, `list`).
-     * @param string $profileName Zu verwendendes Symcon-Profil.
+     * @param string|array $profileOrPresentation Zu verwendendes Symcon-Profil oder initiale Darstellung.
      * @param string|null $exposeType Optionaler Expose-Typ fuer rekursive Sub-Features.
      *
      * @return bool True, wenn die normale Nachverarbeitung der Hauptvariable fortgesetzt werden soll.
      */
-    private function registerFeatureVariableByType(array $feature, string $ident, string $property, string $variableType, string $profileName, ?string $exposeType): bool
+    private function registerFeatureVariableByType(array $feature, string $ident, string $property, string $variableType, string|array $profileOrPresentation, ?string $exposeType): bool
     {
         switch ($variableType) {
             case 'bool':
                 $this->SendDebug(__FUNCTION__, 'Registering Boolean Variable: ' . $property, 0);
-                $this->RegisterVariableBoolean($ident, $this->Translate($this->convertLabelToName($property)), $profileName);
+                $this->RegisterVariableBoolean($ident, $this->Translate($this->convertLabelToName($property)), $profileOrPresentation);
                 $this->MarkVariableCreated($ident);
                 return true;
             case 'int':
                 $this->SendDebug(__FUNCTION__, 'Registering Integer Variable: ' . $property, 0);
-                $this->RegisterVariableInteger($ident, $this->Translate($this->convertLabelToName($property)), $profileName);
+                $this->RegisterVariableInteger($ident, $this->Translate($this->convertLabelToName($property)), $profileOrPresentation);
                 $this->MarkVariableCreated($ident);
                 return true;
             case 'float':
                 $this->SendDebug(__FUNCTION__, 'Registering Float Variable: ' . $property, 0);
-                $this->RegisterVariableFloat($ident, $this->Translate($this->convertLabelToName($property)), $profileName);
+                $this->RegisterVariableFloat($ident, $this->Translate($this->convertLabelToName($property)), $profileOrPresentation);
                 $this->MarkVariableCreated($ident);
                 return true;
             case 'string':
                 $this->SendDebug(__FUNCTION__, 'Registering String Variable: ' . $property, 0);
-                $this->RegisterVariableString($ident, $this->Translate($this->convertLabelToName($property)), $profileName);
+                $this->RegisterVariableString($ident, $this->Translate($this->convertLabelToName($property)), $profileOrPresentation);
                 $this->MarkVariableCreated($ident);
                 return true;
             case 'text':
@@ -4787,9 +4821,11 @@ abstract class ModulBase extends \IPSModuleStrict
         }
 
         $isNewVariable = $this->GetObjectIDByIdent($kelvinIdent) === false;
-        $this->RegisterVariableInteger($kelvinIdent, $this->Translate('Color Temperature Kelvin'), '~TWColor');
+        $profileOrPresentation = $isNewVariable
+            ? ($this->BuildColorTemperaturePresentation($feature) ?? '~TWColor')
+            : '~TWColor';
+        $this->RegisterVariableInteger($kelvinIdent, $this->Translate('Color Temperature Kelvin'), $profileOrPresentation);
         $this->MarkVariableCreated($kelvinIdent);
-        $this->ApplyColorTemperaturePresentation($kelvinIdent, $feature, $isNewVariable);
         $this->checkAndEnableAction($kelvinIdent, null, true);
 
         $this->registerColorTemperatureWhiteColorVariable();
@@ -5081,28 +5117,28 @@ abstract class ModulBase extends \IPSModuleStrict
         }
 
         $isNewVariable = $this->GetObjectIDByIdent($ident) === false;
+        $profileOrPresentation = $varDef['profile'];
+        if ($isNewVariable && $ident === 'update__remaining') {
+            $profileOrPresentation = $this->BuildDurationPresentation() ?? $profileOrPresentation;
+        }
         switch ($varDef['type']) {
             case VARIABLETYPE_FLOAT:
-                $this->RegisterVariableFloat($ident, $this->Translate($formattedLabel), $varDef['profile']);
+                $this->RegisterVariableFloat($ident, $this->Translate($formattedLabel), $profileOrPresentation);
                 break;
             case VARIABLETYPE_INTEGER:
-                $this->RegisterVariableInteger($ident, $this->Translate($formattedLabel), $varDef['profile']);
+                $this->RegisterVariableInteger($ident, $this->Translate($formattedLabel), $profileOrPresentation);
                 break;
             case VARIABLETYPE_STRING:
-                $this->RegisterVariableString($ident, $this->Translate($formattedLabel), $varDef['profile']);
+                $this->RegisterVariableString($ident, $this->Translate($formattedLabel), $profileOrPresentation);
                 break;
             case VARIABLETYPE_BOOLEAN:
-                $this->RegisterVariableBoolean($ident, $this->Translate($formattedLabel), $varDef['profile']);
+                $this->RegisterVariableBoolean($ident, $this->Translate($formattedLabel), $profileOrPresentation);
                 break;
         }
         $this->MarkVariableCreated($ident);
 
         // Zentrale EnableAction-Prüfung für spezielle Variable
         $this->checkAndEnableAction($ident, $feature);
-        if ($ident === 'update__remaining') {
-            $this->ApplyDurationPresentation($ident, $isNewVariable);
-        }
-
         return;
     }
 

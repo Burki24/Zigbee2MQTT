@@ -3929,7 +3929,11 @@ class Zigbee2MQTTBridge extends IPSModuleStrict
             return [];
         }
 
-        $result = @$this->SendData(self::SYMCON_EXTENSION_LIST_REQUEST . 'getDevices', [], 2500);
+        $result = @$this->SendData(
+            self::SYMCON_EXTENSION_LIST_REQUEST . 'getDevices',
+            [],
+            self::TIMEOUT_SYMCON_EXTENSION_LIST_REQUEST
+        );
         if (!\is_array($result) || !\is_array($result['list'] ?? null)) {
             return [];
         }

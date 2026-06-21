@@ -42,9 +42,11 @@ Mit dieser Instanz werden alle mit MQTT-Brokern(Servern) verbundenen Zigbee2MQTT
 Beim manuellen Hinzufügen eines externen Brokers entscheidet der Anwender über das Schema der Broker-Adresse:
 
 - `mqtt://` verwendet eine unverschlüsselte MQTT-Verbindung.
-- `mqtts://` verwendet eine verschlüsselte TLS-Verbindung und prüft immer das Serverzertifikat sowie den Hostnamen.
+- `mqtts://` verwendet eine verschlüsselte TLS-Verbindung. Serverzertifikat und Hostname werden standardmäßig geprüft.
 
-Bei TLS benötigt der Broker ein gültiges, vom Symcon-System als vertrauenswürdig erkanntes Zertifikat, dessen Name zum eingetragenen Host passt. Broker mit selbstsignierten, abgelaufenen oder für einen anderen Host ausgestellten Zertifikaten werden aus Sicherheitsgründen nicht verbunden. Die Discovery fällt nach einem TLS-Fehler niemals automatisch auf eine unverschlüsselte Verbindung zurück.
+Bei TLS benötigt der Broker im sicheren Standardfall ein gültiges, vom Symcon-System als vertrauenswürdig erkanntes Zertifikat, dessen Name zum eingetragenen Host passt. Für lokale Broker mit selbstsignierten Zertifikaten können **TLS-Zertifikat prüfen** und **TLS-Hostnamen prüfen** bewusst deaktiviert werden. Die Verbindung bleibt dann verschlüsselt, die Identität des Brokers wird aber nicht mehr vollständig geprüft. Das sollte nur bei lokalen Brokern genutzt werden, denen ausdrücklich vertraut wird.
+
+Die Discovery fällt nach einem TLS-Fehler niemals automatisch auf eine unverschlüsselte Verbindung zurück.
 
 Benutzername und Passwort sind von dieser Auswahl unabhängig. Leere Zugangsdaten funktionieren bei Brokern, die anonymen Zugriff erlauben.
 

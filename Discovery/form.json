@@ -51,7 +51,7 @@
                     },
                     {
                         "type": "Label",
-                        "caption": "Use mqtt:// for an unencrypted connection or mqtts:// for a verified TLS connection. TLS always verifies the certificate and hostname and never falls back to an unencrypted connection."
+                        "caption": "Use mqtt:// for an unencrypted connection or mqtts:// for a TLS connection. TLS verifies the certificate and hostname by default and never falls back to an unencrypted connection."
                     },
                     {
                         "type": "ValidationTextBox",
@@ -59,6 +59,27 @@
                         "caption": "Broker address (mqtt:// or mqtts://)",
                         "validate": "((mqtt:\\/\\/)|(mqtts:\\/\\/)).*",
                         "value": "mqtt://"
+                    },
+                    {
+                        "type": "RowLayout",
+                        "items": [
+                            {
+                                "type": "CheckBox",
+                                "name": "VerifyPeer",
+                                "caption": "Verify TLS certificate",
+                                "value": true
+                            },
+                            {
+                                "type": "CheckBox",
+                                "name": "VerifyHost",
+                                "caption": "Verify TLS hostname",
+                                "value": true
+                            }
+                        ]
+                    },
+                    {
+                        "type": "Label",
+                        "caption": "Disable TLS verification only for local brokers with self-signed certificates that you explicitly trust."
                     },
                     {
                         "type": "ValidationTextBox",
@@ -78,6 +99,8 @@
                             "IPS_RequestAction($id, 'CheckMQTTBroker',",
                             "   json_encode([",
                             "       'Url' => $Url,",
+                            "       'VerifyPeer' => $VerifyPeer,",
+                            "       'VerifyHost' => $VerifyHost,",
                             "       'UserName' => $UserName,",
                             "       'Password' => $Password",
                             "   ])",

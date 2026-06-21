@@ -10,21 +10,5 @@ jobs:
         uses: actions/checkout@master
         with:
           submodules: true
-      - name: Patch SymconStubs SetValue return value
-        run: |
-          python - <<'PY'
-          from pathlib import Path
-          import re
-          path = Path('tests/stubs/GlobalStubs.php')
-          text = path.read_text()
-          text = re.sub(
-              r"(function SetValue\(int \$VariableID, \$Value\)\n\{.*?\n    \}\n)\}",
-              r"\1    return true;\n}",
-              text,
-              count=1,
-              flags=re.S,
-          )
-          path.write_text(text)
-          PY
       - name: Run tests
         uses: symcon/action-tests@master

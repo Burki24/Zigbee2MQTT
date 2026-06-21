@@ -216,19 +216,6 @@ class Zigbee2MQTTDevice extends \Zigbee2MQTT\ModulBase
             );
             return;
         }
-        if ($ident == 'RequestApplyRecommendedPresentations') {
-            $this->UpdateFormField('RecommendedPresentationsWarning', 'visible', true);
-            return;
-        }
-        if ($ident == 'ConfirmApplyRecommendedPresentations') {
-            $this->UpdateFormField('RecommendedPresentationsWarning', 'visible', false);
-            $this->ApplyRecommendedVariablePresentations();
-            $this->ShowDeviceMaintenanceMessage(
-                'Recommended variable presentations applied',
-                'Existing custom presentations were replaced with the presentations recommended by this module.'
-            );
-            return;
-        }
         if ($ident == 'ShowIeeeEditWarning') {
             $this->UpdateFormField('IeeeWarning', 'visible', true);
             return;

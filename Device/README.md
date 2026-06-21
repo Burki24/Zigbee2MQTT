@@ -38,7 +38,7 @@
 - Darstellung aller von Z2M gelieferten Werte in Symcon
 - Inklusive der Verfügbarkeit des Gerätes als Variable (Online-Variable), wenn dies in Z2M aktiviert ist: [availability](https://www.zigbee2mqtt.io/guide/configuration/device-availability.html).
 - Automatisches Erstellen der für die Variablen benötigten Variablenprofile gemäß den Daten aus Z2M
-- Automatische Zuordnung moderner Tile-Darstellungen und passender Standardprofile, soweit die Exposes dies zulassen
+- Automatische Zuordnung moderner Variablendarstellungen und passender Standardprofile, soweit die Exposes dies zulassen
 - Eigene HTML-SDK-Kacheln für häufige Gerätetypen wie Schaltaktoren mit Messwerten, Heizungen, Sensoren, Sicherheitskontakte, Fenstergriffe und Aktionsgeräte
 - Komfortable Pflege von Zigbee2MQTT-Geräteoptionen inklusive typisierter Editoren und Attributauswahl
 - Gerätewartung für ein erneutes Interview oder eine erneute gerätespezifische Konfiguration
@@ -142,13 +142,15 @@ Die höher priorisierte Kachel kann in der Instanz-Konfiguration deaktiviert wer
 
 ![Kachel-Auswahl](imgs/Instanz_Visualisierung.png)
 
-Für Gerätetypen, die Symcon bereits nativ gut darstellen kann, erstellt das Modul bewusst keine eigene HTML-Kachel. Rollladen/Jalousien mit `type: "cover"` und `position` werden über die Symcon-Shutter-Darstellung bzw. das Standardprofil `~Shutter.Reversed` abgebildet. Einfache Türschlösser, Lüfter oder Sirenen bleiben bei den passenden Standarddarstellungen wie Schalter, Slider oder Aufzählung, solange die Exposes keine eigenständige zusammengefasste Kachel nötig machen.
+Für Gerätetypen, die Symcon bereits nativ gut darstellen kann, erstellt das Modul bewusst keine eigene HTML-Kachel. Rollladen/Jalousien mit `type: "cover"` und `position` werden über die Symcon-Shutter-Darstellung abgebildet. Einfache Türschlösser, Lüfter oder Sirenen bleiben bei den passenden Standarddarstellungen wie Schalter, Slider oder Aufzählung, solange die Exposes keine eigenständige zusammengefasste Kachel nötig machen.
 
-Empfohlene moderne Variablendarstellungen werden nur beim erstmaligen Anlegen einer Variable automatisch gesetzt. Danach bleiben benutzerdefinierte Darstellungen auch bei **Übernehmen**, neuen Payloads und aktualisierten Geräteinformationen unverändert. Sollen die Empfehlungen des Moduls bewusst erneut angewendet werden, steht im Bereich **Visualisierung → Variablendarstellungen** eine bestätigungspflichtige Einmal-Aktion zur Verfügung. Diese kann vorhandene benutzerdefinierte Darstellungen ersetzen oder bei Variablen ohne empfohlene Darstellung entfernen.
+Empfohlene moderne Variablendarstellungen werden nur beim erstmaligen Anlegen einer Variable als Standarddarstellung der Variable gesetzt. Danach bleiben benutzerdefinierte Darstellungen auch bei **Übernehmen**, neuen Payloads und aktualisierten Geräteinformationen unverändert. In Symcon haben Benutzer-Darstellungen und Benutzer-Profile eine höhere Priorität als die vom Modul gesetzte Standarddarstellung. Das Modul überschreibt oder entfernt deshalb keine Custom-Presentations und keine Custom-Profile nachträglich.
+
+Neue Variablen verwenden bevorzugt moderne Symcon-Variablendarstellungen. Eigene Z2M-Profile werden nur noch als Fallback erstellt, wenn ein Wert nicht über eine passende Standarddarstellung oder ein Symcon-Standardprofil abgebildet werden kann, zum Beispiel bei speziellen Aufzählungen oder Presets. Bestehende Variablen behalten ihr bisheriges Modulprofil, solange kein festes Standardprofil fachlich notwendig ist.
 
 ### 4.3 Temperatur-Visualisierung
 
-Für Temperatur-Exposes setzt das Modul automatisch eine moderne Tile-Darstellung. Wenn Zigbee2MQTT `value_min` und `value_max` liefert, werden diese Werte für den Darstellungsbereich genutzt.
+Für Temperatur-Exposes setzt das Modul automatisch eine moderne Variablendarstellung. Wenn Zigbee2MQTT `value_min` und `value_max` liefert, werden diese Werte für den Darstellungsbereich genutzt.
 
 Falls ein Temperatur-Expose keinen Wertebereich mitliefert, verwendet das Modul den Fallback-Bereich aus der Instanz-Konfiguration. Standard ist:
 
