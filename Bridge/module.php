@@ -317,8 +317,7 @@ class Zigbee2MQTTBridge extends IPSModuleStrict
             case 'request': //nothing
                 break;
             case 'response': //response from request
-                if (isset($Payload['transaction'])) {
-                    $this->UpdateTransaction($Payload);
+                if (isset($Payload['transaction']) && $this->UpdateTransaction($Payload)) {
                     break;
                 }
                 if (\is_array($Payload) && $this->UpdateTransactionByResponseTopic('/bridge/response/' . implode('/', $Topics), $Payload)) {

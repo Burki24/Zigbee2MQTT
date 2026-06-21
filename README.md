@@ -471,6 +471,7 @@ Die Änderungen sind anhand der funktionalen Commits chronologisch gegliedert. A
 ### 21. Juni 2026: Stabilisierung frischer Installationen
 
 - Extension-Listenabfragen für Geräte und Gruppen warten länger auf Zigbee2MQTT. Frische Installationen, große Netze oder gerade gestartete Symcon-Extensions werden dadurch nicht mehr fälschlich als fehlende oder veraltete Extension gemeldet, wenn die Geräteliste erst nach mehreren Sekunden geliefert wird.
+- Antworten der SymconExtension werden zusätzlich über ihr Response-Topic einer offenen Anfrage zugeordnet, wenn eine alte, fehlende oder nicht mehr passende `transaction` im Payload steht. Dadurch können Configurator, Geräte- und Gruppenformulare auch mit Legacy- oder retained Extension-Antworten wieder Geräte- und Gruppenlisten auswerten.
 
 **Version 5.42:**  
 

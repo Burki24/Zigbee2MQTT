@@ -509,8 +509,7 @@ class Zigbee2MQTTConfigurator extends IPSModuleStrict
         $payloadJson = self::DecodePayload($Buffer['Payload']);
         $this->SendLimitedDebug('MQTT Payload', $payloadJson, 0);
         $Payload = json_decode($payloadJson, true);
-        if (isset($Payload['transaction'])) {
-            $this->UpdateTransaction($Payload);
+        if (isset($Payload['transaction']) && $this->UpdateTransaction($Payload)) {
             return '';
         }
         if (\is_array($Payload)) {
