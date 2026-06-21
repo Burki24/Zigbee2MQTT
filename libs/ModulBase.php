@@ -1944,14 +1944,20 @@ abstract class ModulBase extends \IPSModuleStrict
         $mqttTopic = $this->ReadPropertyString(self::MQTT_TOPIC);
         $fullTopic = '/' . implode('/', $topics);
         if ($fullTopic === self::SYMCON_EXTENSION_RESPONSE . static::$ExtensionTopic . $mqttTopic) {
-            if (isset($payload['transaction'])) {
-                $this->UpdateTransaction($payload);
+            if (isset($payload['transaction']) && $this->UpdateTransaction($payload)) {
+                return true;
+            }
+            if ($this->UpdateTransactionByResponseTopic($fullTopic, $payload)) {
+                return true;
             }
             return true;
         }
         if (str_starts_with($fullTopic, self::SYMCON_EXTENSION_LIST_RESPONSE)) {
-            if (isset($payload['transaction'])) {
-                $this->UpdateTransaction($payload);
+            if (isset($payload['transaction']) && $this->UpdateTransaction($payload)) {
+                return true;
+            }
+            if ($this->UpdateTransactionByResponseTopic($fullTopic, $payload)) {
+                return true;
             }
             return true;
         }

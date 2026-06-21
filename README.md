@@ -367,7 +367,7 @@ Die Änderungen sind anhand der funktionalen Commits chronologisch gegliedert. A
 
 - Die Bridge erhielt eine Variablen-Wartung. Sie trennt verwaiste Variablen in klare Löschkandidaten und Review-Kandidaten und schützt archivierte oder referenzierte Variablen.
 - Das zwischenzeitlich vorhandene externe Bereinigungsscript wurde entfernt. Die integrierte Variablen-Wartung ist der unterstützte Weg zum Aufräumen verwaister Variablen.
-- Konfigurator und Geräteformulare laden schneller und nutzen bevorzugt den Bridge-Cache. Extension-Antworten ohne Transaction-ID werden bei Bedarf über das Response-Topic zugeordnet.
+- Konfigurator und Geräteformulare laden schneller und nutzen bevorzugt den Bridge-Cache. Extension-Antworten ohne oder mit nicht passender Transaction-ID werden bei Bedarf über das Response-Topic zugeordnet.
 - Die MQTT-Transaktionsverwaltung wurde deadline-basiert und stabiler aufgebaut. Lange Bridge-Antworten wie Zigbee2MQTT-Backups blockieren nicht mehr durch zu kurze Wartezeiten oder instabile Buffer.
 - Zigbee2MQTT-Backups werden wegen der Symcon-Ausgabegrenze chunkweise als ZIP-Datei unter `user/IPSZigbee2MQTT/backups` gespeichert. Eine öffentliche Base64-Rückgabe wird bewusst nicht angeboten.
 - Die Bridge erhielt eine zentrale OTA-Verwaltung. OTA-fähige Geräte können geprüft, verfügbare Updates gestartet oder geplant und laufende Updates mit Fortschritt, Restzeit und Ergebnisverlauf verfolgt werden. Zum Schutz des Zigbee-Netzes startet die Oberfläche nur ein aktives Update gleichzeitig.

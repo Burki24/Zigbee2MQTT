@@ -408,9 +408,9 @@ trait SendData
      * Aktualisiert einen Eintrag im TransactionData Buffer.
      *
      * @param  array $Data Payload welches im Buffer abgelegt werden soll.
-     * @return void
+     * @return bool true, wenn eine offene Transaktion gefunden wurde.
      */
-    private function UpdateTransaction(array $Data): void
+    private function UpdateTransaction(array $Data): bool
     {
         if (!$this->lock('TransactionData')) {
             throw new \Exception($this->Translate('Transaction Data is locked'), E_USER_NOTICE);
@@ -423,9 +423,15 @@ trait SendData
             $TransactionData[$Data['transaction']] = $this->SetTransactionResult($TransactionData[$Data['transaction']], $Data);
             $this->TransactionData = $TransactionData;
             $this->unlock('TransactionData');
-            return;
+            return true;
         }
         $this->unlock('TransactionData');
+        $this->SendDebug(
+            __FUNCTION__,
+            \sprintf('No pending transaction for id %s', (string) $Data['transaction']),
+            0
+        );
+        return false;
     }
 
     /**
