@@ -42,6 +42,16 @@ class Zigbee2MQTTConfigurator extends IPSModuleStrict
     ];
 
     /**
+     * Kurzer Timeout fuer die reine Konfigurator-Uebersicht.
+     *
+     * Detail-, Backup- und Wartungsfunktionen verwenden weiterhin die laengeren
+     * fachlichen Timeouts aus den Modulkonstanten. Die Startansicht des
+     * Konfigurators darf dagegen nicht mehrere lange Listen-Timeouts sammeln,
+     * wenn die Symcon-Extension bei frischen Installationen noch nicht aktuell ist.
+     */
+    private const TIMEOUT_CONFIGURATOR_QUICK_REQUEST = 5000;
+
+    /**
      * Create
      *
      * @return void
@@ -572,7 +582,7 @@ class Zigbee2MQTTConfigurator extends IPSModuleStrict
         $Result = @$this->SendData(
             self::SYMCON_EXTENSION_LIST_REQUEST . 'getDevicesLight',
             [],
-            self::TIMEOUT_SYMCON_EXTENSION_LIST_REQUEST
+            self::TIMEOUT_CONFIGURATOR_QUICK_REQUEST
         );
         if (\is_array($Result) && \is_array($Result['list'] ?? null)) {
             return $Result['list'];
@@ -593,7 +603,7 @@ class Zigbee2MQTTConfigurator extends IPSModuleStrict
         $Result = @$this->SendData(
             self::SYMCON_EXTENSION_LIST_REQUEST . 'getGroups',
             [],
-            self::TIMEOUT_SYMCON_EXTENSION_LIST_REQUEST
+            self::TIMEOUT_CONFIGURATOR_QUICK_REQUEST
         );
         if (\is_array($Result) && \is_array($Result['list'] ?? null)) {
             return $Result['list'];
@@ -616,7 +626,7 @@ class Zigbee2MQTTConfigurator extends IPSModuleStrict
         $Payload = [
             'options'=> []
         ];
-        $Result = $this->SendDataQuiet($Topic, $Payload, self::TIMEOUT_ZIGBEE_OPTIONS_REQUEST);
+        $Result = $this->SendDataQuiet($Topic, $Payload, self::TIMEOUT_CONFIGURATOR_QUICK_REQUEST);
         if (isset($Result['error'])) {
             trigger_error($Result['error'], E_USER_NOTICE);
         }
