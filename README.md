@@ -187,7 +187,7 @@ Während des Updates können vorübergehend Warnungen auftreten, wenn andere Sym
 
 #### III. Symcon-Extension prüfen <!-- omit in toc -->
 
-Nach dem Update ist die Bridge-Konfiguration zu öffnen. Dort muss **Symcon-Erweiterung ist aktuell** angezeigt werden. Version 6.0 benötigt die Symcon-Extension in Version `6.03`.
+Nach dem Update ist die Bridge-Konfiguration zu öffnen. Dort muss **Symcon-Erweiterung ist aktuell** angezeigt werden. Version 6.0 benötigt die Symcon-Extension in Version `6.04`.
 
 Die Bridge installiert beziehungsweise aktualisiert die Extension im Normalfall automatisch. Falls Zigbee2MQTT während des Modulupdates nicht erreichbar war oder keine Bridge-Instanz existiert, muss die Extension später über die Bridge oder anhand der [manuellen Anleitung](#34-installation-der-ip-symcon-extension-in-zigbee2mqtt) aktualisiert werden.
 
@@ -473,6 +473,8 @@ Die Änderungen sind anhand der funktionalen Commits chronologisch gegliedert. A
 
 - Extension-Listenabfragen für Geräte und Gruppen warten länger auf Zigbee2MQTT. Frische Installationen, große Netze oder gerade gestartete Symcon-Extensions werden dadurch nicht mehr fälschlich als fehlende oder veraltete Extension gemeldet, wenn die Geräteliste erst nach mehreren Sekunden geliefert wird.
 - Antworten der SymconExtension werden zusätzlich über ihr Response-Topic einer offenen Anfrage zugeordnet, wenn eine alte, fehlende oder nicht mehr passende `transaction` im Payload steht. Dadurch können Configurator, Geräte- und Gruppenformulare auch mit Legacy- oder retained Extension-Antworten wieder Geräte- und Gruppenlisten auswerten.
+- Der Konfigurator verarbeitet nur noch die für ihn relevanten MQTT-Antworten und protokolliert große Geräte- und Gruppenlisten nicht mehr vollständig als Debug-JSON.
+- Die Symcon-Extension stellt für den Konfigurator eine kompakte `getDevicesLight`-Listenabfrage bereit. Detaildaten wie Exposes, Endpoints, Geräteoptionen und OTA-Informationen bleiben in der regulären Geräteabfrage sowie beim gezielten Abruf der Geräteinformationen erhalten. Dadurch sinkt der Speicherbedarf bei frischen Installationen und großen Zigbee2MQTT-Netzen deutlich, ohne Binding-, OTA- oder Gruppenfunktionen zu beschneiden.
 
 **Version 5.42:**  
 

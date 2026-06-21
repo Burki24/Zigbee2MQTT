@@ -1,6 +1,6 @@
 /*
  IPSymconExtension
- Version: 6.03
+ Version: 6.04
 */
 
 class IPSymconExtension {
@@ -87,26 +87,35 @@ class IPSymconExtension {
             }
             return;
         }
-        if (data.topic == `${this.baseTopic}/SymconExtension/lists/request/getDevices`) {
+        if (data.topic == `${this.baseTopic}/SymconExtension/lists/request/getDevices`
+            || data.topic == `${this.baseTopic}/SymconExtension/lists/request/getDevicesLight`) {
             try {
                 const message = JSON.parse(data.message);
+                const lightweight = data.topic.endsWith('/getDevicesLight');
                 const devices = {
                     list: [],
                     transaction: 0,
                 };
                 try {
                     for (const device of this.zigbee.devicesIterator()) {
-                        devices.list = devices.list.concat(this.#createDevicePayload(device, false));
+                        devices.list = devices.list.concat(this.#createDevicePayload(device, false, lightweight));
                     }
                 } catch (error) {
-                    devices.list = this.zigbee.devices(false).map(device => this.#createDevicePayload(device, false));
+                    devices.list = this.zigbee.devices(false).map(device => this.#createDevicePayload(device, false, lightweight));
                 }
                 devices.transaction = message.transaction;
-                this.logger.info('Symcon: lists/request/getDevices');
-                await this.mqtt.publish('SymconExtension/lists/response/getDevices', JSON.stringify(devices), {
-                    retain: false,
-                    qos: 0
-                }, `${this.baseTopic}`, false, false);
+                this.logger.info(lightweight ? 'Symcon: lists/request/getDevicesLight' : 'Symcon: lists/request/getDevices');
+                await this.mqtt.publish(
+                    lightweight ? 'SymconExtension/lists/response/getDevicesLight' : 'SymconExtension/lists/response/getDevices',
+                    JSON.stringify(devices),
+                    {
+                        retain: false,
+                        qos: 0
+                    },
+                    `${this.baseTopic}`,
+                    false,
+                    false
+                );
             } catch (error) {
                 let errormessage = 'Unknown Error'
                 if (error instanceof Error) errormessage = error.message
@@ -158,14 +167,10 @@ class IPSymconExtension {
         this.eventBus.removeListeners(this);
     }
 
-    #createDevicePayload(device, boolExposes) {
+    #createDevicePayload(device, boolExposes, lightweight = false) {
         const definition = device.definition ?? device._definition ?? {};
         const options = device.options ?? {};
-        let exposes;
-        if (boolExposes) {
-            exposes = device.exposes();
-        }
-        return {
+        const payload = {
             ieeeAddr: device.ieeeAddr,
             type: device.zh.type,
             networkAddress: device.zh.networkAddress,
@@ -176,13 +181,23 @@ class IPSymconExtension {
             manufacturerName: device.zh.manufacturerName,
             powerSource: device.zh.powerSource,
             modelID: device.zh.modelID,
-            endpoints: this.#createEndpointPayload(device),
-            exposes: exposes,
-            options: options,
-            definition_options: definition.options ?? [],
-            filtered_attributes: options.filtered_attributes ?? [],
-            supports_ota: definition.supports_ota ?? false,
         };
+
+        if (lightweight) {
+            return payload;
+        }
+
+        payload.endpoints = this.#createEndpointPayload(device);
+        payload.options = options;
+        payload.definition_options = definition.options ?? [];
+        payload.filtered_attributes = options.filtered_attributes ?? [];
+        payload.supports_ota = definition.supports_ota ?? false;
+
+        if (boolExposes) {
+            payload.exposes = device.exposes();
+        }
+
+        return payload;
     }
 
     async #publishToMqtt(topicSuffix, payload) {
