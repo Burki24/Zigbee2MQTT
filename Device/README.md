@@ -146,7 +146,7 @@ Für Gerätetypen, die Symcon bereits nativ gut darstellen kann, erstellt das Mo
 
 Empfohlene moderne Variablendarstellungen werden nur beim erstmaligen Anlegen einer Variable als Standarddarstellung der Variable gesetzt. Danach bleiben benutzerdefinierte Darstellungen auch bei **Übernehmen**, neuen Payloads und aktualisierten Geräteinformationen unverändert. In Symcon haben Benutzer-Darstellungen und Benutzer-Profile eine höhere Priorität als die vom Modul gesetzte Standarddarstellung. Das Modul überschreibt oder entfernt deshalb keine Custom-Presentations und keine Custom-Profile nachträglich.
 
-Neue Variablen verwenden bevorzugt moderne Symcon-Variablendarstellungen. Eigene Z2M-Profile werden nur noch als Fallback erstellt, wenn ein Wert nicht über eine passende Standarddarstellung oder ein Symcon-Standardprofil abgebildet werden kann, zum Beispiel bei speziellen Aufzählungen. Preset-Variablen werden als native Symcon-Aufzählungsdarstellung registriert. Bestehende Variablen behalten ihr bisheriges Modulprofil, solange kein festes Standardprofil fachlich notwendig ist.
+Neue Variablen verwenden bevorzugt moderne Symcon-Variablendarstellungen oder bleiben ohne Modulprofil, wenn keine fachlich passende Standarddarstellung noetig ist. Dynamische `Z2M.*`-Profile werden fuer Expose-, Preset- und State-Variablen nicht mehr neu angelegt; Presets und State-Aufzaehlungen werden als native Symcon-Aufzaehlungsdarstellung registriert. Bestehende Variablen behalten ihr bisheriges Modulprofil, solange kein festes Standardprofil fachlich notwendig ist.
 
 ### 4.3 Temperatur-Visualisierung
 

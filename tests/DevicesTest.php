@@ -669,8 +669,11 @@ class DevicesTest extends DumpInclude
         $dewpointID = @IPS_GetObjectIDByIdent('dewpoint', $iid);
         $this->assertNotFalse($dewpointID);
         $this->assertSame('Taupunkt', IPS_GetName($dewpointID));
-        $this->assertSame(VARIABLETYPE_FLOAT, IPS_GetVariable($dewpointID)['VariableType']);
-        $this->assertSame('~Temperature', IPS_GetVariable($dewpointID)['VariableProfile']);
+        $dewpointVariable = IPS_GetVariable($dewpointID);
+        $this->assertSame(VARIABLETYPE_FLOAT, $dewpointVariable['VariableType']);
+        $this->assertSame('', $dewpointVariable['VariableProfile']);
+        $this->assertSame(VARIABLE_PRESENTATION_VALUE_PRESENTATION, $dewpointVariable['VariablePresentation']['PRESENTATION'] ?? null);
+        $this->assertSame(' °C', $dewpointVariable['VariablePresentation']['SUFFIX'] ?? null);
     }
 
     public function testVariableSelectionCreatesPayloadOnlyDewpointWithTemperatureProfile(): void
@@ -777,7 +780,9 @@ class DevicesTest extends DumpInclude
         $this->assertNotFalse($binaryID);
         $this->assertNotFalse($enumID);
         $this->assertNotFalse($writableEnumID);
-        $this->assertSame('Z2M.generated_binary', IPS_GetVariable($binaryID)['VariableProfile']);
+        $binaryVariable = IPS_GetVariable($binaryID);
+        $this->assertSame('', $binaryVariable['VariableProfile']);
+        $this->assertSame(VARIABLE_PRESENTATION_VALUE_PRESENTATION, $binaryVariable['VariablePresentation']['PRESENTATION'] ?? null);
         $enumVariable = IPS_GetVariable($enumID);
         $this->assertSame('', $enumVariable['VariableProfile']);
         $this->assertSame(VARIABLE_PRESENTATION_VALUE_PRESENTATION, $enumVariable['VariablePresentation']['PRESENTATION'] ?? null);

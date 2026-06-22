@@ -180,11 +180,11 @@ trait VariablePresentationHelper
     }
 
     /**
-     * Erstellt fuer numerische Exposes mit Wertebereich eine passende moderne Darstellung.
+     * Erstellt fuer numerische Exposes eine passende moderne Darstellung.
      *
-     * Schreibbare Werte werden als Slider dargestellt. Reine Statuswerte mit
-     * Wertebereich erhalten eine Wertdarstellung, damit dafuer kein eigenes
-     * dynamisches Variablenprofil erzeugt werden muss.
+     * Schreibbare Werte mit Wertebereich werden als Slider dargestellt. Reine
+     * Statuswerte und Werte ohne Bereich erhalten eine Wertdarstellung, damit
+     * dafuer kein eigenes dynamisches Variablenprofil erzeugt werden muss.
      */
     protected function BuildNumericFeaturePresentation(array $feature, ?string $groupType = null): ?array
     {
@@ -193,13 +193,13 @@ trait VariablePresentationHelper
         }
 
         if (!isset($feature['value_min'], $feature['value_max'])) {
-            return null;
+            return $this->BuildNumericValuePresentation($feature);
         }
         if (!$this->IsWritableFeature($feature)) {
             return $this->BuildNumericValuePresentation($feature);
         }
 
-        $unit = isset($feature['unit']) && \is_string($feature['unit']) ? $feature['unit'] : '';
+        $unit = $this->GetNumericPresentationUnit($feature);
         $stepSize = isset($feature['value_step']) ? (float) $feature['value_step'] : 1.0;
         $digits = $this->GetDigitsFromStepSize($stepSize);
 
@@ -233,20 +233,12 @@ trait VariablePresentationHelper
      */
     private function BuildNumericValuePresentation(array $feature): ?array
     {
-        if (!$this->SupportsValuePresentation() || !isset($feature['value_min'], $feature['value_max'])) {
+        if (!$this->SupportsValuePresentation()) {
             return null;
         }
 
-        $min = (float) $feature['value_min'];
-        $max = (float) $feature['value_max'];
-        if ($min > $max) {
-            [$min, $max] = [$max, $min];
-        }
-        if ($min === $max) {
-            $max = $min + 1.0;
-        }
-
-        $unit = isset($feature['unit']) && \is_string($feature['unit']) ? $feature['unit'] : '';
+        [$min, $max] = $this->GetNumericPresentationRange($feature);
+        $unit = $this->GetNumericPresentationUnit($feature);
         return [
             'PRESENTATION'        => \constant('VARIABLE_PRESENTATION_VALUE_PRESENTATION'),
             'ICON'                => $this->GetNumericPresentationIcon($feature),
@@ -258,11 +250,110 @@ trait VariablePresentationHelper
             'MIN'                 => $min,
             'MAX'                 => $max,
             'THOUSANDS_SEPARATOR' => '',
-            'DIGITS'              => isset($feature['value_step']) ? $this->GetDigitsFromStepSize((float) $feature['value_step']) : 0,
+            'DIGITS'              => $this->GetNumericPresentationDigits($feature),
             'DECIMAL_SEPARATOR'   => 'Client',
             'INTERVALS_ACTIVE'    => false,
             'INTERVALS'           => '[]'
         ];
+    }
+
+    /**
+     * Liefert einen robusten Wertebereich fuer generische Wertanzeigen.
+     */
+    private function GetNumericPresentationRange(array $feature): array
+    {
+        if (isset($feature['value_min'], $feature['value_max'])) {
+            $min = (float) $feature['value_min'];
+            $max = (float) $feature['value_max'];
+        } else {
+            $property = strtolower((string) ($feature['property'] ?? $feature['name'] ?? ''));
+            $unit = $this->GetNumericPresentationUnit($feature);
+            $min = 0.0;
+            $max = 1.0;
+
+            if ($unit === '%' || $property === 'battery' || strpos($property, 'humidity') !== false || strpos($property, 'factor') !== false) {
+                $max = 100.0;
+            } elseif ($unit === 'Hz' || strpos($property, 'frequency') !== false) {
+                $max = 100.0;
+            } elseif ($unit === 'm' || strpos($property, 'distance') !== false) {
+                $max = 100.0;
+            } elseif ($unit === 's' || strpos($property, 'time') !== false) {
+                $max = 86400.0;
+            } elseif ($unit === 'V') {
+                $max = 400.0;
+            } elseif (\in_array($unit, ['A', 'W', 'kWh'], true)) {
+                $max = 1000.0;
+            }
+        }
+
+        if ($min > $max) {
+            [$min, $max] = [$max, $min];
+        }
+        if ($min === $max) {
+            $max = $min + 1.0;
+        }
+
+        return [$min, $max];
+    }
+
+    /**
+     * Ermittelt sinnvolle Nachkommastellen fuer generische Wertanzeigen.
+     */
+    private function GetNumericPresentationDigits(array $feature): int
+    {
+        if (isset($feature['value_step'])) {
+            return $this->GetDigitsFromStepSize((float) $feature['value_step']);
+        }
+
+        $property = strtolower((string) ($feature['property'] ?? $feature['name'] ?? ''));
+        $unit = $this->GetNumericPresentationUnit($feature);
+
+        if ($unit === '°C') {
+            return 1;
+        }
+        if (\in_array($unit, ['Hz', 'm', 'V', 'A', 'W', 'kWh'], true)) {
+            return 2;
+        }
+        if (
+            strpos($property, 'temperature') !== false
+            || strpos($property, 'distance') !== false
+            || strpos($property, 'factor') !== false
+            || strpos($property, 'frequency') !== false
+            || strpos($property, 'power') !== false
+            || strpos($property, 'current') !== false
+            || strpos($property, 'voltage') !== false
+        ) {
+            return 2;
+        }
+
+        return 0;
+    }
+
+    /**
+     * Ermittelt eine Einheit fuer generische Wertanzeigen, auch wenn Z2M sie
+     * nur ueber die Property erkennen laesst.
+     */
+    private function GetNumericPresentationUnit(array $feature): string
+    {
+        if (isset($feature['unit']) && \is_string($feature['unit']) && trim($feature['unit']) !== '') {
+            return trim($feature['unit']);
+        }
+
+        $property = strtolower((string) ($feature['property'] ?? $feature['name'] ?? ''));
+        if (strpos($property, 'temperature') !== false || strpos($property, 'dewpoint') !== false) {
+            return '°C';
+        }
+        if (strpos($property, 'frequency') !== false) {
+            return 'Hz';
+        }
+        if (strpos($property, 'distance') !== false) {
+            return 'm';
+        }
+        if (strpos($property, 'factor') !== false) {
+            return '%';
+        }
+
+        return '';
     }
 
     /**
@@ -553,18 +644,14 @@ trait VariablePresentationHelper
     }
 
     /**
-     * Erstellt eine moderne Schalter-Darstellung nur fuer echte Standard-Schalter.
+     * Erstellt eine native Darstellung fuer Binary-Exposes.
      */
     protected function BuildBinaryFeaturePresentation(array $feature, string $profileName = ''): ?array
     {
-        if (!$this->SupportsSwitchPresentation()) {
-            return null;
-        }
         if (!$this->IsWritableFeature($feature)) {
-            return null;
+            return $this->BuildBinaryValuePresentation($feature);
         }
-
-        if ($profileName !== '~Switch' && ($profileName !== '' || !$this->IsStandardBinaryPresentationFeature($feature))) {
+        if (!$this->SupportsSwitchPresentation()) {
             return null;
         }
 
@@ -576,6 +663,99 @@ trait VariablePresentationHelper
             'GLOW_COLOR'       => $this->GetBinaryGlowColor($feature),
             'GLOW_INTENSITY'   => 60,
             'USAGE_TYPE'       => 0
+        ];
+    }
+
+    /**
+     * Erstellt fuer nicht beschreibbare Binary-Exposes eine reine Wertanzeige.
+     */
+    private function BuildBinaryValuePresentation(array $feature): ?array
+    {
+        if (!$this->SupportsValuePresentation()) {
+            return null;
+        }
+
+        return [
+            'PRESENTATION' => \constant('VARIABLE_PRESENTATION_VALUE_PRESENTATION'),
+            'ICON'         => $this->GetBinaryPresentationIcon($feature, true),
+            'COLOR'        => -1,
+            'PREFIX'       => '',
+            'SUFFIX'       => '',
+            'OPTIONS'      => json_encode($this->BuildBinaryPresentationOptions($feature))
+        ];
+    }
+
+    /**
+     * Erstellt die Optionsliste fuer Binary-Wertanzeigen.
+     */
+    private function BuildBinaryPresentationOptions(array $feature): array
+    {
+        return [
+            [
+                'Value'      => false,
+                'Caption'    => $this->Translate($this->GetBinaryPresentationCaption($feature['value_off'] ?? false, 'Off')),
+                'IconActive' => false,
+                'IconValue'  => '',
+                'Color'      => -1
+            ],
+            [
+                'Value'      => true,
+                'Caption'    => $this->Translate($this->GetBinaryPresentationCaption($feature['value_on'] ?? true, 'On')),
+                'IconActive' => false,
+                'IconValue'  => '',
+                'Color'      => -1
+            ]
+        ];
+    }
+
+    /**
+     * Normalisiert Binary-Beschriftungen.
+     */
+    private function GetBinaryPresentationCaption(mixed $value, string $fallback): string
+    {
+        if (\is_bool($value)) {
+            return $fallback;
+        }
+
+        $caption = trim((string) $value);
+        if ($caption === '') {
+            return $fallback;
+        }
+
+        return $this->CreatePresentationCaption($caption);
+    }
+
+    /**
+     * Erstellt die native Wertanzeige fuer die Verfuegbarkeitsvariable.
+     */
+    protected function BuildDeviceStatusPresentation(): ?array
+    {
+        if (!$this->SupportsValuePresentation()) {
+            return null;
+        }
+
+        return [
+            'PRESENTATION' => \constant('VARIABLE_PRESENTATION_VALUE_PRESENTATION'),
+            'ICON'         => 'network',
+            'COLOR'        => -1,
+            'PREFIX'       => '',
+            'SUFFIX'       => '',
+            'OPTIONS'      => json_encode([
+                [
+                    'Value'      => false,
+                    'Caption'    => $this->Translate('Offline'),
+                    'IconActive' => false,
+                    'IconValue'  => '',
+                    'Color'      => 0xFF0000
+                ],
+                [
+                    'Value'      => true,
+                    'Caption'    => $this->Translate('Online'),
+                    'IconActive' => false,
+                    'IconValue'  => '',
+                    'Color'      => 0x00FF00
+                ]
+            ])
         ];
     }
 

@@ -449,17 +449,6 @@ abstract class ModulBase extends \IPSModuleStrict
         $this->latestPayload = [];
         $this->missingTranslations = [];
 
-        // Statische Profile
-        $this->RegisterProfileBooleanEx(
-            'Z2M.DeviceStatus',
-            'Network',
-            '',
-            '',
-            [
-                [false, 'Offline', '', 0xFF0000],
-                [true, 'Online', '', 0x00FF00]
-            ]
-        );
         $this->RegisterMessage($this->InstanceID, IM_CHANGESTATUS);
         $this->RegisterMessage($this->InstanceID, FM_CONNECT);
     }
@@ -1875,8 +1864,7 @@ abstract class ModulBase extends \IPSModuleStrict
      *
      * Funktionen:
      * - Prüft ob Topic ein Verfügbarkeits-Topic ist
-     * - Erstellt/Aktualisiert Z2M.DeviceStatus Profil
-     * - Registriert/Aktualisiert Verfügbarkeits-Variable
+     * - Registriert/Aktualisiert Verfügbarkeits-Variable mit nativer Darstellung
      *
      * @param array $topics Array mit Topic-Bestandteilen
      * @param array|null $payload Array mit MQTT-Nachrichtendaten oder null fuer eine leere Verfuegbarkeitsmeldung
@@ -1897,17 +1885,8 @@ abstract class ModulBase extends \IPSModuleStrict
         if (!$this->CanCreateVariable('device_status', ['property' => 'device_status', 'type' => 'binary', 'label' => 'Availability'], 'system')) {
             return true;
         }
-        $deviceStatusProfile = $this->RegisterProfileBooleanEx(
-            'Z2M.DeviceStatus',
-            'Network',
-            '',
-            '',
-            [
-                [false, 'Offline', '', 0xFF0000],
-                [true, 'Online', '', 0x00FF00]
-            ]
-        );
-        $this->RegisterVariableBoolean('device_status', $this->Translate('Availability'), $deviceStatusProfile);
+        $deviceStatusPresentation = $this->BuildDeviceStatusPresentation() ?? '';
+        $this->RegisterVariableBoolean('device_status', $this->Translate('Availability'), $deviceStatusPresentation);
         $this->MarkVariableCreated('device_status');
         if (isset($payload['state'])) {
             $this->SetValueDirect('device_status', $payload['state'] == 'online');
@@ -4406,9 +4385,6 @@ abstract class ModulBase extends \IPSModuleStrict
         if ($presentation !== null) {
             $profileOrPresentation = $presentation;
         } elseif ($isNewVariable) {
-            if ($profileName === '') {
-                $profileName = $this->registerVariableProfile($feature);
-            }
             $profileOrPresentation = $profileName;
         } else {
             if ($profileName === '') {
@@ -4434,7 +4410,7 @@ abstract class ModulBase extends \IPSModuleStrict
      * Liefert das aktuell gesetzte Modulprofil einer vorhandenen Variable.
      *
      * Bestehende Variablen sollen beim erneuten Uebernehmen der Instanz nicht
-     * zwangsweise auf neue dynamische Z2M-Profile umgestellt werden. Das Modul
+     * zwangsweise auf andere Modulprofile umgestellt werden. Das Modul
      * nutzt deshalb das vorhandene Modulprofil weiter, sofern kein fachliches
      * Standardprofil fest vorgegeben ist.
      *
@@ -4493,12 +4469,13 @@ abstract class ModulBase extends \IPSModuleStrict
         }
 
         $formattedLabel = $this->convertLabelToName($featureProperty);
+        $profileOrPresentation = $this->BuildStateProfileOrPresentation($stateConfig, $feature);
         switch ($stateConfig['dataType']) {
             case VARIABLETYPE_BOOLEAN:
                 $this->RegisterVariableBoolean(
                     $stateConfig['ident'],
                     $this->Translate($formattedLabel),
-                    $stateConfig['profile']
+                    $profileOrPresentation
                 );
                 $this->MarkVariableCreated($stateConfig['ident']);
                 break;
@@ -4506,7 +4483,7 @@ abstract class ModulBase extends \IPSModuleStrict
                 $this->RegisterVariableString(
                     $stateConfig['ident'],
                     $this->Translate($formattedLabel),
-                    $stateConfig['profile']
+                    $profileOrPresentation
                 );
                 $this->MarkVariableCreated($stateConfig['ident']);
                 break;
@@ -4517,6 +4494,42 @@ abstract class ModulBase extends \IPSModuleStrict
 
         $this->enableStateFeatureAction($stateConfig, $feature);
         return true;
+    }
+
+    /**
+     * Erstellt fuer State-Enums eine native Darstellung oder liefert das bestehende Profil.
+     *
+     * @param array $stateConfig State-Konfiguration.
+     * @param array|null $feature Expose-Daten.
+     * @return string|array Profilname oder native Variablendarstellung.
+     */
+    private function BuildStateProfileOrPresentation(array $stateConfig, ?array $feature): string|array
+    {
+        $profile = \is_string($stateConfig['profile'] ?? null) ? $stateConfig['profile'] : '';
+        if (($stateConfig['dataType'] ?? null) !== VARIABLETYPE_STRING || !isset($stateConfig['values']) || !\is_array($stateConfig['values'])) {
+            return $profile;
+        }
+
+        $enumFeature = [
+            'type'     => 'enum',
+            'property' => (string) ($stateConfig['ident'] ?? 'state'),
+            'values'   => $stateConfig['values'],
+            'access'   => $this->ShouldStateFeatureEnableAction($stateConfig, $feature) ? 2 : 0
+        ];
+
+        return $this->BuildEnumerationPresentation($enumFeature) ?? $profile;
+    }
+
+    /**
+     * Ermittelt, ob eine State-Variable als Aktion angeboten wird.
+     */
+    private function ShouldStateFeatureEnableAction(array $stateConfig, ?array $feature): bool
+    {
+        if (isset($stateConfig['enableAction'])) {
+            return (bool) $stateConfig['enableAction'];
+        }
+
+        return $feature !== null && isset($feature['access']) && (((int) $feature['access'] & 2) === 2);
     }
 
     /**
@@ -5070,16 +5083,14 @@ abstract class ModulBase extends \IPSModuleStrict
      * 2. Enum-Typ States (z.B. "state" mit definierten Werten)
      * 3. Standard State-Pattern als Boolean (z.B. "state", "state_left")
      *
-     * Bei Enum-States wird automatisch ein eindeutiges Profil erstellt:
-     * - Profilname: Z2M.[property].[hash]
-     * - Hash basiert auf den Enum-Werten
-     * - Enthält alle definierten Enum-Werte mit Icons
+     * Bei Enum-States wird eine native Aufzählungsdarstellung verwendet, damit
+     * keine dynamischen Z2M.*-Profile angelegt werden muessen.
      *
      * Die zurückgegebene Konfiguration enthält:
      * - type: Typ des States (z.B. 'switch', 'enum')
      * - dataType: IPS Variablentyp (z.B. VARIABLETYPE_BOOLEAN, VARIABLETYPE_STRING)
      * - values: Mögliche Zustände (z.B. ['ON', 'OFF'] oder ['OPEN', 'CLOSE', 'STOP'])
-     * - profile: Zu verwendenes IPS-Profil (z.B. '~Switch' oder 'Z2M.state.hash')
+     * - profile: Zu verwendendes IPS-Profil, falls kein native Darstellung genutzt wird
      * - ident: Normalisierter Identifikator
      * - enableAction: Optional - Nur bei explizit definierten States aus stateDefinitions
      *
@@ -5102,12 +5113,12 @@ abstract class ModulBase extends \IPSModuleStrict
      * $config = $this->getStateConfiguration('state');
      * // Ergebnis: ['type' => 'switch', 'dataType' => VARIABLETYPE_BOOLEAN, 'profile' => '~Switch', 'ident' => 'state']
      *
-     * // Enum state mit Profilerstellung
+     * // Enum state mit nativer Aufzaehlungsdarstellung
      * $config = $this->getStateConfiguration('state', [
      *     'type' => 'enum',
      *     'values' => ['OPEN', 'CLOSE', 'STOP']
      * ]);
-     * // Ergebnis: ['type' => 'enum', 'dataType' => VARIABLETYPE_STRING, 'profile' => 'Z2M.state.hash', 'ident' => 'state']
+     * // Ergebnis: ['type' => 'enum', 'dataType' => VARIABLETYPE_STRING, 'profile' => '', 'ident' => 'state']
      *
      * // Vordefinierter state
      * $config = $this->getStateConfiguration('valve_state');
@@ -5139,22 +5150,12 @@ abstract class ModulBase extends \IPSModuleStrict
             // Dann auf enum type
             if (isset($feature['type']) && $feature['type'] === 'enum' && isset($feature['values'])) {
 
-                // Profil-Werte abholen
-                $enumFeature = [
-                    'type'     => 'enum',
-                    'property' => $featureId,
-                    'values'   => $feature['values']
-                ];
-
-                // Profil anlegen
-                $profileName = $this->registerEnumProfile($enumFeature, 'Z2M.' . $featureId);
-
                 // Daten zur Variablenregistrierung zurückgeben
                 return [
                     'type'         => 'enum',
                     'dataType'     => VARIABLETYPE_STRING,
                     'values'       => $feature['values'],
-                    'profile'      => $profileName,
+                    'profile'      => '',
                     'ident'        => $featureId
                 ];
             }
@@ -5171,12 +5172,10 @@ abstract class ModulBase extends \IPSModuleStrict
 
         // Prüfe auf vordefinierte States wenn kein state pattern matched
         if (isset(static::$stateDefinitions[$featureId])) {
-            // Registriere gefundenes StateMappingProfil
-            $profileName = $this->registerStateMappingProfile($featureId);
             $stateConfig = static::$stateDefinitions[$featureId];
             // Stelle sicher, dass ident und profile Keys existieren
             $stateConfig['ident'] = $stateConfig['ident'] ?? $featureId;
-            $stateConfig['profile'] = $profileName;
+            $stateConfig['profile'] = $stateConfig['profile'] ?? '';
             return $stateConfig;
         }
 

@@ -228,9 +228,9 @@ Touchlink-Scan und Touchlink-Factory-Reset können die Zigbee-Kommunikation kurz
 | Erweiterung ist aktuell            | bool    |                     | true wenn die Erweiterung aktuell ist        |
 | Erweiterung Version                | string  |                     | Version der Erweiterung                      |
 | Netzwerkkanal                      | integer |                     | Netzwerkkanal des Zigbee-Netzwerks           |
-| Neustart durchführen               | integer | Z2M.bridge.restart  | Action Variable um einen Neustart auszulösen |
+| Neustart durchführen               | integer | native Aufzählung   | Action Variable um einen Neustart auszulösen |
 | Neustart erforderlich              | bool    |                     | true wenn eine Neustart von Z2M nötig ist    |
-| Protokollierung                    | string  | Z2M.brigde.loglevel | Status der Softwareaktualisierung            |
+| Protokollierung                    | string  | native Aufzählung   | Log-Level von Zigbee2MQTT                    |
 | Status                             | bool    | ~Alert.Reversed     | Online Status von Zigbee2MQTT                |
 | Verbleibende Anlernzeit            | integer | ~Duration           | Restzeit des geöffneten Netzwerkbeitritts    |
 | Version                            | string  |                     | Version von Zigbee2MQTT                      |

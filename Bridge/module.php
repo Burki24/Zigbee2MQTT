@@ -144,8 +144,6 @@ class Zigbee2MQTTBridge extends IPSModuleStrict
      * @uses IPSModule::GetValue()
      * @uses IPSModule::SetValue()
      * @uses IPSModule::Translate()
-     * @uses Zigbee2MQTTBridge::RegisterProfileIntegerEx()
-     * @uses Zigbee2MQTTBridge::RegisterProfileStringEx()
      * @uses Zigbee2MQTTBridge::RequestOptions()
      * @uses Zigbee2MQTTBridge::InstallSymconExtension()
      * @uses IPS_GetKernelRunlevel()
@@ -170,20 +168,20 @@ class Zigbee2MQTTBridge extends IPSModuleStrict
 
         $this->SetSummary($BaseTopic);
 
-        $restartProfile = $this->RegisterProfileIntegerEx('Z2M.bridge.restart', '', '', '', [
-            [0, $this->Translate('Restart'), '', 0xFF0000],
-        ]);
-        $logLevelProfile = $this->RegisterProfileStringEx('Z2M.brigde.loglevel', '', '', '', [
-            ['error', $this->Translate('Error'), '', 0x00FF00],
-            ['warning', $this->Translate('Warning'), '', 0x00FF00],
-            ['info', $this->Translate('Information'), '', 0x00FF00],
-            ['debug', $this->Translate('Debug'), '', 0x00FF00],
-        ]);
+        $restartPresentation = $this->BuildBridgeEnumerationPresentation([
+            $this->BuildBridgeEnumerationOption(0, 'Restart', 0xFF0000),
+        ], 'rotate-cw', 1);
+        $logLevelPresentation = $this->BuildBridgeEnumerationPresentation([
+            $this->BuildBridgeEnumerationOption('error', 'Error'),
+            $this->BuildBridgeEnumerationOption('warning', 'Warning'),
+            $this->BuildBridgeEnumerationOption('info', 'Information'),
+            $this->BuildBridgeEnumerationOption('debug', 'Debug'),
+        ], 'list');
         $this->RegisterVariableBoolean('state', $this->Translate('State'), '~Alert.Reversed');
         $this->RegisterVariableBoolean('extension_loaded', $this->Translate('Extension Loaded'));
         $this->RegisterVariableString('extension_version', $this->Translate('Extension Version'));
         $this->RegisterVariableBoolean('extension_is_current', $this->Translate('Extension is up to date'));
-        $this->RegisterVariableString('log_level', $this->Translate('Log Level'), $logLevelProfile);
+        $this->RegisterVariableString('log_level', $this->Translate('Log Level'), $logLevelPresentation);
         $this->EnableAction('log_level');
         $this->RegisterVariableBoolean('permit_join', $this->Translate('Allow joining the network'), '~Switch');
         $this->EnableAction('permit_join');
@@ -191,7 +189,7 @@ class Zigbee2MQTTBridge extends IPSModuleStrict
         $this->RegisterVariableInteger('permit_join_remaining', $this->Translate('Pairing time remaining'), '~Duration');
         $this->RegisterVariableString('permit_join_target', $this->Translate('Pairing target'));
         $this->RegisterVariableBoolean('restart_required', $this->Translate('Restart Required'));
-        $this->RegisterVariableInteger('restart_request', $this->Translate('Perform a restart'), $restartProfile);
+        $this->RegisterVariableInteger('restart_request', $this->Translate('Perform a restart'), $restartPresentation);
         $this->EnableAction('restart_request');
         $this->RegisterVariableString('version', $this->Translate('Version'));
         $this->RegisterVariableString('zigbee_herdsman_converters', $this->Translate('Zigbee Herdsman Converters Version'));
@@ -223,6 +221,38 @@ class Zigbee2MQTTBridge extends IPSModuleStrict
             }
         }
         $this->SynchronizeOTAMessageSubscriptions();
+    }
+
+    /**
+     * Erstellt eine native Aufzaehlungsdarstellung fuer Bridge-Variablen.
+     */
+    private function BuildBridgeEnumerationPresentation(array $options, string $icon = 'list', int $layout = 0): string|array
+    {
+        if (!\defined('VARIABLE_PRESENTATION_ENUMERATION')) {
+            return '';
+        }
+
+        return [
+            'PRESENTATION' => \constant('VARIABLE_PRESENTATION_ENUMERATION'),
+            'OPTIONS'      => json_encode($options),
+            'LAYOUT'       => $layout,
+            'DISPLAY'      => 0,
+            'ICON'         => $icon
+        ];
+    }
+
+    /**
+     * Erstellt eine Option fuer native Bridge-Aufzaehlungen.
+     */
+    private function BuildBridgeEnumerationOption(mixed $value, string $caption, int $color = -1): array
+    {
+        return [
+            'Value'      => $value,
+            'Caption'    => $this->Translate($caption),
+            'IconActive' => false,
+            'IconValue'  => '',
+            'Color'      => $color
+        ];
     }
 
     /**

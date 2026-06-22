@@ -279,7 +279,7 @@ In dieser Dokumentation werden die Begriffe bewusst getrennt:
 
 - **Kachel** oder **Visualisierung** meint die Darstellung einer Instanz in der Symcon Tile-Visualisierung, insbesondere eigene HTML-SDK-Kacheln wie Schaltaktor-, Heizungs-, Sensor- oder Netzwerkkarten-Kacheln.
 - **Variablendarstellung** meint die moderne Symcon-Darstellung einer einzelnen Variable, die beim Anlegen der Variable als Standarddarstellung über `RegisterVariable*()` beziehungsweise die Symcon-Maintenance-Mechanismen gesetzt wird.
-- **Profil** meint ein Symcon-Variablenprofil. Profile werden weiterhin dort genutzt, wo Symcon-Standardprofile oder kompatible Modulprofile fuer spezielle Assoziationen oder alte Visualisierungen fachlich noetig sind. Neue dynamische Z2M-Profile sind nur noch ein Fallback, wenn eine moderne Variablendarstellung oder ein Standardprofil den Wert nicht passend abbilden kann.
+- **Profil** meint ein Symcon-Variablenprofil. Profile werden weiterhin dort genutzt, wo Symcon-Standardprofile fachlich passend sind oder bestehende Legacy-Variablen bereits ein Modulprofil besitzen. Neue Expose-, Preset- und State-Variablen werden bevorzugt ueber native Symcon-Variablendarstellungen oder ohne Modulprofil angelegt; dynamische `Z2M.*`-Profile werden fuer diese Faelle nicht mehr neu erzeugt.
 
 Benutzerdefinierte Darstellungen und Profile haben in Symcon eine höhere Priorität und bleiben vollständig in der Hoheit des Anwenders. Deshalb setzt das Modul produktiv keine Custom-Presentations oder Custom-Profile über `IPS_SetVariableCustomPresentation()` oder `IPS_SetVariableCustomProfile()`.
 
@@ -483,6 +483,8 @@ Die Änderungen sind anhand der funktionalen Commits chronologisch gegliedert. A
 - Schreibbare numerische Kalibrierungswerte wie `temperature_calibration` und `local_temperature_calibration` nutzen nun ebenfalls die native Symcon-Schiebereglerdarstellung mit Min-, Max- und Schrittwerten aus dem Expose.
 - Preset-Variablen wie `color_temp_presets` nutzen nun eine native Symcon-Aufzählungsdarstellung und erzeugen keine dynamischen `Z2M.*_Presets`-Profile mehr.
 - Abgeleitete Kelvin-Farbtemperaturvariablen übernehmen bei bestehenden Variablen aktualisierte Konfigurationswerte für den Kelvin-Bereich und bleiben damit mit den Geräteoptionen der Instanz synchron.
+- Die letzten dynamischen Profil-Fallbacks fuer generische numerische Werte, Binary-Exposes, State-Aufzaehlungen, Verfuegbarkeitsstatus sowie Bridge-Loglevel und Bridge-Neustart wurden auf native Symcon-Darstellungen umgestellt. Neue Variablen erzeugen dadurch keine Profile wie `Z2M.ac_frequency`, `Z2M.target_distance`, `Z2M.state.*`, `Z2M.DeviceStatus` oder `Z2M.bridge.*` mehr.
+- Bestehende Variablen behalten ihr bisheriges Modulprofil, wenn dieses bereits gesetzt ist. Die Aenderung betrifft neu registrierte beziehungsweise erneut angelegte Variablen ohne festes Symcon-Standardprofil.
 
 **Version 5.42:**  
 
