@@ -460,11 +460,11 @@ Die Änderungen sind anhand der funktionalen Commits chronologisch gegliedert. A
 
 ### 20. Juni 2026: Review-konforme Variablendarstellungen
 
-- Empfohlene moderne Variablendarstellungen werden ausschließlich beim erstmaligen Anlegen einer Variable als initiale `RegisterVariable*`-Darstellung übergeben. Bestehende benutzerdefinierte Darstellungen bleiben bei `ApplyChanges`, Payloads und Expose-Aktualisierungen unverändert.
+- Empfohlene moderne Variablendarstellungen werden ausschließlich als Modul-Standarddarstellung über die `RegisterVariable*`-Methoden gesetzt. Bestehende benutzerdefinierte Darstellungen bleiben bei `ApplyChanges`, Payloads und Expose-Aktualisierungen unverändert.
 - Das Modul ruft produktiv kein `IPS_SetVariableCustomPresentation()` mehr auf und bietet keine Aktion mehr an, um vorhandene Custom-Presentations nachträglich zu überschreiben oder zu entfernen. Damit bleibt die Darstellungs-Hoheit nach der Erstellung vollständig beim Anwender.
 - Neue Variablen verwenden bevorzugt moderne RegisterVariable-Darstellungen. Dynamische Z2M-Profile werden nur noch erstellt, wenn keine passende Symcon-Standarddarstellung und kein Standardprofil verfuegbar ist.
 - Nicht beschreibbare Enum-/String-Statusvariablen erhalten keine interaktive Aufzaehlungsdarstellung mehr, weil diese in Symcon eine Variablenaktion voraussetzt. Schreibbare Enums bleiben weiterhin als bedienbare Aufzaehlung erhalten.
-- Bestehende Variablen behalten ihr Modulprofil, wenn kein festes Standardprofil fachlich vorgegeben ist. `ApplyChanges` erzeugt dadurch keine neuen kompatiblen Profile nur deshalb, weil inzwischen eine passende moderne Darstellung verfuegbar waere.
+- Bestehende Variablen behalten ihr Modulprofil, wenn kein festes Standardprofil und keine passende moderne Modul-Standarddarstellung fachlich vorgegeben ist. `ApplyChanges` erzeugt dadurch keine neuen kompatiblen Profile nur deshalb, weil inzwischen eine passende moderne Darstellung verfuegbar waere.
 - Die Geräte-Konfiguration zeigt keine eigene Aktion zum erneuten Anwenden empfohlener Darstellungen mehr. Die Dokumentation beschreibt stattdessen die Trennung zwischen initialer Modul-Empfehlung und späterer Benutzeranpassung.
 - Die Hauptdokumentation trennt die Begriffe Spezialkachel/Visualisierung, Variablendarstellung und Variablenprofil ausdrücklich, damit eigene HTML-SDK-Kacheln nicht mit Symcon-Variablendarstellungen oder Profilen vermischt werden.
 - Die Discovery kann `mqtts://`-Broker mit lokalen selbstsignierten Zertifikaten erreichen, wenn der Anwender die TLS-Zertifikats- oder Hostnamenprüfung bewusst deaktiviert. Sichere TLS-Prüfung bleibt der Standard und es gibt keinen automatischen Fallback auf `mqtt://`.
@@ -476,6 +476,12 @@ Die Änderungen sind anhand der funktionalen Commits chronologisch gegliedert. A
 - Der Konfigurator verarbeitet nur noch die für ihn relevanten MQTT-Antworten und protokolliert große Geräte- und Gruppenlisten nicht mehr vollständig als Debug-JSON.
 - Die Symcon-Extension stellt für den Konfigurator eine kompakte `getDevicesLight`-Listenabfrage bereit. Detaildaten wie Exposes, Endpoints, Geräteoptionen und OTA-Informationen bleiben in der regulären Geräteabfrage sowie beim gezielten Abruf der Geräteinformationen erhalten. Dadurch sinkt der Speicherbedarf bei frischen Installationen und großen Zigbee2MQTT-Netzen deutlich, ohne Binding-, OTA- oder Gruppenfunktionen zu beschneiden.
 - Der Bridge-Formularaufbau fragt Geräte für Anlernen und Netzwerksicherheit nicht mehr mehrfach synchron über die Symcon-Extension ab. Beim Öffnen werden Cache und vorhandene Instanzen genutzt; die Live-Abfrage erfolgt nur noch über die explizite Aktualisieren-Aktion. Der automatische Bridge-Onlinecheck beim Übernehmen nutzt wieder einen kurzen Fünf-Sekunden-Timeout.
+
+### 22. Juni 2026: Standarddarstellungen für bestehende Variablen
+
+- Beim Übernehmen einer Geräte- oder Gruppeninstanz werden vorhandene Expose-Variablen erneut mit ihrer aktuellen Modul-Standarddefinition registriert. Dadurch können vorhandene Variablen von Legacy-Profilen auf passende Symcon-Standarddarstellungen wechseln, ohne benutzerdefinierte Darstellungen zu überschreiben.
+- Schreibbare numerische Kalibrierungswerte wie `temperature_calibration` und `local_temperature_calibration` nutzen nun ebenfalls die native Symcon-Schiebereglerdarstellung mit Min-, Max- und Schrittwerten aus dem Expose.
+- Abgeleitete Kelvin-Farbtemperaturvariablen übernehmen bei bestehenden Variablen aktualisierte Konfigurationswerte für den Kelvin-Bereich und bleiben damit mit den Geräteoptionen der Instanz synchron.
 
 **Version 5.42:**  
 

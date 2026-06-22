@@ -12,9 +12,9 @@ trait VariablePresentationHelper
     /**
      * Erstellt eine passende Variablendarstellung fuer bekannte Expose-Typen.
      *
-     * Die Darstellung wird ausschliesslich bei der Variablenerstellung an die
-     * RegisterVariable*-Methoden uebergeben. Bestehende Variablen werden damit
-     * nicht nachtraeglich geaendert.
+     * Die Darstellung wird an die RegisterVariable*-Methoden uebergeben und
+     * setzt damit die Modul-Standarddarstellung. Benutzerdefinierte
+     * Darstellungen bleiben Symcon-seitig unangetastet.
      */
     protected function BuildFeaturePresentation(array $feature, ?string $groupType = null, string $profileName = ''): ?array
     {
@@ -188,10 +188,6 @@ trait VariablePresentationHelper
      */
     protected function BuildNumericFeaturePresentation(array $feature, ?string $groupType = null): ?array
     {
-        if ($this->ShouldSuppressNumericSliderPresentation($feature)) {
-            return null;
-        }
-
         if ($this->IsThermometerValue($feature, $groupType)) {
             return $this->BuildTemperatureValuePresentation($feature);
         }
@@ -341,15 +337,6 @@ trait VariablePresentationHelper
             'CLOSE_INSIDE_VALUE'  => $min,
             'SUN_POSITION'        => 2
         ];
-    }
-
-    /**
-     * Unterdrueckt Slider fuer Werte, die in Spezialkacheln gezielter bedient werden.
-     */
-    private function ShouldSuppressNumericSliderPresentation(array $feature): bool
-    {
-        $property = (string) ($feature['property'] ?? '');
-        return \in_array($property, ['temperature_calibration', 'local_temperature_calibration'], true);
     }
 
     /**

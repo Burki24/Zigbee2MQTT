@@ -514,6 +514,7 @@ abstract class ModulBase extends \IPSModuleStrict
         $this->SetReceiveDataFilter('.*(' . $Filter1 . '|' . $Filter2 . '|' . $Filter3 . ').*');
         $this->SetStatus(IS_ACTIVE);
         $this->RefreshExposeVariableCatalog();
+        $this->RefreshExistingExposeVariableRegistrations();
         $this->UpdateCustomTileVisualizationType();
     }
 
@@ -4497,16 +4498,14 @@ abstract class ModulBase extends \IPSModuleStrict
         $ident = str_replace('&', '_and_', $property);
         $existingVariableID = $this->GetObjectIDByIdent($ident);
         $isNewVariable = $existingVariableID === false;
-        if ($isNewVariable) {
-            $presentation = $this->BuildFeaturePresentation($feature, \is_string($groupType) ? $groupType : null, $profileName);
-            if ($presentation !== null) {
-                $profileOrPresentation = $presentation;
-            } else {
-                if ($profileName === '') {
-                    $profileName = $this->registerVariableProfile($feature);
-                }
-                $profileOrPresentation = $profileName;
+        $presentation = $this->BuildFeaturePresentation($feature, \is_string($groupType) ? $groupType : null, $profileName);
+        if ($presentation !== null) {
+            $profileOrPresentation = $presentation;
+        } elseif ($isNewVariable) {
+            if ($profileName === '') {
+                $profileName = $this->registerVariableProfile($feature);
             }
+            $profileOrPresentation = $profileName;
         } else {
             if ($profileName === '') {
                 $profileName = $this->GetExistingVariableProfile((int) $existingVariableID);
@@ -4826,10 +4825,16 @@ abstract class ModulBase extends \IPSModuleStrict
             return;
         }
 
-        $isNewVariable = $this->GetObjectIDByIdent($kelvinIdent) === false;
-        $profileOrPresentation = $isNewVariable
-            ? ($this->BuildColorTemperaturePresentation($feature) ?? '~TWColor')
-            : '~TWColor';
+        $existingVariableID = $this->GetObjectIDByIdent($kelvinIdent);
+        $isNewVariable = $existingVariableID === false;
+        $presentation = $this->BuildColorTemperaturePresentation($feature);
+        if ($presentation !== null) {
+            $profileOrPresentation = $presentation;
+        } elseif ($isNewVariable) {
+            $profileOrPresentation = '~TWColor';
+        } else {
+            $profileOrPresentation = $this->GetExistingVariableProfile((int) $existingVariableID);
+        }
         $this->RegisterVariableInteger($kelvinIdent, $this->Translate('Color Temperature Kelvin'), $profileOrPresentation);
         $this->MarkVariableCreated($kelvinIdent);
         $this->checkAndEnableAction($kelvinIdent, null, true);

@@ -962,6 +962,26 @@ class DevicesTest extends DumpInclude
         //$Debug['LastPayload'] ist leider unvollständig. Neues Z2M_Debug benötigt
         //$this->assertSame(self::count_recursive($Debug['LastPayload']) + $OffestLastPayload, count(IPS_GetChildrenIDs($iid)) + $OffsetChildrenIDs, 'Anzahl LastPayload ('.self::count_recursive($Debug['LastPayload']) + $OffestLastPayload.') und Erzeugte Variablen ('.count(IPS_GetChildrenIDs($iid)) + $OffsetChildrenIDs.') unterscheiden sich');
         $this->assertCount(0, self::getExportDebugData($iid)['missingTranslations'], 'Fehlende übersetzungen gefunden:' . var_export(self::getExportDebugData($iid)['missingTranslations'], true));
+
+        $calibrationID = IPS_GetObjectIDByIdent('local_temperature_calibration', $iid);
+        $this->assertNotFalse($calibrationID);
+        $presentation = IPS_GetVariable($calibrationID)['VariablePresentation'];
+        $this->assertSame(VARIABLE_PRESENTATION_SLIDER, $presentation['PRESENTATION'] ?? null);
+        $this->assertSame(-9.0, $presentation['MIN'] ?? null);
+        $this->assertSame(9.0, $presentation['MAX'] ?? null);
+        $this->assertSame(0.5, $presentation['STEP_SIZE'] ?? null);
+
+        IPS\VariableManager::setVariablePresentation((int) $calibrationID, [
+            'PRESENTATION' => VARIABLE_PRESENTATION_LEGACY,
+            'PROFILE'      => 'Z2M.local_temperature_calibration_-9_9'
+        ]);
+        IPS_ApplyChanges($iid);
+
+        $presentation = IPS_GetVariable($calibrationID)['VariablePresentation'];
+        $this->assertSame(VARIABLE_PRESENTATION_SLIDER, $presentation['PRESENTATION'] ?? null);
+        $this->assertSame(-9.0, $presentation['MIN'] ?? null);
+        $this->assertSame(9.0, $presentation['MAX'] ?? null);
+        $this->assertSame(0.5, $presentation['STEP_SIZE'] ?? null);
     }
 
     public function testRTCGQ01LM()
@@ -1031,12 +1051,8 @@ class DevicesTest extends DumpInclude
         IPS_ApplyChanges($iid);
 
         $presentation = IPS_GetVariable($kelvinID)['VariablePresentation'];
-        $this->assertSame(1801, $presentation['MIN']);
-        $this->assertSame(6535, $presentation['MAX']);
-
-        $presentation = IPS_GetVariable($kelvinID)['VariablePresentation'];
-        $this->assertSame(1801, $presentation['MIN']);
-        $this->assertSame(6535, $presentation['MAX']);
+        $this->assertSame(2202, $presentation['MIN']);
+        $this->assertSame(5000, $presentation['MAX']);
 
         $interface->ReceiveData(self::buildMqttRequest($topic, ['color_temp' => 153]));
         $this->assertNotSame(0xFF9227, GetValue($colorID));
