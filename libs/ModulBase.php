@@ -4048,7 +4048,7 @@ abstract class ModulBase extends \IPSModuleStrict
      *
      * @return array Assoziatives Array mit:
      *               - 'mainProfile': string - Name des Hauptprofils
-     *               - 'presetProfile': string|null - Name des Preset-Profils, falls vorhanden
+     *               - 'presetProfile': null - Legacy-Rueckgabewert, Presets nutzen native Darstellungen
      *
      * Beispiel:
      * ```php
@@ -4113,103 +4113,7 @@ abstract class ModulBase extends \IPSModuleStrict
             $this->SendDebug(__FUNCTION__, 'Created Integer Profile: ' . $fullRangeProfileName, 0);
         }
 
-        // Preset-Handling
-        $presetProfileName = null;
-        if (isset($expose['presets']) && !empty($expose['presets'])) {
-            $formattedLabel = $this->convertLabelToName($feature);
-            $presetProfileName = $this->registerPresetProfile($expose['presets'], $formattedLabel, $variableType, $expose);
-        }
-
-        return ['mainProfile' => $fullRangeProfileName, 'presetProfile' => $presetProfileName];
-    }
-
-    /**
-     * registerPresetProfile
-     *
-     * Registriert ein Variablenprofil für Presets basierend auf den übergebenen Preset-Daten.
-     *
-     * Diese Funktion generiert ein Profil für eine Preset-Variable, das verschiedene vordefinierte Werte enthält.
-     * Der Profilname wird dynamisch basierend auf dem übergebenen Label und den Min- und Max-Werten erstellt.
-     * Ein vollständig passendes vorhandenes Profil wird wiederverwendet. Bei einem
-     * Namenskonflikt bleibt das bestehende Profil unverändert und ein kompatibles
-     * Profil mit eindeutigem Namen wird erstellt.
-     *
-     * Jedes Preset im übergebenen Array wird mit seinem Namen und Wert dem Profil hinzugefügt. Der Name des Presets
-     * wird dabei ins Lesbare umgewandelt (z.B. von snake_case in normaler Text), und die zugehörigen Werte werden
-     * als Assoziationen im Profil gespeichert. Die Presets erhalten außerdem eine standardmäßige weiße Farbe
-     * für die Anzeige.
-     *
-     * @param array $presets Ein Array von Presets, die jeweils einen Namen und einen zugehörigen Wert enthalten.
-     *                       Beispielstruktur eines Presets:
-     *                       [
-     *                           'name'  => 'coolest',    // Name des Presets
-     *                           'value' => 153           // Wert des Presets
-     *                       ]
-     * @param string $label Der Name, der dem Profil zugeordnet wird. Leerzeichen im Label werden durch Unterstriche ersetzt.
-     * @param string $variableType Der Variablentyp (z.B. 'float', 'int').
-     * @param array $feature Die Expose-Daten, die die Eigenschaften des Features enthalten, einschließlich Min- und Max-Werten.
-     *
-     * @return string Der Name des erstellten Profils.
-     *
-     * @see \Zigbee2MQTT\ModulBase::RegisterProfileFloatEx()
-     * @see \Zigbee2MQTT\ModulBase::RegisterProfileIntegerEx()
-     * @see \IPSModule::LogMessage()
-     * @see \IPSModule::Translate()
-     * @see str_replace()
-     * @see sprintf()
-     * @see ucwords()
-     */
-    private function registerPresetProfile(array $presets, string $label, string $variableType, array $feature): string
-    {
-        // Profilname ohne Leerzeichen erstellen und Min- und Max-Werte hinzufügen
-        $profileName = 'Z2M.' . str_replace(' ', '_', $label);
-        $valueMin = $feature['value_min'] ?? null;
-        $valueMax = $feature['value_max'] ?? null;
-
-        if ($valueMin !== null && $valueMax !== null) {
-            $profileName .= '_' . $valueMin . '_' . $valueMax;
-        }
-
-        $profileName .= '_Presets';
-
-        // Prüfen ob vordefinierte Presets existieren
-        $property = $feature['property'] ?? '';
-        if (isset(self::$presetDefinitions[$property])) {
-            $this->SendDebug(__FUNCTION__, 'Using predefined presets for: ' . $property, 0);
-            $associations = [];
-            foreach (self::$presetDefinitions[$property]['values'] as $value => $name) {
-                $associations[] = [
-                    $value,
-                    $this->Translate($name),
-                    '',
-                    -1
-                ];
-            }
-        } else {
-            // Dynamische Presets verwenden
-            $associations = [];
-            foreach ($presets as $preset) {
-                // Preset-Wert an den Variablentyp anpassen
-
-                $presetValue = ($variableType === 'float') ? (float) $preset['value'] : (int) $preset['value'];
-                $presetName = $this->Translate(ucwords(str_replace('_', ' ', $preset['name'])));
-                $associations[] = [
-                    $presetValue,
-                    $presetName,
-                    '',
-                    -1
-                ];
-            }
-        }
-
-        // Neues Profil anlegen
-        if ($variableType === 'float') {
-            $profileName = $this->RegisterProfileFloatEx($profileName, '', '', '', $associations);
-        } else {
-            $profileName = $this->RegisterProfileIntegerEx($profileName, '', '', '', $associations);
-        }
-
-        return $profileName;
+        return ['mainProfile' => $fullRangeProfileName, 'presetProfile' => null];
     }
 
     /**
@@ -5013,9 +4917,10 @@ abstract class ModulBase extends \IPSModuleStrict
     /**
      * registerPresetVariables
      *
-     * Registriert Variablen und Profile für Presets eines Features.
+     * Registriert eine Preset-Variable fuer ein Feature.
      *
-     * Diese Funktion erstellt für ein Feature eine zusätzliche Preset-Variable mit entsprechendem Profil.
+     * Diese Funktion erstellt fuer ein Feature eine zusätzliche Preset-Variable mit nativer
+     * Aufzaehlungsdarstellung. Es werden keine dynamischen Preset-Profile mehr angelegt.
      * Sie wird verwendet, um vordefinierte Werte (Presets) für bestimmte Eigenschaften eines Geräts
      * zugänglich zu machen.
      *
@@ -5041,7 +4946,7 @@ abstract class ModulBase extends \IPSModuleStrict
      * $this->registerPresetVariables($presets, 'Brightness', 'int', ['property' => 'brightness', 'name' => 'Brightness']);
      * ```
      *
-     * @see \Zigbee2MQTT\ModulBase::registerPresetProfile()
+     * @see \Zigbee2MQTT\ModulBase::BuildPresetPresentation()
      * @see \Zigbee2MQTT\ModulBase::convertLabelToName()
      * @see \IPSModule::GetBuffer()
      * @see \IPSModule::SendDebug()
@@ -5064,14 +4969,14 @@ abstract class ModulBase extends \IPSModuleStrict
         // Name formatieren
         $formattedLabel = $this->convertLabelToName($property);
 
-        // Profil registrieren
-        $profileName = $this->registerPresetProfile($presets, $formattedLabel, $variableType, $feature);
+        $presentation = $this->BuildPresetPresentation($presets, $variableType, $feature);
+        $profileOrPresentation = $presentation ?? '';
 
         // Variable anhand Typ registrieren
         if ($variableType === 'float') {
-            $this->RegisterVariableFloat($presetIdent, $this->Translate($formattedLabel . ' Presets'), $profileName);
+            $this->RegisterVariableFloat($presetIdent, $this->Translate($formattedLabel . ' Presets'), $profileOrPresentation);
         } else {
-            $this->RegisterVariableInteger($presetIdent, $this->Translate($formattedLabel . ' Presets'), $profileName);
+            $this->RegisterVariableInteger($presetIdent, $this->Translate($formattedLabel . ' Presets'), $profileOrPresentation);
         }
         $this->MarkVariableCreated($presetIdent);
 

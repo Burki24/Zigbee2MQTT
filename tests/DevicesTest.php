@@ -1043,6 +1043,15 @@ class DevicesTest extends DumpInclude
         $this->assertSame(1801, $presentation['MIN']);
         $this->assertSame(6535, $presentation['MAX']);
 
+        $presetID = IPS_GetObjectIDByIdent('color_temp_presets', $iid);
+        $this->assertNotFalse($presetID);
+        $presetVariable = IPS_GetVariable($presetID);
+        $this->assertSame('', $presetVariable['VariableProfile']);
+        $this->assertSame(VARIABLE_PRESENTATION_ENUMERATION, $presetVariable['VariablePresentation']['PRESENTATION'] ?? null);
+        $presetOptions = json_decode($presetVariable['VariablePresentation']['OPTIONS'] ?? '[]', true);
+        $this->assertSame([153, 250, 370, 454, 555], array_column($presetOptions, 'Value'));
+        $this->assertSame(['Sehr kalt', 'Kalt', 'Neutral', 'Warm', 'Sehr warm'], array_column($presetOptions, 'Caption'));
+
         $form = json_decode(IPS_GetConfigurationForm($iid), true);
         $this->assertFormItemVisible($form, 'ColorTemperatureVisualization');
 

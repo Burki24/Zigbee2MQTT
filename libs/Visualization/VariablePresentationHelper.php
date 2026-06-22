@@ -426,6 +426,33 @@ trait VariablePresentationHelper
     }
 
     /**
+     * Erstellt fuer Zigbee2MQTT-Presets eine native Aufzaehlungsdarstellung.
+     *
+     * Presets werden bewusst nicht mehr als Variablenprofil angelegt. Die
+     * Darstellung wird als Modul-Standarddarstellung registriert, damit
+     * benutzerdefinierte Darstellungen in Symcon unangetastet bleiben.
+     */
+    protected function BuildPresetPresentation(array $presets, string $variableType, array $feature): ?array
+    {
+        if (!$this->SupportsEnumerationPresentation()) {
+            return null;
+        }
+
+        $options = $this->BuildPresetPresentationOptions($presets, $variableType, $feature);
+        if ($options === []) {
+            return null;
+        }
+
+        return [
+            'PRESENTATION' => \constant('VARIABLE_PRESENTATION_ENUMERATION'),
+            'OPTIONS'      => json_encode($options),
+            'LAYOUT'       => count($options) <= 3 ? 1 : 0,
+            'DISPLAY'      => 0,
+            'ICON'         => $this->GetEnumerationPresentationIcon($feature)
+        ];
+    }
+
+    /**
      * Erstellt die Optionsliste fuer Enum-Darstellungen.
      */
     private function BuildEnumerationPresentationOptions(array $values): array
@@ -442,6 +469,50 @@ trait VariablePresentationHelper
         }
 
         return $options;
+    }
+
+    /**
+     * Erstellt die Optionsliste fuer Preset-Darstellungen.
+     */
+    private function BuildPresetPresentationOptions(array $presets, string $variableType, array $feature): array
+    {
+        $property = (string) ($feature['property'] ?? '');
+        if ($property !== '' && isset(self::$presetDefinitions[$property]['values']) && \is_array(self::$presetDefinitions[$property]['values'])) {
+            $options = [];
+            foreach (self::$presetDefinitions[$property]['values'] as $value => $caption) {
+                $options[] = $this->BuildPresetPresentationOption($value, (string) $caption, $variableType);
+            }
+            return $options;
+        }
+
+        $options = [];
+        foreach ($presets as $preset) {
+            if (!\is_array($preset) || !\array_key_exists('value', $preset)) {
+                continue;
+            }
+
+            $caption = isset($preset['name'])
+                ? ucwords(str_replace('_', ' ', (string) $preset['name']))
+                : (string) $preset['value'];
+
+            $options[] = $this->BuildPresetPresentationOption($preset['value'], $caption, $variableType);
+        }
+
+        return $options;
+    }
+
+    /**
+     * Normalisiert einen einzelnen Preset-Wert fuer die native Darstellung.
+     */
+    private function BuildPresetPresentationOption(mixed $value, string $caption, string $variableType): array
+    {
+        return [
+            'Value'      => $variableType === 'float' ? (float) $value : (int) $value,
+            'Caption'    => $this->Translate($caption),
+            'IconActive' => false,
+            'IconValue'  => '',
+            'Color'      => -1
+        ];
     }
 
     /**

@@ -682,9 +682,23 @@ trait VariableCatalogHelper
         $hasExistingVariable = $ident !== '' && $this->GetObjectIDByIdent($ident) !== false;
         $hasExistingDerivedVariable = $property === 'color_temp'
             && $this->GetObjectIDByIdent('color_temp_kelvin') !== false;
+        $hasExistingPresetVariable = $property !== ''
+            && isset($feature['presets'])
+            && \is_array($feature['presets'])
+            && $this->GetObjectIDByIdent($property . '_presets') !== false;
 
         if ($hasExistingVariable || $hasExistingDerivedVariable) {
             $this->registerVariable($feature);
+        }
+        if ($hasExistingPresetVariable) {
+            $variableType = $this->getVariableTypeFromProfile(
+                (string) ($feature['type'] ?? 'numeric'),
+                $property,
+                isset($feature['unit']) && \is_string($feature['unit']) ? $feature['unit'] : '',
+                isset($feature['value_step']) ? (float) $feature['value_step'] : 1.0,
+                $groupType
+            );
+            $this->registerPresetVariables($feature['presets'], $property, $variableType, $feature);
         }
 
         foreach ($feature['features'] ?? [] as $subFeature) {

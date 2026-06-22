@@ -279,7 +279,7 @@ In dieser Dokumentation werden die Begriffe bewusst getrennt:
 
 - **Kachel** oder **Visualisierung** meint die Darstellung einer Instanz in der Symcon Tile-Visualisierung, insbesondere eigene HTML-SDK-Kacheln wie Schaltaktor-, Heizungs-, Sensor- oder Netzwerkkarten-Kacheln.
 - **Variablendarstellung** meint die moderne Symcon-Darstellung einer einzelnen Variable, die beim Anlegen der Variable als Standarddarstellung über `RegisterVariable*()` beziehungsweise die Symcon-Maintenance-Mechanismen gesetzt wird.
-- **Profil** meint ein Symcon-Variablenprofil. Profile werden weiterhin dort genutzt, wo Symcon-Standardprofile oder kompatible Modulprofile fuer Assoziationen, Presets oder alte Visualisierungen fachlich noetig sind. Neue dynamische Z2M-Profile sind nur noch ein Fallback, wenn eine moderne Variablendarstellung oder ein Standardprofil den Wert nicht passend abbilden kann.
+- **Profil** meint ein Symcon-Variablenprofil. Profile werden weiterhin dort genutzt, wo Symcon-Standardprofile oder kompatible Modulprofile fuer spezielle Assoziationen oder alte Visualisierungen fachlich noetig sind. Neue dynamische Z2M-Profile sind nur noch ein Fallback, wenn eine moderne Variablendarstellung oder ein Standardprofil den Wert nicht passend abbilden kann.
 
 Benutzerdefinierte Darstellungen und Profile haben in Symcon eine höhere Priorität und bleiben vollständig in der Hoheit des Anwenders. Deshalb setzt das Modul produktiv keine Custom-Presentations oder Custom-Profile über `IPS_SetVariableCustomPresentation()` oder `IPS_SetVariableCustomProfile()`.
 
@@ -481,6 +481,7 @@ Die Änderungen sind anhand der funktionalen Commits chronologisch gegliedert. A
 
 - Beim Übernehmen einer Geräte- oder Gruppeninstanz werden vorhandene Expose-Variablen erneut mit ihrer aktuellen Modul-Standarddefinition registriert. Dadurch können vorhandene Variablen von Legacy-Profilen auf passende Symcon-Standarddarstellungen wechseln, ohne benutzerdefinierte Darstellungen zu überschreiben.
 - Schreibbare numerische Kalibrierungswerte wie `temperature_calibration` und `local_temperature_calibration` nutzen nun ebenfalls die native Symcon-Schiebereglerdarstellung mit Min-, Max- und Schrittwerten aus dem Expose.
+- Preset-Variablen wie `color_temp_presets` nutzen nun eine native Symcon-Aufzählungsdarstellung und erzeugen keine dynamischen `Z2M.*_Presets`-Profile mehr.
 - Abgeleitete Kelvin-Farbtemperaturvariablen übernehmen bei bestehenden Variablen aktualisierte Konfigurationswerte für den Kelvin-Bereich und bleiben damit mit den Geräteoptionen der Instanz synchron.
 
 **Version 5.42:**  
