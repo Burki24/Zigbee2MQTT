@@ -425,6 +425,7 @@ abstract class ModulBase extends \IPSModuleStrict
         $this->RegisterAttributeArray(self::ATTRIBUTE_DEVICE_ENDPOINTS, []);
         $this->RegisterAttributeBoolean(self::ATTRIBUTE_DEVICE_SUPPORTS_OTA, false);
         $this->RegisterAttributeArray(self::ATTRIBUTE_VARIABLE_CATALOG, []);
+        $this->RegisterAttributeArray(self::ATTRIBUTE_PRESENTATION_MIGRATION_LOG, []);
         $this->RegisterAttributeArray(self::ATTRIBUTE_DISABLED_VARIABLES, []);
         $this->RegisterAttributeArray(self::ATTRIBUTE_DELETED_VARIABLES, []);
         $this->RegisterAttributeFloat(self::ATTRIBUTE_MODUL_VERSION, 5.0);
@@ -1875,6 +1876,7 @@ abstract class ModulBase extends \IPSModuleStrict
             return true;
         }
         $deviceStatusPresentation = $this->BuildDeviceStatusPresentation() ?? '';
+        $this->RecordLegacyProfilePresentationReplacement('device_status', $deviceStatusPresentation);
         $this->RegisterVariableBoolean('device_status', $this->Translate('Availability'), $deviceStatusPresentation);
         $this->MarkVariableCreated('device_status');
         if (isset($payload['state'])) {
@@ -3918,6 +3920,7 @@ abstract class ModulBase extends \IPSModuleStrict
 
         $formattedLabel = $this->convertLabelToName($featureProperty);
         $profileOrPresentation = $this->BuildStatePresentation($stateConfig, $feature);
+        $this->RecordLegacyProfilePresentationReplacement((string) $stateConfig['ident'], $profileOrPresentation);
         switch ($stateConfig['dataType']) {
             case VARIABLETYPE_BOOLEAN:
                 $this->RegisterVariableBoolean(
@@ -4037,6 +4040,8 @@ abstract class ModulBase extends \IPSModuleStrict
      */
     private function registerFeatureVariableByType(array $feature, string $ident, string $property, string $variableType, string|array $profileOrPresentation, ?string $exposeType): bool
     {
+        $this->RecordLegacyProfilePresentationReplacement($ident, $profileOrPresentation);
+
         switch ($variableType) {
             case 'bool':
                 $this->SendDebug(__FUNCTION__, 'Registering Boolean Variable: ' . $property, 0);
@@ -4072,6 +4077,100 @@ abstract class ModulBase extends \IPSModuleStrict
                 $this->SendDebug(__FUNCTION__, 'Unsupported variable type: ' . $variableType, 0);
                 return false;
         }
+    }
+
+    /**
+     * Records that an existing variable changed from a legacy Z2M.* profile to a native presentation.
+     *
+     * The method only observes the module standard before RegisterVariable* applies the new
+     * presentation. It never touches custom user profile or presentation settings.
+     *
+     * @param string $ident Variable ident.
+     * @param string|array $profileOrPresentation New module standard presentation or empty string.
+     */
+    private function RecordLegacyProfilePresentationReplacement(string $ident, string|array $profileOrPresentation): void
+    {
+        if (!\is_array($profileOrPresentation)) {
+            return;
+        }
+
+        $variableID = $this->GetObjectIDByIdent($ident);
+        if ($variableID === false) {
+            return;
+        }
+
+        try {
+            $variable = IPS_GetVariable((int) $variableID);
+            $variableName = IPS_GetName((int) $variableID);
+        } catch (\Throwable $e) {
+            return;
+        }
+
+        $oldProfile = \is_string($variable['VariableProfile'] ?? null) ? (string) $variable['VariableProfile'] : '';
+        if ($oldProfile === '' || !str_starts_with($oldProfile, 'Z2M.')) {
+            return;
+        }
+
+        $customProfile = \is_string($variable['VariableCustomProfile'] ?? null) ? (string) $variable['VariableCustomProfile'] : '';
+        $customPresentation = $variable['VariableCustomPresentation'] ?? null;
+        $hasCustomPresentation = \is_array($customPresentation)
+            ? $customPresentation !== []
+            : (\is_string($customPresentation) && $customPresentation !== '');
+
+        $log = $this->ReadAttributeArray(self::ATTRIBUTE_PRESENTATION_MIGRATION_LOG);
+        $log[(string) $variableID] = [
+            'time'            => time(),
+            'variableID'      => (int) $variableID,
+            'variable'        => $variableName,
+            'ident'           => $ident,
+            'oldProfile'      => $oldProfile,
+            'newPresentation' => $this->DescribePresentationForMigrationLog($profileOrPresentation),
+            'customSetting'   => $customProfile !== '' || $hasCustomPresentation,
+        ];
+
+        if (\count($log) > 250) {
+            $log = array_slice($log, -250, null, true);
+        }
+
+        $this->WriteAttributeArray(self::ATTRIBUTE_PRESENTATION_MIGRATION_LOG, $log);
+        $this->SendDebug(
+            'Presentation migration',
+            sprintf(
+                'Variable #%d %s (%s): %s -> %s',
+                (int) $variableID,
+                $variableName,
+                $ident,
+                $oldProfile,
+                $log[(string) $variableID]['newPresentation']
+            ),
+            0
+        );
+    }
+
+    /**
+     * Returns a human-readable name for a native Symcon presentation.
+     */
+    private function DescribePresentationForMigrationLog(array $presentation): string
+    {
+        $presentationKey = \defined('PRESENTATION') ? \constant('PRESENTATION') : 'PRESENTATION';
+        $presentationID = $presentation[$presentationKey] ?? $presentation['PRESENTATION'] ?? null;
+        $presentations = [
+            'VARIABLE_PRESENTATION_SLIDER'      => 'Slider',
+            'VARIABLE_PRESENTATION_ENUMERATION' => 'Enumeration',
+            'VARIABLE_PRESENTATION_VALUE'       => 'Value display',
+            'VARIABLE_PRESENTATION_SWITCH'      => 'Switch',
+            'VARIABLE_PRESENTATION_COLOR'       => 'Color',
+            'VARIABLE_PRESENTATION_SHUTTER'     => 'Shutter',
+            'VARIABLE_PRESENTATION_DURATION'    => 'Duration',
+        ];
+
+        foreach ($presentations as $constant => $caption) {
+            if (\defined($constant) && $presentationID === \constant($constant)) {
+                return $this->Translate($caption);
+            }
+        }
+
+        return $this->Translate('Native presentation');
     }
 
     /**
@@ -4190,6 +4289,7 @@ abstract class ModulBase extends \IPSModuleStrict
         }
 
         $profileOrPresentation = $this->BuildColorTemperaturePresentation($feature) ?? '';
+        $this->RecordLegacyProfilePresentationReplacement($kelvinIdent, $profileOrPresentation);
         $this->RegisterVariableInteger($kelvinIdent, $this->Translate('Color Temperature Kelvin'), $profileOrPresentation);
         $this->MarkVariableCreated($kelvinIdent);
         $this->checkAndEnableAction($kelvinIdent, null, true);
@@ -4210,7 +4310,9 @@ abstract class ModulBase extends \IPSModuleStrict
             return;
         }
 
-        $this->RegisterVariableInteger('color', $this->Translate($this->convertLabelToName('color')), $this->BuildColorPresentation() ?? '');
+        $colorPresentation = $this->BuildColorPresentation() ?? '';
+        $this->RecordLegacyProfilePresentationReplacement('color', $colorPresentation);
+        $this->RegisterVariableInteger('color', $this->Translate($this->convertLabelToName('color')), $colorPresentation);
         $this->MarkVariableCreated('color');
     }
 
@@ -4333,6 +4435,7 @@ abstract class ModulBase extends \IPSModuleStrict
                     $this->SendDebug(__FUNCTION__, 'Skipping filtered color variable: color', 0);
                     break;
                 }
+                $this->RecordLegacyProfilePresentationReplacement('color', $colorPresentation);
                 $this->RegisterVariableInteger('color', $this->Translate($this->convertLabelToName('color')), $colorPresentation);
                 $this->MarkVariableCreated('color');
                 // Farbvariablen erhalten IMMER EnableAction, unabhängig von Access-Prüfung
@@ -4344,6 +4447,7 @@ abstract class ModulBase extends \IPSModuleStrict
                     $this->SendDebug(__FUNCTION__, 'Skipping filtered color variable: color_hs', 0);
                     break;
                 }
+                $this->RecordLegacyProfilePresentationReplacement('color_hs', $colorPresentation);
                 $this->RegisterVariableInteger('color_hs', $this->Translate($this->convertLabelToName('color_hs')), $colorPresentation);
                 $this->MarkVariableCreated('color_hs');
                 // Farbvariablen erhalten IMMER EnableAction, unabhängig von Access-Prüfung
@@ -4355,6 +4459,7 @@ abstract class ModulBase extends \IPSModuleStrict
                     $this->SendDebug(__FUNCTION__, 'Skipping filtered color variable: color_rgb', 0);
                     break;
                 }
+                $this->RecordLegacyProfilePresentationReplacement('color_rgb', $colorPresentation);
                 $this->RegisterVariableInteger('color_rgb', $this->Translate($this->convertLabelToName('color_rgb')), $colorPresentation);
                 $this->MarkVariableCreated('color_rgb');
                 // Farbvariablen erhalten IMMER EnableAction, unabhängig von Access-Prüfung
@@ -4424,6 +4529,7 @@ abstract class ModulBase extends \IPSModuleStrict
 
         $presentation = $this->BuildPresetPresentation($presets, $variableType, $feature);
         $profileOrPresentation = $presentation ?? '';
+        $this->RecordLegacyProfilePresentationReplacement($presetIdent, $profileOrPresentation);
 
         // Variable anhand Typ registrieren
         if ($variableType === 'float') {
@@ -4490,6 +4596,7 @@ abstract class ModulBase extends \IPSModuleStrict
         if ($isNewVariable && $ident === 'update__remaining') {
             $profileOrPresentation = $this->BuildDurationPresentation() ?? $profileOrPresentation;
         }
+        $this->RecordLegacyProfilePresentationReplacement($ident, $profileOrPresentation);
         switch ($varDef['type']) {
             case VARIABLETYPE_FLOAT:
                 $this->RegisterVariableFloat($ident, $this->Translate($formattedLabel), $profileOrPresentation);

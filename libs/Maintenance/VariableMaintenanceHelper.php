@@ -198,6 +198,7 @@ trait VariableMaintenanceHelper
                         ],
                     ],
                 ],
+                $this->BuildPresentationMigrationLogList(),
                 $this->BuildLocalStaleVariableCandidateList('LocalStaleVariableClearCandidates', 'Clear deletion candidates', $scan['clearCandidates'], true),
                 $this->BuildLocalStaleVariableCandidateList('LocalStaleVariableReviewCandidates', 'Review candidates', $scan['reviewCandidates'], false),
                 [
@@ -215,6 +216,71 @@ trait VariableMaintenanceHelper
                 ],
             ],
         ];
+    }
+
+    /**
+     * Builds a read-only list of variables whose legacy Z2M profile was replaced by a native presentation.
+     */
+    private function BuildPresentationMigrationLogList(): array
+    {
+        $rows = $this->ReadPresentationMigrationLogRows();
+
+        return [
+            'type'                        => 'List',
+            'name'                        => 'PresentationMigrationLog',
+            'caption'                     => $this->Translate('Presentation changes'),
+            'add'                         => false,
+            'delete'                      => false,
+            'rowCount'                    => min(8, max(2, \count($rows) + 1)),
+            'loadValuesFromConfiguration' => false,
+            'columns'                     => [
+                ['caption' => $this->Translate('Variable'), 'name' => 'variable', 'width' => 'auto', 'quickFilter' => true],
+                ['caption' => $this->Translate('Ident'), 'name' => 'ident', 'width' => '180px', 'quickFilter' => true],
+                ['caption' => $this->Translate('Previous profile'), 'name' => 'old_profile', 'width' => '220px', 'quickFilter' => true],
+                ['caption' => $this->Translate('New presentation'), 'name' => 'new_presentation', 'width' => '160px', 'quickFilter' => true],
+                ['caption' => $this->Translate('User override'), 'name' => 'custom_setting', 'width' => '120px', 'align' => 'center'],
+                ['caption' => $this->Translate('Changed'), 'name' => 'changed', 'width' => '150px'],
+            ],
+            'values' => $this->BuildPresentationMigrationLogFormValues($rows),
+        ];
+    }
+
+    /**
+     * Reads and sorts the presentation migration log for this instance.
+     */
+    private function ReadPresentationMigrationLogRows(): array
+    {
+        $rows = array_values(array_filter(
+            $this->ReadAttributeArray(self::ATTRIBUTE_PRESENTATION_MIGRATION_LOG),
+            static fn (mixed $row): bool => \is_array($row)
+        ));
+
+        usort(
+            $rows,
+            static fn (array $left, array $right): int => (int) ($right['time'] ?? 0) <=> (int) ($left['time'] ?? 0)
+        );
+
+        return $rows;
+    }
+
+    /**
+     * Builds form rows for the presentation migration log.
+     */
+    private function BuildPresentationMigrationLogFormValues(array $rows): array
+    {
+        $values = [];
+        foreach ($rows as $row) {
+            $values[] = [
+                'variable'         => '#' . (int) ($row['variableID'] ?? 0) . ' ' . (string) ($row['variable'] ?? ''),
+                'ident'            => (string) ($row['ident'] ?? ''),
+                'old_profile'      => (string) ($row['oldProfile'] ?? ''),
+                'new_presentation' => (string) ($row['newPresentation'] ?? ''),
+                'custom_setting'   => $this->Translate(($row['customSetting'] ?? false) ? 'Yes' : 'No'),
+                'changed'          => $this->FormatLocalStaleVariableTimestamp((int) ($row['time'] ?? 0)),
+            ];
+        }
+
+        return $values;
     }
 
     /**

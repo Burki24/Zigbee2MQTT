@@ -352,6 +352,8 @@ Composite-Exposes werden dabei auf die tatsächlich anlegbaren Untervariablen re
 
 Unter **Expertenwerkzeuge → Variablen-Wartung**, direkt unterhalb der **Erweiterten Geräteentfernung**, kann die Geräteinstanz ausschließlich ihre eigenen direkten Variablen auf veraltete Expose- oder Payload-Zuordnungen prüfen. Klare Löschkandidaten werden getrennt von unsicheren Review-Kandidaten und Suchlauf-Hinweisen dargestellt. Archivierte oder von anderen Symcon-Objekten referenzierte Variablen sind geschützt. Eine klare Kandidatenvariable kann erst nach einer erneuten Schutz- und Besitzprüfung sowie einer ausdrücklichen Bestätigung gelöscht werden.
 
+Im Bereich **Darstellungswechsel** protokolliert die Instanz zusätzlich, bei welchen vorhandenen Variablen ein altes `Z2M.*`-Profil durch eine moderne Symcon-Darstellung ersetzt wurde. Die Liste zeigt Variable, Ident, bisheriges Profil, neue Darstellung, Zeitpunkt und ob bereits eine benutzerdefinierte Darstellung oder ein benutzerdefiniertes Profil vorhanden war. Benutzerdefinierte Einstellungen werden dabei nicht verändert.
+
 Unter **Suchlauf-Hinweise** erscheinen keine Löschkandidaten, sondern diagnostische Meldungen zu einem unvollständigen oder übersprungenen Suchlauf. Das ist beispielsweise der Fall, wenn für die Instanz weder aktuelle Exposes noch Daten aus dem letzten Payload vorhanden sind, Debugdaten nicht gelesen oder decodiert werden konnten oder während der Prüfung ein Fehler auftrat. Eine leere Liste bedeutet, dass der Suchlauf für diese Instanz ohne besondere Hinweise abgeschlossen wurde.
 
 Die zentrale Variablen-Wartung der Bridge zeigt ergänzend eine kompakte Übersicht aller betroffenen Instanzen und kann die jeweils zuständige Geräte- oder Gruppeninstanz direkt öffnen.

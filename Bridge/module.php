@@ -3537,6 +3537,20 @@ class Zigbee2MQTTBridge extends IPSModuleStrict
     }
 
     /**
+     * Baut die globale Variablenprofil-Diagnose auf.
+     *
+     * Profile werden nicht mehr durch das Modul erzeugt. Die Diagnose bleibt als
+     * leere Kompatibilitaetsliste erhalten, solange das Bridge-Formular den
+     * bisherigen Bereich noch bereitstellt.
+     *
+     * @return array<int, array<string, int|string>> Diagnosezeilen.
+     */
+    private function BuildVariableProfileDiagnostics(): array
+    {
+        return [];
+    }
+
+    /**
      * Baut den Status der globalen Variablenprofil-Diagnose auf.
      *
      * @param array<int, array<string, int|string>> $rows Diagnosezeilen.

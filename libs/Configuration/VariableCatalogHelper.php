@@ -404,7 +404,7 @@ trait VariableCatalogHelper
         $this->$registerFunc(
             $ident,
             $this->Translate($this->convertLabelToName($ident)),
-            $varType['profile']
+            $varType['presentation']
         );
         $this->MarkVariableCreated($ident);
         $this->SetValue($ident, $value);
@@ -691,7 +691,7 @@ trait VariableCatalogHelper
             $this->registerVariable($feature);
         }
         if ($hasExistingPresetVariable) {
-            $variableType = $this->getVariableTypeFromProfile(
+            $variableType = $this->getVariableTypeFromFeature(
                 (string) ($feature['type'] ?? 'numeric'),
                 $property,
                 isset($feature['unit']) && \is_string($feature['unit']) ? $feature['unit'] : '',
