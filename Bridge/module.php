@@ -4,7 +4,6 @@ declare(strict_types=1);
 require_once dirname(__DIR__) . '/libs/BufferHelper.php';
 require_once dirname(__DIR__) . '/libs/InstanceConnectionHelper.php';
 require_once dirname(__DIR__) . '/libs/SemaphoreHelper.php';
-require_once dirname(__DIR__) . '/libs/VariableProfileHelper.php';
 require_once dirname(__DIR__) . '/libs/MQTTHelper.php';
 require_once dirname(__DIR__) . '/libs/AttributeArrayHelper.php';
 require_once dirname(__DIR__) . '/libs/Maintenance/StaleVariableCleanupHelper.php';
@@ -24,7 +23,6 @@ class Zigbee2MQTTBridge extends IPSModuleStrict
     use \Zigbee2MQTT\BufferHelper;
     use \Zigbee2MQTT\InstanceConnectionHelper;
     use \Zigbee2MQTT\Semaphore;
-    use \Zigbee2MQTT\VariableProfileHelper;
     use \Zigbee2MQTT\SendData;
     use \Zigbee2MQTT\AttributeArrayHelper;
 
