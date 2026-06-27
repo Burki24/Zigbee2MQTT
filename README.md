@@ -162,6 +162,14 @@ Weitere Schritte zur Ersteinrichtung sind unter dem [Zigbee2MQTT-Discovery](Disc
 
 Version 6.0 migriert die Module auf `IPSModuleStrict` und erweitert Geräte-, Gruppen- und Bridge-Instanzen deutlich. Bestehende Variablen werden beim Update nicht automatisch gelöscht. Objekt-IDs vorhandener Variablen bleiben erhalten. Trotzdem sollten die folgenden Schritte beachtet werden.
 
+#### Wichtiger Hinweis zu Variablenprofilen <!-- omit in toc -->
+
+Version 6.0/6.1 ersetzt die bisherige automatische Anlage und Pflege dynamischer `Z2M.*`-Variablenprofile durch moderne Symcon-Variablendarstellungen. Das ist eine bewusste Kompatibilitätsänderung gegenüber Version 5.42: neue und erneut registrierte Variablen erhalten keine neu erzeugten Modulprofile mehr, sondern nach Möglichkeit eine native Symcon-Darstellung oder bleiben ohne Modulprofil.
+
+Es gibt keine automatische Löschmigration für vorhandene `Z2M.*`-Profile. Bestehende Variablen, Ereignisse, Links und Objekt-IDs bleiben erhalten. Alte Profile werden nicht ungefragt gelöscht oder überschrieben, weil sie noch von bestehenden Variablen oder eigenen Skripten genutzt werden können. Beim Öffnen und Übernehmen einer Geräte- oder Gruppeninstanz werden vorhandene Variablen mit der aktuellen Modul-Standarddefinition erneut registriert; dadurch können passende Variablen auf native Darstellungen wechseln, ohne benutzerdefinierte Darstellungen oder Profile zu überschreiben.
+
+Skripte, Visualisierungen oder externe Werkzeuge, die gezielt auf Profilnamen wie `Z2M.*`, `~Color`, `~Intensity.100` oder andere automatisch gesetzte Profile geprüft haben, sollten nach dem Update kontrolliert werden. Für neue Logik sollte nicht mehr der Profilname, sondern Ident, Variablentyp, Wert und gegebenenfalls die Symcon-Darstellung ausgewertet werden.
+
 #### I. Vorbereitung <!-- omit in toc -->
 
 1. **IP-Symcon-Version prüfen**
@@ -488,6 +496,7 @@ Die Änderungen sind anhand der funktionalen Commits chronologisch gegliedert. A
 
 ### 27. Juni 2026: Native Farbdarstellung für Leuchtmittel
 
+- **Kompatibilitätsänderung gegenüber 5.42:** Die automatische Anlage und Pflege dynamischer `Z2M.*`-Variablenprofile ist entfernt. Neue und erneut registrierte Variablen verwenden nach Möglichkeit native Symcon-Variablendarstellungen oder bleiben ohne Modulprofil. Vorhandene Variablen, Objekt-IDs und bestehende Profile werden nicht automatisch gelöscht.
 - RGB-, HS- und XY-Farb-Exposes registrieren ihre Farbvariable ohne Modulprofil mit der nativen Symcon-Farbdarstellung für Hex/sRGB-Farbwerte. Die Symcon-Standardkachel für RGB-Leuchtmittel kann dadurch den ColorHex-Wert verwenden, ohne dass `~Color` oder ein dynamisches `Z2M.*`-Profil benötigt wird.
 - Reine Tunable-White-Leuchtmittel behalten ihre abgeleitete `color`-Variable ohne Modulprofil. Diese Variable nutzt nun ebenfalls die native Hex/sRGB-Farbdarstellung, damit der berechnete Weißton in der Tile-Visualisierung als Farbe nutzbar bleibt.
 - Composite-Farb-Exposes wie `color_xy`, `color_hs` und `color_rgb` werden weiterhin auf die passende Farbvariable zusammengeführt. Technische Untervariablen werden dabei nicht angelegt.
