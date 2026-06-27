@@ -351,7 +351,7 @@ trait VariablePresentationHelper
             $min = 0.0;
             $max = 1.0;
 
-            if ($unit === '%' || $property === 'battery' || strpos($property, 'humidity') !== false || strpos($property, 'factor') !== false) {
+            if ($unit === '%' || $property === 'battery' || strpos($property, 'humidity') !== false || strpos($property, 'moisture') !== false || strpos($property, 'factor') !== false) {
                 $max = 100.0;
             } elseif ($unit === 'Hz' || strpos($property, 'frequency') !== false) {
                 $max = 100.0;
@@ -429,7 +429,7 @@ trait VariablePresentationHelper
         if (strpos($property, 'distance') !== false) {
             return 'm';
         }
-        if (strpos($property, 'factor') !== false) {
+        if ($property === 'battery' || strpos($property, 'humidity') !== false || strpos($property, 'moisture') !== false || strpos($property, 'factor') !== false) {
             return '%';
         }
 

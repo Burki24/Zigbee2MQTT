@@ -700,6 +700,39 @@ class DevicesTest extends DumpInclude
         $this->assertSame('', IPS_GetVariable($dewpointID)['VariableProfile']);
     }
 
+    public function testVariableSelectionCreatesPayloadOnlySoilMoistureWithPercentagePresentation(): void
+    {
+        [$iid] = $this->createTestInstance('RTCGQ01LM.json');
+        $catalog = $this->readStubAttributeArray($iid, 'VariableCatalog');
+        $catalog['soil_moisture'] = [
+            'ident'     => 'soil_moisture',
+            'property'  => 'soil_moisture',
+            'label'     => 'Soil moisture',
+            'source'    => 'payload',
+            'type'      => 'numeric',
+            'created'   => false,
+            'lastValue' => 5.0,
+            'feature'   => [
+                'property' => 'soil_moisture',
+                'type'     => 'numeric'
+            ]
+        ];
+        $this->writeStubAttributeArray($iid, 'VariableCatalog', $catalog);
+
+        IPS_RequestAction($iid, 'ToggleVariableCreation', 'soil_moisture');
+
+        $soilMoistureID = @IPS_GetObjectIDByIdent('soil_moisture', $iid);
+        $this->assertNotFalse($soilMoistureID);
+        $soilMoistureVariable = IPS_GetVariable($soilMoistureID);
+        $this->assertSame(VARIABLETYPE_FLOAT, $soilMoistureVariable['VariableType']);
+        $this->assertSame('', $soilMoistureVariable['VariableProfile']);
+        $this->assertSame(VARIABLE_PRESENTATION_VALUE_PRESENTATION, $soilMoistureVariable['VariablePresentation']['PRESENTATION'] ?? null);
+        $this->assertSame(' %', $soilMoistureVariable['VariablePresentation']['SUFFIX'] ?? null);
+        $this->assertTrue($soilMoistureVariable['VariablePresentation']['PERCENTAGE'] ?? false);
+        $this->assertSame(0.0, $soilMoistureVariable['VariablePresentation']['MIN'] ?? null);
+        $this->assertSame(100.0, $soilMoistureVariable['VariablePresentation']['MAX'] ?? null);
+    }
+
     public function testReceiveDataIgnoresPayloadFromDifferentDeviceTopic(): void
     {
         [$iid, $debug] = $this->createTestInstance('RTCGQ01LM.json');
@@ -1007,6 +1040,30 @@ class DevicesTest extends DumpInclude
         $status = $this->findFormItemByName($form, 'VisualizationStatus');
         $this->assertNotNull($status);
         $this->assertStringContainsString('Sensor-Kachel', $status['caption']);
+    }
+
+    public function testSensorTileTreatsSoilMoistureLikeHumidity(): void
+    {
+        [$iid] = $this->createTestInstance('RTCGQ01LM.json');
+        $this->writeStubAttributeArray($iid, 'Exposes', [
+            [
+                'name'     => 'soil_moisture',
+                'label'    => 'Soil moisture',
+                'access'   => 5,
+                'type'     => 'numeric',
+                'property' => 'soil_moisture'
+            ]
+        ]);
+
+        $soilMoistureID = IPS_CreateVariable(VARIABLETYPE_FLOAT);
+        IPS_SetParent($soilMoistureID, $iid);
+        IPS_SetIdent($soilMoistureID, 'soil_moisture');
+        IPS_SetName($soilMoistureID, 'Bodenfeuchtigkeit');
+        SetValue($soilMoistureID, 5.0);
+
+        $html = IPS\InstanceManager::getInstanceInterface($iid)->GetVisualizationTile();
+        $this->assertStringContainsString('"soil_moisture":{"type":"numeric","unit":"%"', $html);
+        $this->assertStringContainsString('"soil_moisture":{"available":true,"value":5,"formatted":"5 %"}', $html);
     }
 
     public function testMixedLightSensorKeepsStandardVisualization()
