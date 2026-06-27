@@ -84,7 +84,7 @@ abstract class ModulBase extends \IPSModuleStrict
 
     /**
      * @var array FLOAT_UNITS
-     * Entscheidet über Float oder Integer profile
+     * Entscheidet über Float- oder Integer-Variablen.
      */
     private const FLOAT_UNITS = [
         '°C',
@@ -257,50 +257,43 @@ abstract class ModulBase extends \IPSModuleStrict
     protected static $ExtensionTopic = '';
 
     /**
-     * Ein Array, das Standardprofile für bestimmte Gerätetypen und Eigenschaften definiert.
+     * Ein Array, das bekannte Features auf Symcon-Variablentypen abbildet.
      *
-     * Jedes Element des Arrays enthält folgende Schlüssel:
+     * Der historische Name bleibt aus Kompatibilitaetsgruenden erhalten. Es werden
+     * hier keine Symcon-Standardprofile mehr definiert oder gesetzt.
      *
-     * - 'group_type' (string): Der Gerätetyp, z. B. 'cover' oder 'light'. Ein leerer Wert ('') bedeutet, dass der Typ nicht relevant ist.
-     * - 'feature' (string): Die spezifische Eigenschaft oder das Feature des Geräts, z. B. 'position', 'temperature'.
-     * - 'profile' (string): Das Symcon-Profil, das für dieses Feature verwendet wird, z. B. '~Shutter.Reversed' oder '~Battery.100'.
-     * - 'variableType' (int): Der Variablentyp, der für dieses Profil verwendet wird, z. B. VARIABLETYPE_INTEGER für Integer oder VARIABLETYPE_FLOAT für Gleitkommazahlen.
-     *
-     * Beispieleintrag:
-     * ['group_type' => 'cover', 'feature' => 'position', 'profile' => '~Shutter.Reversed', 'variableType' => VARIABLETYPE_INTEGER]
-     *
-     * @var array<int, array{group_type:string, feature:string, profile:string, variableType:int}>
+     * @var array<int, array{group_type:string, feature:string, variableType:int}>
      */
     protected static $VariableUseStandardProfile = [
-        ['group_type' => 'cover', 'feature' => 'position', 'profile' => '~Shutter.Reversed', 'variableType' => VARIABLETYPE_INTEGER],
-        ['group_type' => 'cover', 'feature' => 'position_left', 'profile' => '~Shutter.Reversed', 'variableType' => VARIABLETYPE_INTEGER],
-        ['group_type' => 'cover', 'feature' => 'position_right', 'profile' => '~Shutter.Reversed', 'variableType' => VARIABLETYPE_INTEGER],
-        ['group_type' => '', 'feature' => 'temperature', 'profile' => '~Temperature', 'variableType' => VARIABLETYPE_FLOAT],
-        ['group_type' => '', 'feature' => 'dewpoint', 'profile' => '~Temperature', 'variableType' => VARIABLETYPE_FLOAT],
-        ['group_type' => '', 'feature' => 'humidity', 'profile' => '~Humidity.F', 'variableType' => VARIABLETYPE_FLOAT],
-        ['group_type' => '', 'feature' => 'soil_moisture', 'profile' => '~Humidity.F', 'variableType' => VARIABLETYPE_FLOAT],
-        ['group_type' => '', 'feature' => 'local_temperature', 'profile' => '~Temperature', 'variableType' => VARIABLETYPE_FLOAT],
-        ['group_type' => '', 'feature' => 'battery', 'profile' => '~Battery.100', 'variableType' => VARIABLETYPE_INTEGER],
-        ['group_type' => '', 'feature' => 'current', 'profile' => '~Ampere', 'variableType' => VARIABLETYPE_FLOAT],
-        ['group_type' => '', 'feature' => 'energy', 'profile' => '~Electricity', 'variableType' => VARIABLETYPE_FLOAT],
-        ['group_type' => '', 'feature' => 'power', 'profile' => '~Watt', 'variableType' => VARIABLETYPE_FLOAT],
-        ['group_type' => '', 'feature' => 'occupancy', 'profile' => '~Presence', 'variableType' => VARIABLETYPE_BOOLEAN],
-        ['group_type' => '', 'feature' => 'motion', 'profile' => '~Motion', 'variableType' => VARIABLETYPE_BOOLEAN],
-        ['group_type' => '', 'feature' => 'pi_heating_demand', 'profile' => '~Valve', 'variableType' => VARIABLETYPE_INTEGER],
-        ['group_type' => '', 'feature' => 'presence', 'profile' => '~Presence', 'variableType' => VARIABLETYPE_BOOLEAN],
-        ['group_type' => '', 'feature' => 'illuminance', 'profile' => '~Illumination', 'variableType' => VARIABLETYPE_INTEGER],
-        ['group_type' => '', 'feature' => 'illuminance_lux', 'profile' => '~Illumination', 'variableType' => VARIABLETYPE_INTEGER],
-        ['group_type' => '', 'feature' => 'child_lock', 'profile' => '~Lock', 'variableType' => VARIABLETYPE_BOOLEAN],
-        ['group_type' => '', 'feature' => 'window_open', 'profile' => '~Window', 'variableType' => VARIABLETYPE_BOOLEAN],
-        ['group_type' => '', 'feature' => 'valve', 'profile' => '~Valve', 'variableType' => VARIABLETYPE_INTEGER],
-        ['group_type' => '', 'feature' => 'window_detection', 'profile' => '~Window', 'variableType' => VARIABLETYPE_BOOLEAN],
-        ['group_type' => '', 'feature' => 'contact', 'profile' => '~Window.Reversed', 'variableType' => VARIABLETYPE_BOOLEAN],
-        ['group_type' => '', 'feature' => 'tamper', 'profile' => '~Alert', 'variableType' => VARIABLETYPE_BOOLEAN],
-        ['group_type' => '', 'feature' => 'smoke', 'profile' => '~Alert', 'variableType' => VARIABLETYPE_BOOLEAN],
-        ['group_type' => '', 'feature' => 'battery_low', 'profile' => '~Alert', 'variableType' => VARIABLETYPE_BOOLEAN],
-        ['group_type' => '', 'feature' => 'automatic_valve_adapt', 'profile' => '~Alert', 'variableType' => VARIABLETYPE_BOOLEAN],
-        ['group_type' => 'light', 'feature' => 'color', 'profile' => '~HexColor', 'variableType' => VARIABLETYPE_INTEGER],
-        ['group_type' => 'climate', 'feature' => 'occupied_heating_setpoint', 'profile' => '~Temperature.Room', 'variableType' => VARIABLETYPE_FLOAT]
+        ['group_type' => 'cover', 'feature' => 'position', 'variableType' => VARIABLETYPE_INTEGER],
+        ['group_type' => 'cover', 'feature' => 'position_left', 'variableType' => VARIABLETYPE_INTEGER],
+        ['group_type' => 'cover', 'feature' => 'position_right', 'variableType' => VARIABLETYPE_INTEGER],
+        ['group_type' => '', 'feature' => 'temperature', 'variableType' => VARIABLETYPE_FLOAT],
+        ['group_type' => '', 'feature' => 'dewpoint', 'variableType' => VARIABLETYPE_FLOAT],
+        ['group_type' => '', 'feature' => 'humidity', 'variableType' => VARIABLETYPE_FLOAT],
+        ['group_type' => '', 'feature' => 'soil_moisture', 'variableType' => VARIABLETYPE_FLOAT],
+        ['group_type' => '', 'feature' => 'local_temperature', 'variableType' => VARIABLETYPE_FLOAT],
+        ['group_type' => '', 'feature' => 'battery', 'variableType' => VARIABLETYPE_INTEGER],
+        ['group_type' => '', 'feature' => 'current', 'variableType' => VARIABLETYPE_FLOAT],
+        ['group_type' => '', 'feature' => 'energy', 'variableType' => VARIABLETYPE_FLOAT],
+        ['group_type' => '', 'feature' => 'power', 'variableType' => VARIABLETYPE_FLOAT],
+        ['group_type' => '', 'feature' => 'occupancy', 'variableType' => VARIABLETYPE_BOOLEAN],
+        ['group_type' => '', 'feature' => 'motion', 'variableType' => VARIABLETYPE_BOOLEAN],
+        ['group_type' => '', 'feature' => 'pi_heating_demand', 'variableType' => VARIABLETYPE_INTEGER],
+        ['group_type' => '', 'feature' => 'presence', 'variableType' => VARIABLETYPE_BOOLEAN],
+        ['group_type' => '', 'feature' => 'illuminance', 'variableType' => VARIABLETYPE_INTEGER],
+        ['group_type' => '', 'feature' => 'illuminance_lux', 'variableType' => VARIABLETYPE_INTEGER],
+        ['group_type' => '', 'feature' => 'child_lock', 'variableType' => VARIABLETYPE_BOOLEAN],
+        ['group_type' => '', 'feature' => 'window_open', 'variableType' => VARIABLETYPE_BOOLEAN],
+        ['group_type' => '', 'feature' => 'valve', 'variableType' => VARIABLETYPE_INTEGER],
+        ['group_type' => '', 'feature' => 'window_detection', 'variableType' => VARIABLETYPE_BOOLEAN],
+        ['group_type' => '', 'feature' => 'contact', 'variableType' => VARIABLETYPE_BOOLEAN],
+        ['group_type' => '', 'feature' => 'tamper', 'variableType' => VARIABLETYPE_BOOLEAN],
+        ['group_type' => '', 'feature' => 'smoke', 'variableType' => VARIABLETYPE_BOOLEAN],
+        ['group_type' => '', 'feature' => 'battery_low', 'variableType' => VARIABLETYPE_BOOLEAN],
+        ['group_type' => '', 'feature' => 'automatic_valve_adapt', 'variableType' => VARIABLETYPE_BOOLEAN],
+        ['group_type' => 'light', 'feature' => 'color', 'variableType' => VARIABLETYPE_INTEGER],
+        ['group_type' => 'climate', 'feature' => 'occupied_heating_setpoint', 'variableType' => VARIABLETYPE_FLOAT]
     ];
 
     /**
@@ -310,14 +303,14 @@ abstract class ModulBase extends \IPSModuleStrict
      * @var array<string,array{type:int,name?:string,profile:string,ident?:string}>
      */
     protected static $specialVariables = [
-        'last_seen'                  => ['type' => VARIABLETYPE_INTEGER, 'name' => 'Last Seen', 'profile' => '~UnixTimestamp'],
+        'last_seen'                  => ['type' => VARIABLETYPE_INTEGER, 'name' => 'Last Seen', 'profile' => ''],
         'color_mode'                 => ['type' => VARIABLETYPE_STRING, 'name' => 'Color Mode', 'profile' => ''],
         'update'                     => ['type' => VARIABLETYPE_STRING, 'name' => 'Firmware Update Status', 'profile' => ''],
-        'device_temperature'         => ['type' => VARIABLETYPE_FLOAT, 'name' => 'Device Temperature', 'profile' => '~Temperature'],
-        'brightness'                 => ['type' => VARIABLETYPE_INTEGER, 'ident' => 'brightness', 'profile' => '~Intensity.100'],
-        'brightness_l1'              => ['type' => VARIABLETYPE_INTEGER, 'name' => 'brightness_l1', 'profile' => '~Intensity.100'],
-        'brightness_l2'              => ['type' => VARIABLETYPE_INTEGER, 'name' => 'brightness_l2', 'profile' => '~Intensity.100'],
-        'voltage'                    => ['type' => VARIABLETYPE_FLOAT, 'ident' => 'voltage', 'profile' => '~Volt'],
+        'device_temperature'         => ['type' => VARIABLETYPE_FLOAT, 'name' => 'Device Temperature', 'profile' => ''],
+        'brightness'                 => ['type' => VARIABLETYPE_INTEGER, 'ident' => 'brightness', 'profile' => ''],
+        'brightness_l1'              => ['type' => VARIABLETYPE_INTEGER, 'name' => 'brightness_l1', 'profile' => ''],
+        'brightness_l2'              => ['type' => VARIABLETYPE_INTEGER, 'name' => 'brightness_l2', 'profile' => ''],
+        'voltage'                    => ['type' => VARIABLETYPE_FLOAT, 'ident' => 'voltage', 'profile' => ''],
         'calibration_time'           => ['type' => VARIABLETYPE_FLOAT, 'profile' => ''],
         'countdown'                  => ['type' => VARIABLETYPE_INTEGER, 'profile' => ''],
         'countdown_l1'               => ['type' => VARIABLETYPE_INTEGER, 'profile' => ''],
@@ -325,9 +318,9 @@ abstract class ModulBase extends \IPSModuleStrict
         'update__installed_version'  => ['type' => VARIABLETYPE_INTEGER, 'name' => 'Installed Version', 'profile' => ''],
         'update__latest_version'     => ['type' => VARIABLETYPE_INTEGER, 'name' => 'Latest Version', 'profile' => ''],
         'update__state'              => ['type' => VARIABLETYPE_STRING, 'name' => 'Update State', 'profile' => ''],
-        'update__progress'           => ['type' => VARIABLETYPE_FLOAT, 'name' => 'Update Progress', 'profile' => '~Progress'],
+        'update__progress'           => ['type' => VARIABLETYPE_FLOAT, 'name' => 'Update Progress', 'profile' => ''],
         'update__remaining'          => ['type' => VARIABLETYPE_FLOAT, 'name' => 'Update Remaining', 'profile' => ''],
-        'no_occupancy_since'         => ['type' => VARIABLETYPE_INTEGER, 'name' => 'No occupancy since', 'profile' => '~Duration']
+        'no_occupancy_since'         => ['type' => VARIABLETYPE_INTEGER, 'name' => 'No occupancy since', 'profile' => '']
     ];
 
     /**
@@ -749,7 +742,7 @@ abstract class ModulBase extends \IPSModuleStrict
             $this->RegisterVariableInteger(
                 'brightness',
                 $this->Translate('Brightness'),
-                '~Intensity.100',
+                '',
                 10
             );
 
@@ -2181,33 +2174,30 @@ abstract class ModulBase extends \IPSModuleStrict
     /**
      * Ermittelt Registrierungsdaten fuer dynamisch angelegte Payload-Variablen.
      *
-     * Globale Standardprofile werden auch dann beruecksichtigt, wenn Zigbee2MQTT
-     * einen Wert nur im Payload liefert und keine vollstaendigen Expose-Metadaten
-     * vorliegen.
+     * Bekannte Feature-Idents werden auch dann fuer den Variablentyp beruecksichtigt,
+     * wenn Zigbee2MQTT einen Wert nur im Payload liefert und keine vollstaendigen
+     * Expose-Metadaten vorliegen. Eine Profilzuweisung erfolgt hier bewusst nicht.
      */
     private function getPayloadVariableTypeDefinition(mixed $value, string $ident = ''): array
     {
         if ($ident !== '') {
             $payloadType = $this->GetPayloadValueTypeName($value);
-            $profile = $this->getStandardProfile($payloadType, $ident);
-            if ($profile !== '') {
-                $registerFunc = match ($this->getVariableTypeFromProfile($payloadType, $ident)) {
-                    'bool'  => 'RegisterVariableBoolean',
-                    'int'   => 'RegisterVariableInteger',
-                    'float' => 'RegisterVariableFloat',
-                    default => 'RegisterVariableString'
-                };
+            $registerFunc = match ($this->getVariableTypeFromProfile($payloadType, $ident)) {
+                'bool'  => 'RegisterVariableBoolean',
+                'int'   => 'RegisterVariableInteger',
+                'float' => 'RegisterVariableFloat',
+                default => 'RegisterVariableString'
+            };
 
-                return [
-                    'profile'      => $profile,
-                    'registerFunc' => $registerFunc
-                ];
-            }
+            return [
+                'profile'      => '',
+                'registerFunc' => $registerFunc
+            ];
         }
 
         return match (true) {
             \is_bool($value) => [
-                'profile'      => '~Switch',
+                'profile'      => '',
                 'registerFunc' => 'RegisterVariableBoolean'
             ],
             \is_int($value) => [
@@ -3473,10 +3463,7 @@ abstract class ModulBase extends \IPSModuleStrict
      *                     - 'value_min': Optional - Minimaler Wert bei numeric (float|int)
      *                     - 'value_max': Optional - Maximaler Wert bei numeric (float|int)
      *
-     * @return string Name des erstellten/vorhandenen Profils
-     *                - '~Switch' für Standard-Schalter
-     *                - 'Z2M.[property]' für benutzerdefinierte Profile
-     *                - Systemprofil-Name wenn verfügbar
+     * @return string Name des erstellten/vorhandenen Profils oder leerer String ohne Modulprofil
      *
      * Beispiel:
      * ```php
@@ -3488,7 +3475,7 @@ abstract class ModulBase extends \IPSModuleStrict
      *     'value_off' => 'OFF'
      * ];
      * $profile = $this->registerVariableProfile($expose);
-     * // Ergebnis: '~Switch'
+     * // Ergebnis: ''
      * ```
      *
      *
@@ -3598,8 +3585,8 @@ abstract class ModulBase extends \IPSModuleStrict
     /**
      * Liefert oder erstellt das passende Profil fuer Binary-Exposes.
      *
-     * Standard-ON/OFF- und TRUE/FALSE-Paare verwenden das Symcon-Systemprofil
-     * `~Switch`; abweichende Wertpaare erhalten ein eigenes Z2M-Profil.
+     * Standard-ON/OFF- und TRUE/FALSE-Paare benoetigen kein Modulprofil.
+     * Abweichende Wertpaare erhalten weiterhin ein eigenes Z2M-Profil.
      *
      * @param array $expose Binary-Expose mit optionalen `value_on`/`value_off`.
      * @param string $ProfileName Basisname fuer ein eigenes Profil.
@@ -3609,13 +3596,13 @@ abstract class ModulBase extends \IPSModuleStrict
     private function registerBinaryExposeProfile(array $expose, string $ProfileName): string
     {
         if (!isset($expose['value_on']) || !isset($expose['value_off'])) {
-            return '~Switch';
+            return '';
         }
 
         $valueOn = $expose['value_on'];
         $valueOff = $expose['value_off'];
         if ($this->usesStandardSwitchValues($valueOn, $valueOff)) {
-            return '~Switch';
+            return '';
         }
 
         return $this->registerCustomBinaryExposeProfile($ProfileName, $valueOn, $valueOff);
@@ -3627,7 +3614,7 @@ abstract class ModulBase extends \IPSModuleStrict
      * @param mixed $valueOn Wert fuer den aktiven Zustand.
      * @param mixed $valueOff Wert fuer den inaktiven Zustand.
      *
-     * @return bool True, wenn `~Switch` ausreicht.
+     * @return bool True, wenn die Werte ohne eigenes Modulprofil abbildbar sind.
      */
     private function usesStandardSwitchValues(mixed $valueOn, mixed $valueOff): bool
     {
@@ -3673,33 +3660,17 @@ abstract class ModulBase extends \IPSModuleStrict
     }
 
     /**
-     * getStandardProfile
+     * Liefert kein Symcon-Standardprofil mehr.
      *
-     * Holt das Standardprofil basierend auf Typ und Eigenschaft.
-     *
-     * Diese Methode sucht in den vordefinierten Standardprofilen (VariableUseStandardProfile)
-     * nach einem passenden Profil für die übergebene Kombination aus Typ und Eigenschaft.
+     * Die Methode bleibt als interne Kompatibilitaetsstelle erhalten, damit die
+     * bestehende Variablenregistrierung schrittweise auf Darstellungen ohne
+     * Modulprofil-Zuweisung umgestellt werden kann.
      *
      * @param string $type Der Typ des Exposes (z.B. 'binary', 'numeric', 'enum')
      * @param string $property Die Eigenschaft des Exposes (z.B. 'temperature', 'humidity')
      * @param string|null $groupType Optional - Spezifischer Gruppentyp für erweiterte Profilzuordnung
      *
-     * @return string Der Name des Standardprofils oder leer, wenn kein Standardprofil definiert ist
-     *                     - '~Temperature' für Temperatur-Eigenschaften
-     *                     - '~Humidity' für Feuchtigkeits-Eigenschaften
-     *                     - '~Battery' für Batterie-Eigenschaften
-     *                     - leer wenn kein passendes Profil gefunden wurde
-     *
-     * Beispiel:
-     * ```php
-     * // Temperatur-Profil
-     * $profile = $this->getStandardProfile('numeric', 'temperature');
-     * // Ergebnis: '~Temperature'
-     *
-     * // Gruppen-spezifisches Profil
-     * $profile = $this->getStandardProfile('binary', 'state', 'light');
-     * // Ergebnis: '~Switch'
-     * ```
+     * @return string Immer leer, da Standardprofile nicht mehr durch das Modul gesetzt werden.
      *
      * @see \IPSModule::SendDebug()
      * @see json_encode()
@@ -3708,23 +3679,7 @@ abstract class ModulBase extends \IPSModuleStrict
     {
         $backtrace = debug_backtrace(DEBUG_BACKTRACE_IGNORE_ARGS, 2);
         $caller = isset($backtrace[1]['function']) ? $backtrace[1]['function'] : 'unknown';
-        $this->SendDebug(__FUNCTION__ . ' (' . $caller . ')', "Checking for standard profile with type: $type, property: $property, groupType: $groupType", 0);
-
-        // Überprüfen, ob ein Standardprofil für den Typ und die Eigenschaft definiert ist
-        foreach (self::$VariableUseStandardProfile as $entry) {
-            $this->SendDebug(__FUNCTION__, 'Checking entry: ' . json_encode($entry), 0);
-            if (isset($entry['type']) && ($entry['type'] === $type || $entry['type'] === '') && $entry['feature'] === $property) {
-                $this->SendDebug(__FUNCTION__, "Found standard profile for type: $type, property: $property", 0);
-                return $entry['profile'];
-            }
-            if (isset($entry['group_type']) && ($entry['group_type'] === $groupType || $entry['group_type'] === '') && $entry['feature'] === $property) {
-                $this->SendDebug(__FUNCTION__, "Found standard profile for groupType: $groupType, property: $property", 0);
-                return $entry['profile'];
-            }
-        }
-
-        // Kein Standardprofil gefunden
-        $this->SendDebug(__FUNCTION__, "No standard profile found for type: $type, property: $property, groupType: $groupType", 0);
+        $this->SendDebug(__FUNCTION__ . ' (' . $caller . ')', "Standard profiles disabled for type: $type, property: $property, groupType: $groupType", 0);
         return '';
     }
 
@@ -4410,9 +4365,8 @@ abstract class ModulBase extends \IPSModuleStrict
      * Liefert das aktuell gesetzte Modulprofil einer vorhandenen Variable.
      *
      * Bestehende Variablen sollen beim erneuten Uebernehmen der Instanz nicht
-     * zwangsweise auf andere Modulprofile umgestellt werden. Das Modul
-     * nutzt deshalb das vorhandene Modulprofil weiter, sofern kein fachliches
-     * Standardprofil fest vorgegeben ist.
+     * zwangsweise auf andere Modulprofile umgestellt werden. Symcon-Standardprofile
+     * werden jedoch nicht als Modulprofil weitergegeben.
      *
      * @param int $variableID Objekt-ID der vorhandenen Variable.
      *
@@ -4426,7 +4380,8 @@ abstract class ModulBase extends \IPSModuleStrict
             return '';
         }
 
-        return \is_string($variable['VariableProfile'] ?? null) ? $variable['VariableProfile'] : '';
+        $profile = \is_string($variable['VariableProfile'] ?? null) ? $variable['VariableProfile'] : '';
+        return str_starts_with($profile, '~') ? '' : $profile;
     }
 
     /**
@@ -4447,7 +4402,7 @@ abstract class ModulBase extends \IPSModuleStrict
         }
 
         $ident = str_replace('&', '_and_', $featureProperty);
-        $this->RegisterVariableBoolean($ident, $this->Translate($this->convertLabelToName($featureProperty)), '~Switch');
+        $this->RegisterVariableBoolean($ident, $this->Translate($this->convertLabelToName($featureProperty)), '');
         $this->MarkVariableCreated($ident);
         $this->checkAndEnableAction($ident, $feature, true);
         return true;
@@ -4748,7 +4703,7 @@ abstract class ModulBase extends \IPSModuleStrict
         if ($presentation !== null) {
             $profileOrPresentation = $presentation;
         } elseif ($isNewVariable) {
-            $profileOrPresentation = '~TWColor';
+            $profileOrPresentation = '';
         } else {
             $profileOrPresentation = $this->GetExistingVariableProfile((int) $existingVariableID);
         }
@@ -4772,7 +4727,7 @@ abstract class ModulBase extends \IPSModuleStrict
             return;
         }
 
-        $this->RegisterVariableInteger('color', $this->Translate($this->convertLabelToName('color')), '~HexColor');
+        $this->RegisterVariableInteger('color', $this->Translate($this->convertLabelToName('color')), '');
         $this->MarkVariableCreated('color');
     }
 
@@ -4893,7 +4848,7 @@ abstract class ModulBase extends \IPSModuleStrict
                     $this->SendDebug(__FUNCTION__, 'Skipping filtered color variable: color', 0);
                     break;
                 }
-                $this->RegisterVariableInteger('color', $this->Translate($this->convertLabelToName('color')), '~HexColor');
+                $this->RegisterVariableInteger('color', $this->Translate($this->convertLabelToName('color')), '');
                 $this->MarkVariableCreated('color');
                 // Farbvariablen erhalten IMMER EnableAction, unabhängig von Access-Prüfung
                 $this->checkAndEnableAction('color', null, true);
@@ -4904,7 +4859,7 @@ abstract class ModulBase extends \IPSModuleStrict
                     $this->SendDebug(__FUNCTION__, 'Skipping filtered color variable: color_hs', 0);
                     break;
                 }
-                $this->RegisterVariableInteger('color_hs', $this->Translate($this->convertLabelToName('color_hs')), '~HexColor');
+                $this->RegisterVariableInteger('color_hs', $this->Translate($this->convertLabelToName('color_hs')), '');
                 $this->MarkVariableCreated('color_hs');
                 // Farbvariablen erhalten IMMER EnableAction, unabhängig von Access-Prüfung
                 $this->checkAndEnableAction('color_hs', null, true);
@@ -4915,7 +4870,7 @@ abstract class ModulBase extends \IPSModuleStrict
                     $this->SendDebug(__FUNCTION__, 'Skipping filtered color variable: color_rgb', 0);
                     break;
                 }
-                $this->RegisterVariableInteger('color_rgb', $this->Translate($this->convertLabelToName('color_rgb')), '~HexColor');
+                $this->RegisterVariableInteger('color_rgb', $this->Translate($this->convertLabelToName('color_rgb')), '');
                 $this->MarkVariableCreated('color_rgb');
                 // Farbvariablen erhalten IMMER EnableAction, unabhängig von Access-Prüfung
                 $this->checkAndEnableAction('color_rgb', null, true);
@@ -5111,7 +5066,7 @@ abstract class ModulBase extends \IPSModuleStrict
      * ```php
      * // Standard boolean state
      * $config = $this->getStateConfiguration('state');
-     * // Ergebnis: ['type' => 'switch', 'dataType' => VARIABLETYPE_BOOLEAN, 'profile' => '~Switch', 'ident' => 'state']
+     * // Ergebnis: ['type' => 'switch', 'dataType' => VARIABLETYPE_BOOLEAN, 'profile' => '', 'ident' => 'state']
      *
      * // Enum state mit nativer Aufzaehlungsdarstellung
      * $config = $this->getStateConfiguration('state', [
@@ -5165,7 +5120,7 @@ abstract class ModulBase extends \IPSModuleStrict
                 'type'         => 'switch',
                 'dataType'     => VARIABLETYPE_BOOLEAN,
                 'values'       => ['ON', 'OFF'],
-                'profile'      => '~Switch',
+                'profile'      => '',
                 'ident'        => $featureId
             ];
         }

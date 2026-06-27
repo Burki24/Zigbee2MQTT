@@ -676,7 +676,7 @@ class DevicesTest extends DumpInclude
         $this->assertSame(' °C', $dewpointVariable['VariablePresentation']['SUFFIX'] ?? null);
     }
 
-    public function testVariableSelectionCreatesPayloadOnlyDewpointWithTemperatureProfile(): void
+    public function testVariableSelectionCreatesPayloadOnlyDewpointWithTemperaturePresentation(): void
     {
         [$iid] = $this->createTestInstance('RTCGQ01LM.json');
         $catalog = $this->readStubAttributeArray($iid, 'VariableCatalog');
@@ -697,7 +697,7 @@ class DevicesTest extends DumpInclude
         $this->assertNotFalse($dewpointID);
         $this->assertSame('Taupunkt', IPS_GetName($dewpointID));
         $this->assertSame(VARIABLETYPE_FLOAT, IPS_GetVariable($dewpointID)['VariableType']);
-        $this->assertSame('~Temperature', IPS_GetVariable($dewpointID)['VariableProfile']);
+        $this->assertSame('', IPS_GetVariable($dewpointID)['VariableProfile']);
     }
 
     public function testReceiveDataIgnoresPayloadFromDifferentDeviceTopic(): void
@@ -1039,7 +1039,7 @@ class DevicesTest extends DumpInclude
         $colorID = IPS_GetObjectIDByIdent('color', $iid);
         $this->assertNotFalse($colorID);
         $variable = IPS_GetVariable($colorID);
-        $this->assertSame('~HexColor', $variable['VariableProfile']);
+        $this->assertSame('', $variable['VariableProfile']);
         $this->assertSame(0xFF9227, GetValue($colorID));
 
         $kelvinID = IPS_GetObjectIDByIdent('color_temp_kelvin', $iid);
@@ -1689,10 +1689,6 @@ class DevicesTest extends DumpInclude
 
     public function testColorCompositeCatalogUsesSingleColorVariable()
     {
-        if (!IPS_VariableProfileExists('~HexColor')) {
-            IPS_CreateVariableProfile('~HexColor', VARIABLETYPE_INTEGER);
-        }
-
         [$iid, $Debug] = $this->createTestInstance('MixedLightSensor.json');
         $interface = IPS\InstanceManager::getInstanceInterface($iid);
         $topic = $Debug['Config']['MQTTBaseTopic'] . '/' . $Debug['Config']['MQTTTopic'];

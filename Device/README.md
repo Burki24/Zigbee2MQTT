@@ -37,8 +37,8 @@
 
 - Darstellung aller von Z2M gelieferten Werte in Symcon
 - Inklusive der Verfügbarkeit des Gerätes als Variable (Online-Variable), wenn dies in Z2M aktiviert ist: [availability](https://www.zigbee2mqtt.io/guide/configuration/device-availability.html).
-- Automatisches Erstellen der für die Variablen benötigten Variablenprofile gemäß den Daten aus Z2M
-- Automatische Zuordnung moderner Variablendarstellungen und passender Standardprofile, soweit die Exposes dies zulassen
+- Automatische Auswahl passender Variablentypen anhand der Daten aus Z2M
+- Automatische Zuordnung moderner Variablendarstellungen, soweit die Exposes dies zulassen
 - Eigene HTML-SDK-Kacheln für häufige Gerätetypen wie Schaltaktoren mit Messwerten, Heizungen, Sensoren, Sicherheitskontakte, Fenstergriffe und Aktionsgeräte
 - Komfortable Pflege von Zigbee2MQTT-Geräteoptionen inklusive typisierter Editoren und Attributauswahl
 - Gerätewartung für ein erneutes Interview oder eine erneute gerätespezifische Konfiguration
@@ -146,7 +146,7 @@ Für Gerätetypen, die Symcon bereits nativ gut darstellen kann, erstellt das Mo
 
 Empfohlene moderne Variablendarstellungen werden nur beim erstmaligen Anlegen einer Variable als Standarddarstellung der Variable gesetzt. Danach bleiben benutzerdefinierte Darstellungen auch bei **Übernehmen**, neuen Payloads und aktualisierten Geräteinformationen unverändert. In Symcon haben Benutzer-Darstellungen und Benutzer-Profile eine höhere Priorität als die vom Modul gesetzte Standarddarstellung. Das Modul überschreibt oder entfernt deshalb keine Custom-Presentations und keine Custom-Profile nachträglich.
 
-Neue Variablen verwenden bevorzugt moderne Symcon-Variablendarstellungen oder bleiben ohne Modulprofil, wenn keine fachlich passende Standarddarstellung noetig ist. Dynamische `Z2M.*`-Profile werden fuer Expose-, Preset- und State-Variablen nicht mehr neu angelegt; Presets und State-Aufzaehlungen werden als native Symcon-Aufzaehlungsdarstellung registriert. Bestehende Variablen behalten ihr bisheriges Modulprofil, solange kein festes Standardprofil fachlich notwendig ist.
+Neue Variablen verwenden bevorzugt moderne Symcon-Variablendarstellungen oder bleiben ohne Modulprofil, wenn keine fachlich passende Standarddarstellung noetig ist. Symcon-Standardprofile werden fuer neue Variablen nicht mehr aktiv vorgegeben. Dynamische `Z2M.*`-Profile werden fuer Expose-, Preset- und State-Variablen nicht mehr neu angelegt; Presets und State-Aufzaehlungen werden als native Symcon-Aufzaehlungsdarstellung registriert. Bestehende Variablen behalten ihr bisheriges Modulprofil, damit Updates keine bestehenden Benutzereinstellungen ungefragt veraendern.
 
 ### 4.3 Temperatur-Visualisierung
 
@@ -187,7 +187,7 @@ Für solche Fälle kann der Kelvin-Bereich in der Instanz-Konfiguration unter **
 
 Der Override korrigiert die Symcon-Darstellung der `color_temp_kelvin`-Variable, begrenzt Kelvin-Aktionen auf diesen Bereich und passt die abgeleitete Weiß-Farbe entsprechend an. Er ändert keine Zigbee2MQTT-Device-Definition und keine technischen Fähigkeiten des Leuchtmittels.
 
-Bei reinen Tunable-White-Leuchtmitteln ohne RGB/HS/XY-Farb-Expose legt das Modul zusätzlich eine abgeleitete Variable `color` mit dem Profil `~HexColor` an. Diese Variable zeigt den aktuellen Weißton als Farbe an, bleibt aber eine reine Darstellung und ersetzt keine echte RGB-Steuerung.
+Bei reinen Tunable-White-Leuchtmitteln ohne RGB/HS/XY-Farb-Expose legt das Modul zusätzlich eine abgeleitete Variable `color` ohne Modulprofil an. Diese Variable zeigt den aktuellen Weißton über eine passende Farbdarstellung an, bleibt aber eine reine Darstellung und ersetzt keine echte RGB-Steuerung.
 
 ### 4.5 Gerätewartung
 

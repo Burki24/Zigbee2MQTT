@@ -177,16 +177,16 @@ class Zigbee2MQTTBridge extends IPSModuleStrict
             $this->BuildBridgeEnumerationOption('info', 'Information'),
             $this->BuildBridgeEnumerationOption('debug', 'Debug'),
         ], 'list');
-        $this->RegisterVariableBoolean('state', $this->Translate('State'), '~Alert.Reversed');
+        $this->RegisterVariableBoolean('state', $this->Translate('State'), '');
         $this->RegisterVariableBoolean('extension_loaded', $this->Translate('Extension Loaded'));
         $this->RegisterVariableString('extension_version', $this->Translate('Extension Version'));
         $this->RegisterVariableBoolean('extension_is_current', $this->Translate('Extension is up to date'));
         $this->RegisterVariableString('log_level', $this->Translate('Log Level'), $logLevelPresentation);
         $this->EnableAction('log_level');
-        $this->RegisterVariableBoolean('permit_join', $this->Translate('Allow joining the network'), '~Switch');
+        $this->RegisterVariableBoolean('permit_join', $this->Translate('Allow joining the network'), '');
         $this->EnableAction('permit_join');
-        $this->RegisterVariableInteger('permit_join_end', $this->Translate('Pairing mode ends'), '~UnixTimestamp');
-        $this->RegisterVariableInteger('permit_join_remaining', $this->Translate('Pairing time remaining'), '~Duration');
+        $this->RegisterVariableInteger('permit_join_end', $this->Translate('Pairing mode ends'), '');
+        $this->RegisterVariableInteger('permit_join_remaining', $this->Translate('Pairing time remaining'), '');
         $this->RegisterVariableString('permit_join_target', $this->Translate('Pairing target'));
         $this->RegisterVariableBoolean('restart_required', $this->Translate('Restart Required'));
         $this->RegisterVariableInteger('restart_request', $this->Translate('Perform a restart'), $restartPresentation);
