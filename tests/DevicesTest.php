@@ -1040,6 +1040,9 @@ class DevicesTest extends DumpInclude
         $this->assertNotFalse($colorID);
         $variable = IPS_GetVariable($colorID);
         $this->assertSame('', $variable['VariableProfile']);
+        $this->assertSame(VARIABLE_PRESENTATION_COLOR, $variable['VariablePresentation']['PRESENTATION'] ?? null);
+        $this->assertSame(0, $variable['VariablePresentation']['ENCODING'] ?? null);
+        $this->assertSame(1, $variable['VariablePresentation']['COLOR_SPACE'] ?? null);
         $this->assertSame(0xFF9227, GetValue($colorID));
 
         $kelvinID = IPS_GetObjectIDByIdent('color_temp_kelvin', $iid);
@@ -1743,7 +1746,13 @@ class DevicesTest extends DumpInclude
 
         $catalog = $this->readStubAttributeArray($iid, 'VariableCatalog');
         $this->assertArrayHasKey('color', $catalog);
-        $this->assertNotFalse(@IPS_GetObjectIDByIdent('color', $iid));
+        $colorID = @IPS_GetObjectIDByIdent('color', $iid);
+        $this->assertNotFalse($colorID);
+        $colorVariable = IPS_GetVariable($colorID);
+        $this->assertSame('', $colorVariable['VariableProfile']);
+        $this->assertSame(VARIABLE_PRESENTATION_COLOR, $colorVariable['VariablePresentation']['PRESENTATION'] ?? null);
+        $this->assertSame(0, $colorVariable['VariablePresentation']['ENCODING'] ?? null);
+        $this->assertSame(1, $colorVariable['VariablePresentation']['COLOR_SPACE'] ?? null);
         foreach ($staleColorSubFeatures as $ident) {
             $this->assertArrayNotHasKey($ident, $catalog, 'Technical color subfeature must not stay in catalog: ' . $ident);
             $this->assertFalse(@IPS_GetObjectIDByIdent($ident, $iid), 'Technical color subfeature must not be created: ' . $ident);

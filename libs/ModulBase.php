@@ -4596,7 +4596,7 @@ abstract class ModulBase extends \IPSModuleStrict
         $property = (string) ($feature['property'] ?? '');
         $this->SendDebug(__FUNCTION__, 'Registering Composite Variable: ' . $property, 0);
 
-        if (isset($feature['color_mode'])) {
+        if (isset($feature['color_mode']) || $this->IsExposeColorComposite($feature)) {
             $this->registerColorVariable($feature);
             return true;
         }
@@ -4727,7 +4727,7 @@ abstract class ModulBase extends \IPSModuleStrict
             return;
         }
 
-        $this->RegisterVariableInteger('color', $this->Translate($this->convertLabelToName('color')), '');
+        $this->RegisterVariableInteger('color', $this->Translate($this->convertLabelToName('color')), $this->BuildColorPresentation() ?? '');
         $this->MarkVariableCreated('color');
     }
 
@@ -4842,13 +4842,15 @@ abstract class ModulBase extends \IPSModuleStrict
             return;
         }
 
+        $colorPresentation = $this->BuildColorPresentation() ?? '';
+
         switch ($feature['name']) {
             case 'color_xy':
                 if (!$this->CanCreateVariable('color', ['property' => 'color', 'type' => 'composite', 'label' => 'Color'], 'derived')) {
                     $this->SendDebug(__FUNCTION__, 'Skipping filtered color variable: color', 0);
                     break;
                 }
-                $this->RegisterVariableInteger('color', $this->Translate($this->convertLabelToName('color')), '');
+                $this->RegisterVariableInteger('color', $this->Translate($this->convertLabelToName('color')), $colorPresentation);
                 $this->MarkVariableCreated('color');
                 // Farbvariablen erhalten IMMER EnableAction, unabhängig von Access-Prüfung
                 $this->checkAndEnableAction('color', null, true);
@@ -4859,7 +4861,7 @@ abstract class ModulBase extends \IPSModuleStrict
                     $this->SendDebug(__FUNCTION__, 'Skipping filtered color variable: color_hs', 0);
                     break;
                 }
-                $this->RegisterVariableInteger('color_hs', $this->Translate($this->convertLabelToName('color_hs')), '');
+                $this->RegisterVariableInteger('color_hs', $this->Translate($this->convertLabelToName('color_hs')), $colorPresentation);
                 $this->MarkVariableCreated('color_hs');
                 // Farbvariablen erhalten IMMER EnableAction, unabhängig von Access-Prüfung
                 $this->checkAndEnableAction('color_hs', null, true);
@@ -4870,7 +4872,7 @@ abstract class ModulBase extends \IPSModuleStrict
                     $this->SendDebug(__FUNCTION__, 'Skipping filtered color variable: color_rgb', 0);
                     break;
                 }
-                $this->RegisterVariableInteger('color_rgb', $this->Translate($this->convertLabelToName('color_rgb')), '');
+                $this->RegisterVariableInteger('color_rgb', $this->Translate($this->convertLabelToName('color_rgb')), $colorPresentation);
                 $this->MarkVariableCreated('color_rgb');
                 // Farbvariablen erhalten IMMER EnableAction, unabhängig von Access-Prüfung
                 $this->checkAndEnableAction('color_rgb', null, true);

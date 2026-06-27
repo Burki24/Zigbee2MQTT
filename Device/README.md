@@ -187,7 +187,9 @@ Für solche Fälle kann der Kelvin-Bereich in der Instanz-Konfiguration unter **
 
 Der Override korrigiert die Symcon-Darstellung der `color_temp_kelvin`-Variable, begrenzt Kelvin-Aktionen auf diesen Bereich und passt die abgeleitete Weiß-Farbe entsprechend an. Er ändert keine Zigbee2MQTT-Device-Definition und keine technischen Fähigkeiten des Leuchtmittels.
 
-Bei reinen Tunable-White-Leuchtmitteln ohne RGB/HS/XY-Farb-Expose legt das Modul zusätzlich eine abgeleitete Variable `color` ohne Modulprofil an. Diese Variable zeigt den aktuellen Weißton über eine passende Farbdarstellung an, bleibt aber eine reine Darstellung und ersetzt keine echte RGB-Steuerung.
+RGB-, HS- und XY-Farb-Exposes werden als Integer-Variable ohne Modulprofil angelegt und nutzen die native Symcon-Farbdarstellung für Hex/sRGB-Farbwerte. Dadurch kann die Symcon-Standardkachel für RGB-Leuchtmittel die Farbe über den üblichen ColorHex-Wert verwenden, ohne dass ein Legacy-Profil wie `~Color` benötigt wird.
+
+Bei reinen Tunable-White-Leuchtmitteln ohne RGB/HS/XY-Farb-Expose legt das Modul zusätzlich eine abgeleitete Variable `color` ohne Modulprofil an. Diese Variable nutzt ebenfalls die native Symcon-Farbdarstellung für Hex/sRGB-Farbwerte und zeigt den aktuellen Weißton an, bleibt aber eine reine Darstellung und ersetzt keine echte RGB-Steuerung.
 
 ### 4.5 Gerätewartung
 

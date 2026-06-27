@@ -27,6 +27,10 @@ trait VariablePresentationHelper
             return $shutterPresentation;
         }
 
+        if ($this->IsColorPresentationFeature($feature)) {
+            return $this->BuildColorPresentation();
+        }
+
         switch ($feature['type']) {
             case 'binary':
                 return $this->BuildBinaryFeaturePresentation($feature, $profileName);
@@ -61,6 +65,40 @@ trait VariablePresentationHelper
             'DIGITS'              => 0,
             'ICON'                => 'temperature-half',
         ]);
+    }
+
+    /**
+     * Erstellt die native Farbdarstellung fuer RGB/Hex-Farbvariablen.
+     *
+     * Die zugehoerigen Variablen speichern den Farbwert als Integer im Format 0xRRGGBB.
+     */
+    protected function BuildColorPresentation(): ?array
+    {
+        if (!\defined('VARIABLE_PRESENTATION_COLOR')) {
+            return null;
+        }
+
+        return [
+            'PRESENTATION' => \constant('VARIABLE_PRESENTATION_COLOR'),
+            'ENCODING'     => 0,
+            'COLOR_SPACE'  => 1
+        ];
+    }
+
+    /**
+     * Ermittelt, ob ein Feature als RGB/Hex-Farbvariable dargestellt werden soll.
+     */
+    private function IsColorPresentationFeature(array $feature): bool
+    {
+        $property = strtolower((string) ($feature['property'] ?? ''));
+        $name = strtolower((string) ($feature['name'] ?? ''));
+
+        if ($property === 'color') {
+            return true;
+        }
+
+        return \in_array($property, ['color_hs', 'color_rgb', 'color_xy'], true)
+            || \in_array($name, ['color_hs', 'color_rgb', 'color_xy'], true);
     }
 
     /**
