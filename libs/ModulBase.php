@@ -8,7 +8,6 @@ require_once __DIR__ . '/AttributeArrayHelper.php';
 require_once __DIR__ . '/BufferHelper.php';
 require_once __DIR__ . '/InstanceConnectionHelper.php';
 require_once __DIR__ . '/SemaphoreHelper.php';
-require_once __DIR__ . '/VariableProfileHelper.php';
 require_once __DIR__ . '/Localization/TranslationHelper.php';
 require_once __DIR__ . '/Configuration/DeviceFormHelper.php';
 require_once __DIR__ . '/Configuration/VariableCatalogHelper.php';
@@ -43,7 +42,6 @@ abstract class ModulBase extends \IPSModuleStrict
     use InstanceConnectionHelper;
     use Semaphore;
     use ColorHelper;
-    use VariableProfileHelper;
     use TranslationHelper;
     use VariableCatalogHelper;
     use \Zigbee2MQTT\Maintenance\VariableMaintenanceHelper;
@@ -259,12 +257,12 @@ abstract class ModulBase extends \IPSModuleStrict
     /**
      * Ein Array, das bekannte Features auf Symcon-Variablentypen abbildet.
      *
-     * Der historische Name bleibt aus Kompatibilitaetsgruenden erhalten. Es werden
-     * hier keine Symcon-Standardprofile mehr definiert oder gesetzt.
+     * Die Liste erzwingt nur den Symcon-Variablentyp fuer bekannte Exposes. Es
+     * werden hier keine Symcon-Profile definiert oder gesetzt.
      *
      * @var array<int, array{group_type:string, feature:string, variableType:int}>
      */
-    protected static $VariableUseStandardProfile = [
+    protected static $VariableTypeMappings = [
         ['group_type' => 'cover', 'feature' => 'position', 'variableType' => VARIABLETYPE_INTEGER],
         ['group_type' => 'cover', 'feature' => 'position_left', 'variableType' => VARIABLETYPE_INTEGER],
         ['group_type' => 'cover', 'feature' => 'position_right', 'variableType' => VARIABLETYPE_INTEGER],
@@ -300,44 +298,43 @@ abstract class ModulBase extends \IPSModuleStrict
      * Definitionen fuer bekannte Sondervariablen, die ohne vollstaendige
      * Expose-Metadaten registriert werden.
      *
-     * @var array<string,array{type:int,name?:string,profile:string,ident?:string}>
+     * @var array<string,array{type:int,name?:string,ident?:string}>
      */
     protected static $specialVariables = [
-        'last_seen'                  => ['type' => VARIABLETYPE_INTEGER, 'name' => 'Last Seen', 'profile' => ''],
-        'color_mode'                 => ['type' => VARIABLETYPE_STRING, 'name' => 'Color Mode', 'profile' => ''],
-        'update'                     => ['type' => VARIABLETYPE_STRING, 'name' => 'Firmware Update Status', 'profile' => ''],
-        'device_temperature'         => ['type' => VARIABLETYPE_FLOAT, 'name' => 'Device Temperature', 'profile' => ''],
-        'brightness'                 => ['type' => VARIABLETYPE_INTEGER, 'ident' => 'brightness', 'profile' => ''],
-        'brightness_l1'              => ['type' => VARIABLETYPE_INTEGER, 'name' => 'brightness_l1', 'profile' => ''],
-        'brightness_l2'              => ['type' => VARIABLETYPE_INTEGER, 'name' => 'brightness_l2', 'profile' => ''],
-        'voltage'                    => ['type' => VARIABLETYPE_FLOAT, 'ident' => 'voltage', 'profile' => ''],
-        'calibration_time'           => ['type' => VARIABLETYPE_FLOAT, 'profile' => ''],
-        'countdown'                  => ['type' => VARIABLETYPE_INTEGER, 'profile' => ''],
-        'countdown_l1'               => ['type' => VARIABLETYPE_INTEGER, 'profile' => ''],
-        'countdown_l2'               => ['type' => VARIABLETYPE_INTEGER, 'profile' => ''],
-        'update__installed_version'  => ['type' => VARIABLETYPE_INTEGER, 'name' => 'Installed Version', 'profile' => ''],
-        'update__latest_version'     => ['type' => VARIABLETYPE_INTEGER, 'name' => 'Latest Version', 'profile' => ''],
-        'update__state'              => ['type' => VARIABLETYPE_STRING, 'name' => 'Update State', 'profile' => ''],
-        'update__progress'           => ['type' => VARIABLETYPE_FLOAT, 'name' => 'Update Progress', 'profile' => ''],
-        'update__remaining'          => ['type' => VARIABLETYPE_FLOAT, 'name' => 'Update Remaining', 'profile' => ''],
-        'no_occupancy_since'         => ['type' => VARIABLETYPE_INTEGER, 'name' => 'No occupancy since', 'profile' => '']
+        'last_seen'                  => ['type' => VARIABLETYPE_INTEGER, 'name' => 'Last Seen'],
+        'color_mode'                 => ['type' => VARIABLETYPE_STRING, 'name' => 'Color Mode'],
+        'update'                     => ['type' => VARIABLETYPE_STRING, 'name' => 'Firmware Update Status'],
+        'device_temperature'         => ['type' => VARIABLETYPE_FLOAT, 'name' => 'Device Temperature'],
+        'brightness'                 => ['type' => VARIABLETYPE_INTEGER, 'ident' => 'brightness'],
+        'brightness_l1'              => ['type' => VARIABLETYPE_INTEGER, 'name' => 'brightness_l1'],
+        'brightness_l2'              => ['type' => VARIABLETYPE_INTEGER, 'name' => 'brightness_l2'],
+        'voltage'                    => ['type' => VARIABLETYPE_FLOAT, 'ident' => 'voltage'],
+        'calibration_time'           => ['type' => VARIABLETYPE_FLOAT],
+        'countdown'                  => ['type' => VARIABLETYPE_INTEGER],
+        'countdown_l1'               => ['type' => VARIABLETYPE_INTEGER],
+        'countdown_l2'               => ['type' => VARIABLETYPE_INTEGER],
+        'update__installed_version'  => ['type' => VARIABLETYPE_INTEGER, 'name' => 'Installed Version'],
+        'update__latest_version'     => ['type' => VARIABLETYPE_INTEGER, 'name' => 'Latest Version'],
+        'update__state'              => ['type' => VARIABLETYPE_STRING, 'name' => 'Update State'],
+        'update__progress'           => ['type' => VARIABLETYPE_FLOAT, 'name' => 'Update Progress'],
+        'update__remaining'          => ['type' => VARIABLETYPE_FLOAT, 'name' => 'Update Remaining'],
+        'no_occupancy_since'         => ['type' => VARIABLETYPE_INTEGER, 'name' => 'No occupancy since']
     ];
 
     /**
-     * Definitionen fuer bekannte State-Features mit festen Werten und Profilen.
+     * Definitionen fuer bekannte State-Features mit festen Werten.
      *
      * @var array<string,array{
      *     type:string,
      *     dataType:int,
      *     values:array<int,string>,
      *     ident:string,
-     *     profile:string,
      *     enableAction?:bool
      * }>
      */
     protected static $stateDefinitions = [
-        'auto_lock'   => ['type' => 'automode', 'dataType' => VARIABLETYPE_STRING, 'values' => ['AUTO', 'MANUAL'], 'ident' => 'auto_lock', 'profile' => 'Z2M.AutoLock', 'enableAction' => true],
-        'valve_state' => ['type' => 'valve', 'dataType' => VARIABLETYPE_STRING, 'values' => ['OPEN', 'CLOSED'], 'ident' => 'valve_state', 'profile' => 'Z2M.ValveState', 'enableAction' => true],
+        'auto_lock'   => ['type' => 'automode', 'dataType' => VARIABLETYPE_STRING, 'values' => ['AUTO', 'MANUAL'], 'ident' => 'auto_lock', 'enableAction' => true],
+        'valve_state' => ['type' => 'valve', 'dataType' => VARIABLETYPE_STRING, 'values' => ['OPEN', 'CLOSED'], 'ident' => 'valve_state', 'enableAction' => true],
     ];
 
     /**
@@ -393,14 +390,13 @@ abstract class ModulBase extends \IPSModuleStrict
      * - Verbindet mit der erstbesten MQTT-Server-Instanz
      * - Registriert Properties für MQTT-Basis-Topic und MQTT-Topic
      * - Initialisiert TransactionData Array
-     * - Registriert Properties, Attribute, Buffer und statische Profile
+     * - Registriert Properties, Attribute und Buffer
      *
      * @return void
      *
      * @see \IPSModule::RegisterPropertyString()
      * @see \IPSModule::RegisterAttributeFloat()
      * @see \IPSModule::RegisterAttributeArray()
-     * @see \Zigbee2MQTT\ModulBase::RegisterProfileBooleanEx()
      */
     public function Create(): void
     {
@@ -736,7 +732,7 @@ abstract class ModulBase extends \IPSModuleStrict
             }
         }
 
-        // Brightness Profil Migration
+        // Brightness-Variablenmigration
         $varID = $this->GetObjectIDByIdent('brightness');
         if ($varID !== false) {
             $this->RegisterVariableInteger(
@@ -1083,7 +1079,7 @@ abstract class ModulBase extends \IPSModuleStrict
      * Verarbeitung:
      * 1. Prüft Existenz der Variable, Abbruch wenn Variable nicht vorhanden
      * 2. Konvertiert Wert entsprechend Variablentyp (adjustValueByType)
-     * 3. Wendet Profilzuordnungen an
+     * 3. Beruecksichtigt Legacy-Profilzuordnungen vorhandener Variablen
      * 4. Behandelt Spezialfälle (z.B. ColorTemp, Color)
      *
      * Unterstützte Variablentypen:
@@ -1130,8 +1126,8 @@ abstract class ModulBase extends \IPSModuleStrict
      *     'brightness' => 254
      * ]);
      *
-     * // Profile
-     * $this->SetValue("mode", "auto");        // Nutzt Profilzuordnung
+     * // Legacy-Profile
+     * $this->SetValue("mode", "auto");        // Beruecksichtigt vorhandene Profilassoziationen
      * ```
      *
      * @see \Zigbee2MQTT\ModulBase::adjustValueByType()
@@ -1171,7 +1167,7 @@ abstract class ModulBase extends \IPSModuleStrict
         $varType = $var['VariableType'];
         $adjustedValue = $this->adjustValueByType($var, $value);
 
-        // Profilverarbeitung nur für nicht-boolesche Werte
+        // Legacy-Profilverarbeitung nur für nicht-boolesche Werte
         if ($varType !== 0) {
             $profileName = ($var['VariableCustomProfile'] != '' ? $var['VariableCustomProfile'] : $var['VariableProfile']);
             if ($profileName && IPS_VariableProfileExists($profileName)) {
@@ -1339,7 +1335,7 @@ abstract class ModulBase extends \IPSModuleStrict
      *
      * @see \Zigbee2MQTT\ModulBase::registerVariable()
      * @see \Zigbee2MQTT\ModulBase::convertLabelToName()
-     * @see \Zigbee2MQTT\ModulBase::getVariableTypeFromProfile()
+     * @see \Zigbee2MQTT\ModulBase::getVariableTypeFromFeature()
      * @see \Zigbee2MQTT\ModulBase::registerPresetVariables()
      * @see \IPSModule::SetBuffer()
      * @see \IPSModule::SendDebug()
@@ -1406,7 +1402,7 @@ abstract class ModulBase extends \IPSModuleStrict
 
                 $this->registerVariable($expose);
                 if (isset($expose['presets'])) {
-                    $variableType = $this->getVariableTypeFromProfile($expose['type'], $expose['property'], $expose['unit'] ?? '', $expose['value_step'] ?? 1.0, null);
+                    $variableType = $this->getVariableTypeFromFeature($expose['type'], $expose['property'], $expose['unit'] ?? '', $expose['value_step'] ?? 1.0, null);
                     $this->registerPresetVariables($expose['presets'], $expose['property'], $variableType, $expose);
                 }
             }
@@ -2161,7 +2157,7 @@ abstract class ModulBase extends \IPSModuleStrict
             $this->$registerFunc(
                 $key,
                 $this->Translate($this->convertLabelToName($key)),
-                $varType['profile']
+                $varType['presentation']
             );
             $this->MarkVariableCreated($key);
             $this->checkAndEnableAction($key);
@@ -2182,7 +2178,7 @@ abstract class ModulBase extends \IPSModuleStrict
     {
         if ($ident !== '') {
             $payloadType = $this->GetPayloadValueTypeName($value);
-            $registerFunc = match ($this->getVariableTypeFromProfile($payloadType, $ident)) {
+            $registerFunc = match ($this->getVariableTypeFromFeature($payloadType, $ident)) {
                 'bool'  => 'RegisterVariableBoolean',
                 'int'   => 'RegisterVariableInteger',
                 'float' => 'RegisterVariableFloat',
@@ -2190,26 +2186,26 @@ abstract class ModulBase extends \IPSModuleStrict
             };
 
             return [
-                'profile'      => '',
+                'presentation' => '',
                 'registerFunc' => $registerFunc
             ];
         }
 
         return match (true) {
             \is_bool($value) => [
-                'profile'      => '',
+                'presentation' => '',
                 'registerFunc' => 'RegisterVariableBoolean'
             ],
             \is_int($value) => [
-                'profile'      => '',
+                'presentation' => '',
                 'registerFunc' => 'RegisterVariableInteger'
             ],
             \is_float($value) => [
-                'profile'      => '',
+                'presentation' => '',
                 'registerFunc' => 'RegisterVariableFloat'
             ],
             default => [
-                'profile'      => '',
+                'presentation' => '',
                 'registerFunc' => 'RegisterVariableString'
             ]
         };
@@ -2335,15 +2331,15 @@ abstract class ModulBase extends \IPSModuleStrict
     private function processSpecialCases(string $key, mixed &$value, string $lowerKey, array $variableProps): bool
     {
         // Brightness in Lichtgruppen
-        foreach (self::$VariableUseStandardProfile as $profile) {
+        foreach (self::$VariableTypeMappings as $entry) {
             if (
-                $profile['feature'] === $lowerKey &&
-                isset($profile['group_type'], $variableProps['group_type']) &&
-                $profile['group_type'] === 'light' &&
+                $entry['feature'] === $lowerKey &&
+                isset($entry['group_type'], $variableProps['group_type']) &&
+                $entry['group_type'] === 'light' &&
                 $variableProps['group_type'] === 'light'
             ) {
 
-                $this->SendDebug(__FUNCTION__, 'Brightness in Lichtgruppe - StandardProfile', 0);
+                $this->SendDebug(__FUNCTION__, 'Brightness in Lichtgruppe - Variablenmapping', 0);
                 return $this->processSpecialVariable($key, $value);
             }
         }
@@ -3446,96 +3442,14 @@ abstract class ModulBase extends \IPSModuleStrict
         return $label;
     }
 
-    // Profilmanagement
-
-    /**
-     * registerVariableProfile
-     *
-     * Registriert ein Variablenprofil basierend auf dem Expose-Typ oder einem optionalen State-Mapping.
-     *
-     * @param array $expose Die Expose-Daten mit folgenden Schlüsseln:
-     *                     - 'type': Typ des Exposes (binary, enum, numeric) (string)
-     *                     - 'property' oder 'name': Name der Eigenschaft (string)
-     *                     - 'value_on': Optional - Wert für "An"-Zustand bei binary (mixed)
-     *                     - 'value_off': Optional - Wert für "Aus"-Zustand bei binary (mixed)
-     *                     - 'values': Optional - Array möglicher Werte bei enum (array)
-     *                     - 'unit': Optional - Einheit bei numeric (string)
-     *                     - 'value_min': Optional - Minimaler Wert bei numeric (float|int)
-     *                     - 'value_max': Optional - Maximaler Wert bei numeric (float|int)
-     *
-     * @return string Name des erstellten/vorhandenen Profils oder leerer String ohne Modulprofil
-     *
-     * Beispiel:
-     * ```php
-     * // Binary Switch
-     * $expose = [
-     *     'type' => 'binary',
-     *     'property' => 'state',
-     *     'value_on' => 'ON',
-     *     'value_off' => 'OFF'
-     * ];
-     * $profile = $this->registerVariableProfile($expose);
-     * // Ergebnis: ''
-     * ```
-     *
-     *
-     * @see \Zigbee2MQTT\ModulBase::registerStateMappingProfile()
-     * @see \Zigbee2MQTT\ModulBase::getStandardProfile()
-     * @see \Zigbee2MQTT\ModulBase::isValidStandardProfile()
-     * @see \Zigbee2MQTT\ModulBase::handleProfileType()
-     * @see strtolower()
-     * @see strtoupper()
-     * @see is_string()
-     * @see str_replace()
-     *
-     */
-    private function registerVariableProfile(array $expose): string
-    {
-        $expose = self::normalizeExposeFeatureIdentity($expose);
-        $type = (string) ($expose['type'] ?? '');
-        $property = $this->getExposeProperty($expose);
-        $ProfileName = $this->getExposeProfileName($property);
-
-        // State-Mapping prüfen
-        if (isset(self::$stateDefinitions[$property])) {
-            return $this->registerStateMappingProfile($property);
-        }
-
-        // Enum-Profil-Logik
-        if ($this->isEnumExpose($expose)) {
-            return $this->registerEnumProfile($expose, $ProfileName);
-        }
-
-        // Standard-Profil prüfen
-        if ($type === 'binary') {
-            return $this->registerBinaryExposeProfile($expose, $ProfileName);
-        }
-
-        // Typ-spezifisches Profil erstellen
-        return $this->handleProfileType($type, $expose, $ProfileName);
-    }
-
-    /**
-     * Ermittelt den fachlichen Property-Namen eines Exposes.
-     *
-     * Zigbee2MQTT nutzt je nach Expose-Struktur `property` oder `name`; diese
-     * Methode kapselt die Fallback-Reihenfolge fuer Profil- und Variablenlogik.
-     *
-     * @param array $expose Expose-Definition.
-     *
-     * @return string Property- oder Name-Wert, sonst leer.
-     */
-    private function getExposeProperty(array $expose): string
-    {
-        return (string) ($expose['property'] ?? $expose['name'] ?? '');
-    }
+    // Variablenmetadaten
 
     /**
      * Ergaenzt fehlende Expose-Kennungen typunabhaengig.
      *
      * Von Zigbee2MQTT berechnete oder nachgelieferte Werte koennen nur
      * `property` oder nur `name` enthalten. Nach der Normalisierung koennen
-     * alle Profil- und Variablenpfade beide Schluessel sicher verwenden.
+     * alle Darstellungs- und Variablenpfade beide Schluessel sicher verwenden.
      *
      * @param array $feature Expose- oder Payload-Definition.
      *
@@ -3557,134 +3471,7 @@ abstract class ModulBase extends \IPSModuleStrict
     }
 
     /**
-     * Erzeugt den konsistenten Z2M-Profilnamen zu einer Expose-Property.
-     *
-     * @param string $property Expose-Property.
-     *
-     * @return string Normalisierter Profilname mit `Z2M.`-Praefix.
-     */
-    private function getExposeProfileName(string $property): string
-    {
-        $ProfileName = 'Z2M.' . strtolower($property);
-        $ProfileName = str_replace('Z2M.Z2M_', 'Z2M.', $ProfileName);
-        return str_replace('&', '_and_', $ProfileName);
-    }
-
-    /**
-     * Prueft, ob ein Expose eine Enum-Definition mit Wertebereich ist.
-     *
-     * @param array $expose Expose-Definition.
-     *
-     * @return bool True fuer Enum-Exposes mit `values`.
-     */
-    private function isEnumExpose(array $expose): bool
-    {
-        return ($expose['type'] ?? '') === 'enum' && isset($expose['values']);
-    }
-
-    /**
-     * Liefert oder erstellt das passende Profil fuer Binary-Exposes.
-     *
-     * Standard-ON/OFF- und TRUE/FALSE-Paare benoetigen kein Modulprofil.
-     * Abweichende Wertpaare erhalten weiterhin ein eigenes Z2M-Profil.
-     *
-     * @param array $expose Binary-Expose mit optionalen `value_on`/`value_off`.
-     * @param string $ProfileName Basisname fuer ein eigenes Profil.
-     *
-     * @return string Zu verwendender Profilname.
-     */
-    private function registerBinaryExposeProfile(array $expose, string $ProfileName): string
-    {
-        if (!isset($expose['value_on']) || !isset($expose['value_off'])) {
-            return '';
-        }
-
-        $valueOn = $expose['value_on'];
-        $valueOff = $expose['value_off'];
-        if ($this->usesStandardSwitchValues($valueOn, $valueOff)) {
-            return '';
-        }
-
-        return $this->registerCustomBinaryExposeProfile($ProfileName, $valueOn, $valueOff);
-    }
-
-    /**
-     * Prueft, ob ein Binary-Expose mit dem Standard-Switch-Profil abbildbar ist.
-     *
-     * @param mixed $valueOn Wert fuer den aktiven Zustand.
-     * @param mixed $valueOff Wert fuer den inaktiven Zustand.
-     *
-     * @return bool True, wenn die Werte ohne eigenes Modulprofil abbildbar sind.
-     */
-    private function usesStandardSwitchValues(mixed $valueOn, mixed $valueOff): bool
-    {
-        if (($valueOn === true && $valueOff === false) || ($valueOn === false && $valueOff === true)) {
-            return true;
-        }
-
-        if (!\is_string($valueOn) || !\is_string($valueOff)) {
-            return false;
-        }
-
-        $normalizedOn = strtoupper($valueOn);
-        $normalizedOff = strtoupper($valueOff);
-        return ($normalizedOn === 'ON' && $normalizedOff === 'OFF') || ($normalizedOn === 'TRUE' && $normalizedOff === 'FALSE');
-    }
-
-    /**
-     * Registriert ein eigenes Boolean-Profil fuer nicht standardisierte Binary-Werte.
-     *
-     * @param string $ProfileName Profilname.
-     * @param mixed $valueOn Wert fuer true.
-     * @param mixed $valueOff Wert fuer false.
-     *
-     * @return string Registrierter Profilname.
-     */
-    private function registerCustomBinaryExposeProfile(string $ProfileName, mixed $valueOn, mixed $valueOff): string
-    {
-        $profileValues = [
-            [false, $this->convertLabelToName((string) $valueOff), '', 0xFF0000],
-            [true, $this->convertLabelToName((string) $valueOn), '', 0x00FF00]
-        ];
-
-        $profileName = $this->RegisterProfileBooleanEx(
-            $ProfileName,
-            'Power',
-            '',
-            '',
-            $profileValues
-        );
-
-        $this->SendDebug(__FUNCTION__, 'Custom Boolean-Profil erstellt: ' . $ProfileName . ' mit Werten: ' . json_encode($profileValues), 0);
-        return $profileName;
-    }
-
-    /**
-     * Liefert kein Symcon-Standardprofil mehr.
-     *
-     * Die Methode bleibt als interne Kompatibilitaetsstelle erhalten, damit die
-     * bestehende Variablenregistrierung schrittweise auf Darstellungen ohne
-     * Modulprofil-Zuweisung umgestellt werden kann.
-     *
-     * @param string $type Der Typ des Exposes (z.B. 'binary', 'numeric', 'enum')
-     * @param string $property Die Eigenschaft des Exposes (z.B. 'temperature', 'humidity')
-     * @param string|null $groupType Optional - Spezifischer Gruppentyp für erweiterte Profilzuordnung
-     *
-     * @return string Immer leer, da Standardprofile nicht mehr durch das Modul gesetzt werden.
-     *
-     * @see \IPSModule::SendDebug()
-     * @see json_encode()
-     */
-    private function getStandardProfile(string $type, string $property, ?string $groupType = null): string
-    {
-        $backtrace = debug_backtrace(DEBUG_BACKTRACE_IGNORE_ARGS, 2);
-        $caller = isset($backtrace[1]['function']) ? $backtrace[1]['function'] : 'unknown';
-        $this->SendDebug(__FUNCTION__ . ' (' . $caller . ')', "Standard profiles disabled for type: $type, property: $property, groupType: $groupType", 0);
-        return '';
-    }
-
-    /**
-     * getVariableTypeFromProfile
+     * getVariableTypeFromFeature
      *
      * Bestimmt den Variablentyp basierend auf verschiedenen Kriterien.
      *
@@ -3706,11 +3493,11 @@ abstract class ModulBase extends \IPSModuleStrict
      * Beispiel:
      * ```php
      * // Float Beispiel (Temperatur)
-     * $type = $this->getVariableTypeFromProfile('numeric', 'temperature', '°C', 0.5);
+     * $type = $this->getVariableTypeFromFeature('numeric', 'temperature', '°C', 0.5);
      * // Ergebnis: 'float'
      *
      * // Integer Beispiel (Helligkeit)
-     * $type = $this->getVariableTypeFromProfile('numeric', 'brightness', '%', 1.0);
+     * $type = $this->getVariableTypeFromFeature('numeric', 'brightness', '%', 1.0);
      * // Ergebnis: 'int'
      * ```
      *
@@ -3720,12 +3507,12 @@ abstract class ModulBase extends \IPSModuleStrict
      * @see in_array()
      * @see fmod()
      */
-    private function getVariableTypeFromProfile(string $type, string $feature, string $unit = '', float $value_step = 1.0, ?string $groupType = null): string
+    private function getVariableTypeFromFeature(string $type, string $feature, string $unit = '', float $value_step = 1.0, ?string $groupType = null): string
     {
         // Prüfen, ob ein spezifisches Mapping existiert.
         // Wichtig: Nicht nur auf den Feature-Namen matchen, da z.B. "position"
         // je nach Gerätetyp numerisch (Cover) oder enum (Kontakt) sein kann.
-        foreach (self::$VariableUseStandardProfile as $entry) {
+        foreach (self::$VariableTypeMappings as $entry) {
             if (($entry['feature'] ?? '') !== $feature) {
                 continue;
             }
@@ -3794,260 +3581,6 @@ abstract class ModulBase extends \IPSModuleStrict
 
         $this->SendDebug(__FUNCTION__, 'Returning type from typeMapping: ' . ($typeMapping[$type] ?? 'string'), 0);
         return $typeMapping[$type] ?? 'string';
-    }
-
-    /**
-     * isValidStandardProfile
-     *
-     * Überprüft, ob ein Standardprofil gültig ist.
-     *
-     * Diese Methode überprüft, ob ein Standardprofil vergeben ist und ob es existiert.
-     *
-     * @param string $profile Der Name des Standardprofils.
-     * @return bool Gibt true zurück, wenn das Standardprofil gültig ist, andernfalls false.
-     *
-     * @see IPS_VariableProfileExists()
-     * @see strpos()
-     */
-    private static function isValidStandardProfile(string $profile): bool
-    {
-        // Überprüfen, ob das Profil nicht null und nicht leer ist
-        if ($profile === '') {
-            return false;
-        }
-        // Überprüfen, ob das Profil existiert
-        if (IPS_VariableProfileExists($profile)) {
-            return true;
-        }
-        // Überprüfen, ob es sich um ein Systemprofil handelt (beginnt mit '~')
-        if (strpos($profile, '~') === 0) {
-            return true;
-        }
-        return false;
-    }
-
-    /**
-     * handleProfileType
-     *
-     * Handhabt die Erstellung eines Profils basierend auf dem Typ des Exposes.
-     *
-     * Diese Methode erstellt ein Profil für den angegebenen Expose-Typ (z. B. binary, enum, numeric).
-     * Sie ruft die entsprechenden Methoden zur Erstellung des Profils auf.
-     *
-     * @param string $type Der Typ des Exposes (z. B. 'binary', 'enum', 'numeric').
-     * @param array $expose Die Expose-Daten, die Informationen wie Typ, Werte und Einheiten enthalten.
-     * @param string $ProfileName Der Name des zu erstellenden Profils.
-     *
-     * @return string Der Name des erstellten Profils.
-     *
-     * @see \Zigbee2MQTT\ModulBase::registerBinaryExposeProfile()
-     * @see \Zigbee2MQTT\ModulBase::registerEnumProfile()
-     * @see \Zigbee2MQTT\ModulBase::registerNumericProfile()
-     * @see \Zigbee2MQTT\ModulBase::handleProfileType()
-     * @see \Zigbee2MQTT\ModulBase::registerSpecialVariable()
-     * @see \IPSModule::SendDebug()
-     * @see strtolower()
-     * @see json_encode()
-     */
-    private function handleProfileType(string $type, array $expose, string $ProfileName): string
-    {
-        $expose = self::normalizeExposeFeatureIdentity($expose);
-        $this->SendDebug(__FUNCTION__, 'Processing type: ' . $type . ' for profile: ' . $ProfileName, 0);
-        $this->SendDebug(__FUNCTION__, 'Expose data: ' . json_encode($expose), 0);
-
-        switch ($type) {
-            case 'binary':
-                return $this->registerBinaryExposeProfile($expose, $ProfileName);
-
-            case 'enum':
-                return $this->registerEnumProfile($expose, $ProfileName);
-
-            case 'numeric':
-                $result = $this->registerNumericProfile($expose);
-                if (!isset($result['mainProfile'])) {
-                    $this->SendDebug(__FUNCTION__, 'Error: No mainProfile returned from registerNumericProfile', 0);
-                }
-                $this->SendDebug(__FUNCTION__, 'Created numeric profile: ' . $result['mainProfile'], 0);
-                return $result['mainProfile'];
-
-            case 'climate':
-                // Für climate-Typen die Features einzeln verarbeiten
-                if (isset($expose['features'])) {
-                    foreach ($expose['features'] as $feature) {
-                        $featureProfileName = $this->getExposeProfileName($this->getExposeProperty($feature));
-                        $this->handleProfileType($feature['type'], $feature, $featureProfileName);
-                    }
-                }
-                return $ProfileName;
-
-            case 'color_temp':
-                $this->registerSpecialVariable($expose);
-                return $ProfileName;
-
-            default:
-                $this->SendDebug(__FUNCTION__, 'Unsupported profile type: ' . $type, 0);
-                return ''; // Fallback: kein Profil
-        }
-    }
-
-    // Profiltypen
-
-    /**
-     * registerEnumProfile
-     *
-     * Erstellt ein Profil für Enum-Werte basierend auf den Expose-Daten.
-     *
-     * @param array $expose Die Expose-Daten mit folgenden Schlüsseln:
-     *                     - 'values': Array mit möglichen Enum-Werten (erforderlich)
-     *                     Beispiel: ['off', 'on', 'toggle']
-     * @param string $ProfileName Basis-Name des zu erstellenden Profils
-     *                           Der tatsächliche Profilname wird um einen CRC32-Hash erweitert
-     *
-     * @return string Name des erstellten Profils (Format: BasisName.HashWert)
-     *
-     * Beispiel:
-     * ```php
-     * $expose = [
-     *     'values' => ['auto', 'manual', 'boost']
-     * ];
-     * $profile = $this->registerEnumProfile($expose, 'Z2M.Mode');
-     * // Ergebnis: Z2M.Mode.a1b2c3d4
-     * ```
-     *
-     * @note Die Werte werden automatisch:
-     *       - Sortiert für konsistente Hash-Generierung
-     *       - In lesbare Form konvertiert (z.B. manual -> Manual)
-     *       - In missingTranslations Buffer hinzufügen falls nicht vorhanden
-     *
-     * @see \Zigbee2MQTT\ModulBase::isValueInLocaleJson()
-     * @see \Zigbee2MQTT\ModulBase::RegisterProfileStringEx()
-     * @see \IPSModule::SendDebug()
-     * @see sort()
-     * @see implode()
-     * @see dechex()
-     * @see crc32()
-     * @see ucwords()
-     * @see str_replace()
-     * @see json_encode()
-     */
-    private function registerEnumProfile(array $expose, string $ProfileName): string
-    {
-        if (!isset($expose['values'])) {
-            $this->SendDebug(__FUNCTION__, 'Keine Werte für Enum-Profil gefunden', 0);
-            return $ProfileName;
-        }
-
-        // Sortiere Werte für konsistente CRC32-Berechnung
-        sort($expose['values']);
-
-        // Erstelle eindeutigen Profilnamen basierend auf den Werten
-        $tmpProfileName = implode('', $expose['values']);
-        $ProfileName .= '.' . dechex(crc32($tmpProfileName));
-
-        // Erstelle Profilwerte
-        $profileValues = [];
-        foreach ($expose['values'] as $value) {
-            $readableValue = ucwords(str_replace('_', ' ', (string) $value));
-            // Prüfe, ob der Wert in der locale.json vorhanden ist
-            $this->isValueInLocaleJson($readableValue, 'value');
-            $profileValues[] = [(string) $value, $readableValue, '', 0x00FF00];
-        }
-
-        // Registriere das Profil
-        $ProfileName = $this->RegisterProfileStringEx(
-            $ProfileName,
-            'Menu',
-            '',
-            '',
-            $profileValues
-        );
-
-        $this->SendDebug(__FUNCTION__, 'Enum-Profil erstellt: ' . $ProfileName . ' mit Werten: ' . json_encode($profileValues), 0);
-        return $ProfileName;
-    }
-
-    /**
-     * registerNumericProfile
-     *
-     * Erstellt ein numerisches Variablenprofil (ganzzahlig oder Gleitkomma) basierend auf den Expose-Daten.
-     *
-     * @param array $expose Die Expose-Daten mit folgenden Schlüsseln:
-     *                     - 'type': Typ des Exposes (string)
-     *                     - 'property': Name der Eigenschaft (string)
-     *                     - 'unit': Optional - Einheit des Wertes (string)
-     *                     - 'value_step': Optional - Schrittweite (float|int)
-     *                     - 'value_min': Optional - Minimaler Wert (float|int)
-     *                     - 'value_max': Optional - Maximaler Wert (float|int)
-     *                     - 'presets': Optional - Array mit vordefinierten Werten
-     *
-     * @return array Assoziatives Array mit:
-     *               - 'mainProfile': string - Name des Hauptprofils
-     *               - 'presetProfile': null - Legacy-Rueckgabewert, Presets nutzen native Darstellungen
-     *
-     * Beispiel:
-     * ```php
-     * $expose = [
-     *     'type' => 'numeric',
-     *     'property' => 'temperature',
-     *     'unit' => '°C',
-     *     'value_min' => 0,
-     *     'value_max' => 40,
-     *     'value_step' => 0.5
-     * ];
-     * $result = $this->registerNumericProfile($expose);
-     * ```
-     *
-     * @see \Zigbee2MQTT\ModulBase::getVariableTypeFromProfile()
-     * @see \Zigbee2MQTT\ModulBase::getStandardProfile()
-     * @see \Zigbee2MQTT\ModulBase::isValidStandardProfile()
-     * @see \Zigbee2MQTT\ModulBase::getFullRangeProfileName()
-     * @see strtolower()
-     * @see strtoupper()
-     */
-    private function registerNumericProfile(array $expose): array
-    {
-        $expose = self::normalizeExposeFeatureIdentity($expose);
-        // Frühe Typ-Bestimmung
-        $type = $expose['type'] ?? '';
-        $feature = $expose['property'] ?? '';
-        $unit = isset($expose['unit']) && \is_string($expose['unit']) ? $expose['unit'] : '';
-        $value_step = isset($expose['value_step']) ? (float) $expose['value_step'] : 1.0;
-
-        // Bestimme Variablentyp
-        $variableType = $this->getVariableTypeFromProfile($type, $feature, $unit, $value_step);
-        $this->SendDebug(__FUNCTION__, 'Initial Variable Type: ' . $variableType, 0);
-
-        // Standardprofil-Prüfung
-        $standardProfile = $this->getStandardProfile($type, $feature);
-        if ($standardProfile !== '') {
-            if (self::isValidStandardProfile($standardProfile)) {
-                return ['mainProfile' => $standardProfile, 'presetProfile' => null];
-            }
-            return ['mainProfile' => $standardProfile, 'presetProfile' => null];
-        }
-
-        // Eigenes Profil erstellen
-        $fullRangeProfileName = self::getFullRangeProfileName($expose);
-        $min = $expose['value_min'] ?? 0;
-        $max = $expose['value_max'] ?? 0;
-        $step = $expose['value_step'] ?? 1.0;
-
-        // Einheit direkt als UTF-8 verwenden.
-        $unitWithSpace = '';
-        if ($unit !== '') {
-            $unitWithSpace = ' ' . $unit;
-        }
-
-        // Profil entsprechend Variablentyp erstellen
-        if ($variableType === 'float') {
-            $fullRangeProfileName = $this->RegisterProfileFloat($fullRangeProfileName, '', '', $unitWithSpace, (float) $min, (float) $max, (float) $step, 2);
-            $this->SendDebug(__FUNCTION__, 'Created Float Profile: ' . $fullRangeProfileName, 0);
-        } else {
-            $fullRangeProfileName = $this->RegisterProfileInteger($fullRangeProfileName, '', '', $unitWithSpace, (int) $min, (int) $max, (float) $step);
-            $this->SendDebug(__FUNCTION__, 'Created Integer Profile: ' . $fullRangeProfileName, 0);
-        }
-
-        return ['mainProfile' => $fullRangeProfileName, 'presetProfile' => null];
     }
 
     /**
@@ -4248,9 +3781,7 @@ abstract class ModulBase extends \IPSModuleStrict
      * @see \Zigbee2MQTT\ModulBase::getStateConfiguration()
      * @see \Zigbee2MQTT\ModulBase::convertLabelToName()
      * @see \Zigbee2MQTT\ModulBase::registerSpecialVariable()
-     * @see \Zigbee2MQTT\ModulBase::getVariableTypeFromProfile()
-     * @see \Zigbee2MQTT\ModulBase::getStandardProfile()
-     * @see \Zigbee2MQTT\ModulBase::registerVariableProfile()
+     * @see \Zigbee2MQTT\ModulBase::getVariableTypeFromFeature()
      * @see \Zigbee2MQTT\ModulBase::registerColorVariable()
      * @see \Zigbee2MQTT\ModulBase::registerPresetVariables()
      * @see \IPSModule::RegisterVariableBoolean()
@@ -4328,24 +3859,18 @@ abstract class ModulBase extends \IPSModuleStrict
         $step = isset($feature['value_step']) ? (float) $feature['value_step'] : 1.0;
 
         // Bestimmen des Variablentyps basierend auf Typ, Feature und Einheit
-        $variableType = $this->getVariableTypeFromProfile($type, $property, $unit, $step, $groupType);
-
-        // Ueberpruefen, ob ein Standardprofil verwendet werden soll.
-        $profileName = $this->getStandardProfile($type, $property, $groupType);
+        $variableType = $this->getVariableTypeFromFeature($type, $property, $unit, $step, $groupType);
 
         $ident = str_replace('&', '_and_', $property);
         $existingVariableID = $this->GetObjectIDByIdent($ident);
         $isNewVariable = $existingVariableID === false;
-        $presentation = $this->BuildFeaturePresentation($feature, \is_string($groupType) ? $groupType : null, $profileName);
+        $presentation = $this->BuildFeaturePresentation($feature, \is_string($groupType) ? $groupType : null, '');
         if ($presentation !== null) {
             $profileOrPresentation = $presentation;
         } elseif ($isNewVariable) {
-            $profileOrPresentation = $profileName;
+            $profileOrPresentation = '';
         } else {
-            if ($profileName === '') {
-                $profileName = $this->GetExistingVariableProfile((int) $existingVariableID);
-            }
-            $profileOrPresentation = $profileName;
+            $profileOrPresentation = $this->GetExistingVariableProfile((int) $existingVariableID);
         }
         if (!$this->registerFeatureVariableByType($feature, $ident, $property, $variableType, $profileOrPresentation, $exposeType)) {
             return;
@@ -4424,7 +3949,7 @@ abstract class ModulBase extends \IPSModuleStrict
         }
 
         $formattedLabel = $this->convertLabelToName($featureProperty);
-        $profileOrPresentation = $this->BuildStateProfileOrPresentation($stateConfig, $feature);
+        $profileOrPresentation = $this->BuildStatePresentation($stateConfig, $feature);
         switch ($stateConfig['dataType']) {
             case VARIABLETYPE_BOOLEAN:
                 $this->RegisterVariableBoolean(
@@ -4452,17 +3977,16 @@ abstract class ModulBase extends \IPSModuleStrict
     }
 
     /**
-     * Erstellt fuer State-Enums eine native Darstellung oder liefert das bestehende Profil.
+     * Erstellt fuer State-Enums eine native Darstellung.
      *
      * @param array $stateConfig State-Konfiguration.
      * @param array|null $feature Expose-Daten.
-     * @return string|array Profilname oder native Variablendarstellung.
+     * @return string|array Leerer String oder native Variablendarstellung.
      */
-    private function BuildStateProfileOrPresentation(array $stateConfig, ?array $feature): string|array
+    private function BuildStatePresentation(array $stateConfig, ?array $feature): string|array
     {
-        $profile = \is_string($stateConfig['profile'] ?? null) ? $stateConfig['profile'] : '';
         if (($stateConfig['dataType'] ?? null) !== VARIABLETYPE_STRING || !isset($stateConfig['values']) || !\is_array($stateConfig['values'])) {
-            return $profile;
+            return '';
         }
 
         $enumFeature = [
@@ -4472,7 +3996,7 @@ abstract class ModulBase extends \IPSModuleStrict
             'access'   => $this->ShouldStateFeatureEnableAction($stateConfig, $feature) ? 2 : 0
         ];
 
-        return $this->BuildEnumerationPresentation($enumFeature) ?? $profile;
+        return $this->BuildEnumerationPresentation($enumFeature) ?? '';
     }
 
     /**
@@ -4636,7 +4160,7 @@ abstract class ModulBase extends \IPSModuleStrict
             return;
         }
 
-        $variableType = $this->getVariableTypeFromProfile(
+        $variableType = $this->getVariableTypeFromFeature(
             $subFeature['type'] ?? 'numeric',
             $subFeature['property'],
             $subFeature['unit'] ?? '',
@@ -4807,7 +4331,7 @@ abstract class ModulBase extends \IPSModuleStrict
             return;
         }
 
-        $variableType = $this->getVariableTypeFromProfile($type, $property, $unit, $step, $groupType);
+        $variableType = $this->getVariableTypeFromFeature($type, $property, $unit, $step, $groupType);
         $this->registerPresetVariables($feature['presets'], $feature['property'], $variableType, $feature);
         $this->SendDebug(__FUNCTION__, 'Registered presets for: ' . $feature['property'], 0);
     }
@@ -5003,7 +4527,7 @@ abstract class ModulBase extends \IPSModuleStrict
         }
 
         $isNewVariable = $this->GetObjectIDByIdent($ident) === false;
-        $profileOrPresentation = $varDef['profile'];
+        $profileOrPresentation = '';
         if ($isNewVariable && $ident === 'update__remaining') {
             $profileOrPresentation = $this->BuildDurationPresentation() ?? $profileOrPresentation;
         }
@@ -5047,7 +4571,6 @@ abstract class ModulBase extends \IPSModuleStrict
      * - type: Typ des States (z.B. 'switch', 'enum')
      * - dataType: IPS Variablentyp (z.B. VARIABLETYPE_BOOLEAN, VARIABLETYPE_STRING)
      * - values: Mögliche Zustände (z.B. ['ON', 'OFF'] oder ['OPEN', 'CLOSE', 'STOP'])
-     * - profile: Zu verwendendes IPS-Profil, falls kein native Darstellung genutzt wird
      * - ident: Normalisierter Identifikator
      * - enableAction: Optional - Nur bei explizit definierten States aus stateDefinitions
      *
@@ -5068,14 +4591,14 @@ abstract class ModulBase extends \IPSModuleStrict
      * ```php
      * // Standard boolean state
      * $config = $this->getStateConfiguration('state');
-     * // Ergebnis: ['type' => 'switch', 'dataType' => VARIABLETYPE_BOOLEAN, 'profile' => '', 'ident' => 'state']
+     * // Ergebnis: ['type' => 'switch', 'dataType' => VARIABLETYPE_BOOLEAN, 'ident' => 'state']
      *
      * // Enum state mit nativer Aufzaehlungsdarstellung
      * $config = $this->getStateConfiguration('state', [
      *     'type' => 'enum',
      *     'values' => ['OPEN', 'CLOSE', 'STOP']
      * ]);
-     * // Ergebnis: ['type' => 'enum', 'dataType' => VARIABLETYPE_STRING, 'profile' => '', 'ident' => 'state']
+     * // Ergebnis: ['type' => 'enum', 'dataType' => VARIABLETYPE_STRING, 'ident' => 'state']
      *
      * // Vordefinierter state
      * $config = $this->getStateConfiguration('valve_state');
@@ -5098,9 +4621,7 @@ abstract class ModulBase extends \IPSModuleStrict
             // Prüfe ZUERST auf vordefinierte States
             if (isset(static::$stateDefinitions[$featureId])) {
                 $stateConfig = static::$stateDefinitions[$featureId];
-                // Stelle sicher, dass ident und profile Keys existieren
                 $stateConfig['ident'] = $stateConfig['ident'] ?? $featureId;
-                $stateConfig['profile'] = $stateConfig['profile'] ?? '';
                 return $stateConfig;
             }
 
@@ -5112,7 +4633,6 @@ abstract class ModulBase extends \IPSModuleStrict
                     'type'         => 'enum',
                     'dataType'     => VARIABLETYPE_STRING,
                     'values'       => $feature['values'],
-                    'profile'      => '',
                     'ident'        => $featureId
                 ];
             }
@@ -5122,7 +4642,6 @@ abstract class ModulBase extends \IPSModuleStrict
                 'type'         => 'switch',
                 'dataType'     => VARIABLETYPE_BOOLEAN,
                 'values'       => ['ON', 'OFF'],
-                'profile'      => '',
                 'ident'        => $featureId
             ];
         }
@@ -5130,77 +4649,11 @@ abstract class ModulBase extends \IPSModuleStrict
         // Prüfe auf vordefinierte States wenn kein state pattern matched
         if (isset(static::$stateDefinitions[$featureId])) {
             $stateConfig = static::$stateDefinitions[$featureId];
-            // Stelle sicher, dass ident und profile Keys existieren
             $stateConfig['ident'] = $stateConfig['ident'] ?? $featureId;
-            $stateConfig['profile'] = $stateConfig['profile'] ?? '';
             return $stateConfig;
         }
 
         return null;
-    }
-
-    /**
-     * getFullRangeProfileName
-     *
-     * Erzeugt den vollständigen Namen eines Variablenprofils basierend auf den Expose-Daten.
-     *
-     * Diese Methode generiert den vollständigen Namen eines Variablenprofils für ein bestimmtes Feature
-     * (Expose). Falls das Feature minimale und maximale Werte (`value_min`, `value_max`) enthält, werden
-     * diese in den Profilnamen integriert.
-     *
-     * @param array $feature Ein Array, das die Eigenschaften des Features enthält.
-     *
-     * @return string Der vollständige Name des Variablenprofils.
-     */
-    private static function getFullRangeProfileName(array $feature): string
-    {
-        $featureName = trim((string) ($feature['name'] ?? $feature['property'] ?? ''));
-        if ($featureName === '') {
-            $featureName = 'value';
-        }
-
-        $name = 'Z2M.' . str_replace('&', '_and_', $featureName);
-        $valueMin = $feature['value_min'] ?? null;
-        $valueMax = $feature['value_max'] ?? null;
-
-        if ($valueMin !== null && $valueMax !== null) {
-            $name .= '_' . $valueMin . '_' . $valueMax;
-        }
-
-        return $name;
-    }
-
-    /**
-     * registerStateMappingProfile
-     *
-     * Handhabt die Erstellung eines Zustandsmusters (State Mapping) für ein gegebenes Identifikator.
-     *
-     * Diese Methode erstellt ein Variablenprofile. Das Profil enthält zwei Zustände,
-     * die aus den vordefinierten Zustandsdefinitionen (`stateDefinitions`) abgeleitet werden.
-     *
-     * @param string $featureProperty Property, für die das Zustandsmuster erstellt werden soll.
-     *
-     * @return string|null Der Name des erstellten Profils oder null, wenn kein Zustandsmuster existiert.
-     *
-     * @see \Zigbee2MQTT\ModulBase::RegisterProfileStringEx()
-     * @see \IPSModule::SendDebug()
-     */
-    private function registerStateMappingProfile(string $featureProperty): ?string
-    {
-        $stateInfo = self::$stateDefinitions[$featureProperty];
-        $profileName = $this->RegisterProfileStringEx(
-            $stateInfo['profile'],
-            '',
-            '',
-            '',
-            [
-                [$stateInfo['values'][0], $stateInfo['values'][0], '', 0xFF0000],
-                [$stateInfo['values'][1], $stateInfo['values'][1], '', 0x00FF00]
-            ]
-        );
-
-        $this->SendDebug(__FUNCTION__, 'State mapping profile created for: ' . $profileName, 0);
-        return $profileName;
     }
 
     /**
