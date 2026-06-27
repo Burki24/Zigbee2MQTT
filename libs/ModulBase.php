@@ -3862,16 +3862,7 @@ abstract class ModulBase extends \IPSModuleStrict
         $variableType = $this->getVariableTypeFromFeature($type, $property, $unit, $step, $groupType);
 
         $ident = str_replace('&', '_and_', $property);
-        $existingVariableID = $this->GetObjectIDByIdent($ident);
-        $isNewVariable = $existingVariableID === false;
-        $presentation = $this->BuildFeaturePresentation($feature, \is_string($groupType) ? $groupType : null, '');
-        if ($presentation !== null) {
-            $profileOrPresentation = $presentation;
-        } elseif ($isNewVariable) {
-            $profileOrPresentation = '';
-        } else {
-            $profileOrPresentation = $this->GetExistingVariableProfile((int) $existingVariableID);
-        }
+        $profileOrPresentation = $this->BuildFeaturePresentation($feature, \is_string($groupType) ? $groupType : null, '') ?? '';
         if (!$this->registerFeatureVariableByType($feature, $ident, $property, $variableType, $profileOrPresentation, $exposeType)) {
             return;
         }
@@ -3884,29 +3875,6 @@ abstract class ModulBase extends \IPSModuleStrict
         $this->registerColorTemperatureKelvinVariable($property, $feature);
         $this->registerFeaturePresetVariables($feature, $property, $type, $unit, $step, $groupType);
         return;
-    }
-
-    /**
-     * Liefert das aktuell gesetzte Modulprofil einer vorhandenen Variable.
-     *
-     * Bestehende Variablen sollen beim erneuten Uebernehmen der Instanz nicht
-     * zwangsweise auf andere Modulprofile umgestellt werden. Symcon-Standardprofile
-     * werden jedoch nicht als Modulprofil weitergegeben.
-     *
-     * @param int $variableID Objekt-ID der vorhandenen Variable.
-     *
-     * @return string Profilname oder leer, wenn kein Profil gesetzt ist.
-     */
-    private function GetExistingVariableProfile(int $variableID): string
-    {
-        try {
-            $variable = IPS_GetVariable($variableID);
-        } catch (\Throwable) {
-            return '';
-        }
-
-        $profile = \is_string($variable['VariableProfile'] ?? null) ? $variable['VariableProfile'] : '';
-        return str_starts_with($profile, '~') ? '' : $profile;
     }
 
     /**
@@ -4221,16 +4189,7 @@ abstract class ModulBase extends \IPSModuleStrict
             return;
         }
 
-        $existingVariableID = $this->GetObjectIDByIdent($kelvinIdent);
-        $isNewVariable = $existingVariableID === false;
-        $presentation = $this->BuildColorTemperaturePresentation($feature);
-        if ($presentation !== null) {
-            $profileOrPresentation = $presentation;
-        } elseif ($isNewVariable) {
-            $profileOrPresentation = '';
-        } else {
-            $profileOrPresentation = $this->GetExistingVariableProfile((int) $existingVariableID);
-        }
+        $profileOrPresentation = $this->BuildColorTemperaturePresentation($feature) ?? '';
         $this->RegisterVariableInteger($kelvinIdent, $this->Translate('Color Temperature Kelvin'), $profileOrPresentation);
         $this->MarkVariableCreated($kelvinIdent);
         $this->checkAndEnableAction($kelvinIdent, null, true);

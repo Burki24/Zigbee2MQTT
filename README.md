@@ -287,7 +287,7 @@ In dieser Dokumentation werden die Begriffe bewusst getrennt:
 
 - **Kachel** oder **Visualisierung** meint die Darstellung einer Instanz in der Symcon Tile-Visualisierung, insbesondere eigene HTML-SDK-Kacheln wie Schaltaktor-, Heizungs-, Sensor- oder Netzwerkkarten-Kacheln.
 - **Variablendarstellung** meint die moderne Symcon-Darstellung einer einzelnen Variable, die beim Anlegen der Variable als Standarddarstellung über `RegisterVariable*()` beziehungsweise die Symcon-Maintenance-Mechanismen gesetzt wird.
-- **Profil** meint ein Symcon-Variablenprofil. Neue Variablen werden bevorzugt ueber native Symcon-Variablendarstellungen oder ohne Modulprofil angelegt; Symcon-Standardprofile werden nicht mehr als Modulvorgabe gesetzt. Bestehende Legacy-Variablen koennen weiterhin ein Modulprofil besitzen; dieses wird beim Update nicht automatisch entfernt oder ueberschrieben.
+- **Profil** meint ein Symcon-Variablenprofil. Neue und erneut registrierte Variablen werden bevorzugt ueber native Symcon-Variablendarstellungen oder ohne Modulprofil angelegt; Symcon-Standardprofile werden nicht mehr als Modulvorgabe gesetzt. Bestehende Legacy-Variablen koennen weiterhin ein altes Modulprofil besitzen; dieses wird nicht geloescht, aber bei der erneuten Registrierung nicht mehr als Modulstandard festgehalten.
 
 Benutzerdefinierte Darstellungen und Profile haben in Symcon eine höhere Priorität und bleiben vollständig in der Hoheit des Anwenders. Deshalb setzt das Modul produktiv keine Custom-Presentations oder Custom-Profile über `IPS_SetVariableCustomPresentation()` oder `IPS_SetVariableCustomProfile()`.
 
@@ -472,7 +472,7 @@ Die Änderungen sind anhand der funktionalen Commits chronologisch gegliedert. A
 - Das Modul ruft produktiv kein `IPS_SetVariableCustomPresentation()` mehr auf und bietet keine Aktion mehr an, um vorhandene Custom-Presentations nachträglich zu überschreiben oder zu entfernen. Damit bleibt die Darstellungs-Hoheit nach der Erstellung vollständig beim Anwender.
 - Neue Variablen verwenden bevorzugt moderne RegisterVariable-Darstellungen oder bleiben ohne Modulprofil. Symcon-Standardprofile werden nicht mehr als Modulvorgabe gesetzt.
 - Nicht beschreibbare Enum-/String-Statusvariablen erhalten keine interaktive Aufzaehlungsdarstellung mehr, weil diese in Symcon eine Variablenaktion voraussetzt. Schreibbare Enums bleiben weiterhin als bedienbare Aufzaehlung erhalten.
-- Bestehende Variablen behalten ihr Modulprofil. `ApplyChanges` entfernt oder ueberschreibt vorhandene Profile nicht nur deshalb, weil inzwischen eine passende moderne Darstellung verfuegbar waere.
+- Bestehende Variablen werden beim erneuten Registrieren nicht mehr kuenstlich an alte Modulprofile gebunden. Wenn eine passende moderne Darstellung verfuegbar ist, wird diese als Modul-Standarddarstellung gesetzt; andernfalls bleibt die Variable ohne Modulprofil. Benutzerdefinierte Profile und Darstellungen bleiben unangetastet.
 - Die Geräte-Konfiguration zeigt keine eigene Aktion zum erneuten Anwenden empfohlener Darstellungen mehr. Die Dokumentation beschreibt stattdessen die Trennung zwischen initialer Modul-Empfehlung und späterer Benutzeranpassung.
 - Die Hauptdokumentation trennt die Begriffe Spezialkachel/Visualisierung, Variablendarstellung und Variablenprofil ausdrücklich, damit eigene HTML-SDK-Kacheln nicht mit Symcon-Variablendarstellungen oder Profilen vermischt werden.
 - Die Discovery kann `mqtts://`-Broker mit lokalen selbstsignierten Zertifikaten erreichen, wenn der Anwender die TLS-Zertifikats- oder Hostnamenprüfung bewusst deaktiviert. Sichere TLS-Prüfung bleibt der Standard und es gibt keinen automatischen Fallback auf `mqtt://`.
@@ -492,7 +492,7 @@ Die Änderungen sind anhand der funktionalen Commits chronologisch gegliedert. A
 - Preset-Variablen wie `color_temp_presets` nutzen nun eine native Symcon-Aufzählungsdarstellung und erzeugen keine dynamischen `Z2M.*_Presets`-Profile mehr.
 - Abgeleitete Kelvin-Farbtemperaturvariablen übernehmen bei bestehenden Variablen aktualisierte Konfigurationswerte für den Kelvin-Bereich und bleiben damit mit den Geräteoptionen der Instanz synchron.
 - Die letzten dynamischen Profil-Fallbacks fuer generische numerische Werte, Binary-Exposes, State-Aufzaehlungen, Verfuegbarkeitsstatus sowie Bridge-Loglevel und Bridge-Neustart wurden auf native Symcon-Darstellungen umgestellt. Neue Variablen erzeugen dadurch keine Profile wie `Z2M.ac_frequency`, `Z2M.target_distance`, `Z2M.state.*`, `Z2M.DeviceStatus` oder `Z2M.bridge.*` mehr.
-- Bestehende Variablen behalten ihr bisheriges Modulprofil, wenn dieses bereits gesetzt ist. Die Aenderung betrifft neu registrierte beziehungsweise erneut angelegte Variablen.
+- Bestehende Variablen mit alter Modulprofil-Zuweisung werden beim erneuten Registrieren nicht mehr auf dieses Profil zurueckgefuehrt. Wenn eine passende Darstellung verfuegbar ist, wird diese als Modul-Standarddarstellung gesetzt; andernfalls bleibt die Variable ohne Modulprofil. Benutzerdefinierte Profile und Darstellungen bleiben unangetastet.
 
 ### 27. Juni 2026: Native Farbdarstellung für Leuchtmittel
 
