@@ -119,6 +119,48 @@ trait VariablePresentationHelper
     }
 
     /**
+     * Erstellt fuer Unix-Zeitstempel eine native Datum/Uhrzeit-Darstellung.
+     */
+    protected function BuildDateTimePresentation(): ?array
+    {
+        if (!$this->SupportsDateTimePresentation()) {
+            return null;
+        }
+
+        return [
+            'PRESENTATION' => \constant('VARIABLE_PRESENTATION_DATE_TIME')
+        ];
+    }
+
+    /**
+     * Formatiert Variablenwerte nur dann ueber Symcon, wenn hinterlegte Profile noch existieren.
+     *
+     * Alte Z2M.*-Profile koennen vom Anwender geloescht worden sein. GetValueFormatted()
+     * meldet dann einen Symcon-Warning, bevor unser Code auf einen Fallback wechseln kann.
+     */
+    protected function GetValueFormattedSafe(int $variableID): ?string
+    {
+        if (!\function_exists('GetValueFormatted')) {
+            return null;
+        }
+
+        try {
+            $variable = IPS_GetVariable($variableID);
+            foreach (['VariableCustomProfile', 'VariableProfile'] as $profileField) {
+                $profileName = (string) ($variable[$profileField] ?? '');
+                if ($profileName !== '' && !IPS_VariableProfileExists($profileName)) {
+                    $this->SendDebug(__FUNCTION__, \sprintf('Skipping formatted value for #%d because profile "%s" is missing.', $variableID, $profileName), 0);
+                    return null;
+                }
+            }
+
+            return GetValueFormatted($variableID);
+        } catch (\Throwable) {
+            return null;
+        }
+    }
+
+    /**
      * Liefert den Kelvin-Bereich fuer die Farbtemperaturdarstellung.
      */
     private function GetColorTemperaturePresentationRange(array $feature): array
@@ -877,6 +919,14 @@ trait VariablePresentationHelper
     private function SupportsDurationPresentation(): bool
     {
         return \defined('VARIABLE_PRESENTATION_DURATION');
+    }
+
+    /**
+     * Prueft, ob Datum/Uhrzeit-Darstellungen verfuegbar sind.
+     */
+    private function SupportsDateTimePresentation(): bool
+    {
+        return \defined('VARIABLE_PRESENTATION_DATE_TIME');
     }
 
     /**

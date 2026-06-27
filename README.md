@@ -501,6 +501,8 @@ Die Änderungen sind anhand der funktionalen Commits chronologisch gegliedert. A
 - RGB-, HS- und XY-Farb-Exposes registrieren ihre Farbvariable ohne Modulprofil mit der nativen Symcon-Farbdarstellung für Hex/sRGB-Farbwerte. Die Symcon-Standardkachel für RGB-Leuchtmittel kann dadurch den ColorHex-Wert verwenden, ohne dass `~Color` oder ein dynamisches `Z2M.*`-Profil benötigt wird.
 - Reine Tunable-White-Leuchtmittel behalten ihre abgeleitete `color`-Variable ohne Modulprofil. Diese Variable nutzt nun ebenfalls die native Hex/sRGB-Farbdarstellung, damit der berechnete Weißton in der Tile-Visualisierung als Farbe nutzbar bleibt.
 - Composite-Farb-Exposes wie `color_xy`, `color_hs` und `color_rgb` werden weiterhin auf die passende Farbvariable zusammengeführt. Technische Untervariablen werden dabei nicht angelegt.
+- `last_seen` verwendet als Modul-Standard nun die native Symcon-Darstellung **Datum/Uhrzeit**. `update__remaining` bleibt eine Restdauer in Sekunden und verwendet die native Darstellung **Dauer**.
+- Spezialkacheln und der Debug-Export formatieren Variablenwerte nur noch über Symcon, wenn hinterlegte Altprofile noch existieren. Dadurch lösen gelöschte alte `Z2M.*`-Profile keine Laufzeitwarnungen mehr aus; die Kacheln fallen stattdessen auf eine einfache Wertdarstellung zurück.
 
 **Version 5.42:**  
 

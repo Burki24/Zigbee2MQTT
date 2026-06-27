@@ -1000,10 +1000,10 @@ abstract class ModulBase extends \IPSModuleStrict
             }
             $var = IPS_GetVariable($childID);
             $DebugData['Childs'][$childID] = IPS_GetObject($childID) + $var;
-            if ($var['VariableCustomProfile'] != '') {
+            if ($var['VariableCustomProfile'] != '' && IPS_VariableProfileExists($var['VariableCustomProfile'])) {
                 $DebugData['Profile'][$var['VariableCustomProfile']] = IPS_GetVariableProfile($var['VariableCustomProfile']);
             }
-            if ($var['VariableProfile'] != '') {
+            if ($var['VariableProfile'] != '' && IPS_VariableProfileExists($var['VariableProfile'])) {
                 $DebugData['Profile'][$var['VariableProfile']] = IPS_GetVariableProfile($var['VariableProfile']);
             }
         }
@@ -4591,10 +4591,11 @@ abstract class ModulBase extends \IPSModuleStrict
             $value = $this->adjustSpecialValue($ident, $feature['value']);
         }
 
-        $isNewVariable = $this->GetObjectIDByIdent($ident) === false;
         $profileOrPresentation = '';
-        if ($isNewVariable && $ident === 'update__remaining') {
+        if ($ident === 'update__remaining') {
             $profileOrPresentation = $this->BuildDurationPresentation() ?? $profileOrPresentation;
+        } elseif ($ident === 'last_seen') {
+            $profileOrPresentation = $this->BuildDateTimePresentation() ?? $profileOrPresentation;
         }
         $this->RecordLegacyProfilePresentationReplacement($ident, $profileOrPresentation);
         switch ($varDef['type']) {

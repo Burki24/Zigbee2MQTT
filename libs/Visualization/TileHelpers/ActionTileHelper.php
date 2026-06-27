@@ -284,12 +284,10 @@ trait ActionTileHelper
             return $value ? $this->Translate('On') : $this->Translate('Off');
         }
 
-        if ($variableID !== null && \function_exists('GetValueFormatted')) {
-            try {
-                return GetValueFormatted($variableID);
-            } catch (\Throwable) {
-                // Bei sehr neuen Presentations koennen Test-Stubs oder aeltere Systeme
-                // die Formatierung noch nicht kennen. Die Kachel bleibt trotzdem nutzbar.
+        if ($variableID !== null) {
+            $formatted = $this->GetValueFormattedSafe($variableID);
+            if ($formatted !== null) {
+                return $formatted;
             }
         }
 

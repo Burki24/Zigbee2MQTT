@@ -238,14 +238,13 @@ trait WindowHandleTileHelper
             return $this->MapWindowHandleTilePositionText($text);
         }
 
-        if ($variableID !== false && \function_exists('GetValueFormatted')) {
-            try {
-                $formatted = strtolower(trim((string) GetValueFormatted($variableID)));
+        if ($variableID !== false) {
+            $formatted = $this->GetValueFormattedSafe($variableID);
+            if ($formatted !== null) {
+                $formatted = strtolower(trim($formatted));
                 if ($formatted !== '') {
                     return $this->MapWindowHandleTilePositionText($formatted);
                 }
-            } catch (\Throwable) {
-                // Fallback auf Unknown.
             }
         }
 
@@ -286,12 +285,10 @@ trait WindowHandleTileHelper
         if (\is_bool($value)) {
             return $value ? $this->Translate('On') : $this->Translate('Off');
         }
-        if ($variableID !== null && \function_exists('GetValueFormatted')) {
-            try {
-                return GetValueFormatted($variableID);
-            } catch (\Throwable) {
-                // Bei sehr neuen Presentations koennen Test-Stubs oder aeltere Systeme
-                // die Formatierung noch nicht kennen. Die Kachel bleibt trotzdem nutzbar.
+        if ($variableID !== null) {
+            $formatted = $this->GetValueFormattedSafe($variableID);
+            if ($formatted !== null) {
+                return $formatted;
             }
         }
 

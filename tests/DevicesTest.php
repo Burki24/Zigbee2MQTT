@@ -1906,6 +1906,17 @@ class DevicesTest extends DumpInclude
         $this->assertSame([], $presentation);
     }
 
+    public function testLastSeenUsesDateTimePresentation(): void
+    {
+        [$iid] = $this->createTestInstance('BMCT-SLZ.json');
+
+        $lastSeenID = IPS_GetObjectIDByIdent('last_seen', $iid);
+        $this->assertNotFalse($lastSeenID);
+
+        $presentation = IPS_GetVariable($lastSeenID)['VariablePresentation'];
+        $this->assertSame(VARIABLE_PRESENTATION_DATE_TIME, $presentation['PRESENTATION']);
+    }
+
     public function testS4SW001P8EUMeteredSwitchShowsExtendedMeasurements()
     {
         [$iid] = $this->createTestInstance('S4SW-001P8EU.json');
