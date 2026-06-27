@@ -35,7 +35,29 @@
                     "property": "color_temp",
                     "unit": "mired",
                     "value_min": 153,
-                    "value_max": 555
+                    "value_max": 555,
+                    "presets": [
+                        {
+                            "name": "coolest",
+                            "value": 153
+                        },
+                        {
+                            "name": "cool",
+                            "value": 250
+                        },
+                        {
+                            "name": "neutral",
+                            "value": 370
+                        },
+                        {
+                            "name": "warm",
+                            "value": 454
+                        },
+                        {
+                            "name": "warmest",
+                            "value": 555
+                        }
+                    ]
                 }
             ]
         }

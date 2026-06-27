@@ -404,7 +404,7 @@ trait VariableCatalogHelper
         $this->$registerFunc(
             $ident,
             $this->Translate($this->convertLabelToName($ident)),
-            $varType['profile']
+            $varType['presentation']
         );
         $this->MarkVariableCreated($ident);
         $this->SetValue($ident, $value);
@@ -622,6 +622,90 @@ trait VariableCatalogHelper
             $validExposeIdents = array_merge($validExposeIdents, $this->RememberExposeFeatureRecursive($expose));
         }
         $this->RemoveStaleExposeCatalogEntries($validExposeIdents);
+    }
+
+    /**
+     * Wendet aktuelle Modul-Standardprofile und -darstellungen erneut auf bereits vorhandene Expose-Variablen an.
+     *
+     * Dabei werden keine fehlenden Variablen neu erzeugt. Die erneute Registrierung nutzt
+     * nur vorhandene Expose-Daten und bleibt damit innerhalb der Modul-Standarddarstellung;
+     * benutzerdefinierte Darstellungen in Symcon behalten ihre hoehere Prioritaet.
+     */
+    private function RefreshExistingExposeVariableRegistrations(?array $exposes = null): void
+    {
+        $exposes ??= $this->ReadAttributeArray(self::ATTRIBUTE_EXPOSES);
+        foreach ($exposes as $expose) {
+            if (\is_array($expose)) {
+                $this->RefreshExistingExposeFeatureRegistration($expose);
+            }
+        }
+    }
+
+    /**
+     * Aktualisiert ein vorhandenes Expose-Feature rekursiv.
+     */
+    private function RefreshExistingExposeFeatureRegistration(array $feature, ?string $groupType = null): void
+    {
+        if (isset($feature['group_type']) && \is_string($feature['group_type'])) {
+            $groupType = $feature['group_type'];
+        } elseif (isset($feature['features'])
+            && \is_array($feature['features'])
+            && \in_array($feature['type'] ?? '', ['light', 'switch', 'lock', 'cover', 'climate', 'fan', 'text'], true)
+        ) {
+            $groupType = (string) $feature['type'];
+        }
+        if ($groupType !== null) {
+            $feature['group_type'] = $groupType;
+        }
+
+        if (isset($feature['color_mode'])) {
+            return;
+        }
+
+        if ($this->IsExposeCompositeContainer($feature)) {
+            $parentIdent = $this->NormalizeVariableIdent((string) ($feature['property'] ?? ''));
+            $parentLabel = (string) ($feature['label'] ?? $this->FormatVariableCatalogLabel($parentIdent));
+            foreach ($feature['features'] as $subFeature) {
+                if (\is_array($subFeature)) {
+                    $this->RefreshExistingExposeFeatureRegistration(
+                        $this->BuildCompositeSubFeature($subFeature, $parentIdent, $parentLabel),
+                        $groupType
+                    );
+                }
+            }
+
+            return;
+        }
+
+        $property = (string) ($feature['property'] ?? '');
+        $ident = $this->NormalizeVariableIdent($property);
+        $hasExistingVariable = $ident !== '' && $this->GetObjectIDByIdent($ident) !== false;
+        $hasExistingDerivedVariable = $property === 'color_temp'
+            && $this->GetObjectIDByIdent('color_temp_kelvin') !== false;
+        $hasExistingPresetVariable = $property !== ''
+            && isset($feature['presets'])
+            && \is_array($feature['presets'])
+            && $this->GetObjectIDByIdent($property . '_presets') !== false;
+
+        if ($hasExistingVariable || $hasExistingDerivedVariable) {
+            $this->registerVariable($feature);
+        }
+        if ($hasExistingPresetVariable) {
+            $variableType = $this->getVariableTypeFromFeature(
+                (string) ($feature['type'] ?? 'numeric'),
+                $property,
+                isset($feature['unit']) && \is_string($feature['unit']) ? $feature['unit'] : '',
+                isset($feature['value_step']) ? (float) $feature['value_step'] : 1.0,
+                $groupType
+            );
+            $this->registerPresetVariables($feature['presets'], $property, $variableType, $feature);
+        }
+
+        foreach ($feature['features'] ?? [] as $subFeature) {
+            if (\is_array($subFeature)) {
+                $this->RefreshExistingExposeFeatureRegistration($subFeature, $groupType);
+            }
+        }
     }
 
     /**

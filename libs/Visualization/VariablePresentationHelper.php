@@ -10,47 +10,51 @@ namespace Zigbee2MQTT;
 trait VariablePresentationHelper
 {
     /**
-     * Setzt automatisch eine passende Tile-Darstellung fuer bekannte Expose-Typen.
+     * Erstellt eine passende Variablendarstellung fuer bekannte Expose-Typen.
+     *
+     * Die Darstellung wird an die RegisterVariable*-Methoden uebergeben und
+     * setzt damit die Modul-Standarddarstellung. Benutzerdefinierte
+     * Darstellungen bleiben Symcon-seitig unangetastet.
      */
-    protected function ApplyFeaturePresentation(string $ident, array $feature, ?string $groupType = null, bool $allowChange = false): void
+    protected function BuildFeaturePresentation(array $feature, ?string $groupType = null, string $profileName = ''): ?array
     {
-        if (!$allowChange || !isset($feature['type'])) {
-            return;
+        if (!isset($feature['type'])) {
+            return null;
         }
 
-        if ($this->ApplyShutterFeaturePresentation($ident, $feature, $groupType)) {
-            return;
+        $shutterPresentation = $this->BuildShutterFeaturePresentation($feature, $groupType);
+        if ($shutterPresentation !== null) {
+            return $shutterPresentation;
+        }
+
+        if ($this->IsColorPresentationFeature($feature)) {
+            return $this->BuildColorPresentation();
         }
 
         switch ($feature['type']) {
             case 'binary':
-                $this->ApplyBinaryFeaturePresentation($ident, $feature);
-                return;
+                return $this->BuildBinaryFeaturePresentation($feature, $profileName);
             case 'numeric':
-                $this->ApplyNumericFeaturePresentation($ident, $feature, $groupType);
-                return;
+                return $this->BuildNumericFeaturePresentation($feature, $groupType);
             case 'enum':
-                $this->ApplyEnumerationPresentation($ident, $feature);
-                return;
+                return $this->BuildEnumerationPresentation($feature);
         }
+
+        return null;
     }
 
     /**
-     * Setzt fuer die Kelvin-Farbtemperaturvariable die moderne Tile-Darstellung.
+     * Erstellt fuer die Kelvin-Farbtemperaturvariable die moderne Variablendarstellung.
      *
      * Zigbee2MQTT liefert color_temp in Mired. Fuer die Bedienung in der Tile-Visu
      * wird die zusaetzliche color_temp_kelvin-Variable verwendet und der Bereich
      * aus den Mired-Grenzen des Exposes nach Kelvin umgerechnet.
      */
-    protected function ApplyColorTemperaturePresentation(string $ident, array $feature, bool $allowChange = false): void
+    protected function BuildColorTemperaturePresentation(array $feature): ?array
     {
-        if (!$allowChange) {
-            return;
-        }
-
         [$minKelvin, $maxKelvin] = $this->GetColorTemperaturePresentationRange($feature);
 
-        $this->ApplySliderPresentation($ident, [
+        return $this->BuildSliderPresentation([
             'MIN'                 => $minKelvin,
             'MAX'                 => $maxKelvin,
             'STEP_SIZE'           => 1,
@@ -64,109 +68,96 @@ trait VariablePresentationHelper
     }
 
     /**
-     * Setzt fuer Sekundenwerte eine lesbare Dauerdarstellung.
+     * Erstellt die native Farbdarstellung fuer RGB/Hex-Farbvariablen.
+     *
+     * Die zugehoerigen Variablen speichern den Farbwert als Integer im Format 0xRRGGBB.
      */
-    protected function ApplyDurationPresentation(string $ident, bool $allowChange = false): void
+    protected function BuildColorPresentation(): ?array
     {
-        if (!$allowChange || !$this->SupportsDurationPresentation()) {
-            return;
+        if (!\defined('VARIABLE_PRESENTATION_COLOR')) {
+            return null;
         }
 
-        $variableID = $this->GetObjectIDByIdent($ident);
-        if ($variableID === false) {
-            return;
+        return [
+            'PRESENTATION' => \constant('VARIABLE_PRESENTATION_COLOR'),
+            'ENCODING'     => 0,
+            'COLOR_SPACE'  => 1
+        ];
+    }
+
+    /**
+     * Ermittelt, ob ein Feature als RGB/Hex-Farbvariable dargestellt werden soll.
+     */
+    private function IsColorPresentationFeature(array $feature): bool
+    {
+        $property = strtolower((string) ($feature['property'] ?? ''));
+        $name = strtolower((string) ($feature['name'] ?? ''));
+
+        if ($property === 'color') {
+            return true;
         }
 
-        $variable = IPS_GetVariable($variableID);
-        if (($variable['VariableAction'] ?? 0) !== 0 || ($variable['VariableCustomAction'] ?? 0) !== 0) {
-            return;
+        return \in_array($property, ['color_hs', 'color_rgb', 'color_xy'], true)
+            || \in_array($name, ['color_hs', 'color_rgb', 'color_xy'], true);
+    }
+
+    /**
+     * Erstellt fuer Sekundenwerte eine lesbare Dauerdarstellung.
+     */
+    protected function BuildDurationPresentation(): ?array
+    {
+        if (!$this->SupportsDurationPresentation()) {
+            return null;
         }
 
-        IPS_SetVariableCustomPresentation($variableID, [
+        return [
             'PRESENTATION'   => \constant('VARIABLE_PRESENTATION_DURATION'),
             'COUNTDOWN_TYPE' => 0,
             'FORMAT'         => 2,
             'MILLISECONDS'   => false
-        ]);
+        ];
     }
 
     /**
-     * Wendet die vom Modul empfohlenen Darstellungen nach ausdruecklicher Benutzeraktion an.
+     * Erstellt fuer Unix-Zeitstempel eine native Datum/Uhrzeit-Darstellung.
+     */
+    protected function BuildDateTimePresentation(): ?array
+    {
+        if (!$this->SupportsDateTimePresentation()) {
+            return null;
+        }
+
+        return [
+            'PRESENTATION' => \constant('VARIABLE_PRESENTATION_DATE_TIME')
+        ];
+    }
+
+    /**
+     * Formatiert Variablenwerte nur dann ueber Symcon, wenn hinterlegte Profile noch existieren.
      *
-     * Bestehende Custom-Presentations werden dabei bewusst ersetzt oder entfernt. Diese
-     * Methode darf daher nicht aus ApplyChanges oder der normalen Payload-Verarbeitung
-     * aufgerufen werden.
+     * Alte Z2M.*-Profile koennen vom Anwender geloescht worden sein. GetValueFormatted()
+     * meldet dann einen Symcon-Warning, bevor unser Code auf einen Fallback wechseln kann.
      */
-    protected function ApplyRecommendedVariablePresentations(): void
+    protected function GetValueFormattedSafe(int $variableID): ?string
     {
-        foreach ($this->ReadAttributeArray(self::ATTRIBUTE_VARIABLE_CATALOG) as $ident => $entry) {
-            if (!\is_array($entry) || !isset($entry['feature']) || !\is_array($entry['feature'])) {
-                continue;
-            }
-
-            $feature = $entry['feature'];
-            $this->ApplyFeaturePresentation(
-                (string) $ident,
-                $feature,
-                isset($feature['group_type']) ? (string) $feature['group_type'] : null,
-                true
-            );
+        if (!\function_exists('GetValueFormatted')) {
+            return null;
         }
 
-        $colorTemperatureFeature = $this->FindColorTemperatureFeature($this->ReadAttributeArray(self::ATTRIBUTE_EXPOSES));
-        if ($colorTemperatureFeature !== null) {
-            $this->ApplyColorTemperaturePresentation('color_temp_kelvin', $colorTemperatureFeature, true);
+        try {
+            $variable = IPS_GetVariable($variableID);
+            foreach (['VariableCustomProfile', 'VariableProfile'] as $profileField) {
+                $profileName = (string) ($variable[$profileField] ?? '');
+                if ($profileName !== '' && !IPS_VariableProfileExists($profileName)) {
+                    $this->SendDebug(__FUNCTION__, \sprintf('Skipping formatted value for #%d because profile "%s" is missing.', $variableID, $profileName), 0);
+                    return null;
+                }
+            }
+
+            return GetValueFormatted($variableID);
+        } catch (\Throwable) {
+            return null;
         }
-
-        $this->ApplyDurationPresentation('update__remaining', true);
-    }
-
-    /**
-     * Prueft, ob fuer mindestens eine vorhandene Variable eine Modul-Empfehlung existiert.
-     */
-    protected function HasRecommendedVariablePresentations(): bool
-    {
-        foreach ($this->ReadAttributeArray(self::ATTRIBUTE_VARIABLE_CATALOG) as $ident => $entry) {
-            if ($this->GetObjectIDByIdent((string) $ident) === false || !\is_array($entry)) {
-                continue;
-            }
-
-            $feature = $entry['feature'] ?? null;
-            if (\is_array($feature) && \in_array($feature['type'] ?? '', ['binary', 'numeric', 'enum'], true)) {
-                return true;
-            }
-        }
-
-        return $this->GetObjectIDByIdent('color_temp_kelvin') !== false
-            || $this->GetObjectIDByIdent('update__remaining') !== false;
-    }
-
-    /**
-     * Sucht das color_temp-Feature rekursiv in einem Expose-Baum.
-     */
-    private function FindColorTemperatureFeature(array $features): ?array
-    {
-        foreach ($features as $feature) {
-            if (!\is_array($feature)) {
-                continue;
-            }
-
-            if (($feature['property'] ?? null) === 'color_temp') {
-                return $feature;
-            }
-
-            $subFeatures = $feature['features'] ?? [];
-            if (!\is_array($subFeatures)) {
-                continue;
-            }
-
-            $subFeature = $this->FindColorTemperatureFeature($subFeatures);
-            if ($subFeature !== null) {
-                return $subFeature;
-            }
-        }
-
-        return null;
     }
 
     /**
@@ -238,22 +229,17 @@ trait VariablePresentationHelper
     }
 
     /**
-     * Setzt eine generische Schieberegler-Darstellung.
+     * Erstellt eine generische Schieberegler-Darstellung.
      *
      * Die Methode ist bewusst als Basis fuer weitere Tile-Visualisierungen gedacht.
      */
-    protected function ApplySliderPresentation(string $ident, array $presentation): void
+    protected function BuildSliderPresentation(array $presentation): ?array
     {
         if (!$this->SupportsCustomPresentation()) {
-            return;
+            return null;
         }
 
-        $variableID = $this->GetObjectIDByIdent($ident);
-        if ($variableID === false) {
-            return;
-        }
-
-        IPS_SetVariableCustomPresentation($variableID, array_merge([
+        return array_merge([
             'PRESENTATION'          => \constant('VARIABLE_PRESENTATION_SLIDER'),
             'MIN'                   => 0,
             'MAX'                   => 100,
@@ -270,32 +256,30 @@ trait VariablePresentationHelper
             'ICON'                  => '',
             'INTERVALS_ACTIVE'      => false,
             'INTERVALS'             => '[]'
-        ], $presentation));
+        ], $presentation);
     }
 
     /**
-     * Setzt fuer numerische Exposes mit Wertebereich eine Schieberegler-Darstellung.
+     * Erstellt fuer numerische Exposes eine passende moderne Darstellung.
+     *
+     * Schreibbare Werte mit Wertebereich werden als Slider dargestellt. Reine
+     * Statuswerte und Werte ohne Bereich erhalten eine Wertdarstellung, damit
+     * dafuer kein eigenes dynamisches Variablenprofil erzeugt werden muss.
      */
-    protected function ApplyNumericFeaturePresentation(string $ident, array $feature, ?string $groupType = null): void
+    protected function BuildNumericFeaturePresentation(array $feature, ?string $groupType = null): ?array
     {
-        if ($this->ShouldSuppressNumericSliderPresentation($ident, $feature)) {
-            $this->ResetCustomPresentation($ident);
-            return;
-        }
-
-        if ($this->IsThermometerValue($ident, $feature, $groupType)) {
-            $this->ApplyTemperatureValuePresentation($ident, $feature);
-            return;
+        if ($this->IsThermometerValue($feature, $groupType)) {
+            return $this->BuildTemperatureValuePresentation($feature);
         }
 
         if (!isset($feature['value_min'], $feature['value_max'])) {
-            return;
+            return $this->BuildNumericValuePresentation($feature);
         }
-        if (!isset($feature['access']) || (((int) $feature['access'] & 2) !== 2)) {
-            return;
+        if (!$this->IsWritableFeature($feature)) {
+            return $this->BuildNumericValuePresentation($feature);
         }
 
-        $unit = isset($feature['unit']) && \is_string($feature['unit']) ? $feature['unit'] : '';
+        $unit = $this->GetNumericPresentationUnit($feature);
         $stepSize = isset($feature['value_step']) ? (float) $feature['value_step'] : 1.0;
         $digits = $this->GetDigitsFromStepSize($stepSize);
 
@@ -317,20 +301,148 @@ trait VariablePresentationHelper
             $presentation['USAGE_TYPE'] = 0;
         }
 
-        if ($this->IsRoomTemperatureSetpoint($ident, $feature, $groupType) && \defined('VARIABLE_TEMPLATE_SLIDER_ROOM_TEMPERATURE')) {
+        if ($this->IsRoomTemperatureSetpoint($feature, $groupType) && \defined('VARIABLE_TEMPLATE_SLIDER_ROOM_TEMPERATURE')) {
             $presentation['TEMPLATE'] = \constant('VARIABLE_TEMPLATE_SLIDER_ROOM_TEMPERATURE');
         }
 
-        $this->ApplySliderPresentation($ident, $presentation);
+        return $this->BuildSliderPresentation($presentation);
+    }
+
+    /**
+     * Erstellt fuer nicht schreibbare numerische Statuswerte eine native Wertdarstellung.
+     */
+    private function BuildNumericValuePresentation(array $feature): ?array
+    {
+        if (!$this->SupportsValuePresentation()) {
+            return null;
+        }
+
+        [$min, $max] = $this->GetNumericPresentationRange($feature);
+        $unit = $this->GetNumericPresentationUnit($feature);
+        return [
+            'PRESENTATION'        => \constant('VARIABLE_PRESENTATION_VALUE_PRESENTATION'),
+            'ICON'                => $this->GetNumericPresentationIcon($feature),
+            'COLOR'               => -1,
+            'PREFIX'              => '',
+            'SUFFIX'              => $unit === '' ? '' : ' ' . $unit,
+            'USAGE_TYPE'          => 0,
+            'PERCENTAGE'          => $unit === '%',
+            'MIN'                 => $min,
+            'MAX'                 => $max,
+            'THOUSANDS_SEPARATOR' => '',
+            'DIGITS'              => $this->GetNumericPresentationDigits($feature),
+            'DECIMAL_SEPARATOR'   => 'Client',
+            'INTERVALS_ACTIVE'    => false,
+            'INTERVALS'           => '[]'
+        ];
+    }
+
+    /**
+     * Liefert einen robusten Wertebereich fuer generische Wertanzeigen.
+     */
+    private function GetNumericPresentationRange(array $feature): array
+    {
+        if (isset($feature['value_min'], $feature['value_max'])) {
+            $min = (float) $feature['value_min'];
+            $max = (float) $feature['value_max'];
+        } else {
+            $property = strtolower((string) ($feature['property'] ?? $feature['name'] ?? ''));
+            $unit = $this->GetNumericPresentationUnit($feature);
+            $min = 0.0;
+            $max = 1.0;
+
+            if ($unit === '%' || $property === 'battery' || strpos($property, 'humidity') !== false || strpos($property, 'moisture') !== false || strpos($property, 'factor') !== false) {
+                $max = 100.0;
+            } elseif ($unit === 'Hz' || strpos($property, 'frequency') !== false) {
+                $max = 100.0;
+            } elseif ($unit === 'm' || strpos($property, 'distance') !== false) {
+                $max = 100.0;
+            } elseif ($unit === 's' || strpos($property, 'time') !== false) {
+                $max = 86400.0;
+            } elseif ($unit === 'V') {
+                $max = 400.0;
+            } elseif (\in_array($unit, ['A', 'W', 'kWh'], true)) {
+                $max = 1000.0;
+            }
+        }
+
+        if ($min > $max) {
+            [$min, $max] = [$max, $min];
+        }
+        if ($min === $max) {
+            $max = $min + 1.0;
+        }
+
+        return [$min, $max];
+    }
+
+    /**
+     * Ermittelt sinnvolle Nachkommastellen fuer generische Wertanzeigen.
+     */
+    private function GetNumericPresentationDigits(array $feature): int
+    {
+        if (isset($feature['value_step'])) {
+            return $this->GetDigitsFromStepSize((float) $feature['value_step']);
+        }
+
+        $property = strtolower((string) ($feature['property'] ?? $feature['name'] ?? ''));
+        $unit = $this->GetNumericPresentationUnit($feature);
+
+        if ($unit === '°C') {
+            return 1;
+        }
+        if (\in_array($unit, ['Hz', 'm', 'V', 'A', 'W', 'kWh'], true)) {
+            return 2;
+        }
+        if (
+            strpos($property, 'temperature') !== false
+            || strpos($property, 'distance') !== false
+            || strpos($property, 'factor') !== false
+            || strpos($property, 'frequency') !== false
+            || strpos($property, 'power') !== false
+            || strpos($property, 'current') !== false
+            || strpos($property, 'voltage') !== false
+        ) {
+            return 2;
+        }
+
+        return 0;
+    }
+
+    /**
+     * Ermittelt eine Einheit fuer generische Wertanzeigen, auch wenn Z2M sie
+     * nur ueber die Property erkennen laesst.
+     */
+    private function GetNumericPresentationUnit(array $feature): string
+    {
+        if (isset($feature['unit']) && \is_string($feature['unit']) && trim($feature['unit']) !== '') {
+            return trim($feature['unit']);
+        }
+
+        $property = strtolower((string) ($feature['property'] ?? $feature['name'] ?? ''));
+        if (strpos($property, 'temperature') !== false || strpos($property, 'dewpoint') !== false) {
+            return '°C';
+        }
+        if (strpos($property, 'frequency') !== false) {
+            return 'Hz';
+        }
+        if (strpos($property, 'distance') !== false) {
+            return 'm';
+        }
+        if ($property === 'battery' || strpos($property, 'humidity') !== false || strpos($property, 'moisture') !== false || strpos($property, 'factor') !== false) {
+            return '%';
+        }
+
+        return '';
     }
 
     /**
      * Erkennt Solltemperaturen, die in Symcon als Raumtemperatur-Slider dargestellt werden sollen.
      */
-    private function IsRoomTemperatureSetpoint(string $ident, array $feature, ?string $groupType = null): bool
+    private function IsRoomTemperatureSetpoint(array $feature, ?string $groupType = null): bool
     {
         $effectiveGroupType = $groupType ?? ($feature['group_type'] ?? null);
-        $property = (string) ($feature['property'] ?? $ident);
+        $property = (string) ($feature['property'] ?? '');
 
         if ($effectiveGroupType !== 'climate') {
             return false;
@@ -346,10 +458,10 @@ trait VariablePresentationHelper
     /**
      * Erkennt reine Thermometerwerte, die als Symcon-Temperatur-Wertkachel dargestellt werden sollen.
      */
-    private function IsThermometerValue(string $ident, array $feature, ?string $groupType = null): bool
+    private function IsThermometerValue(array $feature, ?string $groupType = null): bool
     {
         $effectiveGroupType = $groupType ?? ($feature['group_type'] ?? null);
-        $property = (string) ($feature['property'] ?? $ident);
+        $property = (string) ($feature['property'] ?? '');
         $unit = isset($feature['unit']) && \is_string($feature['unit']) ? $feature['unit'] : '';
 
         if (($feature['type'] ?? '') !== 'numeric') {
@@ -365,95 +477,52 @@ trait VariablePresentationHelper
             return false;
         }
 
-        return !isset($feature['access']) || (((int) $feature['access'] & 2) !== 2);
+        return !$this->IsWritableFeature($feature);
     }
 
     /**
-     * Setzt fuer Cover-Positionswerte die native Symcon-Rollladen-Darstellung.
+     * Erstellt fuer Cover-Positionswerte die native Symcon-Rollladen-Darstellung.
      */
-    protected function ApplyShutterFeaturePresentation(string $ident, array $feature, ?string $groupType = null): bool
+    protected function BuildShutterFeaturePresentation(array $feature, ?string $groupType = null): ?array
     {
         $effectiveGroupType = $groupType ?? ($feature['group_type'] ?? null);
-        $property = (string) ($feature['property'] ?? $ident);
+        $property = (string) ($feature['property'] ?? '');
 
         if ($effectiveGroupType !== 'cover' || !\in_array($property, ['position', 'position_left', 'position_right'], true)) {
-            return false;
+            return null;
         }
         if (($feature['type'] ?? '') !== 'numeric') {
-            return false;
+            return null;
         }
         if (!$this->SupportsShutterPresentation()) {
-            return false;
-        }
-
-        $variableID = $this->GetObjectIDByIdent($ident);
-        if ($variableID === false) {
-            return true;
+            return null;
         }
 
         $min = isset($feature['value_min']) ? (float) $feature['value_min'] : 0.0;
         $max = isset($feature['value_max']) ? (float) $feature['value_max'] : 100.0;
 
-        IPS_SetVariableCustomPresentation($variableID, [
+        return [
             'PRESENTATION'        => \constant('VARIABLE_PRESENTATION_SHUTTER'),
             'USAGE_TYPE'          => 0,
             'OPEN_OUTSIDE_VALUE'  => $max,
             'CLOSE_INSIDE_VALUE'  => $min,
             'SUN_POSITION'        => 2
-        ]);
-
-        return true;
+        ];
     }
 
     /**
-     * Unterdrueckt Slider fuer Werte, die in Spezialkacheln gezielter bedient werden.
+     * Erstellt fuer reine Temperaturmesswerte die native Symcon-Temperatur-Wertanzeige.
      */
-    private function ShouldSuppressNumericSliderPresentation(string $ident, array $feature): bool
-    {
-        $property = (string) ($feature['property'] ?? $ident);
-        return \in_array($property, ['temperature_calibration', 'local_temperature_calibration'], true);
-    }
-
-    /**
-     * Entfernt eine zuvor gesetzte Custom Presentation.
-     */
-    private function ResetCustomPresentation(string $ident): void
-    {
-        if (!$this->SupportsCustomPresentation()) {
-            return;
-        }
-
-        $variableID = $this->GetObjectIDByIdent($ident);
-        if ($variableID === false) {
-            return;
-        }
-
-        $variable = IPS_GetVariable($variableID);
-        if (!isset($variable['VariableCustomPresentation']) || !\is_array($variable['VariableCustomPresentation']) || count($variable['VariableCustomPresentation']) === 0) {
-            return;
-        }
-
-        IPS_SetVariableCustomPresentation($variableID, []);
-    }
-
-    /**
-     * Setzt fuer reine Temperaturmesswerte die native Symcon-Temperatur-Wertanzeige.
-     */
-    private function ApplyTemperatureValuePresentation(string $ident, array $feature): void
+    private function BuildTemperatureValuePresentation(array $feature): ?array
     {
         if (!$this->SupportsValuePresentation()) {
-            return;
-        }
-
-        $variableID = $this->GetObjectIDByIdent($ident);
-        if ($variableID === false) {
-            return;
+            return null;
         }
 
         [$min, $max] = $this->GetTemperaturePresentationRange($feature);
 
         $unit = isset($feature['unit']) && \is_string($feature['unit']) ? $feature['unit'] : '°C';
-        IPS_SetVariableCustomPresentation($variableID, [
+        return [
             'PRESENTATION'        => \constant('VARIABLE_PRESENTATION_VALUE_PRESENTATION'),
             'ICON'                => 'temperature-half',
             'COLOR'               => -1,
@@ -468,7 +537,7 @@ trait VariablePresentationHelper
             'DECIMAL_SEPARATOR'   => 'Client',
             'INTERVALS_ACTIVE'    => false,
             'INTERVALS'           => '[]'
-        ]);
+        ];
     }
 
     /**
@@ -507,21 +576,60 @@ trait VariablePresentationHelper
     }
 
     /**
-     * Setzt fuer Enum-Exposes eine Aufzaehlungs-Darstellung.
+     * Erstellt fuer Enum-Exposes eine passende native Darstellung.
+     *
+     * Beschreibbare Enums erhalten die interaktive Aufzaehlung. Reine
+     * Statuswerte verwenden dagegen die normale Wertanzeige, weil die
+     * Aufzaehlungsdarstellung in Symcon eine Variablenaktion voraussetzt.
      */
-    protected function ApplyEnumerationPresentation(string $ident, array $feature): void
+    protected function BuildEnumerationPresentation(array $feature): ?array
     {
-        if (!$this->SupportsEnumerationPresentation() || !isset($feature['values']) || !\is_array($feature['values'])) {
-            return;
+        if (!isset($feature['values']) || !\is_array($feature['values'])) {
+            return null;
         }
 
-        $variableID = $this->GetObjectIDByIdent($ident);
-        if ($variableID === false) {
-            return;
+        $options = $this->BuildEnumerationPresentationOptions($feature['values']);
+        if ($this->IsWritableFeature($feature)) {
+            return $this->BuildWritableEnumerationPresentation($feature, $options);
         }
 
+        return $this->BuildReadOnlyEnumerationPresentation($feature, $options);
+    }
+
+    /**
+     * Erstellt fuer Zigbee2MQTT-Presets eine native Aufzaehlungsdarstellung.
+     *
+     * Presets werden bewusst nicht mehr als Variablenprofil angelegt. Die
+     * Darstellung wird als Modul-Standarddarstellung registriert, damit
+     * benutzerdefinierte Darstellungen in Symcon unangetastet bleiben.
+     */
+    protected function BuildPresetPresentation(array $presets, string $variableType, array $feature): ?array
+    {
+        if (!$this->SupportsEnumerationPresentation()) {
+            return null;
+        }
+
+        $options = $this->BuildPresetPresentationOptions($presets, $variableType, $feature);
+        if ($options === []) {
+            return null;
+        }
+
+        return [
+            'PRESENTATION' => \constant('VARIABLE_PRESENTATION_ENUMERATION'),
+            'OPTIONS'      => json_encode($options),
+            'LAYOUT'       => count($options) <= 3 ? 1 : 0,
+            'DISPLAY'      => 0,
+            'ICON'         => $this->GetEnumerationPresentationIcon($feature)
+        ];
+    }
+
+    /**
+     * Erstellt die Optionsliste fuer Enum-Darstellungen.
+     */
+    private function BuildEnumerationPresentationOptions(array $values): array
+    {
         $options = [];
-        foreach ($feature['values'] as $value) {
+        foreach ($values as $value) {
             $options[] = [
                 'Value'      => (string) $value,
                 'Caption'    => $this->CreatePresentationCaption((string) $value),
@@ -531,39 +639,103 @@ trait VariablePresentationHelper
             ];
         }
 
-        IPS_SetVariableCustomPresentation($variableID, [
+        return $options;
+    }
+
+    /**
+     * Erstellt die Optionsliste fuer Preset-Darstellungen.
+     */
+    private function BuildPresetPresentationOptions(array $presets, string $variableType, array $feature): array
+    {
+        $property = (string) ($feature['property'] ?? '');
+        if ($property !== '' && isset(self::$presetDefinitions[$property]['values']) && \is_array(self::$presetDefinitions[$property]['values'])) {
+            $options = [];
+            foreach (self::$presetDefinitions[$property]['values'] as $value => $caption) {
+                $options[] = $this->BuildPresetPresentationOption($value, (string) $caption, $variableType);
+            }
+            return $options;
+        }
+
+        $options = [];
+        foreach ($presets as $preset) {
+            if (!\is_array($preset) || !\array_key_exists('value', $preset)) {
+                continue;
+            }
+
+            $caption = isset($preset['name'])
+                ? ucwords(str_replace('_', ' ', (string) $preset['name']))
+                : (string) $preset['value'];
+
+            $options[] = $this->BuildPresetPresentationOption($preset['value'], $caption, $variableType);
+        }
+
+        return $options;
+    }
+
+    /**
+     * Normalisiert einen einzelnen Preset-Wert fuer die native Darstellung.
+     */
+    private function BuildPresetPresentationOption(mixed $value, string $caption, string $variableType): array
+    {
+        return [
+            'Value'      => $variableType === 'float' ? (float) $value : (int) $value,
+            'Caption'    => $this->Translate($caption),
+            'IconActive' => false,
+            'IconValue'  => '',
+            'Color'      => -1
+        ];
+    }
+
+    /**
+     * Erstellt fuer beschreibbare Enums die interaktive Aufzaehlung.
+     */
+    private function BuildWritableEnumerationPresentation(array $feature, array $options): ?array
+    {
+        if (!$this->SupportsEnumerationPresentation()) {
+            return null;
+        }
+
+        return [
             'PRESENTATION' => \constant('VARIABLE_PRESENTATION_ENUMERATION'),
             'OPTIONS'      => json_encode($options),
             'LAYOUT'       => count($options) <= 3 ? 1 : 0,
             'DISPLAY'      => 0,
             'ICON'         => $this->GetEnumerationPresentationIcon($feature)
-        ]);
+        ];
     }
 
     /**
-     * Setzt eine moderne Schalter-Darstellung nur fuer echte Standard-Schalter.
+     * Erstellt fuer nicht beschreibbare Enums eine reine Wertanzeige.
      */
-    protected function ApplyBinaryFeaturePresentation(string $ident, array $feature): void
+    private function BuildReadOnlyEnumerationPresentation(array $feature, array $options): ?array
     {
+        if (!$this->SupportsValuePresentation()) {
+            return null;
+        }
+
+        return [
+            'PRESENTATION' => \constant('VARIABLE_PRESENTATION_VALUE_PRESENTATION'),
+            'ICON'         => $this->GetEnumerationPresentationIcon($feature),
+            'COLOR'        => -1,
+            'PREFIX'       => '',
+            'SUFFIX'       => '',
+            'OPTIONS'      => json_encode($options)
+        ];
+    }
+
+    /**
+     * Erstellt eine native Darstellung fuer Binary-Exposes.
+     */
+    protected function BuildBinaryFeaturePresentation(array $feature, string $profileName = ''): ?array
+    {
+        if (!$this->IsWritableFeature($feature)) {
+            return $this->BuildBinaryValuePresentation($feature);
+        }
         if (!$this->SupportsSwitchPresentation()) {
-            return;
-        }
-        if (!isset($feature['access']) || (((int) $feature['access'] & 2) !== 2)) {
-            return;
+            return null;
         }
 
-        $variableID = $this->GetObjectIDByIdent($ident);
-        if ($variableID === false) {
-            return;
-        }
-
-        $variable = IPS_GetVariable($variableID);
-        $profileName = $variable['VariableCustomProfile'] !== '' ? $variable['VariableCustomProfile'] : $variable['VariableProfile'];
-        if ($profileName !== '~Switch') {
-            return;
-        }
-
-        IPS_SetVariableCustomPresentation($variableID, [
+        return [
             'PRESENTATION'     => \constant('VARIABLE_PRESENTATION_SWITCH'),
             'USE_ICON_FALSE'   => true,
             'ICON_TRUE'        => $this->GetBinaryPresentationIcon($feature, true),
@@ -571,15 +743,142 @@ trait VariablePresentationHelper
             'GLOW_COLOR'       => $this->GetBinaryGlowColor($feature),
             'GLOW_INTENSITY'   => 60,
             'USAGE_TYPE'       => 0
-        ]);
+        ];
     }
 
     /**
-     * Prueft, ob die laufende Symcon-Version moderne Custom Presentations unterstuetzt.
+     * Erstellt fuer nicht beschreibbare Binary-Exposes eine reine Wertanzeige.
+     */
+    private function BuildBinaryValuePresentation(array $feature): ?array
+    {
+        if (!$this->SupportsValuePresentation()) {
+            return null;
+        }
+
+        return [
+            'PRESENTATION' => \constant('VARIABLE_PRESENTATION_VALUE_PRESENTATION'),
+            'ICON'         => $this->GetBinaryPresentationIcon($feature, true),
+            'COLOR'        => -1,
+            'PREFIX'       => '',
+            'SUFFIX'       => '',
+            'OPTIONS'      => json_encode($this->BuildBinaryPresentationOptions($feature))
+        ];
+    }
+
+    /**
+     * Erstellt die Optionsliste fuer Binary-Wertanzeigen.
+     */
+    private function BuildBinaryPresentationOptions(array $feature): array
+    {
+        return [
+            [
+                'Value'      => false,
+                'Caption'    => $this->Translate($this->GetBinaryPresentationCaption($feature['value_off'] ?? false, 'Off')),
+                'IconActive' => false,
+                'IconValue'  => '',
+                'Color'      => -1
+            ],
+            [
+                'Value'      => true,
+                'Caption'    => $this->Translate($this->GetBinaryPresentationCaption($feature['value_on'] ?? true, 'On')),
+                'IconActive' => false,
+                'IconValue'  => '',
+                'Color'      => -1
+            ]
+        ];
+    }
+
+    /**
+     * Normalisiert Binary-Beschriftungen.
+     */
+    private function GetBinaryPresentationCaption(mixed $value, string $fallback): string
+    {
+        if (\is_bool($value)) {
+            return $fallback;
+        }
+
+        $caption = trim((string) $value);
+        if ($caption === '') {
+            return $fallback;
+        }
+
+        return $this->CreatePresentationCaption($caption);
+    }
+
+    /**
+     * Erstellt die native Wertanzeige fuer die Verfuegbarkeitsvariable.
+     */
+    protected function BuildDeviceStatusPresentation(): ?array
+    {
+        if (!$this->SupportsValuePresentation()) {
+            return null;
+        }
+
+        return [
+            'PRESENTATION' => \constant('VARIABLE_PRESENTATION_VALUE_PRESENTATION'),
+            'ICON'         => 'network',
+            'COLOR'        => -1,
+            'PREFIX'       => '',
+            'SUFFIX'       => '',
+            'OPTIONS'      => json_encode([
+                [
+                    'Value'      => false,
+                    'Caption'    => $this->Translate('Offline'),
+                    'IconActive' => false,
+                    'IconValue'  => '',
+                    'Color'      => 0xFF0000
+                ],
+                [
+                    'Value'      => true,
+                    'Caption'    => $this->Translate('Online'),
+                    'IconActive' => false,
+                    'IconValue'  => '',
+                    'Color'      => 0x00FF00
+                ]
+            ])
+        ];
+    }
+
+    /**
+     * Prueft, ob ein Expose durch den Anwender beschreibbar ist.
+     */
+    private function IsWritableFeature(array $feature): bool
+    {
+        return isset($feature['access']) && (((int) $feature['access'] & 2) === 2);
+    }
+
+    /**
+     * Erkennt einfache ON/OFF- und true/false-Schalter ohne semantisches Sonderprofil.
+     */
+    private function IsStandardBinaryPresentationFeature(array $feature): bool
+    {
+        if (!isset($feature['value_on'], $feature['value_off'])) {
+            return true;
+        }
+
+        $valueOn = $feature['value_on'];
+        $valueOff = $feature['value_off'];
+
+        if (\is_bool($valueOn) && \is_bool($valueOff)) {
+            return $valueOn !== $valueOff;
+        }
+        if (!\is_string($valueOn) || !\is_string($valueOff)) {
+            return false;
+        }
+
+        $normalizedOn = strtoupper($valueOn);
+        $normalizedOff = strtoupper($valueOff);
+
+        return ($normalizedOn === 'ON' && $normalizedOff === 'OFF')
+            || ($normalizedOn === 'TRUE' && $normalizedOff === 'FALSE');
+    }
+
+    /**
+     * Prueft, ob die laufende Symcon-Version moderne Variablendarstellungen unterstuetzt.
      */
     private function SupportsCustomPresentation(): bool
     {
-        return \function_exists('IPS_SetVariableCustomPresentation') && \defined('VARIABLE_PRESENTATION_SLIDER');
+        return \defined('VARIABLE_PRESENTATION_SLIDER');
     }
 
     /**
@@ -587,7 +886,7 @@ trait VariablePresentationHelper
      */
     private function SupportsEnumerationPresentation(): bool
     {
-        return \function_exists('IPS_SetVariableCustomPresentation') && \defined('VARIABLE_PRESENTATION_ENUMERATION');
+        return \defined('VARIABLE_PRESENTATION_ENUMERATION');
     }
 
     /**
@@ -595,7 +894,7 @@ trait VariablePresentationHelper
      */
     private function SupportsSwitchPresentation(): bool
     {
-        return \function_exists('IPS_SetVariableCustomPresentation') && \defined('VARIABLE_PRESENTATION_SWITCH');
+        return \defined('VARIABLE_PRESENTATION_SWITCH');
     }
 
     /**
@@ -603,7 +902,7 @@ trait VariablePresentationHelper
      */
     private function SupportsValuePresentation(): bool
     {
-        return \function_exists('IPS_SetVariableCustomPresentation') && \defined('VARIABLE_PRESENTATION_VALUE_PRESENTATION');
+        return \defined('VARIABLE_PRESENTATION_VALUE_PRESENTATION');
     }
 
     /**
@@ -611,7 +910,7 @@ trait VariablePresentationHelper
      */
     private function SupportsShutterPresentation(): bool
     {
-        return \function_exists('IPS_SetVariableCustomPresentation') && \defined('VARIABLE_PRESENTATION_SHUTTER');
+        return \defined('VARIABLE_PRESENTATION_SHUTTER');
     }
 
     /**
@@ -619,7 +918,15 @@ trait VariablePresentationHelper
      */
     private function SupportsDurationPresentation(): bool
     {
-        return \function_exists('IPS_SetVariableCustomPresentation') && \defined('VARIABLE_PRESENTATION_DURATION');
+        return \defined('VARIABLE_PRESENTATION_DURATION');
+    }
+
+    /**
+     * Prueft, ob Datum/Uhrzeit-Darstellungen verfuegbar sind.
+     */
+    private function SupportsDateTimePresentation(): bool
+    {
+        return \defined('VARIABLE_PRESENTATION_DATE_TIME');
     }
 
     /**

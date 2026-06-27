@@ -198,10 +198,10 @@ class DevicesTest extends DumpInclude
         $positionID = IPS_GetObjectIDByIdent('position', $iid);
         $this->assertNotFalse($positionID);
         $variable = IPS_GetVariable($positionID);
-        $this->assertSame('~Shutter.Reversed', $variable['VariableProfile']);
-        $this->assertSame(VARIABLE_PRESENTATION_SHUTTER, $variable['VariableCustomPresentation']['PRESENTATION'] ?? null);
-        $this->assertSame(100.0, $variable['VariableCustomPresentation']['OPEN_OUTSIDE_VALUE'] ?? null);
-        $this->assertSame(0.0, $variable['VariableCustomPresentation']['CLOSE_INSIDE_VALUE'] ?? null);
+        $this->assertSame('', $variable['VariableProfile']);
+        $this->assertSame(VARIABLE_PRESENTATION_SHUTTER, $variable['VariablePresentation']['PRESENTATION'] ?? null);
+        $this->assertSame(100.0, $variable['VariablePresentation']['OPEN_OUTSIDE_VALUE'] ?? null);
+        $this->assertSame(0.0, $variable['VariablePresentation']['CLOSE_INSIDE_VALUE'] ?? null);
 
         IPS_SetVariableCustomPresentation($positionID, [
             'PRESENTATION' => VARIABLE_PRESENTATION_SLIDER,
@@ -215,11 +215,10 @@ class DevicesTest extends DumpInclude
         $this->assertSame(10, $variable['VariableCustomPresentation']['MIN'] ?? null);
         $this->assertSame(90, $variable['VariableCustomPresentation']['MAX'] ?? null);
 
-        IPS\InstanceManager::getInstanceInterface($iid)->RequestAction('ConfirmApplyRecommendedPresentations', true);
         $variable = IPS_GetVariable($positionID);
-        $this->assertSame(VARIABLE_PRESENTATION_SHUTTER, $variable['VariableCustomPresentation']['PRESENTATION'] ?? null);
-        $this->assertSame(100.0, $variable['VariableCustomPresentation']['OPEN_OUTSIDE_VALUE'] ?? null);
-        $this->assertSame(0.0, $variable['VariableCustomPresentation']['CLOSE_INSIDE_VALUE'] ?? null);
+        $this->assertSame(VARIABLE_PRESENTATION_SLIDER, $variable['VariableCustomPresentation']['PRESENTATION'] ?? null);
+        $this->assertSame(10, $variable['VariableCustomPresentation']['MIN'] ?? null);
+        $this->assertSame(90, $variable['VariableCustomPresentation']['MAX'] ?? null);
     }
 
     public function testCoverStateActionKeepsEnumValue(): void
@@ -670,11 +669,14 @@ class DevicesTest extends DumpInclude
         $dewpointID = @IPS_GetObjectIDByIdent('dewpoint', $iid);
         $this->assertNotFalse($dewpointID);
         $this->assertSame('Taupunkt', IPS_GetName($dewpointID));
-        $this->assertSame(VARIABLETYPE_FLOAT, IPS_GetVariable($dewpointID)['VariableType']);
-        $this->assertSame('~Temperature', IPS_GetVariable($dewpointID)['VariableProfile']);
+        $dewpointVariable = IPS_GetVariable($dewpointID);
+        $this->assertSame(VARIABLETYPE_FLOAT, $dewpointVariable['VariableType']);
+        $this->assertSame('', $dewpointVariable['VariableProfile']);
+        $this->assertSame(VARIABLE_PRESENTATION_VALUE_PRESENTATION, $dewpointVariable['VariablePresentation']['PRESENTATION'] ?? null);
+        $this->assertSame(' °C', $dewpointVariable['VariablePresentation']['SUFFIX'] ?? null);
     }
 
-    public function testVariableSelectionCreatesPayloadOnlyDewpointWithTemperatureProfile(): void
+    public function testVariableSelectionCreatesPayloadOnlyDewpointWithTemperaturePresentation(): void
     {
         [$iid] = $this->createTestInstance('RTCGQ01LM.json');
         $catalog = $this->readStubAttributeArray($iid, 'VariableCatalog');
@@ -695,7 +697,40 @@ class DevicesTest extends DumpInclude
         $this->assertNotFalse($dewpointID);
         $this->assertSame('Taupunkt', IPS_GetName($dewpointID));
         $this->assertSame(VARIABLETYPE_FLOAT, IPS_GetVariable($dewpointID)['VariableType']);
-        $this->assertSame('~Temperature', IPS_GetVariable($dewpointID)['VariableProfile']);
+        $this->assertSame('', IPS_GetVariable($dewpointID)['VariableProfile']);
+    }
+
+    public function testVariableSelectionCreatesPayloadOnlySoilMoistureWithPercentagePresentation(): void
+    {
+        [$iid] = $this->createTestInstance('RTCGQ01LM.json');
+        $catalog = $this->readStubAttributeArray($iid, 'VariableCatalog');
+        $catalog['soil_moisture'] = [
+            'ident'     => 'soil_moisture',
+            'property'  => 'soil_moisture',
+            'label'     => 'Soil moisture',
+            'source'    => 'payload',
+            'type'      => 'numeric',
+            'created'   => false,
+            'lastValue' => 5.0,
+            'feature'   => [
+                'property' => 'soil_moisture',
+                'type'     => 'numeric'
+            ]
+        ];
+        $this->writeStubAttributeArray($iid, 'VariableCatalog', $catalog);
+
+        IPS_RequestAction($iid, 'ToggleVariableCreation', 'soil_moisture');
+
+        $soilMoistureID = @IPS_GetObjectIDByIdent('soil_moisture', $iid);
+        $this->assertNotFalse($soilMoistureID);
+        $soilMoistureVariable = IPS_GetVariable($soilMoistureID);
+        $this->assertSame(VARIABLETYPE_FLOAT, $soilMoistureVariable['VariableType']);
+        $this->assertSame('', $soilMoistureVariable['VariableProfile']);
+        $this->assertSame(VARIABLE_PRESENTATION_VALUE_PRESENTATION, $soilMoistureVariable['VariablePresentation']['PRESENTATION'] ?? null);
+        $this->assertSame(' %', $soilMoistureVariable['VariablePresentation']['SUFFIX'] ?? null);
+        $this->assertTrue($soilMoistureVariable['VariablePresentation']['PERCENTAGE'] ?? false);
+        $this->assertSame(0.0, $soilMoistureVariable['VariablePresentation']['MIN'] ?? null);
+        $this->assertSame(100.0, $soilMoistureVariable['VariablePresentation']['MAX'] ?? null);
     }
 
     public function testReceiveDataIgnoresPayloadFromDifferentDeviceTopic(): void
@@ -751,17 +786,44 @@ class DevicesTest extends DumpInclude
                 'values' => ['local', 'remote']
             ]
         ];
+        $catalog['generated_writable_enum'] = [
+            'ident'     => 'generated_writable_enum',
+            'property'  => 'generated_writable_enum',
+            'label'     => 'Generated Writable Enum',
+            'source'    => 'payload',
+            'type'      => 'enum',
+            'created'   => false,
+            'lastValue' => 'local',
+            'feature'   => [
+                'name'   => 'generated_writable_enum',
+                'type'   => 'enum',
+                'access' => 7,
+                'values' => ['local', 'remote']
+            ]
+        ];
         $this->writeStubAttributeArray($iid, 'VariableCatalog', $catalog);
 
         IPS_RequestAction($iid, 'ToggleVariableCreation', 'generated_binary');
         IPS_RequestAction($iid, 'ToggleVariableCreation', 'generated_enum');
+        IPS_RequestAction($iid, 'ToggleVariableCreation', 'generated_writable_enum');
 
         $binaryID = @IPS_GetObjectIDByIdent('generated_binary', $iid);
         $enumID = @IPS_GetObjectIDByIdent('generated_enum', $iid);
+        $writableEnumID = @IPS_GetObjectIDByIdent('generated_writable_enum', $iid);
         $this->assertNotFalse($binaryID);
         $this->assertNotFalse($enumID);
-        $this->assertSame('Z2M.generated_binary', IPS_GetVariable($binaryID)['VariableProfile']);
-        $this->assertStringStartsWith('Z2M.generated_enum.', IPS_GetVariable($enumID)['VariableProfile']);
+        $this->assertNotFalse($writableEnumID);
+        $binaryVariable = IPS_GetVariable($binaryID);
+        $this->assertSame('', $binaryVariable['VariableProfile']);
+        $this->assertSame(VARIABLE_PRESENTATION_VALUE_PRESENTATION, $binaryVariable['VariablePresentation']['PRESENTATION'] ?? null);
+        $enumVariable = IPS_GetVariable($enumID);
+        $this->assertSame('', $enumVariable['VariableProfile']);
+        $this->assertSame(VARIABLE_PRESENTATION_VALUE_PRESENTATION, $enumVariable['VariablePresentation']['PRESENTATION'] ?? null);
+        $this->assertFalse(HasAction($enumID));
+        $writableEnumVariable = IPS_GetVariable($writableEnumID);
+        $this->assertSame('', $writableEnumVariable['VariableProfile']);
+        $this->assertSame(VARIABLE_PRESENTATION_ENUMERATION, $writableEnumVariable['VariablePresentation']['PRESENTATION'] ?? null);
+        $this->assertTrue(HasAction($writableEnumID));
     }
 
     public function testVariableSelectionRefreshRemovesHistoricalEntriesWithoutDeletingVariables(): void
@@ -938,6 +1000,26 @@ class DevicesTest extends DumpInclude
         //$Debug['LastPayload'] ist leider unvollständig. Neues Z2M_Debug benötigt
         //$this->assertSame(self::count_recursive($Debug['LastPayload']) + $OffestLastPayload, count(IPS_GetChildrenIDs($iid)) + $OffsetChildrenIDs, 'Anzahl LastPayload ('.self::count_recursive($Debug['LastPayload']) + $OffestLastPayload.') und Erzeugte Variablen ('.count(IPS_GetChildrenIDs($iid)) + $OffsetChildrenIDs.') unterscheiden sich');
         $this->assertCount(0, self::getExportDebugData($iid)['missingTranslations'], 'Fehlende übersetzungen gefunden:' . var_export(self::getExportDebugData($iid)['missingTranslations'], true));
+
+        $calibrationID = IPS_GetObjectIDByIdent('local_temperature_calibration', $iid);
+        $this->assertNotFalse($calibrationID);
+        $presentation = IPS_GetVariable($calibrationID)['VariablePresentation'];
+        $this->assertSame(VARIABLE_PRESENTATION_SLIDER, $presentation['PRESENTATION'] ?? null);
+        $this->assertSame(-9.0, $presentation['MIN'] ?? null);
+        $this->assertSame(9.0, $presentation['MAX'] ?? null);
+        $this->assertSame(0.5, $presentation['STEP_SIZE'] ?? null);
+
+        IPS\VariableManager::setVariablePresentation((int) $calibrationID, [
+            'PRESENTATION' => VARIABLE_PRESENTATION_LEGACY,
+            'PROFILE'      => 'Z2M.local_temperature_calibration_-9_9'
+        ]);
+        IPS_ApplyChanges($iid);
+
+        $presentation = IPS_GetVariable($calibrationID)['VariablePresentation'];
+        $this->assertSame(VARIABLE_PRESENTATION_SLIDER, $presentation['PRESENTATION'] ?? null);
+        $this->assertSame(-9.0, $presentation['MIN'] ?? null);
+        $this->assertSame(9.0, $presentation['MAX'] ?? null);
+        $this->assertSame(0.5, $presentation['STEP_SIZE'] ?? null);
     }
 
     public function testRTCGQ01LM()
@@ -958,6 +1040,30 @@ class DevicesTest extends DumpInclude
         $status = $this->findFormItemByName($form, 'VisualizationStatus');
         $this->assertNotNull($status);
         $this->assertStringContainsString('Sensor-Kachel', $status['caption']);
+    }
+
+    public function testSensorTileTreatsSoilMoistureLikeHumidity(): void
+    {
+        [$iid] = $this->createTestInstance('RTCGQ01LM.json');
+        $this->writeStubAttributeArray($iid, 'Exposes', [
+            [
+                'name'     => 'soil_moisture',
+                'label'    => 'Soil moisture',
+                'access'   => 5,
+                'type'     => 'numeric',
+                'property' => 'soil_moisture'
+            ]
+        ]);
+
+        $soilMoistureID = IPS_CreateVariable(VARIABLETYPE_FLOAT);
+        IPS_SetParent($soilMoistureID, $iid);
+        IPS_SetIdent($soilMoistureID, 'soil_moisture');
+        IPS_SetName($soilMoistureID, 'Bodenfeuchtigkeit');
+        SetValue($soilMoistureID, 5.0);
+
+        $html = IPS\InstanceManager::getInstanceInterface($iid)->GetVisualizationTile();
+        $this->assertStringContainsString('"soil_moisture":{"type":"numeric","unit":"%"', $html);
+        $this->assertStringContainsString('"soil_moisture":{"available":true,"value":5,"formatted":"5 %"}', $html);
     }
 
     public function testMixedLightSensorKeepsStandardVisualization()
@@ -990,14 +1096,26 @@ class DevicesTest extends DumpInclude
         $colorID = IPS_GetObjectIDByIdent('color', $iid);
         $this->assertNotFalse($colorID);
         $variable = IPS_GetVariable($colorID);
-        $this->assertSame('~HexColor', $variable['VariableProfile']);
+        $this->assertSame('', $variable['VariableProfile']);
+        $this->assertSame(VARIABLE_PRESENTATION_COLOR, $variable['VariablePresentation']['PRESENTATION'] ?? null);
+        $this->assertSame(0, $variable['VariablePresentation']['ENCODING'] ?? null);
+        $this->assertSame(1, $variable['VariablePresentation']['COLOR_SPACE'] ?? null);
         $this->assertSame(0xFF9227, GetValue($colorID));
 
         $kelvinID = IPS_GetObjectIDByIdent('color_temp_kelvin', $iid);
         $this->assertNotFalse($kelvinID);
-        $presentation = IPS_GetVariable($kelvinID)['VariableCustomPresentation'];
+        $presentation = IPS_GetVariable($kelvinID)['VariablePresentation'];
         $this->assertSame(1801, $presentation['MIN']);
         $this->assertSame(6535, $presentation['MAX']);
+
+        $presetID = IPS_GetObjectIDByIdent('color_temp_presets', $iid);
+        $this->assertNotFalse($presetID);
+        $presetVariable = IPS_GetVariable($presetID);
+        $this->assertSame('', $presetVariable['VariableProfile']);
+        $this->assertSame(VARIABLE_PRESENTATION_ENUMERATION, $presetVariable['VariablePresentation']['PRESENTATION'] ?? null);
+        $presetOptions = json_decode($presetVariable['VariablePresentation']['OPTIONS'] ?? '[]', true);
+        $this->assertSame([153, 250, 370, 454, 555], array_column($presetOptions, 'Value'));
+        $this->assertSame(['Sehr kalt', 'Kalt', 'Neutral', 'Warm', 'Sehr warm'], array_column($presetOptions, 'Caption'));
 
         $form = json_decode(IPS_GetConfigurationForm($iid), true);
         $this->assertFormItemVisible($form, 'ColorTemperatureVisualization');
@@ -1006,12 +1124,7 @@ class DevicesTest extends DumpInclude
         IPS_SetProperty($iid, 'ColorTemperaturePresentationMax', 5000);
         IPS_ApplyChanges($iid);
 
-        $presentation = IPS_GetVariable($kelvinID)['VariableCustomPresentation'];
-        $this->assertSame(1801, $presentation['MIN']);
-        $this->assertSame(6535, $presentation['MAX']);
-
-        $interface->RequestAction('ConfirmApplyRecommendedPresentations', true);
-        $presentation = IPS_GetVariable($kelvinID)['VariableCustomPresentation'];
+        $presentation = IPS_GetVariable($kelvinID)['VariablePresentation'];
         $this->assertSame(2202, $presentation['MIN']);
         $this->assertSame(5000, $presentation['MAX']);
 
@@ -1636,10 +1749,6 @@ class DevicesTest extends DumpInclude
 
     public function testColorCompositeCatalogUsesSingleColorVariable()
     {
-        if (!IPS_VariableProfileExists('~HexColor')) {
-            IPS_CreateVariableProfile('~HexColor', VARIABLETYPE_INTEGER);
-        }
-
         [$iid, $Debug] = $this->createTestInstance('MixedLightSensor.json');
         $interface = IPS\InstanceManager::getInstanceInterface($iid);
         $topic = $Debug['Config']['MQTTBaseTopic'] . '/' . $Debug['Config']['MQTTTopic'];
@@ -1694,7 +1803,13 @@ class DevicesTest extends DumpInclude
 
         $catalog = $this->readStubAttributeArray($iid, 'VariableCatalog');
         $this->assertArrayHasKey('color', $catalog);
-        $this->assertNotFalse(@IPS_GetObjectIDByIdent('color', $iid));
+        $colorID = @IPS_GetObjectIDByIdent('color', $iid);
+        $this->assertNotFalse($colorID);
+        $colorVariable = IPS_GetVariable($colorID);
+        $this->assertSame('', $colorVariable['VariableProfile']);
+        $this->assertSame(VARIABLE_PRESENTATION_COLOR, $colorVariable['VariablePresentation']['PRESENTATION'] ?? null);
+        $this->assertSame(0, $colorVariable['VariablePresentation']['ENCODING'] ?? null);
+        $this->assertSame(1, $colorVariable['VariablePresentation']['COLOR_SPACE'] ?? null);
         foreach ($staleColorSubFeatures as $ident) {
             $this->assertArrayNotHasKey($ident, $catalog, 'Technical color subfeature must not stay in catalog: ' . $ident);
             $this->assertFalse(@IPS_GetObjectIDByIdent($ident, $iid), 'Technical color subfeature must not be created: ' . $ident);
@@ -1832,7 +1947,7 @@ class DevicesTest extends DumpInclude
         $this->assertNotFalse($remainingID);
         $this->assertSame(3285.0, GetValue($remainingID));
 
-        $presentation = IPS_GetVariable($remainingID)['VariableCustomPresentation'];
+        $presentation = IPS_GetVariable($remainingID)['VariablePresentation'];
         $this->assertSame(VARIABLE_PRESENTATION_DURATION, $presentation['PRESENTATION']);
         $this->assertSame(0, $presentation['COUNTDOWN_TYPE']);
         $this->assertSame(2, $presentation['FORMAT']);
@@ -1844,9 +1959,19 @@ class DevicesTest extends DumpInclude
         $presentation = IPS_GetVariable($remainingID)['VariableCustomPresentation'];
         $this->assertSame([], $presentation);
 
-        $interface->RequestAction('ConfirmApplyRecommendedPresentations', true);
         $presentation = IPS_GetVariable($remainingID)['VariableCustomPresentation'];
-        $this->assertSame(VARIABLE_PRESENTATION_DURATION, $presentation['PRESENTATION']);
+        $this->assertSame([], $presentation);
+    }
+
+    public function testLastSeenUsesDateTimePresentation(): void
+    {
+        [$iid] = $this->createTestInstance('BMCT-SLZ.json');
+
+        $lastSeenID = IPS_GetObjectIDByIdent('last_seen', $iid);
+        $this->assertNotFalse($lastSeenID);
+
+        $presentation = IPS_GetVariable($lastSeenID)['VariablePresentation'];
+        $this->assertSame(VARIABLE_PRESENTATION_DATE_TIME, $presentation['PRESENTATION']);
     }
 
     public function testS4SW001P8EUMeteredSwitchShowsExtendedMeasurements()

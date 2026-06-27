@@ -92,9 +92,13 @@ class Zigbee2MQTTDiscovery extends IPSModuleStrict
                     if ($Url['scheme'] === 'mqtts') {
                         $Config['Port'] = isset($Url['port']) ? $Url['port'] : 8883;
                         $Config['UseSSL'] = true;
+                        $Config['VerifyPeer'] = (bool) ($Config['VerifyPeer'] ?? true);
+                        $Config['VerifyHost'] = (bool) ($Config['VerifyHost'] ?? true);
                     } else {
                         $Config['Port'] = isset($Url['port']) ? $Url['port'] : 1883;
                         $Config['UseSSL'] = false;
+                        $Config['VerifyPeer'] = true;
+                        $Config['VerifyHost'] = true;
                     }
                     $Topics = $this->SearchBridges($Config);
                     if ($Topics == null) {
@@ -105,7 +109,7 @@ class Zigbee2MQTTDiscovery extends IPSModuleStrict
                             'caption',
                             $this->Translate(
                                 $Config['UseSSL']
-                                    ? 'The verified TLS connection failed. Check whether the certificate is trusted and valid for the configured hostname. Discovery never falls back to an unencrypted connection.'
+                                    ? 'The TLS connection failed. Check the broker address, port, credentials and TLS verification settings. Discovery never falls back to an unencrypted connection.'
                                     : 'The unencrypted MQTT connection failed. Check the broker address, port, credentials and whether anonymous access is permitted.'
                             )
                         );
@@ -123,6 +127,8 @@ class Zigbee2MQTTDiscovery extends IPSModuleStrict
                 $Config = $this->ManuelBrokerConfig;
                 if (count($Config)) {
                     $this->UpdateFormField('Url', 'value', $Config['Url']);
+                    $this->UpdateFormField('VerifyPeer', 'value', (bool) ($Config['VerifyPeer'] ?? true));
+                    $this->UpdateFormField('VerifyHost', 'value', (bool) ($Config['VerifyHost'] ?? true));
                     $this->UpdateFormField('UserName', 'value', $Config['UserName']);
                     $this->UpdateFormField('Password', 'value', $Config['Password']);
                 }
@@ -308,14 +314,20 @@ class Zigbee2MQTTDiscovery extends IPSModuleStrict
         $ClientId = IPS_GetName(0) . IPS_GetLicensee();
         $mqtt = new \Zigbee2MQTT\phpMQTT($Config['Host'], $Config['Port'], $ClientId);
         if ($Config['UseSSL']) {
+            $verifyPeer = (bool) ($Config['VerifyPeer'] ?? true);
+            $verifyHost = (bool) ($Config['VerifyHost'] ?? true);
+            $sslOptions = [
+                'verify_peer'       => $verifyPeer,
+                'verify_peer_name'  => $verifyHost,
+                'allow_self_signed' => !$verifyPeer,
+                'SNI_enabled'       => true
+            ];
+            if ($verifyHost) {
+                $sslOptions['peer_name'] = $Config['Host'];
+            }
             $mqtt->setSslContextOptions(
                 [
-                    'ssl' => [
-                        'verify_peer'      => true,
-                        'verify_peer_name' => true,
-                        'SNI_enabled'      => true,
-                        'peer_name'        => $Config['Host']
-                    ]
+                    'ssl' => $sslOptions
                 ]
             );
         }

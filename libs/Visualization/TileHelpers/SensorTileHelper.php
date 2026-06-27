@@ -316,7 +316,7 @@ trait SensorTileHelper
         $step = isset($feature['value_step']) ? (float) $feature['value_step'] : 0.0;
         $data = [
             'type'     => (string) ($feature['type'] ?? ''),
-            'unit'     => (string) ($feature['unit'] ?? ''),
+            'unit'     => $this->GetSensorTileUnit((string) ($feature['property'] ?? $feature['name'] ?? ''), $feature),
             'writable' => (((int) ($feature['access'] ?? 0)) & 2) > 0
         ];
 
@@ -336,6 +336,9 @@ trait SensorTileHelper
             $data['step'] = 0.1;
             $data['digits'] = 1;
         } elseif ($this->IsSensorTileIlluminanceFeature($feature)) {
+            $data['step'] = 1;
+            $data['digits'] = 0;
+        } elseif ($data['unit'] === '%') {
             $data['step'] = 1;
             $data['digits'] = 0;
         }
@@ -487,16 +490,14 @@ trait SensorTileHelper
 
         $feature = $this->FindSensorTileFeature($ident);
         if ($feature !== null && (($feature['type'] ?? '') === 'numeric')) {
-            $unit = (string) ($feature['unit'] ?? '');
+            $unit = $this->GetSensorTileUnit($ident, $feature);
             $digits = $this->GetSensorTileDigits($ident, $feature);
             return number_format((float) $value, $digits, ',', '.') . ($unit !== '' ? ' ' . $unit : '');
         }
-        if ($variableID !== null && \function_exists('GetValueFormatted')) {
-            try {
-                return GetValueFormatted($variableID);
-            } catch (\Throwable) {
-                // Bei sehr neuen Presentations koennen Test-Stubs oder aeltere Systeme
-                // die Formatierung noch nicht kennen. Die Kachel bleibt trotzdem nutzbar.
+        if ($variableID !== null) {
+            $formatted = $this->GetValueFormattedSafe($variableID);
+            if ($formatted !== null) {
+                return $formatted;
             }
         }
 
@@ -532,7 +533,7 @@ trait SensorTileHelper
         if ($feature !== null && $this->IsSensorTileTemperatureFeature($feature)) {
             return 1;
         }
-        $unit = (string) ($feature['unit'] ?? '');
+        $unit = $this->GetSensorTileUnit($ident, $feature);
         if ($unit === '%' || $unit === 'lqi') {
             return 0;
         }
@@ -541,6 +542,30 @@ trait SensorTileHelper
         }
 
         return 2;
+    }
+
+    /**
+     * Ermittelt fehlende Einheiten fuer Sensorwerte aus Ident oder Property.
+     */
+    private function GetSensorTileUnit(string $ident, ?array $feature): string
+    {
+        if ($feature !== null && isset($feature['unit']) && \is_string($feature['unit']) && trim($feature['unit']) !== '') {
+            return trim($feature['unit']);
+        }
+
+        $property = strtolower((string) ($feature['property'] ?? $feature['name'] ?? $ident));
+        $ident = strtolower($ident);
+        if (strpos($property, 'humidity') !== false || strpos($property, 'moisture') !== false || strpos($ident, 'humidity') !== false || strpos($ident, 'moisture') !== false) {
+            return '%';
+        }
+        if (strpos($property, 'illuminance') !== false || strpos($ident, 'illuminance') !== false) {
+            return 'lx';
+        }
+        if (strpos($property, 'linkquality') !== false || strpos($ident, 'linkquality') !== false) {
+            return 'lqi';
+        }
+
+        return '';
     }
 
     /**

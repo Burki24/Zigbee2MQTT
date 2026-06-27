@@ -19,9 +19,10 @@ Anbindung von [zigbee2mqtt](https://www.zigbee2mqtt.io) an IP-Symcon.
   - [3.3 Update von Modul Version 5.42 auf 6.0](#33-update-von-modul-version-542-auf-60)
   - [3.4 Installation der IP-Symcon Extension in Zigbee2MQTT](#34-installation-der-ip-symcon-extension-in-zigbee2mqtt)
 - [4. Konfiguration in IP-Symcon](#4-konfiguration-in-ip-symcon)
-  - [4.1 Tile-Visualisierung](#41-tile-visualisierung)
-  - [4.2 Variablenverwaltung](#42-variablenverwaltung)
-  - [4.3 Wartung verwaister Variablen](#43-wartung-verwaister-variablen)
+  - [4.1 Begriffe: Kacheln, Darstellungen und Profile](#41-begriffe-kacheln-darstellungen-und-profile)
+  - [4.2 Tile-Visualisierung](#42-tile-visualisierung)
+  - [4.3 Variablenverwaltung](#43-variablenverwaltung)
+  - [4.4 Wartung verwaister Variablen](#44-wartung-verwaister-variablen)
 - [5. Changelog](#5-changelog)
 - [6. Spenden](#6-spenden)
 - [7. Lizenz](#7-lizenz)
@@ -161,6 +162,14 @@ Weitere Schritte zur Ersteinrichtung sind unter dem [Zigbee2MQTT-Discovery](Disc
 
 Version 6.0 migriert die Module auf `IPSModuleStrict` und erweitert Geräte-, Gruppen- und Bridge-Instanzen deutlich. Bestehende Variablen werden beim Update nicht automatisch gelöscht. Objekt-IDs vorhandener Variablen bleiben erhalten. Trotzdem sollten die folgenden Schritte beachtet werden.
 
+#### Wichtiger Hinweis zu Variablenprofilen <!-- omit in toc -->
+
+Version 6.0/6.1 ersetzt die bisherige automatische Anlage und Pflege dynamischer `Z2M.*`-Variablenprofile durch moderne Symcon-Variablendarstellungen. Das ist eine bewusste Kompatibilitätsänderung gegenüber Version 5.42: neue und erneut registrierte Variablen erhalten keine neu erzeugten Modulprofile mehr, sondern nach Möglichkeit eine native Symcon-Darstellung oder bleiben ohne Modulprofil.
+
+Es gibt keine automatische Löschmigration für vorhandene `Z2M.*`-Profile. Bestehende Variablen, Ereignisse, Links und Objekt-IDs bleiben erhalten. Alte Profile werden nicht ungefragt gelöscht oder überschrieben, weil sie noch von bestehenden Variablen oder eigenen Skripten genutzt werden können. Beim Öffnen und Übernehmen einer Geräte- oder Gruppeninstanz werden vorhandene Variablen mit der aktuellen Modul-Standarddefinition erneut registriert; dadurch können passende Variablen auf native Darstellungen wechseln, ohne benutzerdefinierte Darstellungen oder Profile zu überschreiben.
+
+Skripte, Visualisierungen oder externe Werkzeuge, die gezielt auf Profilnamen wie `Z2M.*`, `~Color`, `~Intensity.100` oder andere automatisch gesetzte Profile geprüft haben, sollten nach dem Update kontrolliert werden. Für neue Logik sollte nicht mehr der Profilname, sondern Ident, Variablentyp, Wert und gegebenenfalls die Symcon-Darstellung ausgewertet werden.
+
 #### I. Vorbereitung <!-- omit in toc -->
 
 1. **IP-Symcon-Version prüfen**
@@ -176,7 +185,7 @@ Version 6.0 migriert die Module auf `IPSModuleStrict` und erweitert Geräte-, Gr
    Während des Updates sollte das Fenster [Meldungen](https://www.symcon.de/de/service/dokumentation/komponenten/verwaltungskonsole/meldungen/) geöffnet bleiben. So lassen sich eventuelle Hinweise während der Migration nachvollziehen.
 
 5. **TLS externer MQTT-Broker prüfen**
-   Die Discovery akzeptiert für ihre direkte Suche an externen MQTT-Brokern weiterhin unverschlüsselte `mqtt://`-Verbindungen oder geprüfte `mqtts://`-Verbindungen. Bei `mqtts://` werden Zertifikat und Hostname zwingend geprüft. Soll die Discovery einen externen TLS-Broker nach dem Update weiterhin direkt finden, müssen selbstsignierte, abgelaufene oder nicht zum Host passende Zertifikate korrigiert beziehungsweise deren ausstellende private CA auf dem Symcon-System als vertrauenswürdig hinterlegt werden. Bereits konfigurierte Zigbee2MQTT-Instanzen verwenden weiterhin ihren vorhandenen Symcon-MQTT-Splitter und sind von dieser Discovery-Prüfung nicht betroffen.
+   Die Discovery akzeptiert für ihre direkte Suche an externen MQTT-Brokern weiterhin unverschlüsselte `mqtt://`-Verbindungen oder `mqtts://`-Verbindungen. Bei `mqtts://` werden Zertifikat und Hostname standardmäßig geprüft. Für lokale Broker mit selbstsignierten Zertifikaten kann die Zertifikats- und Hostnamenprüfung in der Discovery bewusst deaktiviert werden. Die Verbindung bleibt dann verschlüsselt, die Identität des Brokers wird aber nicht mehr vollständig geprüft. Ein automatischer Rückfall auf eine unverschlüsselte Verbindung findet nicht statt. Bereits konfigurierte Zigbee2MQTT-Instanzen verwenden weiterhin ihren vorhandenen Symcon-MQTT-Splitter und sind von dieser Discovery-Prüfung nicht betroffen.
 
 #### II. Modulupdate <!-- omit in toc -->
 
@@ -186,7 +195,7 @@ Während des Updates können vorübergehend Warnungen auftreten, wenn andere Sym
 
 #### III. Symcon-Extension prüfen <!-- omit in toc -->
 
-Nach dem Update ist die Bridge-Konfiguration zu öffnen. Dort muss **Symcon-Erweiterung ist aktuell** angezeigt werden. Version 6.0 benötigt die Symcon-Extension in Version `6.03`.
+Nach dem Update ist die Bridge-Konfiguration zu öffnen. Dort muss **Symcon-Erweiterung ist aktuell** angezeigt werden. Version 6.0 benötigt die Symcon-Extension in Version `6.04`.
 
 Die Bridge installiert beziehungsweise aktualisiert die Extension im Normalfall automatisch. Falls Zigbee2MQTT während des Modulupdates nicht erreichbar war oder keine Bridge-Instanz existiert, muss die Extension später über die Bridge oder anhand der [manuellen Anleitung](#34-installation-der-ip-symcon-extension-in-zigbee2mqtt) aktualisiert werden.
 
@@ -196,7 +205,7 @@ Die Bridge installiert beziehungsweise aktualisiert die Extension im Normalfall 
 #### IV. Bestehende Geräte kontrollieren <!-- omit in toc -->
 
 1. **Visualisierung prüfen**
-   Passende Geräte erhalten automatisch moderne Tile-Darstellungen oder HTML-SDK-Kacheln. Das verändert die Darstellung, nicht die vorhandenen Automationen. Falls eine automatisch gewählte Spezialkachel nicht gewünscht ist, kann sie in der jeweiligen Geräteinstanz unter **Visualisierung** deaktiviert werden.
+   Passende Geräte erhalten automatisch moderne Variablendarstellungen oder HTML-SDK-Kacheln. Das verändert die Darstellung, nicht die vorhandenen Automationen. Falls eine automatisch gewählte Spezialkachel nicht gewünscht ist, kann sie in der jeweiligen Geräteinstanz unter **Visualisierung** deaktiviert werden.
 
 2. **Farbtemperatur bei Leuchtmitteln prüfen**
    Der Kelvin-Bereich wird aus den von Zigbee2MQTT gelieferten Exposes berechnet. Einige Zigbee2MQTT-Device-Definitionen melden ungenaue Grenzen. Bei betroffenen Leuchtmitteln kann der Kelvin-Bereich in der Geräteinstanz unter **Farbtemperatur-Visualisierung** korrigiert werden.
@@ -272,7 +281,17 @@ Bitte den einzelnen Modulen entnehmen:
 - [Device](Device/README.md)
 - [Group](Group/README.md)
 
-### 4.1 Tile-Visualisierung
+### 4.1 Begriffe: Kacheln, Darstellungen und Profile
+
+In dieser Dokumentation werden die Begriffe bewusst getrennt:
+
+- **Kachel** oder **Visualisierung** meint die Darstellung einer Instanz in der Symcon Tile-Visualisierung, insbesondere eigene HTML-SDK-Kacheln wie Schaltaktor-, Heizungs-, Sensor- oder Netzwerkkarten-Kacheln.
+- **Variablendarstellung** meint die moderne Symcon-Darstellung einer einzelnen Variable, die beim Anlegen der Variable als Standarddarstellung über `RegisterVariable*()` beziehungsweise die Symcon-Maintenance-Mechanismen gesetzt wird.
+- **Profil** meint ein Symcon-Variablenprofil. Neue und erneut registrierte Variablen werden bevorzugt ueber native Symcon-Variablendarstellungen oder ohne Modulprofil angelegt; Symcon-Standardprofile werden nicht mehr als Modulvorgabe gesetzt. Bestehende Legacy-Variablen koennen weiterhin ein altes Modulprofil besitzen; dieses wird nicht geloescht, aber bei der erneuten Registrierung nicht mehr als Modulstandard festgehalten.
+
+Benutzerdefinierte Darstellungen und Profile haben in Symcon eine höhere Priorität und bleiben vollständig in der Hoheit des Anwenders. Deshalb setzt das Modul produktiv keine Custom-Presentations oder Custom-Profile über `IPS_SetVariableCustomPresentation()` oder `IPS_SetVariableCustomProfile()`.
+
+### 4.2 Tile-Visualisierung
 
 Geräte-Instanzen können automatisch eine moderne HTML-SDK-Kachel verwenden, wenn die von Zigbee2MQTT gelieferten Exposes eindeutig zu einem unterstützten Gerätetyp passen.
 
@@ -291,7 +310,7 @@ Die eigenen HTML-SDK-Kacheln übernehmen Schrift- und Grundfarben vom aktiven Sy
 
 Details stehen in der [Dokumentation des Geräte-Moduls](Device/README.md#42-visualisierung-und-kacheln).
 
-### 4.2 Variablenverwaltung
+### 4.3 Variablenverwaltung
 
 Geräte-Instanzen führen einen lokalen Variablenkatalog. Dadurch kann in der Instanz-Konfiguration gesteuert werden, welche bekannten Variablen automatisch angelegt werden dürfen. Vom Anwender gelöschte Variablen werden nicht automatisch wieder erzeugt und können später gezielt wieder angelegt werden.
 
@@ -299,7 +318,7 @@ Details stehen in der [Dokumentation des Geräte-Moduls](Device/README.md#49-var
 
 Geräte- und Gruppenoptionen aus Zigbee2MQTT können ebenfalls direkt in Symcon gepflegt werden. Soweit Zigbee2MQTT Typinformationen liefert oder das Modul die Option kennt, werden passende Editoren für Schalter, Auswahllisten, Zahlen, Text, JSON-Objekte und Attributlisten angezeigt.
 
-### 4.3 Wartung verwaister Variablen
+### 4.4 Wartung verwaister Variablen
 
 Die [Bridge-Funktionen](Bridge/README.md#56-variablen-wartung) enthalten eine kompakte Variablen-Wartungsübersicht. Sie sucht innerhalb des zugehörigen MQTT-Splitters und MQTT-Basistopics nach alten Zigbee2MQTT-Variablen, die nicht mehr durch aktuelle Exposes oder das zuletzt bekannte Payload abgedeckt sind, und fasst klare Löschkandidaten, Review-Kandidaten und Suchlauf-Hinweise pro betroffener Instanz zusammen.
 
@@ -314,7 +333,7 @@ Die Änderungen sind anhand der funktionalen Commits chronologisch gegliedert. A
 ### 10. bis 15. Mai 2026: IPSModuleStrict und moderne Tile-Visualisierung
 
 - Sämtliche Module wurden auf `IPSModuleStrict` migriert. Die Mindestversion wurde abschließend auf IP-Symcon 9.0 angehoben.
-- Numeric-, Enum-, Temperatur- und Farbtemperatur-Exposes erhalten passendere moderne Tile-Darstellungen, soweit die Exposes die dafür notwendigen Werte liefern.
+- Numeric-, Enum-, Temperatur- und Farbtemperatur-Exposes erhalten passendere moderne Variablendarstellungen, soweit die Exposes die dafür notwendigen Werte liefern.
 - Die Kelvin-Farbtemperaturvariable `color_temp_kelvin` nutzt den aus dem Zigbee2MQTT-Mired-Bereich berechneten Kelvin-Bereich für die Symcon-Standardkachel Beleuchtung.
 - Moderne HTML-SDK-Kacheln wurden schrittweise für Heizungen, Schaltaktoren mit Messwerten, Sensoren, Sicherheitsgeräte, Fenstergriffe und Aktionsgeräte ergänzt.
 - Heizungs-Kacheln zeigen Ist- und Solltemperatur ohne Ringslider und bedienen die Solltemperatur per Plus-/Minus-Tasten. Später kamen breitere Preset-Tasten und pro Instanz konfigurierbare Solltemperaturen hinzu.
@@ -340,7 +359,7 @@ Die Änderungen sind anhand der funktionalen Commits chronologisch gegliedert. A
 - Die Bridge unterstützt zusätzliche OTA-Befehle für Downgrade, Scheduling, Unschedule und eigene OTA-URLs.
 - Geräte-Instanzen können Zigbee2MQTT-Geräteoptionen wie `transition`, `debounce`, `filtered_attributes`, `optimistic`, `retain` oder gerätespezifische `definition.options` direkt in der Konfiguration anzeigen und setzen.
 - Binding und Reporting können in der Geräte-Konfiguration über Endpoint-, Cluster- und Attributdaten gepflegt werden.
-- Reine Tunable-White-Leuchtmittel erhalten eine abgeleitete `color`-Variable, die den aktuellen Weißton als `~HexColor`-Farbwert darstellt.
+- Reine Tunable-White-Leuchtmittel erhalten eine abgeleitete `color`-Variable ohne Modulprofil, die den aktuellen Weißton über eine passende Farbdarstellung visualisiert.
 - Der Kelvin-Bereich der Farbtemperatur kann pro Device überschrieben werden, falls Zigbee2MQTT beziehungsweise dessen Device-Definitionen ungenaue Mired-Grenzen melden.
 - Gruppen-Instanzen können Mitglieder einschließlich Endpoints verwalten, Gruppenoptionen setzen und Szenen speichern, hinzufügen, abrufen, umbenennen oder löschen.
 - Die Bridge erhielt einen Diagnosebereich für Health Check, Coordinator Check, Bridge-Events, Warnungen und Fehler sowie nicht unterstützte oder unvollständig interviewte Geräte.
@@ -385,7 +404,7 @@ Die Änderungen sind anhand der funktionalen Commits chronologisch gegliedert. A
 - Geräte- und Bridge-Formulare erhielten gezielte Aktualisieren-Schaltflächen für den Variablenkatalog, verfügbare Netzwerksicherheitsgeräte und sämtliche OTA-Tabellen. Der manuelle Variablen-Refresh baut den Device-Katalog neu aus aktuellen Exposes und dem zuletzt empfangenen Geräte-Payload auf. Historische fachfremde Einträge verschwinden aus der Liste, ohne vorhandene Symcon-Variablen zu löschen. Bei laut Zigbee2MQTT OTA-fähigen Geräten bleiben stabile OTA-Metadaten erhalten; temporäre Fortschrittswerte werden nur geführt, solange Zigbee2MQTT sie aktuell liefert. Bestehende Symcon-Variablen bleiben für eine kontrollierte Prüfung über die integrierte Variablen-Wartung erhalten.
 - Die Variablenverwaltung in Geräteinstanzen aktualisiert die Liste nach Einzelaktionen gezielt, ohne dass das Formular nach jedem Anlegen oder Deaktivieren an den Anfang der Konfiguration springt.
 - Von Zigbee2MQTT berechnete oder nachgelieferte Werte können auch bei unvollständiger Expose-Kennung nachträglich angelegt werden. Numeric-, Binary- und Enum-Variablen ergänzen fehlende `name`- oder `property`-Felder typunabhängig aus der jeweils vorhandenen Kennung.
-- Der von Zigbee2MQTT berechnete Taupunkt `dewpoint` wird bei nachträglicher Anlage als übersetzte Float-Variable `Taupunkt` mit dem Symcon-Temperaturprofil `~Temperature` angelegt.
+- Der von Zigbee2MQTT berechnete Taupunkt `dewpoint` wird bei nachträglicher Anlage als übersetzte Float-Variable `Taupunkt` ohne Modulprofil, aber mit passender Temperaturdarstellung angelegt.
 - Geräteinstanzen prüfen eingehende MQTT-Topics zusätzlich zum Symcon-Datenfilter selbst. Fremde Geräte-Payloads können dadurch auch bei unerwarteter Zustellung keine Variablen in der falschen Instanz anlegen.
 - Gruppeninstanzen erhielten **Gruppeninformationen aktualisieren**. Damit werden extern in Zigbee2MQTT geänderte Mitglieder, Gruppenoptionen und Szenen erneut eingelesen und direkt in der geöffneten Symcon-Konfiguration angezeigt.
 - Die Discovery behält bei internen MQTT-Servern alle gleichzeitig gefundenen Zigbee2MQTT-Basen bei. Veraltete Konstanten, Locale-Einträge und irreführende PHPDocs aus der früheren dateibasierten Expose-Verwaltung wurden bereinigt.
@@ -435,10 +454,9 @@ Die Änderungen sind anhand der funktionalen Commits chronologisch gegliedert. A
 - Dynamisch erzeugte Texte der instanzbezogenen Variablen-Wartung werden vollständig übersetzt. Die Dokumentation erläutert Suchlauf-Hinweise als diagnostische Meldungen für übersprungene oder unvollständig prüfbare Instanzen.
 - Erkannte IEEE-Adressen werden review-konform nur noch in das Konfigurationsformular eingetragen. Sie werden ausschließlich durch das reguläre **Übernehmen** der Instanzkonfiguration gespeichert.
 - Bridge-Suche, Binding-Ziele, OTA-Verwaltung und Netzwerksicherheitslisten berücksichtigen neben dem MQTT-Basistopic immer auch den tatsächlich verbundenen MQTT-Splitter. Mehrere Zigbee2MQTT-Systeme bleiben dadurch selbst bei identischem Basistopic vollständig voneinander getrennt.
-- Empfohlene Custom-Presentations werden nur noch beim erstmaligen Anlegen einer Variable automatisch gesetzt. Bestehende benutzerdefinierte Darstellungen bleiben bei `ApplyChanges`, Payloads und Expose-Aktualisierungen unverändert und können ausschließlich über eine bestätigte Einmal-Aktion bewusst durch die Modul-Empfehlungen ersetzt oder entfernt werden.
 - Der Konfigurator listet und verändert keine Zigbee2MQTT-Instanzen fremder MQTT-Splitter mehr. Der bisherige Reparaturdialog wurde entfernt; Geräte und Gruppen des aktuellen Netzes werden stattdessen ausschließlich über den regulären Symcon-Konfigurator zur Erstellung angeboten.
-- Der Erreichbarkeitstest von Bridge und Konfigurator wartet bei ausgelasteten Zigbee2MQTT-Systemen bis zu 20 Sekunden auf den Options-Request und unterdrückt technische Zwischen-Notices. Dadurch wird Zigbee2MQTT nicht mehr bereits nach dem bisherigen Fünf-Sekunden-Limit fälschlich als nicht erreichbar gemeldet.
-- Die Discovery lässt den Anwender über `mqtt://` oder `mqtts://` ausdrücklich zwischen unverschlüsseltem MQTT und geprüftem TLS wählen. Bei TLS werden Zertifikat und Hostname zwingend geprüft; ein automatischer Rückfall auf eine unverschlüsselte Verbindung findet nicht statt. Unsichere TLS-Verbindungen mit deaktivierter Zertifikatsprüfung werden nicht mehr aufgebaut.
+- Die Bridge-Erreichbarkeitsprüfung wartet bei ausgelasteten Zigbee2MQTT-Systemen bis zu 20 Sekunden auf den Options-Request und unterdrückt technische Zwischen-Notices. Die reine Konfigurator-Übersicht bleibt dagegen bewusst kurz wartend, damit frische Installationen und alte Extensions die Oberfläche nicht blockieren.
+- Die Discovery lässt den Anwender über `mqtt://` oder `mqtts://` ausdrücklich zwischen unverschlüsseltem MQTT und TLS wählen. Bei TLS werden Zertifikat und Hostname standardmäßig geprüft; für lokale Broker mit selbstsignierten Zertifikaten können beide Prüfungen bewusst deaktiviert werden. Ein automatischer Rückfall auf eine unverschlüsselte Verbindung findet nicht statt.
 - Bereits vorhandene Geräte- und Gruppeninstanzen werden im Konfigurator wieder korrekt als weiterhin von Zigbee2MQTT erkannte Einträge dargestellt. Die rote Symcon-Markierung bleibt damit ausschließlich tatsächlich nicht mehr gefundenen Instanzen vorbehalten.
 - Die Bridge erhielt eine rein lesende Variablenprofil-Diagnose. Sie listet konfliktbedingt erzeugte kompatible Profile mit ihren aktuellen Abweichungen, ihrer Verwendung und identischen Dubletten auf. Neue Profilkonflikte protokollieren zusätzlich die konkreten Unterschiede zur vorhandenen Definition.
 - Der Profilvergleich berücksichtigt nun, dass Symcon bei mehrfach definierten Assoziationen mit demselben Wert nur den zuletzt gesetzten Eintrag speichert. Dadurch werden beispielsweise bei Farbtemperatur-Presets keine fortlaufenden kompatiblen Ersatzprofile mehr erzeugt.
@@ -447,6 +465,45 @@ Die Änderungen sind anhand der funktionalen Commits chronologisch gegliedert. A
 - Bestehende Variablenprofile werden bei abweichendem Typ, Wertebereich oder abweichenden Assoziationen weder verändert noch gelöscht. Vollständig passende Profile werden wiederverwendet; bei Namenskonflikten erstellt das Modul ein eindeutig benanntes kompatibles Profil und weist dieses der betreffenden Variable zu.
 - Die öffentlichen Funktionsreferenzen für Geräte und Gruppen dokumentieren `Z2M_CommandExt()` und den Rückgabewert von `Z2M_ReadValue()` jetzt entsprechend den tatsächlich bereitgestellten Schnittstellen.
 - Gerätebilder werden mit geprüftem TLS, einem Timeout von fünf Sekunden und einer Größenbegrenzung von zwei MiB geladen. Nur technisch lesbare PNG-Dateien mit begrenzten Bildabmessungen werden gespeichert oder aus einem bestehenden Cache übernommen.
+
+### 20. Juni 2026: Review-konforme Variablendarstellungen
+
+- Empfohlene moderne Variablendarstellungen werden ausschließlich als Modul-Standarddarstellung über die `RegisterVariable*`-Methoden gesetzt. Bestehende benutzerdefinierte Darstellungen bleiben bei `ApplyChanges`, Payloads und Expose-Aktualisierungen unverändert.
+- Das Modul ruft produktiv kein `IPS_SetVariableCustomPresentation()` mehr auf und bietet keine Aktion mehr an, um vorhandene Custom-Presentations nachträglich zu überschreiben oder zu entfernen. Damit bleibt die Darstellungs-Hoheit nach der Erstellung vollständig beim Anwender.
+- Neue Variablen verwenden bevorzugt moderne RegisterVariable-Darstellungen oder bleiben ohne Modulprofil. Symcon-Standardprofile werden nicht mehr als Modulvorgabe gesetzt.
+- Geräte- und Gruppeninstanzen protokollieren in der lokalen Variablen-Wartung nachvollziehbar, bei welchen vorhandenen Variablen ein altes `Z2M.*`-Profil durch eine moderne Symcon-Darstellung ersetzt wurde. Benutzerdefinierte Profil- oder Darstellungsanpassungen werden dabei nur angezeigt und nicht überschrieben.
+- Nicht beschreibbare Enum-/String-Statusvariablen erhalten keine interaktive Aufzaehlungsdarstellung mehr, weil diese in Symcon eine Variablenaktion voraussetzt. Schreibbare Enums bleiben weiterhin als bedienbare Aufzaehlung erhalten.
+- Bestehende Variablen werden beim erneuten Registrieren nicht mehr kuenstlich an alte Modulprofile gebunden. Wenn eine passende moderne Darstellung verfuegbar ist, wird diese als Modul-Standarddarstellung gesetzt; andernfalls bleibt die Variable ohne Modulprofil. Benutzerdefinierte Profile und Darstellungen bleiben unangetastet.
+- Die Geräte-Konfiguration zeigt keine eigene Aktion zum erneuten Anwenden empfohlener Darstellungen mehr. Die Dokumentation beschreibt stattdessen die Trennung zwischen initialer Modul-Empfehlung und späterer Benutzeranpassung.
+- Die Hauptdokumentation trennt die Begriffe Spezialkachel/Visualisierung, Variablendarstellung und Variablenprofil ausdrücklich, damit eigene HTML-SDK-Kacheln nicht mit Symcon-Variablendarstellungen oder Profilen vermischt werden.
+- Die Discovery kann `mqtts://`-Broker mit lokalen selbstsignierten Zertifikaten erreichen, wenn der Anwender die TLS-Zertifikats- oder Hostnamenprüfung bewusst deaktiviert. Sichere TLS-Prüfung bleibt der Standard und es gibt keinen automatischen Fallback auf `mqtt://`.
+
+### 21. Juni 2026: Stabilisierung frischer Installationen
+
+- Der Konfigurator nutzt für die reine Startübersicht wieder kurze Fünf-Sekunden-Abfragen wie in Version 5.43. Lange Timeouts bleiben Detail-, Backup- und Wartungsfunktionen vorbehalten, damit eine frische oder noch alte Symcon-Extension die Geräte- und Gruppenliste nicht minutenlang blockiert.
+- Antworten der SymconExtension werden zusätzlich über ihr Response-Topic einer offenen Anfrage zugeordnet, wenn eine alte, fehlende oder nicht mehr passende `transaction` im Payload steht. Dadurch können Configurator, Geräte- und Gruppenformulare auch mit Legacy- oder retained Extension-Antworten wieder Geräte- und Gruppenlisten auswerten.
+- Der Konfigurator verarbeitet nur noch die für ihn relevanten MQTT-Antworten und protokolliert große Geräte- und Gruppenlisten nicht mehr vollständig als Debug-JSON.
+- Die Symcon-Extension stellt für den Konfigurator eine kompakte `getDevicesLight`-Listenabfrage bereit. Detaildaten wie Exposes, Endpoints, Geräteoptionen und OTA-Informationen bleiben in der regulären Geräteabfrage sowie beim gezielten Abruf der Geräteinformationen erhalten. Dadurch sinkt der Speicherbedarf bei frischen Installationen und großen Zigbee2MQTT-Netzen deutlich, ohne Binding-, OTA- oder Gruppenfunktionen zu beschneiden.
+- Der Bridge-Formularaufbau fragt Geräte für Anlernen und Netzwerksicherheit nicht mehr mehrfach synchron über die Symcon-Extension ab. Beim Öffnen werden Cache und vorhandene Instanzen genutzt; die Live-Abfrage erfolgt nur noch über die explizite Aktualisieren-Aktion. Der automatische Bridge-Onlinecheck beim Übernehmen nutzt wieder einen kurzen Fünf-Sekunden-Timeout.
+
+### 22. Juni 2026: Standarddarstellungen für bestehende Variablen
+
+- Beim Übernehmen einer Geräte- oder Gruppeninstanz werden vorhandene Expose-Variablen erneut mit ihrer aktuellen Modul-Standarddefinition registriert. Dadurch können vorhandene Variablen von Legacy-Profilen auf passende Symcon-Standarddarstellungen wechseln, ohne benutzerdefinierte Darstellungen zu überschreiben.
+- Schreibbare numerische Kalibrierungswerte wie `temperature_calibration` und `local_temperature_calibration` nutzen nun ebenfalls die native Symcon-Schiebereglerdarstellung mit Min-, Max- und Schrittwerten aus dem Expose.
+- Preset-Variablen wie `color_temp_presets` nutzen nun eine native Symcon-Aufzählungsdarstellung und erzeugen keine dynamischen `Z2M.*_Presets`-Profile mehr.
+- Abgeleitete Kelvin-Farbtemperaturvariablen übernehmen bei bestehenden Variablen aktualisierte Konfigurationswerte für den Kelvin-Bereich und bleiben damit mit den Geräteoptionen der Instanz synchron.
+- Die letzten dynamischen Profil-Fallbacks fuer generische numerische Werte, Binary-Exposes, State-Aufzaehlungen, Verfuegbarkeitsstatus sowie Bridge-Loglevel und Bridge-Neustart wurden auf native Symcon-Darstellungen umgestellt. Neue Variablen erzeugen dadurch keine Profile wie `Z2M.ac_frequency`, `Z2M.target_distance`, `Z2M.state.*`, `Z2M.DeviceStatus` oder `Z2M.bridge.*` mehr.
+- Bestehende Variablen mit alter Modulprofil-Zuweisung werden beim erneuten Registrieren nicht mehr auf dieses Profil zurueckgefuehrt. Wenn eine passende Darstellung verfuegbar ist, wird diese als Modul-Standarddarstellung gesetzt; andernfalls bleibt die Variable ohne Modulprofil. Benutzerdefinierte Profile und Darstellungen bleiben unangetastet.
+
+### 27. Juni 2026: Umstellung auf native Symcon-Darstellungen
+
+- **Kompatibilitätsänderung gegenüber 5.42:** Die automatische Anlage und Pflege dynamischer `Z2M.*`-Variablenprofile ist entfernt. Neue und erneut registrierte Variablen verwenden nach Möglichkeit native Symcon-Variablendarstellungen oder bleiben ohne Modulprofil. Vorhandene Variablen, Objekt-IDs und bestehende Profile werden nicht automatisch gelöscht.
+- RGB-, HS- und XY-Farb-Exposes registrieren ihre Farbvariable ohne Modulprofil mit der nativen Symcon-Farbdarstellung für Hex/sRGB-Farbwerte. Die Symcon-Standardkachel für RGB-Leuchtmittel kann dadurch den ColorHex-Wert verwenden, ohne dass `~Color` oder ein dynamisches `Z2M.*`-Profil benötigt wird.
+- Reine Tunable-White-Leuchtmittel behalten ihre abgeleitete `color`-Variable ohne Modulprofil. Diese Variable nutzt nun ebenfalls die native Hex/sRGB-Farbdarstellung, damit der berechnete Weißton in der Tile-Visualisierung als Farbe nutzbar bleibt.
+- Composite-Farb-Exposes wie `color_xy`, `color_hs` und `color_rgb` werden weiterhin auf die passende Farbvariable zusammengeführt. Technische Untervariablen werden dabei nicht angelegt.
+- `last_seen` verwendet als Modul-Standard nun die native Symcon-Darstellung **Datum/Uhrzeit**. `update__remaining` bleibt eine Restdauer in Sekunden und verwendet die native Darstellung **Dauer**.
+- Bodenfeuchtewerte wie `soil_moisture` werden wie Luftfeuchtigkeit als Prozentwerte erkannt und in der Sensor-Kachel auch dann mit `%` dargestellt, wenn Zigbee2MQTT keine Einheit im Expose liefert.
+- Spezialkacheln und der Debug-Export formatieren Variablenwerte nur noch über Symcon, wenn hinterlegte Altprofile noch existieren. Dadurch lösen gelöschte alte `Z2M.*`-Profile keine Laufzeitwarnungen mehr aus; die Kacheln fallen stattdessen auf eine einfache Wertdarstellung zurück.
 
 **Version 5.42:**  
 

@@ -1,6 +1,6 @@
 /*
  IPSymconExtension
- Version: 6.03
+ Version: 6.04
 */
 
 class MyLogger {
@@ -97,11 +97,13 @@ class IPSymconExtension {
                     }
                 }
             }
-            if (data.topic == `${this.baseTopic}/${this.symconExtensionTopic}/lists/request/getDevices`) {
-                this.logger.info('Symcon: lists/request/getDevices');
+            if (data.topic == `${this.baseTopic}/${this.symconExtensionTopic}/lists/request/getDevices`
+                || data.topic == `${this.baseTopic}/${this.symconExtensionTopic}/lists/request/getDevicesLight`) {
+                const lightweight = data.topic.endsWith('/getDevicesLight');
+                this.logger.info(lightweight ? 'Symcon: lists/request/getDevicesLight' : 'Symcon: lists/request/getDevices');
                 message.list = [];
                 for (const device of this.zigbee.devicesIterator()) {
-                    message.list = message.list.concat(this.#createDevicePayload(device, false));
+                    message.list = message.list.concat(this.#createDevicePayload(device, false, lightweight));
                 }
             }
             message.transaction = transaction;
@@ -121,14 +123,10 @@ class IPSymconExtension {
         this.eventBus.removeListeners(this);
     }
 
-    #createDevicePayload(device, boolExposes) {
+    #createDevicePayload(device, boolExposes, lightweight = false) {
         const definition = device.definition ?? device._definition ?? {};
         const options = device.options ?? {};
-        let exposes;
-        if (boolExposes) {
-            exposes = device.exposes();
-        }
-        return {
+        const payload = {
             ieeeAddr: device.ieeeAddr,
             type: device.zh.type,
             networkAddress: device.zh.networkAddress,
@@ -139,13 +137,23 @@ class IPSymconExtension {
             manufacturerName: device.zh.manufacturerName,
             powerSource: device.zh.powerSource,
             modelID: device.zh.modelID,
-            endpoints: this.#createEndpointPayload(device),
-            exposes: exposes,
-            options: options,
-            definition_options: definition.options ?? [],
-            filtered_attributes: options.filtered_attributes ?? [],
-            supports_ota: definition.supports_ota ?? false,
         };
+
+        if (lightweight) {
+            return payload;
+        }
+
+        payload.endpoints = this.#createEndpointPayload(device);
+        payload.options = options;
+        payload.definition_options = definition.options ?? [];
+        payload.filtered_attributes = options.filtered_attributes ?? [];
+        payload.supports_ota = definition.supports_ota ?? false;
+
+        if (boolExposes) {
+            payload.exposes = device.exposes();
+        }
+
+        return payload;
     }
 
     #createGroupExposes(groupname) {

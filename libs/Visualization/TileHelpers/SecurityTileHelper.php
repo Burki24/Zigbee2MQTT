@@ -271,12 +271,10 @@ trait SecurityTileHelper
             return $this->FormatSecurityTileAlarmString($ident, $value);
         }
 
-        if ($variableID !== null && \function_exists('GetValueFormatted')) {
-            try {
-                return GetValueFormatted($variableID);
-            } catch (\Throwable) {
-                // Bei sehr neuen Presentations koennen Test-Stubs oder aeltere Systeme
-                // die Formatierung noch nicht kennen. Die Kachel bleibt trotzdem nutzbar.
+        if ($variableID !== null) {
+            $formatted = $this->GetValueFormattedSafe($variableID);
+            if ($formatted !== null) {
+                return $formatted;
             }
         }
 

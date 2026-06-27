@@ -59,6 +59,8 @@ trait Constants
     protected const ATTRIBUTE_DEVICE_SUPPORTS_OTA = 'DeviceSupportsOTA';
     /** @var string Attribut fuer den lokal bekannten Variablenkatalog */
     protected const ATTRIBUTE_VARIABLE_CATALOG = 'VariableCatalog';
+    /** @var string Attribut fuer erkannte Wechsel von alten Z2M-Profilen auf native Darstellungen */
+    protected const ATTRIBUTE_PRESENTATION_MIGRATION_LOG = 'PresentationMigrationLog';
     /** @var string Attribut fuer vom Anwender deaktivierte Variablen */
     protected const ATTRIBUTE_DISABLED_VARIABLES = 'DisabledVariables';
     /** @var string Attribut fuer vom Anwender geloeschte Variablen */
@@ -97,6 +99,8 @@ trait Constants
     protected const PROPERTY_HEATING_TILE_PRESET_3 = 'HeatingTilePreset3';
     /** @var int Wartezeit fuer Symcon-Extension Detailinformationen in Millisekunden */
     protected const TIMEOUT_SYMCON_EXTENSION_INFO = 20000;
+    /** @var int Wartezeit fuer Symcon-Extension Listeninformationen in Millisekunden */
+    protected const TIMEOUT_SYMCON_EXTENSION_LIST_REQUEST = 30000;
     /** @var int Wartezeit fuer den Zigbee2MQTT-Erreichbarkeitstest per Options-Request in Millisekunden */
     protected const TIMEOUT_ZIGBEE_OPTIONS_REQUEST = 20000;
     /** @var int Wartezeit fuer Zigbee2MQTT-Backup-Requests in Millisekunden */

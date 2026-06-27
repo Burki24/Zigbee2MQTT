@@ -219,23 +219,23 @@ Touchlink-Scan und Touchlink-Factory-Reset können die Zigbee-Kommunikation kurz
 
 ## 6. Statusvariablen
 
-| Name                               | Typ     | Profil              | Beschreibung                                 |
-| ---------------------------------- | ------- | ------------------- | -------------------------------------------- |
-| Anlernmodus endet                  | integer | ~UnixTimestamp      | Zeitpunkt, zu dem der Netzwerkbeitritt endet |
-| Anlernziel                         | string  |                     | Gewähltes Ziel für den Netzwerkbeitritt      |
-| Beitritt zum Netzwerk zulassen     | bool    | ~Switch             | Status und Steuern des Netzwerkbeitritt      |
-| Erweiterung geladen                | bool    |                     | true wenn die Erweiterung geladen wurde      |
-| Erweiterung ist aktuell            | bool    |                     | true wenn die Erweiterung aktuell ist        |
-| Erweiterung Version                | string  |                     | Version der Erweiterung                      |
-| Netzwerkkanal                      | integer |                     | Netzwerkkanal des Zigbee-Netzwerks           |
-| Neustart durchführen               | integer | Z2M.bridge.restart  | Action Variable um einen Neustart auszulösen |
-| Neustart erforderlich              | bool    |                     | true wenn eine Neustart von Z2M nötig ist    |
-| Protokollierung                    | string  | Z2M.brigde.loglevel | Status der Softwareaktualisierung            |
-| Status                             | bool    | ~Alert.Reversed     | Online Status von Zigbee2MQTT                |
-| Verbleibende Anlernzeit            | integer | ~Duration           | Restzeit des geöffneten Netzwerkbeitritts    |
-| Version                            | string  |                     | Version von Zigbee2MQTT                      |
-| Zigbee Herdsman Converters Version | string  |                     | Version des Zigbee Herdsman Converters       |
-| Zigbee Herdsman Version            | string  |                     | Version vom Zigbee Herdsman-Modul            |
+| Name                               | Typ     | Darstellung                 | Beschreibung                                 |
+| ---------------------------------- | ------- | --------------------------- | -------------------------------------------- |
+| Anlernmodus endet                  | integer | keine feste Profilvorgabe   | Zeitpunkt, zu dem der Netzwerkbeitritt endet |
+| Anlernziel                         | string  | keine feste Profilvorgabe   | Gewähltes Ziel für den Netzwerkbeitritt      |
+| Beitritt zum Netzwerk zulassen     | bool    | keine feste Profilvorgabe   | Status und Steuern des Netzwerkbeitritt      |
+| Erweiterung geladen                | bool    | keine feste Profilvorgabe   | true wenn die Erweiterung geladen wurde      |
+| Erweiterung ist aktuell            | bool    | keine feste Profilvorgabe   | true wenn die Erweiterung aktuell ist        |
+| Erweiterung Version                | string  | keine feste Profilvorgabe   | Version der Erweiterung                      |
+| Netzwerkkanal                      | integer | keine feste Profilvorgabe   | Netzwerkkanal des Zigbee-Netzwerks           |
+| Neustart durchführen               | integer | native Aufzählung           | Action Variable um einen Neustart auszulösen |
+| Neustart erforderlich              | bool    | keine feste Profilvorgabe   | true wenn eine Neustart von Z2M nötig ist    |
+| Protokollierung                    | string  | native Aufzählung           | Log-Level von Zigbee2MQTT                    |
+| Status                             | bool    | keine feste Profilvorgabe   | Online Status von Zigbee2MQTT                |
+| Verbleibende Anlernzeit            | integer | keine feste Profilvorgabe   | Restzeit des geöffneten Netzwerkbeitritts    |
+| Version                            | string  | keine feste Profilvorgabe   | Version von Zigbee2MQTT                      |
+| Zigbee Herdsman Converters Version | string  | keine feste Profilvorgabe   | Version des Zigbee Herdsman Converters       |
+| Zigbee Herdsman Version            | string  | keine feste Profilvorgabe   | Version vom Zigbee Herdsman-Modul            |
 
 ## 7. PHP-Funktionsreferenz
 

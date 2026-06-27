@@ -37,8 +37,8 @@
 
 - Darstellung aller von Z2M gelieferten Werte in Symcon
 - Inklusive der Verfügbarkeit des Gerätes als Variable (Online-Variable), wenn dies in Z2M aktiviert ist: [availability](https://www.zigbee2mqtt.io/guide/configuration/device-availability.html).
-- Automatisches Erstellen der für die Variablen benötigten Variablenprofile gemäß den Daten aus Z2M
-- Automatische Zuordnung moderner Tile-Darstellungen und passender Standardprofile, soweit die Exposes dies zulassen
+- Automatische Auswahl passender Variablentypen anhand der Daten aus Z2M
+- Automatische Zuordnung moderner Variablendarstellungen, soweit die Exposes dies zulassen
 - Eigene HTML-SDK-Kacheln für häufige Gerätetypen wie Schaltaktoren mit Messwerten, Heizungen, Sensoren, Sicherheitskontakte, Fenstergriffe und Aktionsgeräte
 - Komfortable Pflege von Zigbee2MQTT-Geräteoptionen inklusive typisierter Editoren und Attributauswahl
 - Gerätewartung für ein erneutes Interview oder eine erneute gerätespezifische Konfiguration
@@ -142,13 +142,15 @@ Die höher priorisierte Kachel kann in der Instanz-Konfiguration deaktiviert wer
 
 ![Kachel-Auswahl](imgs/Instanz_Visualisierung.png)
 
-Für Gerätetypen, die Symcon bereits nativ gut darstellen kann, erstellt das Modul bewusst keine eigene HTML-Kachel. Rollladen/Jalousien mit `type: "cover"` und `position` werden über die Symcon-Shutter-Darstellung bzw. das Standardprofil `~Shutter.Reversed` abgebildet. Einfache Türschlösser, Lüfter oder Sirenen bleiben bei den passenden Standarddarstellungen wie Schalter, Slider oder Aufzählung, solange die Exposes keine eigenständige zusammengefasste Kachel nötig machen.
+Für Gerätetypen, die Symcon bereits nativ gut darstellen kann, erstellt das Modul bewusst keine eigene HTML-Kachel. Rollladen/Jalousien mit `type: "cover"` und `position` werden über die Symcon-Shutter-Darstellung abgebildet. Einfache Türschlösser, Lüfter oder Sirenen bleiben bei den passenden Standarddarstellungen wie Schalter, Slider oder Aufzählung, solange die Exposes keine eigenständige zusammengefasste Kachel nötig machen.
 
-Empfohlene moderne Variablendarstellungen werden nur beim erstmaligen Anlegen einer Variable automatisch gesetzt. Danach bleiben benutzerdefinierte Darstellungen auch bei **Übernehmen**, neuen Payloads und aktualisierten Geräteinformationen unverändert. Sollen die Empfehlungen des Moduls bewusst erneut angewendet werden, steht im Bereich **Visualisierung → Variablendarstellungen** eine bestätigungspflichtige Einmal-Aktion zur Verfügung. Diese kann vorhandene benutzerdefinierte Darstellungen ersetzen oder bei Variablen ohne empfohlene Darstellung entfernen.
+Empfohlene moderne Variablendarstellungen werden als Modul-Standarddarstellung über die `RegisterVariable*`-Methoden gesetzt. Beim erneuten Übernehmen der Instanz registriert das Modul auch vorhandene Variablen mit der aktuellen Modul-Standarddefinition. In Symcon haben Benutzer-Darstellungen und Benutzer-Profile eine höhere Priorität als die vom Modul gesetzte Standarddarstellung. Das Modul überschreibt oder entfernt deshalb keine Custom-Presentations und keine Custom-Profile nachträglich.
+
+Neue und erneut registrierte Variablen verwenden bevorzugt moderne Symcon-Variablendarstellungen oder bleiben ohne Modulprofil, wenn keine fachlich passende Standarddarstellung noetig ist. Symcon-Standardprofile werden nicht mehr aktiv vorgegeben. Dynamische `Z2M.*`-Profile werden fuer Expose-, Preset- und State-Variablen nicht mehr neu angelegt; Presets und State-Aufzaehlungen werden als native Symcon-Aufzaehlungsdarstellung registriert. Alte, vom Modul gesetzte Legacy-Profile werden nicht geloescht, aber bei der erneuten Registrierung nicht mehr als Modulstandard festgehalten.
 
 ### 4.3 Temperatur-Visualisierung
 
-Für Temperatur-Exposes setzt das Modul automatisch eine moderne Tile-Darstellung. Wenn Zigbee2MQTT `value_min` und `value_max` liefert, werden diese Werte für den Darstellungsbereich genutzt.
+Für Temperatur-Exposes setzt das Modul automatisch eine moderne Variablendarstellung. Wenn Zigbee2MQTT `value_min` und `value_max` liefert, werden diese Werte für den Darstellungsbereich genutzt.
 
 Falls ein Temperatur-Expose keinen Wertebereich mitliefert, verwendet das Modul den Fallback-Bereich aus der Instanz-Konfiguration. Standard ist:
 
@@ -185,7 +187,9 @@ Für solche Fälle kann der Kelvin-Bereich in der Instanz-Konfiguration unter **
 
 Der Override korrigiert die Symcon-Darstellung der `color_temp_kelvin`-Variable, begrenzt Kelvin-Aktionen auf diesen Bereich und passt die abgeleitete Weiß-Farbe entsprechend an. Er ändert keine Zigbee2MQTT-Device-Definition und keine technischen Fähigkeiten des Leuchtmittels.
 
-Bei reinen Tunable-White-Leuchtmitteln ohne RGB/HS/XY-Farb-Expose legt das Modul zusätzlich eine abgeleitete Variable `color` mit dem Profil `~HexColor` an. Diese Variable zeigt den aktuellen Weißton als Farbe an, bleibt aber eine reine Darstellung und ersetzt keine echte RGB-Steuerung.
+RGB-, HS- und XY-Farb-Exposes werden als Integer-Variable ohne Modulprofil angelegt und nutzen die native Symcon-Farbdarstellung für Hex/sRGB-Farbwerte. Dadurch kann die Symcon-Standardkachel für RGB-Leuchtmittel die Farbe über den üblichen ColorHex-Wert verwenden, ohne dass ein Legacy-Profil wie `~Color` benötigt wird.
+
+Bei reinen Tunable-White-Leuchtmitteln ohne RGB/HS/XY-Farb-Expose legt das Modul zusätzlich eine abgeleitete Variable `color` ohne Modulprofil an. Diese Variable nutzt ebenfalls die native Symcon-Farbdarstellung für Hex/sRGB-Farbwerte und zeigt den aktuellen Weißton an, bleibt aber eine reine Darstellung und ersetzt keine echte RGB-Steuerung.
 
 ### 4.5 Gerätewartung
 
@@ -347,6 +351,8 @@ Typische Fälle in der Praxis:
 Composite-Exposes werden dabei auf die tatsächlich anlegbaren Untervariablen reduziert. Ein nicht selbst nutzbarer Composite-Elternknoten wird nicht als eigene Variable angeboten, während Unterwerte wie `options__motor_speed` sauber im Variablenkatalog erscheinen.
 
 Unter **Expertenwerkzeuge → Variablen-Wartung**, direkt unterhalb der **Erweiterten Geräteentfernung**, kann die Geräteinstanz ausschließlich ihre eigenen direkten Variablen auf veraltete Expose- oder Payload-Zuordnungen prüfen. Klare Löschkandidaten werden getrennt von unsicheren Review-Kandidaten und Suchlauf-Hinweisen dargestellt. Archivierte oder von anderen Symcon-Objekten referenzierte Variablen sind geschützt. Eine klare Kandidatenvariable kann erst nach einer erneuten Schutz- und Besitzprüfung sowie einer ausdrücklichen Bestätigung gelöscht werden.
+
+Im Bereich **Darstellungswechsel** protokolliert die Instanz zusätzlich, bei welchen vorhandenen Variablen ein altes `Z2M.*`-Profil durch eine moderne Symcon-Darstellung ersetzt wurde. Die Liste zeigt Variable, Ident, bisheriges Profil, neue Darstellung, Zeitpunkt und ob bereits eine benutzerdefinierte Darstellung oder ein benutzerdefiniertes Profil vorhanden war. Benutzerdefinierte Einstellungen werden dabei nicht verändert.
 
 Unter **Suchlauf-Hinweise** erscheinen keine Löschkandidaten, sondern diagnostische Meldungen zu einem unvollständigen oder übersprungenen Suchlauf. Das ist beispielsweise der Fall, wenn für die Instanz weder aktuelle Exposes noch Daten aus dem letzten Payload vorhanden sind, Debugdaten nicht gelesen oder decodiert werden konnten oder während der Prüfung ein Fehler auftrat. Eine leere Liste bedeutet, dass der Suchlauf für diese Instanz ohne besondere Hinweise abgeschlossen wurde.
 

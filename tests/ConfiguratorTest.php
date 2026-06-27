@@ -54,7 +54,7 @@ class ConfiguratorTest extends DumpInclude
         $source = file_get_contents(__DIR__ . '/../Configurator/module.php');
 
         $this->assertStringContainsString(
-            '$this->SendDataQuiet($Topic, $Payload, self::TIMEOUT_ZIGBEE_OPTIONS_REQUEST)',
+            '$this->SendDataQuiet($Topic, $Payload, self::TIMEOUT_CONFIGURATOR_QUICK_REQUEST)',
             $source
         );
     }

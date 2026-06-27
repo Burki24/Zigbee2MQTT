@@ -42,6 +42,16 @@ class Zigbee2MQTTConfigurator extends IPSModuleStrict
     ];
 
     /**
+     * Kurzer Timeout fuer die reine Konfigurator-Uebersicht.
+     *
+     * Detail-, Backup- und Wartungsfunktionen verwenden weiterhin die laengeren
+     * fachlichen Timeouts aus den Modulkonstanten. Die Startansicht des
+     * Konfigurators darf dagegen nicht mehrere lange Listen-Timeouts sammeln,
+     * wenn die Symcon-Extension bei frischen Installationen noch nicht aktuell ist.
+     */
+    private const TIMEOUT_CONFIGURATOR_QUICK_REQUEST = 5000;
+
+    /**
      * Create
      *
      * @return void
@@ -86,10 +96,11 @@ class Zigbee2MQTTConfigurator extends IPSModuleStrict
         }
         $this->SetStatus(IS_ACTIVE);
         //Setze Filter für ReceiveData
-        $Filter1 = preg_quote('"Topic":"' . $BaseTopic . '/bridge/response');
-        $Filter2 = preg_quote('"Topic":"' . $BaseTopic . self::SYMCON_EXTENSION_LIST_RESPONSE);
-        $this->SendDebug('Filter', '.*(' . $Filter1 . '|' . $Filter2 . ').*', 0);
-        $this->SetReceiveDataFilter('.*(' . $Filter1 . '|' . $Filter2 . ').*');
+        $Filter1 = preg_quote('"Topic":"' . $BaseTopic . '/bridge/response/options');
+        $Filter2 = preg_quote('"Topic":"' . $BaseTopic . self::SYMCON_EXTENSION_LIST_RESPONSE . 'getDevicesLight');
+        $Filter3 = preg_quote('"Topic":"' . $BaseTopic . self::SYMCON_EXTENSION_LIST_RESPONSE . 'getGroups');
+        $this->SendDebug('Filter', '.*(' . $Filter1 . '|' . $Filter2 . '|' . $Filter3 . ').*', 0);
+        $this->SetReceiveDataFilter('.*(' . $Filter1 . '|' . $Filter2 . '|' . $Filter3 . ').*');
     }
 
     /**
@@ -195,7 +206,7 @@ class Zigbee2MQTTConfigurator extends IPSModuleStrict
         $Devices = [];
         $Groups = [];
         $Devices = $this->getDevices(); // Alle Geräte von Z2M laden
-        $this->SendDebug('NetworkDevices', json_encode($Devices), 0);
+        $this->SendDebug('NetworkDevices', 'Count: ' . \count($Devices), 0);
         $IPSDevicesByIEEE = $this->GetIPSInstancesByIEEE(); // ALLE Device-Instanzen mit IEEE holen
         $this->SendDebug('IPS Devices IEEE', json_encode($IPSDevicesByIEEE), 0);
         $IPSDevicesByTopic = $this->GetIPSInstancesByBaseTopic(self::GUID_MODULE_DEVICE, $BaseTopic); // Nur Device-Instanzen mit gleichem BaseTopic holen
@@ -374,7 +385,7 @@ class Zigbee2MQTTConfigurator extends IPSModuleStrict
         $Groups = $this->getGroups();
 
         //Groups
-        $this->SendDebug('NetworkGroups', json_encode($Groups), 0);
+        $this->SendDebug('NetworkGroups', 'Count: ' . \count($Groups), 0);
         $IPSGroupById = $this->GetIPSInstancesByGroupId(); // Alle Gruppen Instanzen holen wo BaseTopic und Splitter zu uns passen
         $this->SendDebug('IPS Group Id', json_encode($IPSGroupById), 0);
         $IPSGroupByTopic = $this->GetIPSInstancesByBaseTopic(self::GUID_MODULE_GROUP, $BaseTopic); // Alle Gruppen Instanzen holen wo das BaseTopic zu uns passt
@@ -501,8 +512,7 @@ class Zigbee2MQTTConfigurator extends IPSModuleStrict
         }
         $ReceiveTopic = $Buffer['Topic'];
         $this->SendDebug('MQTT FullTopic', $ReceiveTopic, 0);
-        if ((strpos($ReceiveTopic, $BaseTopic . self::SYMCON_EXTENSION_LIST_RESPONSE) !== 0) &&
-        (strpos($ReceiveTopic, $BaseTopic . '/bridge/response/') !== 0)) {
+        if (!$this->IsExpectedResponseTopic($ReceiveTopic, $BaseTopic)) {
             return '';
         }
         $this->SendDebug('MQTT Topic', $ReceiveTopic, 0);
@@ -516,6 +526,23 @@ class Zigbee2MQTTConfigurator extends IPSModuleStrict
             $this->UpdateTransactionByResponseTopic(substr($ReceiveTopic, \strlen($BaseTopic)), $Payload);
         }
         return '';
+    }
+
+    /**
+     * Checks whether a received MQTT response can belong to a Configurator transaction.
+     *
+     * @param string $ReceiveTopic
+     * @param string $BaseTopic
+     *
+     * @return bool
+     */
+    private function IsExpectedResponseTopic(string $ReceiveTopic, string $BaseTopic): bool
+    {
+        return \in_array($ReceiveTopic, [
+            $BaseTopic . '/bridge/response/options',
+            $BaseTopic . self::SYMCON_EXTENSION_LIST_RESPONSE . 'getDevicesLight',
+            $BaseTopic . self::SYMCON_EXTENSION_LIST_RESPONSE . 'getGroups'
+        ], true);
     }
 
     /**
@@ -552,7 +579,11 @@ class Zigbee2MQTTConfigurator extends IPSModuleStrict
             return $Devices;
         }
 
-        $Result = @$this->SendData(self::SYMCON_EXTENSION_LIST_REQUEST . 'getDevices');
+        $Result = @$this->SendData(
+            self::SYMCON_EXTENSION_LIST_REQUEST . 'getDevicesLight',
+            [],
+            self::TIMEOUT_CONFIGURATOR_QUICK_REQUEST
+        );
         if (\is_array($Result) && \is_array($Result['list'] ?? null)) {
             return $Result['list'];
         }
@@ -569,7 +600,11 @@ class Zigbee2MQTTConfigurator extends IPSModuleStrict
      */
     private function getGroups(): array
     {
-        $Result = @$this->SendData(self::SYMCON_EXTENSION_LIST_REQUEST . 'getGroups');
+        $Result = @$this->SendData(
+            self::SYMCON_EXTENSION_LIST_REQUEST . 'getGroups',
+            [],
+            self::TIMEOUT_CONFIGURATOR_QUICK_REQUEST
+        );
         if (\is_array($Result) && \is_array($Result['list'] ?? null)) {
             return $Result['list'];
         }
@@ -591,7 +626,7 @@ class Zigbee2MQTTConfigurator extends IPSModuleStrict
         $Payload = [
             'options'=> []
         ];
-        $Result = $this->SendDataQuiet($Topic, $Payload, self::TIMEOUT_ZIGBEE_OPTIONS_REQUEST);
+        $Result = $this->SendDataQuiet($Topic, $Payload, self::TIMEOUT_CONFIGURATOR_QUICK_REQUEST);
         if (isset($Result['error'])) {
             trigger_error($Result['error'], E_USER_NOTICE);
         }

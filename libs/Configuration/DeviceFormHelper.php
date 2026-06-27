@@ -495,7 +495,7 @@ trait DeviceFormHelper
             $hasVisibleTileOption = $hasVisibleTileOption || $visible;
         }
 
-        $this->SetDeviceFormField($form, 'VisualizationSettings', 'visible', $hasVisibleTileOption || $this->HasRecommendedVariablePresentations());
+        $this->SetDeviceFormField($form, 'VisualizationSettings', 'visible', $hasVisibleTileOption);
         $this->SetDeviceFormField(
             $form,
             'VisualizationStatus',
@@ -1215,7 +1215,11 @@ trait DeviceFormHelper
             return $cachedDevices;
         }
 
-        $result = @$this->SendData(self::SYMCON_EXTENSION_LIST_REQUEST . 'getDevices', [], 2500);
+        $result = @$this->SendData(
+            self::SYMCON_EXTENSION_LIST_REQUEST . 'getDevices',
+            [],
+            self::TIMEOUT_SYMCON_EXTENSION_LIST_REQUEST
+        );
         if (!\is_array($result) || !\is_array($result['list'] ?? null)) {
             return [];
         }
@@ -1228,7 +1232,11 @@ trait DeviceFormHelper
      */
     private function ReadBindingTargetGroupList(): array
     {
-        $result = @$this->SendData(self::SYMCON_EXTENSION_LIST_REQUEST . 'getGroups', [], 2500);
+        $result = @$this->SendData(
+            self::SYMCON_EXTENSION_LIST_REQUEST . 'getGroups',
+            [],
+            self::TIMEOUT_SYMCON_EXTENSION_LIST_REQUEST
+        );
         if (!\is_array($result) || !\is_array($result['list'] ?? null)) {
             return [];
         }
