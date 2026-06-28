@@ -272,6 +272,10 @@ trait VariablePresentationHelper
             return $this->BuildTemperatureValuePresentation($feature);
         }
 
+        if ($this->IsBrightnessFeature($feature)) {
+            return $this->BuildBrightnessFeaturePresentation($feature);
+        }
+
         if (!isset($feature['value_min'], $feature['value_max'])) {
             return $this->BuildNumericValuePresentation($feature);
         }
@@ -306,6 +310,30 @@ trait VariablePresentationHelper
         }
 
         return $this->BuildSliderPresentation($presentation);
+    }
+
+    /**
+     * Erstellt die native Darstellung fuer Licht-Helligkeit.
+     *
+     * Zigbee2MQTT nutzt fuer Helligkeit haeufig 0..254. Das Modul fuehrt
+     * brightness in Symcon als Prozentwert und skaliert Actions beim Senden
+     * wieder in den Geraetewertebereich.
+     */
+    protected function BuildBrightnessFeaturePresentation(array $feature): ?array
+    {
+        if (!$this->IsWritableFeature($feature)) {
+            return $this->BuildNumericValuePresentation($feature);
+        }
+
+        return $this->BuildSliderPresentation([
+            'MIN'        => 0,
+            'MAX'        => 100,
+            'STEP_SIZE'  => 1,
+            'SUFFIX'     => ' %',
+            'PERCENTAGE' => true,
+            'DIGITS'     => 0,
+            'ICON'       => 'sun'
+        ]);
     }
 
     /**
@@ -845,6 +873,15 @@ trait VariablePresentationHelper
     private function IsWritableFeature(array $feature): bool
     {
         return isset($feature['access']) && (((int) $feature['access'] & 2) === 2);
+    }
+
+    /**
+     * Erkennt die echte Licht-Helligkeit, nicht andere *_brightness-Konfigurationswerte.
+     */
+    private function IsBrightnessFeature(array $feature): bool
+    {
+        $property = \strtolower((string) ($feature['property'] ?? $feature['name'] ?? ''));
+        return $property === 'brightness';
     }
 
     /**

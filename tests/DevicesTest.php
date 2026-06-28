@@ -1113,6 +1113,19 @@ class DevicesTest extends DumpInclude
         $this->assertSame(1, $variable['VariablePresentation']['COLOR_SPACE'] ?? null);
         $this->assertSame(0xFF9227, GetValue($colorID));
 
+        $brightnessID = IPS_GetObjectIDByIdent('brightness', $iid);
+        $this->assertNotFalse($brightnessID);
+        $brightnessVariable = IPS_GetVariable($brightnessID);
+        $this->assertSame('', $brightnessVariable['VariableProfile']);
+        $brightnessPresentation = $brightnessVariable['VariablePresentation'];
+        $this->assertSame(VARIABLE_PRESENTATION_SLIDER, $brightnessPresentation['PRESENTATION'] ?? null);
+        $this->assertSame(0, $brightnessPresentation['MIN'] ?? null);
+        $this->assertSame(100, $brightnessPresentation['MAX'] ?? null);
+        $this->assertSame(' %', $brightnessPresentation['SUFFIX'] ?? null);
+        $this->assertTrue($brightnessPresentation['PERCENTAGE'] ?? false);
+        $this->assertSame('sun', $brightnessPresentation['ICON'] ?? null);
+        $this->assertSame(100, GetValue($brightnessID));
+
         $kelvinID = IPS_GetObjectIDByIdent('color_temp_kelvin', $iid);
         $this->assertNotFalse($kelvinID);
         $presentation = IPS_GetVariable($kelvinID)['VariablePresentation'];
@@ -1141,6 +1154,20 @@ class DevicesTest extends DumpInclude
 
         $interface->ReceiveData(self::buildMqttRequest($topic, ['color_temp' => 153]));
         $this->assertNotSame(0xFF9227, GetValue($colorID));
+    }
+
+    public function testBrightnessPresentationRequiresWriteAccess(): void
+    {
+        [$iid] = $this->createTestInstance('ReadOnlyBrightness.json');
+
+        $brightnessID = IPS_GetObjectIDByIdent('brightness', $iid);
+        $this->assertNotFalse($brightnessID);
+
+        $variable = IPS_GetVariable($brightnessID);
+        $this->assertSame('', $variable['VariableProfile']);
+        $this->assertSame(VARIABLE_PRESENTATION_VALUE_PRESENTATION, $variable['VariablePresentation']['PRESENTATION'] ?? null);
+        $this->assertNotSame(VARIABLE_PRESENTATION_SLIDER, $variable['VariablePresentation']['PRESENTATION'] ?? null);
+        $this->assertSame(80, GetValue($brightnessID));
     }
 
     public function testColorTemperatureVisualizationRequiresExposeSupport(): void

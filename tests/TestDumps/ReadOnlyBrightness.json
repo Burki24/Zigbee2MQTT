@@ -1,0 +1,20 @@
+{
+    "Config": {
+        "MQTTBaseTopic": "zigbee2mqtt",
+        "MQTTTopic": "Test/ReadOnlyBrightness",
+        "IEEE": "0x0000000000000003"
+    },
+    "Exposes": [
+        {
+            "name": "brightness",
+            "label": "Brightness",
+            "access": 1,
+            "type": "numeric",
+            "property": "brightness"
+        }
+    ],
+    "LastPayload": {
+        "brightness": 204
+    },
+    "Childs": []
+}

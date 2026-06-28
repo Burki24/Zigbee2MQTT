@@ -736,15 +736,22 @@ abstract class ModulBase extends \IPSModuleStrict
         // Brightness-Variablenmigration
         $varID = $this->GetObjectIDByIdent('brightness');
         if ($varID !== false) {
+            $brightnessFeature = $this->findExposeFeatureByProperty('brightness') ?? [
+                'name'     => 'brightness',
+                'property' => 'brightness',
+                'type'     => 'numeric'
+            ];
+            $brightnessPresentation = $this->BuildBrightnessFeaturePresentation($brightnessFeature) ?? '';
+
             $this->RegisterVariableInteger(
                 'brightness',
                 $this->Translate('Brightness'),
-                '',
+                $brightnessPresentation,
                 10
             );
 
             // Zentrale EnableAction-Prüfung für brightness Migration
-            $this->checkAndEnableAction('brightness');
+            $this->checkAndEnableAction('brightness', $brightnessFeature);
         }
         // Flag für beendete Migration wieder setzen
         $this->BUFFER_MQTT_SUSPENDED = false;
@@ -4592,7 +4599,9 @@ abstract class ModulBase extends \IPSModuleStrict
         }
 
         $profileOrPresentation = '';
-        if ($ident === 'update__remaining') {
+        if ($ident === 'brightness') {
+            $profileOrPresentation = $this->BuildBrightnessFeaturePresentation($feature) ?? $profileOrPresentation;
+        } elseif ($ident === 'update__remaining') {
             $profileOrPresentation = $this->BuildDurationPresentation() ?? $profileOrPresentation;
         } elseif ($ident === 'last_seen') {
             $profileOrPresentation = $this->BuildDateTimePresentation() ?? $profileOrPresentation;
