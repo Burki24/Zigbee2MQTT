@@ -140,9 +140,9 @@ trait DeviceFormHelper
             return false;
         }
 
-        $endpoint = trim((string) ($selection['endpoint'] ?? ''));
-        $target = trim((string) ($selection['target'] ?? ''));
-        $currentCluster = trim((string) ($selection['cluster'] ?? ''));
+        $endpoint = $this->FormatFormTextValue($selection['endpoint'] ?? '');
+        $target = $this->FormatFormTextValue($selection['target'] ?? '');
+        $currentCluster = $this->FormatFormTextValue($selection['cluster'] ?? '');
         $options = $this->BuildBindingClusterOptions($endpoint, $target);
         $selectedCluster = $this->ResolveBindingClusterSelection($currentCluster, $options);
 
@@ -162,9 +162,9 @@ trait DeviceFormHelper
             return false;
         }
 
-        $endpoint = trim((string) ($selection['endpoint'] ?? ''));
-        $currentCluster = trim((string) ($selection['cluster'] ?? ''));
-        $currentAttribute = trim((string) ($selection['attribute'] ?? ''));
+        $endpoint = $this->FormatFormTextValue($selection['endpoint'] ?? '');
+        $currentCluster = $this->FormatFormTextValue($selection['cluster'] ?? '');
+        $currentAttribute = $this->FormatFormTextValue($selection['attribute'] ?? '');
 
         $clusterOptions = $this->BuildReportingClusterOptions($endpoint);
         $selectedCluster = $this->ResolveSelectOptionValue($currentCluster, $clusterOptions);
@@ -189,9 +189,9 @@ trait DeviceFormHelper
             return false;
         }
 
-        $endpoint = trim((string) ($selection['endpoint'] ?? ''));
-        $cluster = trim((string) ($selection['cluster'] ?? ''));
-        $attribute = trim((string) ($selection['attribute'] ?? ''));
+        $endpoint = $this->FormatFormTextValue($selection['endpoint'] ?? '');
+        $cluster = $this->FormatFormTextValue($selection['cluster'] ?? '');
+        $attribute = $this->FormatFormTextValue($selection['attribute'] ?? '');
         if ($cluster === '' || $attribute === '') {
             trigger_error($this->Translate('Cluster and attribute are required.'), E_USER_NOTICE);
             return false;
@@ -219,9 +219,9 @@ trait DeviceFormHelper
             return false;
         }
 
-        $endpoint = trim((string) ($selection['endpoint'] ?? ''));
-        $cluster = trim((string) ($selection['cluster'] ?? ''));
-        $attribute = trim((string) ($selection['attribute'] ?? ''));
+        $endpoint = $this->FormatFormTextValue($selection['endpoint'] ?? '');
+        $cluster = $this->FormatFormTextValue($selection['cluster'] ?? '');
+        $attribute = $this->FormatFormTextValue($selection['attribute'] ?? '');
         if ($cluster === '' || $attribute === '') {
             trigger_error($this->Translate('Cluster and attribute are required.'), E_USER_NOTICE);
             return false;
@@ -254,7 +254,7 @@ trait DeviceFormHelper
             return false;
         }
 
-        $attribute = trim((string) ($selection['attribute'] ?? ''));
+        $attribute = $this->FormatFormTextValue($selection['attribute'] ?? '');
         $selected = $this->DecodeDeviceOptionAttributeSelection((string) ($selection['value'] ?? '[]'));
         if ($attribute !== '' && !\in_array($attribute, $selected, true)) {
             $selected[] = $attribute;
@@ -274,7 +274,7 @@ trait DeviceFormHelper
             return false;
         }
 
-        $attribute = trim((string) ($selection['attribute'] ?? ''));
+        $attribute = $this->FormatFormTextValue($selection['attribute'] ?? '');
         $selected = array_values(array_filter(
             $this->DecodeDeviceOptionAttributeSelection((string) ($selection['value'] ?? '[]')),
             static fn (string $entry): bool => $entry !== $attribute
@@ -793,7 +793,7 @@ trait DeviceFormHelper
                 $values[] = [
                     'endpoint'          => $sourceEndpoint,
                     'cluster'           => $this->FormatBindingClusterValue($reporting['cluster'] ?? $reporting['clusterName'] ?? ''),
-                    'attribute'         => trim((string) ($reporting['attribute'] ?? $reporting['attributeName'] ?? '')),
+                    'attribute'         => $this->FormatFormTextValue($reporting['attribute'] ?? $reporting['attributeName'] ?? ''),
                     'minimum_interval'  => $this->FormatReportingIntervalValue($this->ReadReportingMinimumInterval($reporting)),
                     'maximum_interval'  => $this->FormatReportingIntervalValue($this->ReadReportingMaximumInterval($reporting)),
                     'reportable_change' => $this->FormatReportingValue($reporting['reportable_change'] ?? $reporting['reportableChange'] ?? $reporting['change'] ?? '')
@@ -873,15 +873,48 @@ trait DeviceFormHelper
     }
 
     /**
+     * Formatiert frei gelieferte Z2M-Werte fuer Symcon-Formulare.
+     */
+    private function FormatFormTextValue(mixed $value): string
+    {
+        if ($value === null || $value === false) {
+            return '';
+        }
+        if (\is_bool($value)) {
+            return $value ? 'true' : 'false';
+        }
+        if (\is_scalar($value)) {
+            return trim((string) $value);
+        }
+        if (\is_array($value)) {
+            foreach (['name', 'label', 'ID', 'id', 'value', 'attribute', 'attributeName', 'cluster', 'clusterName', 'endpoint', 'endpointID', 'friendly_name'] as $key) {
+                if (!\array_key_exists($key, $value)) {
+                    continue;
+                }
+
+                $formatted = $this->FormatFormTextValue($value[$key]);
+                if ($formatted !== '') {
+                    return $formatted;
+                }
+            }
+
+            $encoded = json_encode($value, JSON_UNESCAPED_SLASHES | JSON_UNESCAPED_UNICODE);
+            return \is_string($encoded) ? $encoded : '';
+        }
+
+        return '';
+    }
+
+    /**
      * Formatiert einen Binding-Cluster fuer die Uebersicht.
      */
     private function FormatBindingClusterValue(mixed $cluster): string
     {
         if (!\is_array($cluster)) {
-            return trim((string) $cluster);
+            return $this->FormatFormTextValue($cluster);
         }
 
-        return trim((string) ($cluster['name'] ?? $cluster['ID'] ?? $cluster['id'] ?? $cluster['clusterID'] ?? ''));
+        return $this->FormatFormTextValue($cluster['name'] ?? $cluster['ID'] ?? $cluster['id'] ?? $cluster['clusterID'] ?? '');
     }
 
     /**
@@ -910,23 +943,23 @@ trait DeviceFormHelper
     private function FormatBindingTargetValue(mixed $target): string
     {
         if (!\is_array($target)) {
-            return trim((string) $target);
+            return $this->FormatFormTextValue($target);
         }
 
         $type = strtolower(trim((string) ($target['type'] ?? '')));
         if ($type === 'group' || isset($target['groupID']) || isset($target['group_id'])) {
-            return trim((string) ($target['friendly_name'] ?? $target['name'] ?? $target['groupID'] ?? $target['group_id'] ?? $target['ID'] ?? $target['id'] ?? ''));
+            return $this->FormatFormTextValue($target['friendly_name'] ?? $target['name'] ?? $target['groupID'] ?? $target['group_id'] ?? $target['ID'] ?? $target['id'] ?? '');
         }
 
         $device = $target['device'] ?? null;
         if (\is_array($device)) {
-            $value = trim((string) ($device['friendly_name'] ?? $device['name'] ?? $device['ieeeAddr'] ?? $device['ieee_address'] ?? ''));
+            $value = $this->FormatFormTextValue($device['friendly_name'] ?? $device['name'] ?? $device['ieeeAddr'] ?? $device['ieee_address'] ?? '');
             if ($value !== '') {
                 return $value;
             }
         }
 
-        $value = trim((string) ($target['friendly_name'] ?? $target['name'] ?? $target['deviceIeeeAddress'] ?? $target['ieeeAddr'] ?? $target['ieee_address'] ?? ''));
+        $value = $this->FormatFormTextValue($target['friendly_name'] ?? $target['name'] ?? $target['deviceIeeeAddress'] ?? $target['ieeeAddr'] ?? $target['ieee_address'] ?? '');
         if ($value !== '') {
             return $value;
         }
@@ -939,7 +972,7 @@ trait DeviceFormHelper
      */
     private function FormatBindingTargetEndpoint(mixed $target, array $binding): string
     {
-        $endpoint = trim((string) ($binding['to_endpoint'] ?? $binding['target_endpoint'] ?? ''));
+        $endpoint = $this->FormatFormTextValue($binding['to_endpoint'] ?? $binding['target_endpoint'] ?? '');
         if ($endpoint !== '' || !\is_array($target)) {
             return $endpoint;
         }
@@ -949,7 +982,7 @@ trait DeviceFormHelper
             return '';
         }
 
-        return trim((string) ($target['endpoint'] ?? $target['endpointID'] ?? $target['endpoint_id'] ?? $target['ID'] ?? $target['id'] ?? ''));
+        return $this->FormatFormTextValue($target['endpoint'] ?? $target['endpointID'] ?? $target['endpoint_id'] ?? $target['ID'] ?? $target['id'] ?? '');
     }
 
     /**
@@ -1048,7 +1081,7 @@ trait DeviceFormHelper
             ['caption' => '-', 'value' => '']
         ];
         foreach ($clusters as $cluster) {
-            $cluster = trim((string) $cluster);
+            $cluster = $this->NormalizeBindingClusterValue($cluster);
             if ($cluster === '') {
                 continue;
             }
@@ -1406,7 +1439,7 @@ trait DeviceFormHelper
     {
         $values = [];
         foreach ($clusters as $cluster) {
-            $cluster = trim((string) $cluster);
+            $cluster = $this->NormalizeBindingClusterValue($cluster);
             if ($cluster === '') {
                 continue;
             }
@@ -1446,7 +1479,7 @@ trait DeviceFormHelper
     {
         $normalized = [];
         foreach ($values as $value) {
-            $value = trim((string) $value);
+            $value = $this->FormatFormTextValue($value);
             if ($value === '') {
                 continue;
             }
@@ -1468,7 +1501,7 @@ trait DeviceFormHelper
             ['caption' => '-', 'value' => '']
         ];
         foreach ($values as $value) {
-            $value = trim((string) $value);
+            $value = $this->FormatFormTextValue($value);
             if ($value === '') {
                 continue;
             }
@@ -1510,7 +1543,7 @@ trait DeviceFormHelper
             $cluster = $cluster['name'] ?? $cluster['ID'] ?? $cluster['id'] ?? $cluster['clusterID'] ?? '';
         }
 
-        $cluster = trim((string) $cluster);
+        $cluster = $this->FormatFormTextValue($cluster);
         if ($cluster === '') {
             return '';
         }
@@ -1527,7 +1560,7 @@ trait DeviceFormHelper
             $cluster = $cluster['name'] ?? $cluster['ID'] ?? $cluster['id'] ?? $cluster['clusterID'] ?? '';
         }
 
-        $cluster = trim((string) $cluster);
+        $cluster = $this->FormatFormTextValue($cluster);
         if ($cluster === '') {
             return '';
         }
@@ -2250,7 +2283,7 @@ trait DeviceFormHelper
     private function NormalizeDeviceOptionAttributes(array $attributes): array
     {
         $normalized = array_values(array_unique(array_filter(array_map(
-            static fn (mixed $attribute): string => trim((string) $attribute),
+            fn (mixed $attribute): string => $this->FormatFormTextValue($attribute),
             $attributes
         ), [$this, 'IsDeviceOptionAttributeCandidate'])));
 
@@ -2541,7 +2574,7 @@ trait DeviceFormHelper
             return '';
         }
 
-        return implode(', ', array_map(static fn (mixed $entry): string => (string) $entry, $value));
+        return implode(', ', array_map(fn (mixed $entry): string => $this->FormatFormTextValue($entry), $value));
     }
 
     /**
