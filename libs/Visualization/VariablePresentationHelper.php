@@ -330,6 +330,7 @@ trait VariablePresentationHelper
             'MAX'        => 100,
             'STEP_SIZE'  => 1,
             'SUFFIX'     => ' %',
+            'USAGE_TYPE' => 2,
             'PERCENTAGE' => true,
             'DIGITS'     => 0,
             'ICON'       => 'sun'

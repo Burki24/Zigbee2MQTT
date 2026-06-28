@@ -1122,6 +1122,7 @@ class DevicesTest extends DumpInclude
         $this->assertSame(0, $brightnessPresentation['MIN'] ?? null);
         $this->assertSame(100, $brightnessPresentation['MAX'] ?? null);
         $this->assertSame(' %', $brightnessPresentation['SUFFIX'] ?? null);
+        $this->assertSame(2, $brightnessPresentation['USAGE_TYPE'] ?? null);
         $this->assertTrue($brightnessPresentation['PERCENTAGE'] ?? false);
         $this->assertSame('sun', $brightnessPresentation['ICON'] ?? null);
         $this->assertSame(100, GetValue($brightnessID));

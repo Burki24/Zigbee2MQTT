@@ -503,7 +503,7 @@ Die Änderungen sind anhand der funktionalen Commits chronologisch gegliedert. A
 - Composite-Farb-Exposes wie `color_xy`, `color_hs` und `color_rgb` werden weiterhin auf die passende Farbvariable zusammengeführt. Technische Untervariablen werden dabei nicht angelegt.
 - `last_seen` verwendet als Modul-Standard nun die native Symcon-Darstellung **Datum/Uhrzeit**. `update__remaining` bleibt eine Restdauer in Sekunden und verwendet die native Darstellung **Dauer**.
 - Bodenfeuchtewerte wie `soil_moisture` werden wie Luftfeuchtigkeit als Prozentwerte erkannt und in der Sensor-Kachel auch dann mit `%` dargestellt, wenn Zigbee2MQTT keine Einheit im Expose liefert.
-- Helligkeitswerte (`brightness`) nutzen die native Symcon-Schiebereglerdarstellung nur noch, wenn das Expose schreibbar ist. Reine Statuswerte bleiben eine einfache Wertdarstellung.
+- Helligkeitswerte (`brightness`) nutzen die native Symcon-Schiebereglerdarstellung mit der Verwendung **Intensität** nur noch, wenn das Expose schreibbar ist. Dadurch kann die Symcon-Standardkachel für RGB- und RGBW-Leuchtmittel Helligkeit zusätzlich zu Farbe und Farbtemperatur anbieten. Reine Statuswerte bleiben eine einfache Wertdarstellung.
 - Die Heizungs-Kachel erkennt neben `occupied_heating_setpoint` nun auch `current_heating_setpoint` als Solltemperatur. Thermostate wie `TRV06`, die diesen Zigbee2MQTT-Ident verwenden, werden dadurch korrekt als Heizung dargestellt und geschaltet.
 - Spezialkacheln und der Debug-Export formatieren Variablenwerte nur noch über Symcon, wenn hinterlegte Altprofile noch existieren. Dadurch lösen gelöschte alte `Z2M.*`-Profile keine Laufzeitwarnungen mehr aus; die Kacheln fallen stattdessen auf eine einfache Wertdarstellung zurück.
 
