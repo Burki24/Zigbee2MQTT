@@ -432,6 +432,18 @@
                                     "quickFilter": true
                                 },
                                 {
+                                    "caption": "Previous profile",
+                                    "name": "old_profile",
+                                    "width": "220px",
+                                    "quickFilter": true
+                                },
+                                {
+                                    "caption": "New presentation",
+                                    "name": "new_presentation",
+                                    "width": "160px",
+                                    "quickFilter": true
+                                },
+                                {
                                     "caption": "Source",
                                     "name": "source",
                                     "width": "90px"

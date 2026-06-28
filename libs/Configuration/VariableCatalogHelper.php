@@ -63,6 +63,7 @@ trait VariableCatalogHelper
         $this->RefreshVariableCatalog();
 
         $catalog = $this->ReadAttributeArray(self::ATTRIBUTE_VARIABLE_CATALOG);
+        $presentationMigrationByIdent = $this->ReadPresentationMigrationLogByIdent();
         ksort($catalog);
 
         $rows = [];
@@ -72,7 +73,7 @@ trait VariableCatalogHelper
             }
 
             $ident = (string) $ident;
-            $rows[] = $this->BuildVariableSelectionFormRow($ident, $entry);
+            $rows[] = $this->BuildVariableSelectionFormRow($ident, $entry, $presentationMigrationByIdent[$ident] ?? null);
         }
 
         return $rows;
@@ -836,7 +837,7 @@ trait VariableCatalogHelper
     /**
      * Baut eine einzelne Zeile fuer die Variablenverwaltung.
      */
-    private function BuildVariableSelectionFormRow(string $ident, array $entry): array
+    private function BuildVariableSelectionFormRow(string $ident, array $entry, ?array $presentationMigration): array
     {
         $exists = $this->GetObjectIDByIdent($ident) !== false;
         $filtered = \in_array($ident, $this->ReadAttributeArray(self::ATTRIBUTE_FILTERED), true);
@@ -866,9 +867,39 @@ trait VariableCatalogHelper
             'label'    => (string) ($entry['label'] ?? $this->FormatVariableCatalogLabel($ident)),
             'source'   => $this->Translate((string) ($entry['source'] ?? 'payload')),
             'type'     => $this->Translate((string) ($entry['type'] ?? '')),
+            'old_profile'      => (string) ($presentationMigration['oldProfile'] ?? ''),
+            'new_presentation' => (string) ($presentationMigration['newPresentation'] ?? ''),
             'state'    => $this->Translate($state),
             'action'   => $action === '' ? '' : $this->Translate($action),
             'rowColor' => $rowColor
         ];
+    }
+
+    /**
+     * Liefert den letzten protokollierten Darstellungswechsel je Variablen-Ident.
+     *
+     * @return array<string,array>
+     */
+    private function ReadPresentationMigrationLogByIdent(): array
+    {
+        $rowsByIdent = [];
+        foreach ($this->ReadAttributeArray(self::ATTRIBUTE_PRESENTATION_MIGRATION_LOG) as $row) {
+            if (!\is_array($row)) {
+                continue;
+            }
+
+            $ident = (string) ($row['ident'] ?? '');
+            if ($ident === '') {
+                continue;
+            }
+
+            $changed = (int) ($row['time'] ?? 0);
+            $previousChanged = (int) ($rowsByIdent[$ident]['time'] ?? 0);
+            if (!isset($rowsByIdent[$ident]) || $changed >= $previousChanged) {
+                $rowsByIdent[$ident] = $row;
+            }
+        }
+
+        return $rowsByIdent;
     }
 }
