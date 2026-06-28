@@ -137,142 +137,145 @@ class Zigbee2MQTTDevice extends \Zigbee2MQTT\ModulBase
      */
     public function RequestAction(string $ident, mixed $value): void
     {
-        if ($ident == 'UpdateInfo') {
-            if (!$this->UpdateDeviceInfo()) {
-                $this->ShowDeviceInfoRequestError();
-            } else {
-                $this->PopulateDetectedIEEEFormField();
-                $this->ShowDeviceInfoRequestSuccess();
-            }
-            return;
+        switch ($ident) {
+            case 'UpdateInfo':
+                if (!$this->UpdateDeviceInfo()) {
+                    $this->ShowDeviceInfoRequestError();
+                } else {
+                    $this->PopulateDetectedIEEEFormField();
+                    $this->ShowDeviceInfoRequestSuccess();
+                }
+                return;
+
+            case 'RequestDeviceInterview':
+                $this->UpdateFormField('DeviceInterviewWarning', 'visible', true);
+                return;
+
+            case 'ConfirmDeviceInterview':
+                $this->UpdateFormField('DeviceInterviewWarning', 'visible', false);
+                $this->RunDeviceMaintenanceRequest(
+                    'InterviewDevice',
+                    'Device interview successful',
+                    'The device interview completed successfully. Refresh the device information afterwards to import changed exposes into Symcon.',
+                    'Device interview failed'
+                );
+                return;
+
+            case 'RequestDeviceConfigure':
+                $this->UpdateFormField('DeviceConfigureWarning', 'visible', true);
+                return;
+
+            case 'ConfirmDeviceConfigure':
+                $this->UpdateFormField('DeviceConfigureWarning', 'visible', false);
+                $this->RunDeviceMaintenanceRequest(
+                    'ConfigureDevice',
+                    'Device configuration successful',
+                    'The device configuration completed successfully. Refresh endpoint data afterwards to update binding and reporting information.',
+                    'Device configuration failed'
+                );
+                return;
+
+            case 'RequestDeviceRemoval':
+                $this->UpdateFormField('DeviceRemovalWarning', 'visible', true);
+                return;
+
+            case 'ConfirmDeviceRemoval':
+                $this->UpdateFormField('DeviceRemovalWarning', 'visible', false);
+                $this->RunDeviceRemovalRequest(
+                    false,
+                    false,
+                    'Device removed',
+                    'Zigbee2MQTT removed the device from the Zigbee network. The Symcon instance and its variables remain unchanged.'
+                );
+                return;
+
+            case 'RequestForceDeviceRemoval':
+                $this->UpdateFormField('ForceDeviceRemovalWarning', 'visible', true);
+                return;
+
+            case 'ConfirmForceDeviceRemoval':
+                $this->UpdateFormField('ForceDeviceRemovalWarning', 'visible', false);
+                $this->RunDeviceRemovalRequest(
+                    true,
+                    false,
+                    'Device force removed',
+                    'Zigbee2MQTT removed the device from its database. Factory-reset the device before pairing it again. The Symcon instance and its variables remain unchanged.'
+                );
+                return;
+
+            case 'RequestBlockDeviceRemoval':
+                $this->UpdateFormField('BlockDeviceRemovalWarning', 'visible', true);
+                return;
+
+            case 'ConfirmBlockDeviceRemoval':
+                $this->UpdateFormField('BlockDeviceRemovalWarning', 'visible', false);
+                $this->RunDeviceRemovalRequest(
+                    false,
+                    true,
+                    'Device removed and blocked',
+                    'Zigbee2MQTT removed the device and added it to the blocklist. The Symcon instance and its variables remain unchanged.'
+                );
+                return;
+
+            case 'ShowIeeeEditWarning':
+                $this->UpdateFormField('IeeeWarning', 'visible', true);
+                return;
+
+            case 'EnableIeeeEdit':
+                $this->UpdateFormField('IEEE', 'enabled', true);
+                return;
+
+            case 'SelectDeviceOption':
+                $this->SelectDeviceOptionFromForm($value);
+                return;
+
+            case 'ApplyDeviceOption':
+                $this->ApplyDeviceOptionFromForm($value);
+                return;
+
+            case 'AddDeviceOptionAttribute':
+                $this->AddDeviceOptionAttributeFromForm($value);
+                return;
+
+            case 'RemoveDeviceOptionAttribute':
+                $this->RemoveDeviceOptionAttributeFromForm($value);
+                return;
+
+            case 'ApplyBinding':
+                $this->ApplyBindingFromForm($value);
+                return;
+
+            case 'ApplyUnbinding':
+                $this->ApplyUnbindingFromForm($value);
+                return;
+
+            case 'ClearBindings':
+                $this->ClearBindingsFromForm();
+                return;
+
+            case 'RefreshBindingReportingInfo':
+                $this->RefreshBindingReportingInfoFromForm();
+                return;
+
+            case 'UpdateBindingClusters':
+                $this->UpdateBindingClustersFromForm($value);
+                return;
+
+            case 'UpdateReportingSelection':
+                $this->UpdateReportingSelectionFromForm($value);
+                return;
+
+            case 'ConfigureReporting':
+                $this->ConfigureReportingFromForm($value);
+                return;
+
+            case 'ReadReporting':
+                $this->ReadReportingFromForm($value);
+                return;
+
+            default:
+                parent::RequestAction($ident, $value);
         }
-        if ($ident == 'RequestDeviceInterview') {
-            $this->UpdateFormField('DeviceInterviewWarning', 'visible', true);
-            return;
-        }
-        if ($ident == 'ConfirmDeviceInterview') {
-            $this->UpdateFormField('DeviceInterviewWarning', 'visible', false);
-            $this->RunDeviceMaintenanceRequest(
-                'InterviewDevice',
-                'Device interview successful',
-                'The device interview completed successfully. Refresh the device information afterwards to import changed exposes into Symcon.',
-                'Device interview failed'
-            );
-            return;
-        }
-        if ($ident == 'RequestDeviceConfigure') {
-            $this->UpdateFormField('DeviceConfigureWarning', 'visible', true);
-            return;
-        }
-        if ($ident == 'ConfirmDeviceConfigure') {
-            $this->UpdateFormField('DeviceConfigureWarning', 'visible', false);
-            $this->RunDeviceMaintenanceRequest(
-                'ConfigureDevice',
-                'Device configuration successful',
-                'The device configuration completed successfully. Refresh endpoint data afterwards to update binding and reporting information.',
-                'Device configuration failed'
-            );
-            return;
-        }
-        if ($ident == 'RequestDeviceRemoval') {
-            $this->UpdateFormField('DeviceRemovalWarning', 'visible', true);
-            return;
-        }
-        if ($ident == 'ConfirmDeviceRemoval') {
-            $this->UpdateFormField('DeviceRemovalWarning', 'visible', false);
-            $this->RunDeviceRemovalRequest(
-                false,
-                false,
-                'Device removed',
-                'Zigbee2MQTT removed the device from the Zigbee network. The Symcon instance and its variables remain unchanged.'
-            );
-            return;
-        }
-        if ($ident == 'RequestForceDeviceRemoval') {
-            $this->UpdateFormField('ForceDeviceRemovalWarning', 'visible', true);
-            return;
-        }
-        if ($ident == 'ConfirmForceDeviceRemoval') {
-            $this->UpdateFormField('ForceDeviceRemovalWarning', 'visible', false);
-            $this->RunDeviceRemovalRequest(
-                true,
-                false,
-                'Device force removed',
-                'Zigbee2MQTT removed the device from its database. Factory-reset the device before pairing it again. The Symcon instance and its variables remain unchanged.'
-            );
-            return;
-        }
-        if ($ident == 'RequestBlockDeviceRemoval') {
-            $this->UpdateFormField('BlockDeviceRemovalWarning', 'visible', true);
-            return;
-        }
-        if ($ident == 'ConfirmBlockDeviceRemoval') {
-            $this->UpdateFormField('BlockDeviceRemovalWarning', 'visible', false);
-            $this->RunDeviceRemovalRequest(
-                false,
-                true,
-                'Device removed and blocked',
-                'Zigbee2MQTT removed the device and added it to the blocklist. The Symcon instance and its variables remain unchanged.'
-            );
-            return;
-        }
-        if ($ident == 'ShowIeeeEditWarning') {
-            $this->UpdateFormField('IeeeWarning', 'visible', true);
-            return;
-        }
-        if ($ident == 'EnableIeeeEdit') {
-            $this->UpdateFormField('IEEE', 'enabled', true);
-            return;
-        }
-        if ($ident == 'SelectDeviceOption') {
-            $this->SelectDeviceOptionFromForm($value);
-            return;
-        }
-        if ($ident == 'ApplyDeviceOption') {
-            $this->ApplyDeviceOptionFromForm($value);
-            return;
-        }
-        if ($ident == 'AddDeviceOptionAttribute') {
-            $this->AddDeviceOptionAttributeFromForm($value);
-            return;
-        }
-        if ($ident == 'RemoveDeviceOptionAttribute') {
-            $this->RemoveDeviceOptionAttributeFromForm($value);
-            return;
-        }
-        if ($ident == 'ApplyBinding') {
-            $this->ApplyBindingFromForm($value);
-            return;
-        }
-        if ($ident == 'ApplyUnbinding') {
-            $this->ApplyUnbindingFromForm($value);
-            return;
-        }
-        if ($ident == 'ClearBindings') {
-            $this->ClearBindingsFromForm();
-            return;
-        }
-        if ($ident == 'RefreshBindingReportingInfo') {
-            $this->RefreshBindingReportingInfoFromForm();
-            return;
-        }
-        if ($ident == 'UpdateBindingClusters') {
-            $this->UpdateBindingClustersFromForm($value);
-            return;
-        }
-        if ($ident == 'UpdateReportingSelection') {
-            $this->UpdateReportingSelectionFromForm($value);
-            return;
-        }
-        if ($ident == 'ConfigureReporting') {
-            $this->ConfigureReportingFromForm($value);
-            return;
-        }
-        if ($ident == 'ReadReporting') {
-            $this->ReadReportingFromForm($value);
-            return;
-        }
-        parent::RequestAction($ident, $value);
     }
 
     /**

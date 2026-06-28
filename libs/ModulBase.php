@@ -1589,24 +1589,23 @@ abstract class ModulBase extends \IPSModuleStrict
             return $tileResult;
         }
 
-        if ($ident == 'UpdateInfo') {
-            $this->SendDebug(__FUNCTION__, 'Verarbeite UpdateInfo', 0);
-            return $this->UpdateDeviceInfo();
-        }
+        switch ($ident) {
+            case 'UpdateInfo':
+                $this->SendDebug(__FUNCTION__, 'Verarbeite UpdateInfo', 0);
+                return $this->UpdateDeviceInfo();
 
-        if ($ident == 'ShowMissingTranslations') {
-            $this->SendDebug(__FUNCTION__, 'Verarbeite ShowMissingTranslations', 0);
-            return $this->ShowMissingTranslations();
-        }
+            case 'ShowMissingTranslations':
+                $this->SendDebug(__FUNCTION__, 'Verarbeite ShowMissingTranslations', 0);
+                return $this->ShowMissingTranslations();
 
-        if ($ident == 'ToggleVariableCreation') {
-            $this->SendDebug(__FUNCTION__, 'Verarbeite ToggleVariableCreation: ' . (string) $value, 0);
-            return $this->ToggleVariableCreation((string) $value);
-        }
-        if ($ident == 'RefreshVariableSelection') {
-            $this->SendDebug(__FUNCTION__, 'Aktualisiere Variablenkatalog aus aktuellen Gerätedaten', 0);
-            $this->RefreshVariableSelectionFromForm();
-            return true;
+            case 'ToggleVariableCreation':
+                $this->SendDebug(__FUNCTION__, 'Verarbeite ToggleVariableCreation: ' . (string) $value, 0);
+                return $this->ToggleVariableCreation((string) $value);
+
+            case 'RefreshVariableSelection':
+                $this->SendDebug(__FUNCTION__, 'Aktualisiere Variablenkatalog aus aktuellen Gerätedaten', 0);
+                $this->RefreshVariableSelectionFromForm();
+                return true;
         }
 
         return $this->handleVariableRequestAction($ident, $value);
@@ -4599,12 +4598,18 @@ abstract class ModulBase extends \IPSModuleStrict
         }
 
         $profileOrPresentation = '';
-        if ($ident === 'brightness') {
-            $profileOrPresentation = $this->BuildBrightnessFeaturePresentation($feature) ?? $profileOrPresentation;
-        } elseif ($ident === 'update__remaining') {
-            $profileOrPresentation = $this->BuildDurationPresentation() ?? $profileOrPresentation;
-        } elseif ($ident === 'last_seen') {
-            $profileOrPresentation = $this->BuildDateTimePresentation() ?? $profileOrPresentation;
+        switch ($ident) {
+            case 'brightness':
+                $profileOrPresentation = $this->BuildBrightnessFeaturePresentation($feature) ?? $profileOrPresentation;
+                break;
+
+            case 'update__remaining':
+                $profileOrPresentation = $this->BuildDurationPresentation() ?? $profileOrPresentation;
+                break;
+
+            case 'last_seen':
+                $profileOrPresentation = $this->BuildDateTimePresentation() ?? $profileOrPresentation;
+                break;
         }
         $this->RecordLegacyProfilePresentationReplacement($ident, $profileOrPresentation);
         switch ($varDef['type']) {
