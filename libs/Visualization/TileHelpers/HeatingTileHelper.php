@@ -22,7 +22,7 @@ trait HeatingTileHelper
      */
     protected function HasHeatingTileCapabilities(): bool
     {
-        if ($this->GetObjectIDByIdent('occupied_heating_setpoint') === false) {
+        if ($this->GetHeatingTileSetpointIdent() === null) {
             return false;
         }
 
@@ -67,15 +67,45 @@ trait HeatingTileHelper
     }
 
     /**
+     * Liefert bekannte Zigbee2MQTT-Idents fuer die Solltemperatur.
+     */
+    private function GetHeatingTileSetpointIdents(): array
+    {
+        return [
+            'occupied_heating_setpoint',
+            'current_heating_setpoint'
+        ];
+    }
+
+    /**
+     * Ermittelt den in dieser Instanz vorhandenen Solltemperatur-Ident.
+     */
+    private function GetHeatingTileSetpointIdent(): ?string
+    {
+        foreach ($this->GetHeatingTileSetpointIdents() as $ident) {
+            if ($this->GetObjectIDByIdent($ident) !== false) {
+                return $ident;
+            }
+        }
+
+        return null;
+    }
+
+    /**
      * Verarbeitet Aktionen der Heizungs-Kachel.
      */
     protected function HandleHeatingTileAction(string $ident, mixed $value): bool
     {
         switch ($ident) {
             case 'HeatingTile.SetSetpoint':
+                $setpointIdent = $this->GetHeatingTileSetpointIdent();
+                if ($setpointIdent === null) {
+                    return true;
+                }
+
                 $this->RequestAction(
-                    'occupied_heating_setpoint',
-                    $this->NormalizeHeatingTileNumericValue('occupied_heating_setpoint', $value)
+                    $setpointIdent,
+                    $this->NormalizeHeatingTileNumericValue($setpointIdent, $value)
                 );
                 return true;
 
@@ -154,6 +184,7 @@ trait HeatingTileHelper
     {
         $values = [];
         $features = [];
+        $setpointIdent = $this->GetHeatingTileSetpointIdent();
 
         foreach ($this->GetHeatingTileIdents() as $ident) {
             $feature = $this->FindHeatingTileFeature($ident);
@@ -172,6 +203,15 @@ trait HeatingTileHelper
                 'value'     => $rawValue,
                 'formatted' => $this->FormatHeatingTileValue($ident, $rawValue)
             ];
+        }
+
+        if ($setpointIdent !== null && $setpointIdent !== 'occupied_heating_setpoint') {
+            if (isset($features[$setpointIdent])) {
+                $features['occupied_heating_setpoint'] = $features[$setpointIdent];
+            }
+            if (isset($values[$setpointIdent])) {
+                $values['occupied_heating_setpoint'] = $values[$setpointIdent];
+            }
         }
 
         if (!isset($features['occupied_heating_setpoint'])) {
@@ -214,6 +254,7 @@ trait HeatingTileHelper
     {
         return [
             'occupied_heating_setpoint',
+            'current_heating_setpoint',
             'local_temperature',
             'local_temperature_calibration',
             'system_mode',

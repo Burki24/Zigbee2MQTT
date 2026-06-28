@@ -141,6 +141,17 @@ class DevicesTest extends DumpInclude
         $this->assertSame(count($Debug['Childs']) + $OffsetDebugChild, count(IPS_GetChildrenIDs($iid)), 'Anzahl Variablen aus dem Debug (' . count($Debug['Childs']) . ') und Erzeugte Variablen (' . count(IPS_GetChildrenIDs($iid)) . ') vom Test unterscheiden sich');
         $this->assertSame(self::count_recursive($Debug['LastPayload']) + $OffestLastPayload, count(IPS_GetChildrenIDs($iid)) + $OffsetChildrenIDs, 'Anzahl LastPayload (' . self::count_recursive($Debug['LastPayload']) + $OffestLastPayload . ') und Erzeugte Variablen (' . count(IPS_GetChildrenIDs($iid)) + $OffsetChildrenIDs . ') unterscheiden sich');
         $this->assertCount(0, self::getExportDebugData($iid)['missingTranslations'], 'Fehlende übersetzungen gefunden:' . var_export(self::getExportDebugData($iid)['missingTranslations'], true));
+
+        $demandID = IPS_CreateVariable(VARIABLETYPE_FLOAT);
+        IPS_SetParent($demandID, $iid);
+        IPS_SetIdent($demandID, 'pi_heating_demand');
+        IPS_SetName($demandID, 'PI Heating demand');
+        SetValue($demandID, 0.0);
+
+        $html = IPS\InstanceManager::getInstanceInterface($iid)->GetVisualizationTile();
+        $this->assertStringContainsString('"type":"heating"', $html);
+        $this->assertStringContainsString('current_heating_setpoint', $html);
+        $this->assertStringContainsString('occupied_heating_setpoint', $html);
     }
 
     public function test701721()
