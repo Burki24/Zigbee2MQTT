@@ -863,16 +863,200 @@ trait VariableCatalogHelper
         }
 
         return [
-            'ident'    => $ident,
-            'label'    => (string) ($entry['label'] ?? $this->FormatVariableCatalogLabel($ident)),
-            'source'   => $this->Translate((string) ($entry['source'] ?? 'payload')),
-            'type'     => $this->Translate((string) ($entry['type'] ?? '')),
+            'ident'            => $ident,
+            'label'            => (string) ($entry['label'] ?? $this->FormatVariableCatalogLabel($ident)),
+            'source'           => $this->Translate((string) ($entry['source'] ?? 'payload')),
+            'type'             => $this->Translate((string) ($entry['type'] ?? '')),
             'old_profile'      => (string) ($presentationMigration['oldProfile'] ?? ''),
-            'new_presentation' => (string) ($presentationMigration['newPresentation'] ?? ''),
-            'state'    => $this->Translate($state),
-            'action'   => $action === '' ? '' : $this->Translate($action),
-            'rowColor' => $rowColor
+            'new_presentation' => $this->ResolveVariableSelectionPresentation($ident, $entry, $presentationMigration),
+            'state'            => $this->Translate($state),
+            'action'           => $action === '' ? '' : $this->Translate($action),
+            'rowColor'         => $rowColor
         ];
+    }
+
+    /**
+     * Ermittelt die in der Variablenliste angezeigte Darstellung.
+     *
+     * Bei migrierten Variablen bleibt der protokollierte Zielwert fuehrend.
+     * Frisch angelegte Variablen lesen ihre aktuelle Symcon-Darstellung aus
+     * oder leiten sie aus den gespeicherten Expose-/Payload-Informationen ab.
+     */
+    private function ResolveVariableSelectionPresentation(string $ident, array $entry, ?array $presentationMigration): string
+    {
+        $migratedPresentation = (string) ($presentationMigration['newPresentation'] ?? '');
+        if ($migratedPresentation !== '') {
+            return $migratedPresentation;
+        }
+
+        $currentPresentation = $this->ReadCurrentVariablePresentation($ident);
+        if ($currentPresentation !== '') {
+            return $currentPresentation;
+        }
+
+        return $this->InferVariableSelectionPresentation($ident, $entry);
+    }
+
+    /**
+     * Liest die aktuell an der Symcon-Variable hinterlegte Darstellung.
+     */
+    private function ReadCurrentVariablePresentation(string $ident): string
+    {
+        $variableID = $this->GetObjectIDByIdent($ident);
+        if ($variableID === false || !\function_exists('IPS_GetVariable')) {
+            return '';
+        }
+
+        try {
+            $variable = IPS_GetVariable((int) $variableID);
+        } catch (\Throwable $exception) {
+            return '';
+        }
+
+        foreach (['VariableCustomPresentation', 'VariablePresentation'] as $field) {
+            if (!\array_key_exists($field, $variable)) {
+                continue;
+            }
+
+            $description = $this->DescribeVariableSelectionPresentationValue($variable[$field]);
+            if ($description !== '') {
+                return $description;
+            }
+        }
+
+        return '';
+    }
+
+    /**
+     * Uebersetzt eine rohe Symcon-Darstellung in die Tabellenbeschreibung.
+     */
+    private function DescribeVariableSelectionPresentationValue(mixed $presentation): string
+    {
+        if (\is_array($presentation) && $presentation !== []) {
+            return $this->DescribePresentationForMigrationLog($presentation);
+        }
+
+        if (!\is_string($presentation) || $presentation === '') {
+            return '';
+        }
+
+        $decoded = \json_decode($presentation, true);
+        if (!\is_array($decoded) || $decoded === []) {
+            return '';
+        }
+
+        return $this->DescribePresentationForMigrationLog($decoded);
+    }
+
+    /**
+     * Leitet die zu erwartende Darstellung aus dem Variablenkatalog ab.
+     */
+    private function InferVariableSelectionPresentation(string $ident, array $entry): string
+    {
+        $feature = $this->BuildPresentationFeatureFromCatalogEntry($ident, $entry);
+        $presentation = null;
+
+        if ($feature !== null) {
+            if (isset($feature['presets']) && \is_array($feature['presets']) && $feature['presets'] !== []) {
+                $presentation = $this->BuildPresetPresentation(
+                    $feature['presets'],
+                    $this->GetVariableSelectionPresetType($entry),
+                    $feature
+                );
+            } else {
+                $presentation = $this->BuildFeaturePresentation($feature);
+            }
+        }
+
+        if ($presentation === null) {
+            switch ($ident) {
+                case 'last_seen':
+                    $presentation = $this->BuildDateTimePresentation();
+                    break;
+                case 'update__remaining':
+                    $presentation = $this->BuildDurationPresentation();
+                    break;
+                case 'device_status':
+                    $presentation = $this->BuildDeviceStatusPresentation();
+                    break;
+            }
+        }
+
+        return \is_array($presentation) ? $this->DescribePresentationForMigrationLog($presentation) : '';
+    }
+
+    /**
+     * Baut aus einem Katalogeintrag ein minimales Feature fuer die Darstellungslogik.
+     */
+    private function BuildPresentationFeatureFromCatalogEntry(string $ident, array $entry): ?array
+    {
+        if (isset($entry['feature']) && \is_array($entry['feature'])) {
+            return $entry['feature'];
+        }
+
+        $featureType = $this->NormalizeCatalogPresentationFeatureType((string) ($entry['type'] ?? ''));
+        if ($featureType === '') {
+            return null;
+        }
+
+        $feature = [
+            'name'     => (string) ($entry['name'] ?? $ident),
+            'property' => (string) ($entry['property'] ?? $ident),
+            'label'    => (string) ($entry['label'] ?? $this->FormatVariableCatalogLabel($ident)),
+            'type'     => $featureType,
+        ];
+
+        foreach (['unit', 'value_min', 'value_max', 'value_step', 'access', 'values', 'presets'] as $key) {
+            if (\array_key_exists($key, $entry)) {
+                $feature[$key] = $entry[$key];
+            }
+        }
+
+        return $feature;
+    }
+
+    /**
+     * Normalisiert Katalogtypen auf Zigbee2MQTT-Featuretypen.
+     */
+    private function NormalizeCatalogPresentationFeatureType(string $type): string
+    {
+        switch (\strtolower($type)) {
+            case 'numeric':
+            case 'float':
+            case 'integer':
+            case 'int':
+                return 'numeric';
+            case 'binary':
+            case 'boolean':
+            case 'bool':
+            case 'switch':
+                return 'binary';
+            case 'enum':
+            case 'enumeration':
+                return 'enum';
+            case 'text':
+            case 'string':
+                return 'text';
+            default:
+                return '';
+        }
+    }
+
+    /**
+     * Liefert den Variablentyp fuer Preset-Darstellungen aus dem Katalog.
+     */
+    private function GetVariableSelectionPresetType(array $entry): string
+    {
+        switch (\strtolower((string) ($entry['type'] ?? ''))) {
+            case 'float':
+            case 'numeric':
+                return 'float';
+            case 'integer':
+            case 'int':
+                return 'integer';
+            default:
+                return 'string';
+        }
     }
 
     /**

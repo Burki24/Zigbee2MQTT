@@ -1557,6 +1557,34 @@ abstract class ModulBase extends \IPSModuleStrict
     }
 
     /**
+     * Returns a human-readable name for a native Symcon presentation.
+     */
+    protected function DescribePresentationForMigrationLog(array $presentation): string
+    {
+        $presentationKey = \defined('PRESENTATION') ? \constant('PRESENTATION') : 'PRESENTATION';
+        $presentationID = $presentation[$presentationKey] ?? $presentation['PRESENTATION'] ?? null;
+        $presentations = [
+            'VARIABLE_PRESENTATION_SLIDER'             => 'Slider',
+            'VARIABLE_PRESENTATION_ENUMERATION'        => 'Enumeration',
+            'VARIABLE_PRESENTATION_VALUE'              => 'Value display',
+            'VARIABLE_PRESENTATION_VALUE_PRESENTATION' => 'Value display',
+            'VARIABLE_PRESENTATION_SWITCH'             => 'Switch',
+            'VARIABLE_PRESENTATION_COLOR'              => 'Color',
+            'VARIABLE_PRESENTATION_SHUTTER'            => 'Shutter',
+            'VARIABLE_PRESENTATION_DURATION'           => 'Duration',
+            'VARIABLE_PRESENTATION_DATE_TIME'          => 'Date/time',
+        ];
+
+        foreach ($presentations as $constant => $caption) {
+            if (\defined($constant) && $presentationID === \constant($constant)) {
+                return $this->Translate($caption);
+            }
+        }
+
+        return $this->Translate('Native presentation');
+    }
+
+    /**
      * Fuehrt Property-Lesezugriffe aus, ohne fehlende neue Properties als Warning weiterzugeben.
      */
     private function ReadPropertySafe(\Closure $reader, bool|int|float|string $default): bool|int|float|string
@@ -4151,32 +4179,6 @@ abstract class ModulBase extends \IPSModuleStrict
             ),
             0
         );
-    }
-
-    /**
-     * Returns a human-readable name for a native Symcon presentation.
-     */
-    private function DescribePresentationForMigrationLog(array $presentation): string
-    {
-        $presentationKey = \defined('PRESENTATION') ? \constant('PRESENTATION') : 'PRESENTATION';
-        $presentationID = $presentation[$presentationKey] ?? $presentation['PRESENTATION'] ?? null;
-        $presentations = [
-            'VARIABLE_PRESENTATION_SLIDER'      => 'Slider',
-            'VARIABLE_PRESENTATION_ENUMERATION' => 'Enumeration',
-            'VARIABLE_PRESENTATION_VALUE'       => 'Value display',
-            'VARIABLE_PRESENTATION_SWITCH'      => 'Switch',
-            'VARIABLE_PRESENTATION_COLOR'       => 'Color',
-            'VARIABLE_PRESENTATION_SHUTTER'     => 'Shutter',
-            'VARIABLE_PRESENTATION_DURATION'    => 'Duration',
-        ];
-
-        foreach ($presentations as $constant => $caption) {
-            if (\defined($constant) && $presentationID === \constant($constant)) {
-                return $this->Translate($caption);
-            }
-        }
-
-        return $this->Translate('Native presentation');
     }
 
     /**
