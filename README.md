@@ -495,7 +495,7 @@ Die Änderungen sind anhand der funktionalen Commits chronologisch gegliedert. A
 - Die letzten dynamischen Profil-Fallbacks fuer generische numerische Werte, Binary-Exposes, State-Aufzaehlungen, Verfuegbarkeitsstatus sowie Bridge-Loglevel und Bridge-Neustart wurden auf native Symcon-Darstellungen umgestellt. Neue Variablen erzeugen dadurch keine Profile wie `Z2M.ac_frequency`, `Z2M.target_distance`, `Z2M.state.*`, `Z2M.DeviceStatus` oder `Z2M.bridge.*` mehr.
 - Bestehende Variablen mit alter Modulprofil-Zuweisung werden beim erneuten Registrieren nicht mehr auf dieses Profil zurueckgefuehrt. Wenn eine passende Darstellung verfuegbar ist, wird diese als Modul-Standarddarstellung gesetzt; andernfalls bleibt die Variable ohne Modulprofil. Benutzerdefinierte Profile und Darstellungen bleiben unangetastet.
 
-### 27. Juni 2026: Umstellung auf native Symcon-Darstellungen
+### 27. bis 29. Juni 2026: Umstellung auf native Symcon-Darstellungen
 
 - **Kompatibilitätsänderung gegenüber 5.42:** Die automatische Anlage und Pflege dynamischer `Z2M.*`-Variablenprofile ist entfernt. Neue und erneut registrierte Variablen verwenden nach Möglichkeit native Symcon-Variablendarstellungen oder bleiben ohne Modulprofil. Vorhandene Variablen, Objekt-IDs und bestehende Profile werden nicht automatisch gelöscht.
 - RGB-, HS- und XY-Farb-Exposes registrieren ihre Farbvariable ohne Modulprofil mit der nativen Symcon-Farbdarstellung für Hex/sRGB-Farbwerte. Die Symcon-Standardkachel für RGB-Leuchtmittel kann dadurch den ColorHex-Wert verwenden, ohne dass `~Color` oder ein dynamisches `Z2M.*`-Profil benötigt wird.
@@ -506,6 +506,7 @@ Die Änderungen sind anhand der funktionalen Commits chronologisch gegliedert. A
 - Helligkeitswerte (`brightness`) nutzen die native Symcon-Schiebereglerdarstellung mit der Verwendung **Intensität** nur noch, wenn das Expose schreibbar ist. Dadurch kann die Symcon-Standardkachel für RGB- und RGBW-Leuchtmittel Helligkeit zusätzlich zu Farbe und Farbtemperatur anbieten. Reine Statuswerte bleiben eine einfache Wertdarstellung.
 - Die Heizungs-Kachel erkennt neben `occupied_heating_setpoint` nun auch `current_heating_setpoint` als Solltemperatur. Thermostate wie `TRV06`, die diesen Zigbee2MQTT-Ident verwenden, werden dadurch korrekt als Heizung dargestellt und geschaltet.
 - Spezialkacheln und der Debug-Export formatieren Variablenwerte nur noch über Symcon, wenn hinterlegte Altprofile noch existieren. Dadurch lösen gelöschte alte `Z2M.*`-Profile keine Laufzeitwarnungen mehr aus; die Kacheln fallen stattdessen auf eine einfache Wertdarstellung zurück.
+- Die lokale Variablen-Wartung löscht Kandidaten jetzt aus dem gespeicherten Suchlauf und aktualisiert die Tabellen fehlertolerant. Dadurch wird beim Löschen verwaister Variablen kein unmittelbarer Neu-Scan der Instanz ausgelöst und Symcon-Formularfehler durch inzwischen entfernte oder unerwartete Darstellungen werden abgefangen.
 
 **Version 5.42:**  
 
