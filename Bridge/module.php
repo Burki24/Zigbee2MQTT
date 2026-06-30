@@ -584,9 +584,6 @@ class Zigbee2MQTTBridge extends IPSModuleStrict
             case 'SelectStaleVariableMaintenanceInstance':
                 $this->SelectStaleVariableMaintenanceInstanceFromForm($value);
                 break;
-            case 'RefreshVariableProfileDiagnostics':
-                $this->UpdateVariableProfileDiagnosticsForm();
-                break;
             case 'RefreshOTAStatus':
                 $this->UpdateOTAFormLists();
                 break;
@@ -2644,21 +2641,6 @@ class Zigbee2MQTTBridge extends IPSModuleStrict
         $staleVariableSummary = $this->BuildStaleVariableInstanceSummaryFormValues($staleVariableScan);
         $this->SetBridgeFormField($form, 'StaleVariableInstanceSummary', 'values', $staleVariableSummary);
         $this->SetBridgeFormField($form, 'StaleVariableInstanceSummary', 'rowCount', min(12, max(3, \count($staleVariableSummary) + 1)));
-        $profileDiagnostics = $this->BuildVariableProfileDiagnostics();
-        $this->SetBridgeFormField(
-            $form,
-            'VariableProfileDiagnosticsStatus',
-            'caption',
-            $this->BuildVariableProfileDiagnosticsStatus($profileDiagnostics)
-        );
-        $this->SetBridgeFormField($form, 'VariableProfileDiagnosticsList', 'values', $profileDiagnostics);
-        $this->SetBridgeFormField(
-            $form,
-            'VariableProfileDiagnosticsList',
-            'rowCount',
-            min(12, max(4, \count($profileDiagnostics) + 1))
-        );
-
         return $form;
     }
 
@@ -3534,73 +3516,6 @@ class Zigbee2MQTTBridge extends IPSModuleStrict
         $this->UpdateFormField('StaleVariableInstanceSummary', 'values', json_encode($summary));
         $this->UpdateFormField('StaleVariableInstanceSummary', 'rowCount', min(12, max(3, \count($summary) + 1)));
         $this->UpdateFormField('StaleVariableOpenInstance', 'visible', false);
-    }
-
-    /**
-     * Baut die globale Variablenprofil-Diagnose auf.
-     *
-     * Profile werden nicht mehr durch das Modul erzeugt. Die Diagnose bleibt als
-     * leere Kompatibilitaetsliste erhalten, solange das Bridge-Formular den
-     * bisherigen Bereich noch bereitstellt.
-     *
-     * @return array<int, array<string, int|string>> Diagnosezeilen.
-     */
-    private function BuildVariableProfileDiagnostics(): array
-    {
-        return [];
-    }
-
-    /**
-     * Baut den Status der globalen Variablenprofil-Diagnose auf.
-     *
-     * @param array<int, array<string, int|string>> $rows Diagnosezeilen.
-     */
-    private function BuildVariableProfileDiagnosticsStatus(array $rows): string
-    {
-        $identicalGroups = [];
-        $usedProfiles = 0;
-        foreach ($rows as $row) {
-            $groupKey = (string) ($row['canonical_profile'] ?? '')
-                . "\0"
-                . (string) ($row['definition_fingerprint'] ?? '');
-            $identicalGroups[$groupKey] = max(
-                $identicalGroups[$groupKey] ?? 0,
-                (int) ($row['identical_count'] ?? 1)
-            );
-            if ((int) ($row['usage_count'] ?? 0) > 0) {
-                ++$usedProfiles;
-            }
-        }
-        $identicalDuplicates = array_sum(array_map(
-            static fn (int $count): int => max(0, $count - 1),
-            $identicalGroups
-        ));
-
-        return sprintf(
-            $this->Translate('Compatible profiles: %d, identical duplicate profiles: %d, used profiles: %d'),
-            \count($rows),
-            $identicalDuplicates,
-            $usedProfiles
-        );
-    }
-
-    /**
-     * Aktualisiert die globale Variablenprofil-Diagnose im geoeffneten Formular.
-     */
-    private function UpdateVariableProfileDiagnosticsForm(): void
-    {
-        $rows = $this->BuildVariableProfileDiagnostics();
-        $this->UpdateFormField(
-            'VariableProfileDiagnosticsStatus',
-            'caption',
-            $this->BuildVariableProfileDiagnosticsStatus($rows)
-        );
-        $this->UpdateFormField('VariableProfileDiagnosticsList', 'values', json_encode($rows));
-        $this->UpdateFormField(
-            'VariableProfileDiagnosticsList',
-            'rowCount',
-            min(12, max(4, \count($rows) + 1))
-        );
     }
 
     /**
