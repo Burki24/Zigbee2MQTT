@@ -38,9 +38,25 @@ trait VariablePresentationHelper
                 return $this->BuildNumericFeaturePresentation($feature, $groupType);
             case 'enum':
                 return $this->BuildEnumerationPresentation($feature);
+            case 'text':
+                return $this->BuildTextFeaturePresentation();
         }
 
         return null;
+    }
+
+    /**
+     * Erstellt fuer laengere Textwerte die native Textbox-Darstellung.
+     */
+    protected function BuildTextFeaturePresentation(): ?array
+    {
+        if (!$this->SupportsTextBoxPresentation()) {
+            return null;
+        }
+
+        return [
+            'PRESENTATION' => \constant('VARIABLE_PRESENTATION_TEXT_BOX')
+        ];
     }
 
     /**
@@ -965,6 +981,14 @@ trait VariablePresentationHelper
     private function SupportsDateTimePresentation(): bool
     {
         return \defined('VARIABLE_PRESENTATION_DATE_TIME');
+    }
+
+    /**
+     * Prueft, ob Textbox-Darstellungen verfuegbar sind.
+     */
+    private function SupportsTextBoxPresentation(): bool
+    {
+        return \defined('VARIABLE_PRESENTATION_TEXT_BOX');
     }
 
     /**

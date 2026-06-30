@@ -142,6 +142,12 @@ class DevicesTest extends DumpInclude
         $this->assertSame(self::count_recursive($Debug['LastPayload']) + $OffestLastPayload, count(IPS_GetChildrenIDs($iid)) + $OffsetChildrenIDs, 'Anzahl LastPayload (' . self::count_recursive($Debug['LastPayload']) + $OffestLastPayload . ') und Erzeugte Variablen (' . count(IPS_GetChildrenIDs($iid)) + $OffsetChildrenIDs . ') unterscheiden sich');
         $this->assertCount(0, self::getExportDebugData($iid)['missingTranslations'], 'Fehlende übersetzungen gefunden:' . var_export(self::getExportDebugData($iid)['missingTranslations'], true));
 
+        $scheduleTuesdayID = IPS_GetObjectIDByIdent('schedule_tuesday', $iid);
+        $this->assertNotFalse($scheduleTuesdayID);
+        $scheduleTuesdayVariable = IPS_GetVariable($scheduleTuesdayID);
+        $this->assertSame('', $scheduleTuesdayVariable['VariableProfile']);
+        $this->assertSame(VARIABLE_PRESENTATION_TEXT_BOX, $scheduleTuesdayVariable['VariablePresentation']['PRESENTATION'] ?? null);
+
         $demandID = IPS_CreateVariable(VARIABLETYPE_FLOAT);
         IPS_SetParent($demandID, $iid);
         IPS_SetIdent($demandID, 'pi_heating_demand');
