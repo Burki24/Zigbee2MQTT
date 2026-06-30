@@ -688,6 +688,15 @@ Dieses Modul ist für die nicht kommerzielle Nutzung kostenlos, Schenkungen als 
 
 <a href="https://www.paypal.com/cgi-bin/webscr?cmd=_s-xclick&hosted_button_id=EK4JRP87XLSHW" target="_blank"><img src="https://www.paypalobjects.com/de_DE/DE/i/btn/btn_donate_LG.gif" border="0" /></a> <a href="https://www.amazon.de/hz/wishlist/ls/3JVWED9SZMDPK?ref_=wl_share" target="_blank">Amazon Wunschzettel</a>
 
-## 7. Lizenz
+## 7. Drittanbieter-Komponenten
+
+Dieses Modul enthält folgende Drittanbieter-Komponenten:
+
+- `libs/phpMQTT.php` basiert auf `phpMQTT` von Blue Rhinos Consulting / Andrew Milsted und steht unter MIT-Lizenz. Der vollständige Lizenztext ist direkt in der Datei enthalten.
+- `NetworkMap/assets/cytoscape.min.js` basiert auf [Cytoscape.js](https://js.cytoscape.org/) und steht unter MIT-Lizenz. Der vollständige Lizenztext liegt unter `NetworkMap/assets/CYTOSCAPE-LICENSE.txt`.
+
+Beide Komponenten werden lokal mit dem Modul ausgeliefert. Für die Netzwerkkarte werden keine externen Webressourcen nachgeladen.
+
+## 8. Lizenz
 
 [CC BY-NC-SA 4.0](https://creativecommons.org/licenses/by-nc-sa/4.0/)

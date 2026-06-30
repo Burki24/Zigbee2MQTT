@@ -101,7 +101,7 @@ Der Hinweis `Scanfehler: routingTable` bedeutet, dass Zigbee2MQTT die Routing-Ta
 
 Ein Klick auf eine freie Stelle der Netzwerkkarte schließt die Detailkarte wieder.
 
-Für die lokale Graphdarstellung wird [Cytoscape.js](https://js.cytoscape.org/) unter MIT-Lizenz mitgeliefert. Es werden keine externen Webressourcen nachgeladen.
+Für die lokale Graphdarstellung wird [Cytoscape.js](https://js.cytoscape.org/) unter MIT-Lizenz mitgeliefert. Der vollständige Lizenztext liegt unter `NetworkMap/assets/CYTOSCAPE-LICENSE.txt`. Es werden keine externen Webressourcen nachgeladen.
 
 ## Exporte
 
