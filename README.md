@@ -87,39 +87,13 @@ Weitere Schritte zur Ersteinrichtung sind unter dem [Zigbee2MQTT-Discovery](Disc
 
 ---
 
-> [!WARNING]  
-> **geänderte Variablen-Profile**  
+> [!WARNING]
+> **Umstellung auf Symcon-Darstellungen**
 >
-> - Die Variablen welche bei `Helligkeit` vorher einen Wertebereich von 0 - 254 hatten, werden auf das Profil `~Intensity.100` angepasst. Das Modul rechnet ab sofort automatisch den Wertebereich aus Z2M in Prozent um.  
-> - Entsprechende Aktion auf oder Auswertungen des Rohwertes der Variablen sind zu prüfen und gglfs. anzupassen.  
-
----
-
-> [!TIP]  
-> **Alte Variablenprofile löschen**  
-> Folgendes Script kann in Symcon ausgeführt werden, um veraltete Variablenprofile zu löschen.
->
-> ```php
->$Z2M_Profile = array_filter(IPS_GetVariableProfileList(),function($Profil)
->{
->    return substr($Profil, 0, 4) === 'Z2M.';
->});
->
->foreach (IPS_GetVariableList() as $VariableId)
->{
->    $Variable = IPS_GetVariable($VariableId);
->    $Found = array_search($Variable['VariableProfile'],$Z2M_Profile);
->    if($Found !== false){
->        unset($Z2M_Profile[$Found]);
->    }
->}
->
->foreach ($Z2M_Profile as $Profile)
->{
->    IPS_DeleteVariableProfile($Profile);
->    echo 'Delete: '.$Profile.PHP_EOL;
->}
->```
+> - Ab Version 6 werden neue und erneut registrierte Variablen nach Möglichkeit über native Symcon-Variablendarstellungen beschrieben. Das Modul legt dafür keine neuen dynamischen `Z2M.*`-Profile mehr an und gibt auch keine Symcon-Standardprofile mehr aktiv vor.
+> - Bereits vorhandene benutzerdefinierte Darstellungen oder benutzerdefinierte Profile haben Vorrang und werden vom Modul nicht überschrieben.
+> - Die Werte bleiben weiterhin in der von Zigbee2MQTT gelieferten Form gespeichert. Umrechnungen, z. B. Helligkeit auf Prozent, Mired/Kelvin oder Datum/Uhrzeit, erfolgen über die Darstellung beziehungsweise über die spezialisierten Kacheln.
+> - Alte Profilreste sollten nicht global per Script gelöscht werden. Verwenden Sie stattdessen die Variablen-Wartung der jeweiligen Geräte- oder Gruppeninstanz; die Bridge zeigt nur, welche Instanzen geprüft werden sollten.
 
 ---
 
@@ -320,9 +294,9 @@ Geräte- und Gruppenoptionen aus Zigbee2MQTT können ebenfalls direkt in Symcon 
 
 ### 4.4 Wartung verwaister Variablen
 
-Die [Bridge-Funktionen](Bridge/README.md#56-variablen-wartung) enthalten eine kompakte Variablen-Wartungsübersicht. Sie sucht innerhalb des zugehörigen MQTT-Splitters und MQTT-Basistopics nach alten Zigbee2MQTT-Variablen, die nicht mehr durch aktuelle Exposes oder das zuletzt bekannte Payload abgedeckt sind, und fasst klare Löschkandidaten, Review-Kandidaten und Suchlauf-Hinweise pro betroffener Instanz zusammen.
+Die [Bridge-Funktionen](Bridge/README.md) enthalten eine kompakte Variablen-Wartungsübersicht. Sie sucht innerhalb des zugehörigen MQTT-Splitters und MQTT-Basistopics nach alten Zigbee2MQTT-Variablen, die nicht mehr durch aktuelle Exposes oder das zuletzt bekannte Payload abgedeckt sind, und fasst betroffene Geräte- und Gruppeninstanzen zusammen.
 
-Die eigentliche Prüfung und ein mögliches Löschen erfolgen unter **Expertenwerkzeuge → Variablen-Wartung** in der zuständigen Geräte- oder Gruppeninstanz. Diese darf ausschließlich ihre eigenen direkten Variablen verwalten. Archivierte oder referenzierte Variablen sind geschützt, Archivstatus und letzter Schreibzeitpunkt sind sichtbar, und jede Löschung betrifft genau eine Variable, die vorher erneut geprüft und per Popup bestätigt werden muss.
+Die Bridge löscht keine Variablen direkt, sondern öffnet die betroffene Instanz für die gezielte Prüfung. Die eigentliche Prüfung und ein mögliches Löschen erfolgen unter **Expertenwerkzeuge → Variablen-Wartung** in der zuständigen Geräte- oder Gruppeninstanz. Diese darf ausschließlich ihre eigenen direkten Variablen verwalten. Archivierte oder referenzierte Variablen sind geschützt, Archivstatus und letzter Schreibzeitpunkt sind sichtbar, und jede Löschung betrifft genau eine Variable, die vorher erneut geprüft und per Popup bestätigt werden muss.
 
 ## 5. Changelog  
 
@@ -346,7 +320,7 @@ Die Änderungen sind anhand der funktionalen Commits chronologisch gegliedert. A
 ### 16. bis 18. Mai 2026: Struktur, Visualisierungsverwaltung und Variablenkatalog
 
 - Die Visualisierungslogik wurde in wiederverwendbare Helper und einen eigenen Verzeichnisbaum unter `libs/Visualization` aufgeteilt.
-- Die Verarbeitung in `ModulBase` wurde schrittweise für `RequestAction()`, Payloads, Standardvariablen, Sondervariablen, Farbaktionen, Wertkonvertierung, Presets, Profile und Variablenregistrierung refaktoriert.
+- Die Verarbeitung in `ModulBase` wurde schrittweise für `RequestAction()`, Payloads, Standardvariablen, Sondervariablen, Farbaktionen, Wertkonvertierung, Presets, Variablendarstellungen und Variablenregistrierung refaktoriert.
 - Die Geräte-Konfiguration erhielt einen Visualisierungsbereich, der nur die für die jeweilige Instanz fachlich passenden Kacheloptionen anbietet.
 - Temperatur-Visualisierungen können einen konfigurierbaren Fallback-Bereich verwenden, wenn Zigbee2MQTT keine Werte für `value_min` und `value_max` liefert.
 - Geräte-Instanzen erhielten einen lokalen Variablenkatalog. Anwender können steuern, welche bekannten Variablen automatisch angelegt werden dürfen. Gelöschte Variablen werden nicht ungefragt erneut erzeugt und können später gezielt wieder freigegeben werden.
@@ -425,7 +399,7 @@ Die Änderungen sind anhand der funktionalen Commits chronologisch gegliedert. A
 - Live-Aktualisierungen der Netzwerkkarten-Kachel werden als JSON-Zeichenkette an das HTML-SDK übertragen und dort sicher normalisiert, sodass Scanstart, Fortschritt und Ergebnisse ohne Typkonvertierungswarnung dargestellt werden.
 - Die grafische Netzwerkkarte filtert Verbindungen zu unbekannten oder nicht im Scan enthaltenen Knoten, lädt Cytoscape unabhängig von der HTML-SDK-Umgebung und verwendet für große Netzwerke ein schnelles konzentrisches Layout. Darstellungsfehler werden sichtbar in der Kachel ausgegeben.
 - Die HTML-SDK-Netzwerkkarte reagiert auf Größen- und Sichtbarkeitsänderungen, verwendet die verfügbare Viewport-Höhe und fordert beim Öffnen den aktuell gespeicherten Zustand an. Das initiale HTML-Grundgerüst bleibt unabhängig von der Netzwerkgröße klein; die Topologie wird erst nach dem Laden sicher übertragen. Weil das Symcon-PHP-SDK keine eigene HTML-Darstellung für die maximierte Instanzansicht anbietet, stellt die Karte für die große grafische Ansicht einen eigenen Vollbildmodus bereit.
-- Die Netzwerkkarten-Kachel bietet mehrere Layouts, eine Gerätesuche, fokussierte Umfeldansichten und optional ausblendbare Beschriftungen. Die allgemeine Cytoscape-Bedienlogik ist dabei von der Zigbee-spezifischen Darstellung getrennt und kann nach Stabilisierung der Schnittstelle als wiederverwendbarer Helfer ausgegliedert werden.
+- Die Netzwerkkarten-Kachel bietet mehrere Layouts, eine Gerätesuche, fokussierte Umfeldansichten und optional ausblendbare Beschriftungen.
 - Standardlayout und anfängliche Sichtbarkeit der Beschriftungen können im Abschnitt **Ansicht** der Netzwerkkarten-Instanz dauerhaft konfiguriert werden.
 - Der eigene Vollbildmodus der Netzwerkkarte leitet aus der aktuellen Symcon-Schriftfarbe automatisch eine kontrastierende Vollbildfläche ab, sodass Beschriftungen sowohl im hellen als auch im dunklen Profil lesbar bleiben.
 
@@ -458,11 +432,11 @@ Die Änderungen sind anhand der funktionalen Commits chronologisch gegliedert. A
 - Die Bridge-Erreichbarkeitsprüfung wartet bei ausgelasteten Zigbee2MQTT-Systemen bis zu 20 Sekunden auf den Options-Request und unterdrückt technische Zwischen-Notices. Die reine Konfigurator-Übersicht bleibt dagegen bewusst kurz wartend, damit frische Installationen und alte Extensions die Oberfläche nicht blockieren.
 - Die Discovery lässt den Anwender über `mqtt://` oder `mqtts://` ausdrücklich zwischen unverschlüsseltem MQTT und TLS wählen. Bei TLS werden Zertifikat und Hostname standardmäßig geprüft; für lokale Broker mit selbstsignierten Zertifikaten können beide Prüfungen bewusst deaktiviert werden. Ein automatischer Rückfall auf eine unverschlüsselte Verbindung findet nicht statt.
 - Bereits vorhandene Geräte- und Gruppeninstanzen werden im Konfigurator wieder korrekt als weiterhin von Zigbee2MQTT erkannte Einträge dargestellt. Die rote Symcon-Markierung bleibt damit ausschließlich tatsächlich nicht mehr gefundenen Instanzen vorbehalten.
-- Die Bridge erhielt eine rein lesende Variablenprofil-Diagnose. Sie listet konfliktbedingt erzeugte kompatible Profile mit ihren aktuellen Abweichungen, ihrer Verwendung und identischen Dubletten auf. Neue Profilkonflikte protokollieren zusätzlich die konkreten Unterschiede zur vorhandenen Definition.
-- Der Profilvergleich berücksichtigt nun, dass Symcon bei mehrfach definierten Assoziationen mit demselben Wert nur den zuletzt gesetzten Eintrag speichert. Dadurch werden beispielsweise bei Farbtemperatur-Presets keine fortlaufenden kompatiblen Ersatzprofile mehr erzeugt.
+- Die zwischenzeitliche Diagnose für alte Modulprofile wurde entfernt, weil das Modul keine neuen dynamischen Modulprofile mehr erzeugt oder repariert. Neue und erneut registrierte Variablen verwenden native Symcon-Darstellungen oder bleiben ohne Modulprofil.
+- Die Variablen-Wartung zeigt pro Instanz erkannte Darstellungswechsel mit vorherigem Profil und neuer Darstellung an, damit die Umstellung nachvollziehbar bleibt.
 - Die Testcenter von Bridge, Geräte- und Gruppeninstanzen befinden sich als eigenständige Bereiche auf der obersten Formularebene und sind nicht mehr in Erweiterungs- oder Expertenmenüs verschachtelt.
 - Das dadurch leere Bridge-Untermenü **Expertenwerkzeuge** wurde entfernt; Dokumentation und Regressionstests wurden an die einheitliche Formularstruktur angepasst.
-- Bestehende Variablenprofile werden bei abweichendem Typ, Wertebereich oder abweichenden Assoziationen weder verändert noch gelöscht. Vollständig passende Profile werden wiederverwendet; bei Namenskonflikten erstellt das Modul ein eindeutig benanntes kompatibles Profil und weist dieses der betreffenden Variable zu.
+- Bestehende Variablenprofile werden bei der Umstellung weder verändert noch gelöscht. Benutzerdefinierte Profile und Darstellungen bleiben unangetastet; das Modul setzt nur seine neue Standarddarstellung über die reguläre Variablenregistrierung.
 - Die öffentlichen Funktionsreferenzen für Geräte und Gruppen dokumentieren `Z2M_CommandExt()` und den Rückgabewert von `Z2M_ReadValue()` jetzt entsprechend den tatsächlich bereitgestellten Schnittstellen.
 - Gerätebilder werden mit geprüftem TLS, einem Timeout von fünf Sekunden und einer Größenbegrenzung von zwei MiB geladen. Nur technisch lesbare PNG-Dateien mit begrenzten Bildabmessungen werden gespeichert oder aus einem bestehenden Cache übernommen.
 
