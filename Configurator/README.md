@@ -34,10 +34,12 @@ Mit dieser Instanz werden die Geräte und Gruppen aus Zigbee2MQTT ausgelesen und
 
 ## 3. Verwendung der Instanzen
 
-Wird beim ersten Öffnen der Instanz eine Fehlermeldung angezeigt, dass keine Geräte gefunden wurden, ist die benötigte [Extension in Zigbee2MQTT](../README.md#34-installation-der-ip-symcon-extension-in-zigbee2mqtt) nicht installiert oder nicht aktuell.
-Eine fehlende Bridge wird in diesem Fall als regulärer Eintrag in der Geräteliste angeboten. Sie wird wie andere Instanzen über den normalen Symcon-Konfigurator erstellt. Dadurch übernimmt Symcon die Verbindung mit dem MQTT-Splitter sowie die Konfiguration des MQTT-Basistopics. Anschließend kann die Extension innerhalb der Bridge-Konfiguration installiert oder aktualisiert werden.
+Der Konfigurator liest die von Zigbee2MQTT bereitgestellten Geräte und Gruppen aus und gleicht sie mit den vorhandenen Symcon-Instanzen ab. Voraussetzung ist eine passende [Bridge-Instanz](../Bridge/README.md) mit gleicher MQTT-Verbindung und gleichem MQTT-Basistopic.
 
-Ist die Erweiterung verfügbar, werden alle in Z2M angelernten Geräte und Gruppen sowie die dazugehörigen Symcon-Instanzen aufgelistet.
+Wird beim ersten Öffnen der Instanz eine Fehlermeldung angezeigt, dass keine Geräte gefunden wurden, ist die benötigte [Symcon-Erweiterung in Zigbee2MQTT](../README.md#34-installation-der-ip-symcon-erweiterung-in-zigbee2mqtt) nicht installiert, nicht aktuell oder Zigbee2MQTT hat noch keine passenden Gerätedaten geliefert.
+Eine fehlende Bridge wird in diesem Fall als regulärer Eintrag in der Geräteliste angeboten. Sie wird wie andere Instanzen über den normalen Symcon-Konfigurator erstellt. Dadurch übernimmt Symcon die Verbindung mit dem MQTT-Splitter sowie die Konfiguration des MQTT-Basistopics. Anschließend kann die Erweiterung innerhalb der Bridge-Konfiguration installiert oder aktualisiert werden.
+
+Ist die Erweiterung verfügbar, werden alle in Zigbee2MQTT angelernten Geräte und Gruppen sowie die dazugehörigen Symcon-Instanzen aufgelistet.
 
 ![Konfigurator](imgs/configurator.png)  
 
@@ -46,8 +48,8 @@ Für eine kompaktere Standardansicht ist die Geräteliste geöffnet und die Grup
 | Nummer | Name                           | Beschreibung                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                          |
 | :----: | ------------------------------ | --------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------- |
 | **1**  | **MQTT Base Topic**            | Das Topic unter welchem Zigbee2MQTT erreichbar ist. Werden mehrere Zigbee2MQTT Installationen am gleichen MQTT Broker (Server) betrieben, so muss pro Installation ein neues Base Topic genutzt werden.                                                                                                                                                                                                                                                                                                                                                                                                                                                               |
-| **2**  | **Geräte**                     | Zeigt die Liste aller Geräte, die in Z2M angelernt sind. Eine noch fehlende Bridge wird ebenfalls hier über den regulären Symcon-Konfigurator zur Erstellung angeboten. Bereits vorhandene [Zigbee2MQTT-Geräte](../Device/README.md) werden nur zugeordnet, wenn MQTT-Basistopic und verbundener MQTT-Splitter zum Konfigurator passen.                                                                                                                                                                                                                                                                                                                                  |
-| **3**  | **Gruppen**                    | Zeigt die Liste aller Gruppen, die in Z2M angelegt wurden. Bereits vorhandene [Zigbee2MQTT-Gruppen](../Group/README.md) werden nur zugeordnet, wenn MQTT-Basistopic und verbundener MQTT-Splitter zum Konfigurator passen.                                                                                                                                                                                                                                                                                                                                                                                                                                                |
+| **2**  | **Geräte**                     | Zeigt die Liste aller Geräte, die in Zigbee2MQTT angelernt sind. Eine noch fehlende Bridge wird ebenfalls hier über den regulären Symcon-Konfigurator zur Erstellung angeboten. Bereits vorhandene [Zigbee2MQTT-Geräte](../Device/README.md) werden nur zugeordnet, wenn MQTT-Basistopic und verbundener MQTT-Splitter zum Konfigurator passen.                                                                                                                                                                                                                                                                                                                            |
+| **3**  | **Gruppen**                    | Zeigt die Liste aller Gruppen, die in Zigbee2MQTT angelegt wurden. Bereits vorhandene [Zigbee2MQTT-Gruppen](../Group/README.md) werden nur zugeordnet, wenn MQTT-Basistopic und verbundener MQTT-Splitter zum Konfigurator passen.                                                                                                                                                                                                                                                                                                                                                                                                                                          |
 | **4**  | **Gateway konfigurieren**      | Unter diesem Punkt kann der verbundene MQTT-Splitter (Client oder Server) aufgerufen werden.                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                          |
 | **5**  | **Gateway ändern**             | Hier werden alle in Symcon vorhandenen MQTT-Splitter (Client und Server) angezeigt.<br>Und durch wählen eines Eintrag wird die Verbindung zu einem anderen Splitter ausgewählt.                                                                                                                                                                                                                                                                                                                                                                                                                                                                                       |
 | **6**  | **Erstelle neue Instanzen in** | Hier kann eine Startkategorie aus dem Objektbaum ausgewählt werden, unter welcher neue Instanzen angelegt werden.                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                     |
@@ -58,11 +60,24 @@ Für eine kompaktere Standardansicht ist die Geräteliste geöffnet und die Grup
 
 Weitere allgemeine Hinweise zu Konfiguratoren sind der [Symcon Dokumentation](https://www.symcon.de/de/service/dokumentation/grundlagen/instanzen/konfiguratoren/) zu entnehmen.
 
+### Aktualisieren der Listen
+
+Die Listen werden beim Öffnen des Formulars aus den aktuellen Bridge- und Zigbee2MQTT-Daten aufgebaut. Bei großen Zigbee-Netzen oder kurz nach einer Neuinstallation kann die erste Antwort einige Sekunden dauern.
+
+Über **Aktualisieren** wird die jeweilige Liste erneut aufgebaut. Das ist sinnvoll, wenn Geräte in Zigbee2MQTT umbenannt, neue Gruppen angelegt, die Bridge-Erweiterung aktualisiert oder gerade erst neue Geräte angelernt wurden.
+
 ### Trennung mehrerer Zigbee2MQTT-Installationen
 
 Jeder Konfigurator verwaltet und zeigt ausschließlich die Bridge-, Geräte- und Gruppeninstanzen an, die mit demselben MQTT-Splitter und MQTT-Basistopic verbunden sind. Instanzen an einem anderen MQTT-Splitter bleiben vollständig unberücksichtigt. Dadurch können mehrere Zigbee2MQTT-Installationen und MQTT-Verbindungen sauber voneinander getrennt betrieben werden.
 
 Existiert ein Gerät oder eine Gruppe im aktuellen Zigbee2MQTT-Netz, aber nur als Symcon-Instanz an einem anderen MQTT-Splitter, wird für den aktuellen Konfigurator eine eigene passende Instanz zur Erstellung angeboten. Eine versehentlich falsch verbundene Instanz muss der Anwender über die regulären Symcon-Funktionen prüfen und korrigieren.
+
+### Typische Hinweise und Fehlermeldungen
+
+- **Instanz hat keinen aktiven Parent**: Der Konfigurator ist noch nicht mit einem aktiven MQTT-Splitter verbunden. Öffnen Sie über **Gateway konfigurieren** oder **Gateway ändern** die passende MQTT-Verbindung.
+- **Keine Geräte gefunden**: Die Bridge oder die Symcon-Erweiterung in Zigbee2MQTT fehlt, ist nicht aktuell oder hat noch keine Geräteliste geliefert. Öffnen oder erstellen Sie die passende Bridge-Instanz und installieren beziehungsweise aktualisieren Sie dort die Erweiterung.
+- **Zigbee2MQTT antwortet nicht**: Zigbee2MQTT, der MQTT-Broker oder das MQTT-Basistopic ist nicht erreichbar. Prüfen Sie Dienst, Broker-Verbindung, Basistopic und die Bridge-Konfiguration.
+- **Gerät oder Gruppe erscheint erneut als neu**: Prüfen Sie, ob die vorhandene Instanz mit demselben MQTT-Splitter und demselben MQTT-Basistopic verbunden ist. Instanzen anderer Zigbee2MQTT-Installationen werden bewusst nicht zugeordnet.
 
 ## 4. Statusvariablen
 
@@ -70,11 +85,11 @@ Dieses Modul erzeugt keine Statusvariablen.
 
 ## 5. PHP-Funktionsreferenz
 
-Keine Funktionen verfügbar.  
+Der Konfigurator stellt keine für Anwenderskripte vorgesehene PHP-Funktionsreferenz bereit. Die Bedienung erfolgt über das Konfigurationsformular und den regulären Symcon-Konfigurator.
 
 ## 6. Aktionen
 
-Keine Aktionen verfügbar.
+Es sind keine extern aufzurufenden Aktionen vorgesehen. Formularschaltflächen wie **Aktualisieren** dienen ausschließlich der Bedienung innerhalb der Instanzkonfiguration.
 
 ## 7. Anhang
 
