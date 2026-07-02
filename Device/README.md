@@ -7,7 +7,7 @@
 
 # Zigbee2MQTT-Gerät  <!-- omit in toc -->  
 
-   Mit diesem Module werden die Geräte von Zigbee2MQTT in IP-Symcon als Instanz abgebildet
+   Mit diesem Modul werden die Geräte von Zigbee2MQTT in IP-Symcon als Instanz abgebildet
 
 ## Inhaltsverzeichnis <!-- omit in toc -->  
 
@@ -77,7 +77,7 @@
 | **12**     | **Instanzobjekt bearbeiten**    | Öffnet den gleichen Dialog wie im Objektbaum unter `Instanz bearbeiten`.                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                              |
 | **13**     | **Ereignisse**                  | Zeigt eine Übersicht, welche Ereignisse mit der Instanz verbunden sind. Über den Button Neu lassen sich neue Ereignisse zu der Instanz einrichten (Ausgelöst, zyklisch oder per Wochenplan). Die zugehörigen Ereignisse können direkt bearbeitet werden. ![Ereignisse](imgs/events.jpg)                                                                                                                                                                                                                                                                                                                                                                |
 | **14**     | **Statusvariablen**             | Hier lassen sich alle der Instanz zugehörigen Variablen bearbeiten. ![Variablen](imgs/variablen.png)                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                  |
-| **15**     | **Debug**                       | Öffnet eine Debug-Ausgabe dieser Instanz. Protokolle der Debug-Ausgabe werden im Fehlerfall von den Entwicklern abgefragt. Da hier u.a. auch zu sehen ist, ob Werte des MQTT-Expose oder Payload nicht zugeordnet werden können, Profile fehlen, Schaltaktionen nicht ausgeführt werden können usw...<br>Sollte es Probleme mit einer Instanz geben, können diese nur adäquat bearbeitet werden, wenn der Meldung (unter Issues oder im Forum) ein Debug beigelegt wird. Dazu bitte im Debug-Fenster zuerst das Limit ausschalten und später über ![Download](imgs/download-debug.png) die heruntergeladene Debug-Datei der Meldung im Forum beifügen. |
+| **15**     | **Debug**                       | Öffnet eine Debug-Ausgabe dieser Instanz. Protokolle der Debug-Ausgabe werden im Fehlerfall von den Entwicklern abgefragt. Hier ist u. a. sichtbar, welche MQTT-Payloads empfangen oder gesendet werden, ob Werte nicht zugeordnet werden können, Darstellungen fehlen oder Schaltaktionen nicht ausgeführt werden.<br>Sollte es Probleme mit einer Instanz geben, können diese nur adäquat bearbeitet werden, wenn der Meldung (unter Issues oder im Forum) ein Debug beigelegt wird. Dazu bitte im Debug-Fenster zuerst das Limit ausschalten und später über ![Download](imgs/download-debug.png) die heruntergeladene Debug-Datei der Meldung im Forum beifügen. |
 
 ### 4.1 Praxisablauf nach dem Anlegen
 
@@ -144,9 +144,9 @@ Die höher priorisierte Kachel kann in der Instanz-Konfiguration deaktiviert wer
 
 Für Gerätetypen, die Symcon bereits nativ gut darstellen kann, erstellt das Modul bewusst keine eigene HTML-Kachel. Rollladen/Jalousien mit `type: "cover"` und `position` werden über die Symcon-Shutter-Darstellung abgebildet. Einfache Türschlösser, Lüfter oder Sirenen bleiben bei den passenden Standarddarstellungen wie Schalter, Slider oder Aufzählung, solange die Exposes keine eigenständige zusammengefasste Kachel nötig machen.
 
-Empfohlene moderne Variablendarstellungen werden als Modul-Standarddarstellung über die `RegisterVariable*`-Methoden gesetzt. Beim erneuten Übernehmen der Instanz registriert das Modul auch vorhandene Variablen mit der aktuellen Modul-Standarddefinition. In Symcon haben Benutzer-Darstellungen und Benutzer-Profile eine höhere Priorität als die vom Modul gesetzte Standarddarstellung. Das Modul überschreibt oder entfernt deshalb keine Custom-Presentations und keine Custom-Profile nachträglich.
+Empfohlene moderne Variablendarstellungen werden als Modul-Standarddarstellung über die `RegisterVariable*`-Methoden gesetzt. Beim erneuten Übernehmen der Instanz registriert das Modul auch vorhandene Variablen mit der aktuellen Modul-Standarddefinition. In Symcon haben benutzerdefinierte Darstellungen und benutzerdefinierte Profile eine höhere Priorität als die vom Modul gesetzte Standarddarstellung. Das Modul überschreibt oder entfernt deshalb keine Benutzeranpassungen nachträglich.
 
-Neue und erneut registrierte Variablen verwenden bevorzugt moderne Symcon-Variablendarstellungen oder bleiben ohne Modulprofil, wenn keine fachlich passende Standarddarstellung noetig ist. Symcon-Standardprofile werden nicht mehr aktiv vorgegeben. Dynamische `Z2M.*`-Profile werden fuer Expose-, Preset- und State-Variablen nicht mehr neu angelegt; Presets und State-Aufzaehlungen werden als native Symcon-Aufzaehlungsdarstellung registriert. Alte, vom Modul gesetzte Legacy-Profile werden nicht geloescht, aber bei der erneuten Registrierung nicht mehr als Modulstandard festgehalten.
+Neue und erneut registrierte Variablen verwenden moderne Symcon-Variablendarstellungen. Das Modul setzt keine Symcon-Standardprofile und erzeugt keine dynamischen `Z2M.*`-Profile mehr. Slider, Aufzählungen, Datum/Uhrzeit, Dauer, Farbe, Messwerte und Wertebereiche werden über die Modul-Standarddarstellung registriert. Alte, vom Modul gesetzte Legacy-Profile werden nicht gelöscht, aber bei der erneuten Registrierung durch passende Darstellungen ersetzt, sofern keine Benutzeranpassung Vorrang hat.
 
 ### 4.3 Temperatur-Visualisierung
 
@@ -375,7 +375,7 @@ Bei Problemen mit einer Geräteinstanz hilft zuerst der Debug der Instanz. Dort 
 | Kachel erscheint nicht oder es wird die Standarddarstellung verwendet | Die benötigten Exposes fehlen, eine höher priorisierte Kachel ist aktiv oder die Spezialkachel wurde in der Instanz deaktiviert. | Bereich **Visualisierung** prüfen, Geräteinformationen neu abrufen und kontrollieren, ob die für die gewünschte Kachel nötigen Exposes vorhanden sind. |
 | Farbtemperaturbereich passt nicht | Zigbee2MQTT meldet für `color_temp` einen zu großen oder falschen Mired-Bereich. | Im Bereich **Farbtemperatur-Visualisierung** eigene Kelvin-Minimum- und Maximumwerte setzen. Mit `0`/`0` wird wieder der Zigbee2MQTT-Expose-Bereich verwendet. |
 | Variable wird nach dem Löschen nicht wieder angelegt | Die Variable ist im Variablenkatalog als gelöscht oder deaktiviert vermerkt. | Im Bereich **Variablen** die betroffene Variable über `Anlegen` wieder erstellen oder über `Aktivieren` für die automatische Anlage freigeben. |
-| Bedienaktion sendet den falschen Wert | Das Profil oder die Expose-Zuordnung passt nicht zum Gerät, z. B. bei enum-basierten `state`-Variablen. | Im Debug prüfen, welcher Payload gesendet wird. Bei Rollladen und ähnlichen Geräten müssen Originalwerte wie `OPEN`, `CLOSE` oder `STOP` gesendet werden. |
+| Bedienaktion sendet den falschen Wert | Die Variablenaktion, Darstellung oder Expose-Zuordnung passt nicht zum Gerät, z. B. bei enum-basierten `state`-Variablen. | Im Debug prüfen, welcher Payload gesendet wird. Bei Rollladen und ähnlichen Geräten müssen Originalwerte wie `OPEN`, `CLOSE` oder `STOP` gesendet werden. |
 
 ## 5. Statusvariablen
 
@@ -594,7 +594,7 @@ Die Statusvariablen werden je nach Funktion und Fähigkeiten der Geräte dynamis
    string Z2M_UIExportDebugData(int $InstanzId);
    ```
 
-   Exportiert die für Support und Fehlersuche relevanten Instanzdaten als JSON-Download. Die Funktion wird vom Button **Download Debug Data** in der Instanz-Konfiguration genutzt.
+   Exportiert die für Support und Fehlersuche relevanten Instanzdaten als JSON-Download. Die Funktion wird vom Button **Debug-Daten herunterladen** in der Instanz-Konfiguration genutzt.
 
 ## 7. Aktionen
 
