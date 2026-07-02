@@ -27,8 +27,8 @@
 
 ## 1. Funktionsumfang
 
-- Darstellung aller von Z2M gelieferten Werten der Gruppe in Symcon
-- Automatisches Erstellen der für die Variablen benötigten Variablenprofile gemäß den Daten aus Z2M
+- Darstellung aller von Z2M gelieferten Werte der Gruppe in Symcon
+- Automatische Anlage der benötigten Variablen mit passenden Symcon-Variablendarstellungen aus Exposes und Payload-Daten
 - Verwaltung von Gruppenmitgliedern inklusive Endpoint-Auswahl
 - Pflege von Zigbee2MQTT-Gruppenoptionen
 - Speichern, Abrufen, Umbenennen und Löschen von Szenen
@@ -63,7 +63,7 @@
 
 ### 4.2 Konfiguration
 
-   Die Konfiguration entspricht der Konfiguration der einzelnen [Zigbee2MQTT-Geräte](../Device/README.md#4-konfiguration), mit der Ausnahme, dass die IEEE-Adresse durch die Gruppen-Adresse ersetzt ist und es keine Geräte-Informationen gibt.
+   Die Konfiguration entspricht grundsätzlich der Konfiguration der einzelnen [Zigbee2MQTT-Geräte](../Device/README.md#4-konfiguration). Statt einer IEEE-Adresse wird die Gruppen-ID angezeigt. Gruppen besitzen keine Geräteinformationen im engeren Sinn; Mitglieder, Optionen und Szenen werden über **Gruppeninformationen aktualisieren** aus Zigbee2MQTT übernommen.
 
    ![Konfiguration Device](imgs/config.png)  
 
@@ -76,6 +76,8 @@
 | Szenen              | Speichert den aktuellen Gruppenstatus als Szene, fügt erweiterte Szenen per JSON hinzu, ruft Szenen ab, benennt sie um oder löscht sie.     |
 
    Änderungen werden über die Bridge an Zigbee2MQTT gesendet. Wenn Zigbee2MQTT für geänderte Gruppenoptionen einen Neustart verlangt, wird dies in der Bridge protokolliert.
+
+   Die allgemeine Variablenverwaltung folgt der Geräteinstanz: Exposes und Payload-Daten bestimmen, welche Variablen angelegt werden können. Neue oder erneut registrierte Gruppenvariablen verwenden moderne Symcon-Variablendarstellungen. Das Modul setzt keine Symcon-Standardprofile und erzeugt keine dynamischen `Z2M.*`-Profile mehr. Benutzerdefinierte Darstellungen oder Profile haben Vorrang und werden nicht überschrieben.
 
 **Gruppenmitglieder**
 
@@ -125,7 +127,7 @@ Szenen können aus dem aktuellen Gruppenstatus gespeichert, als vollständige JS
 
 ## 5. Statusvariablen
 
-   Die Statusvariablen werden je nach Funktion und Fähigkeiten der Geräte dynamisch erstellt.  
+   Die Statusvariablen werden je nach Funktion und Fähigkeiten der Gruppe dynamisch erstellt. Exposes und Payload-Daten bestimmen Typ, Aktion und Standarddarstellung. Bereits vorhandene Benutzeranpassungen an Darstellung oder Profil bleiben erhalten.
 
 ## 6. PHP-Funktionsreferenz
 
@@ -326,7 +328,7 @@ Szenen können aus dem aktuellen Gruppenstatus gespeichert, als vollständige JS
    string Z2M_UIExportDebugData(int $InstanzId);
    ```
 
-   Exportiert die für Support und Fehlersuche relevanten Instanzdaten als JSON-Download. Die Funktion wird vom Button **Download Debug Data** in der Instanz-Konfiguration genutzt.
+   Exportiert die für Support und Fehlersuche relevanten Instanzdaten als JSON-Download. Die Funktion wird vom Button **Debug-Daten herunterladen** in der Instanz-Konfiguration genutzt.
 
 ## 7. Aktionen
 
