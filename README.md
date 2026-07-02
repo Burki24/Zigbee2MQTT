@@ -41,8 +41,9 @@ Anbindung von [zigbee2mqtt](https://www.zigbee2mqtt.io) an IP-Symcon.
 - [Zigbee2MQTT Gerät](Device/README.md)
 - [Zigbee2MQTT Gruppe](Group/README.md)
 - [Zigbee2MQTT Netzwerkkarte](NetworkMap/README.md)
+- [Zigbee2MQTT Actions](actions/README.md)
 
- Details zu jedem Typ sind direkt in der Dokumentation der jeweiligen Module beschrieben.
+ Details zu jedem Modultyp und den mitgelieferten Symcon-Actions sind direkt in der jeweiligen Dokumentation beschrieben.
 
 ## 3. Installation
 
@@ -303,6 +304,10 @@ Die Bridge löscht keine Variablen direkt, sondern öffnet die betroffene Instan
 **Version 6.00:**
 
 Die Änderungen sind anhand der funktionalen Commits chronologisch gegliedert. Automatisch erzeugte Metadaten-Commits sowie reine Screenshot-Korrekturen werden nicht einzeln aufgeführt.
+
+### 2. Juli 2026: Actions-Dokumentation
+
+- Eine eigene Dokumentation für die mitgelieferten Symcon-Actions ergänzt. Sie beschreibt Verfügbarkeit, Voraussetzungen, Parameter, Anwendung in Symcon und passende PHP-Skriptbeispiele.
 
 ### 10. bis 15. Mai 2026: IPSModuleStrict und moderne Tile-Visualisierung
 
