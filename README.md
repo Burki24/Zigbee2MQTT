@@ -23,6 +23,7 @@ Anbindung von [zigbee2mqtt](https://www.zigbee2mqtt.io) an IP-Symcon.
   - [4.2 Tile-Visualisierung](#42-tile-visualisierung)
   - [4.3 Variablenverwaltung](#43-variablenverwaltung)
   - [4.4 Wartung verwaister Variablen](#44-wartung-verwaister-variablen)
+  - [4.5 Symcon-Actions](#45-symcon-actions)
 - [5. Changelog](#5-changelog)
 - [6. Spenden](#6-spenden)
 - [7. Lizenz](#7-lizenz)
@@ -41,9 +42,8 @@ Anbindung von [zigbee2mqtt](https://www.zigbee2mqtt.io) an IP-Symcon.
 - [Zigbee2MQTT Gerät](Device/README.md)
 - [Zigbee2MQTT Gruppe](Group/README.md)
 - [Zigbee2MQTT Netzwerkkarte](NetworkMap/README.md)
-- [Zigbee2MQTT Actions](actions/README.md)
 
- Details zu jedem Modultyp und den mitgelieferten Symcon-Actions sind direkt in der jeweiligen Dokumentation beschrieben.
+ Details zu jedem Typ sind direkt in der Dokumentation der jeweiligen Module beschrieben.
 
 ## 3. Installation
 
@@ -298,6 +298,12 @@ Geräte- und Gruppenoptionen aus Zigbee2MQTT können ebenfalls direkt in Symcon 
 Die [Bridge-Funktionen](Bridge/README.md) enthalten eine kompakte Variablen-Wartungsübersicht. Sie sucht innerhalb des zugehörigen MQTT-Splitters und MQTT-Basistopics nach alten Zigbee2MQTT-Variablen, die nicht mehr durch aktuelle Exposes oder das zuletzt bekannte Payload abgedeckt sind, und fasst betroffene Geräte- und Gruppeninstanzen zusammen.
 
 Die Bridge löscht keine Variablen direkt, sondern öffnet die betroffene Instanz für die gezielte Prüfung. Die eigentliche Prüfung und ein mögliches Löschen erfolgen unter **Expertenwerkzeuge → Variablen-Wartung** in der zuständigen Geräte- oder Gruppeninstanz. Diese darf ausschließlich ihre eigenen direkten Variablen verwalten. Archivierte oder referenzierte Variablen sind geschützt, Archivstatus und letzter Schreibzeitpunkt sind sichtbar, und jede Löschung betrifft genau eine Variable, die vorher erneut geprüft und per Popup bestätigt werden muss.
+
+### 4.5 Symcon-Actions
+
+Die mitgelieferten Symcon-Actions sind keine eigenen Module, sondern Aktionsvorlagen für passende Zigbee2MQTT-Geräte- und Gruppeninstanzen. Sie können beispielsweise in Ereignissen, Ablaufplänen oder Automatisierungen genutzt werden.
+
+Details stehen in der [Dokumentation der Zigbee2MQTT Actions](actions/README.md).
 
 ## 5. Changelog  
 
