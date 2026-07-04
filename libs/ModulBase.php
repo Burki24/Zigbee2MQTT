@@ -148,7 +148,8 @@ abstract class ModulBase extends \IPSModule
         'dB',
         'dBA',
         'dBC',
-        'dB/m'
+        'dB/m',
+        'm³/h'
     ];
 
     /**
