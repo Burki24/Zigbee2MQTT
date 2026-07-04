@@ -677,6 +677,27 @@
             }
         },
         {
+            "name": "BridgeExpertActionMessage",
+            "type": "PopupAlert",
+            "visible": false,
+            "popup": {
+                "closeCaption": "Close",
+                "items": [
+                    {
+                        "type": "Label",
+                        "name": "BridgeExpertActionMessageTitle",
+                        "bold": true,
+                        "caption": "Bridge action"
+                    },
+                    {
+                        "name": "BridgeExpertActionMessageText",
+                        "type": "Label",
+                        "caption": ""
+                    }
+                ]
+            }
+        },
+        {
             "type": "ExpansionPanel",
             "name": "AdvancedAdministration",
             "caption": "Advanced administration",
@@ -1085,6 +1106,39 @@
                                     "caption": "Channel",
                                     "minimum": 0,
                                     "maximum": 26
+                                }
+                            ]
+                        },
+                        {
+                            "type": "Label",
+                            "bold": true,
+                            "caption": "Expert bridge action"
+                        },
+                        {
+                            "type": "Label",
+                            "caption": "Expert bridge actions can directly change Zigbee2MQTT or device state. Use only with documented Zigbee2MQTT actions."
+                        },
+                        {
+                            "type": "Label",
+                            "caption": "The module sends action and params to bridge/request/action. Do not include a transaction; it is managed by the module."
+                        },
+                        {
+                            "type": "RowLayout",
+                            "items": [
+                                {
+                                    "type": "ValidationTextBox",
+                                    "name": "BridgeExpertActionName",
+                                    "caption": "Action name"
+                                },
+                                {
+                                    "type": "ValidationTextBox",
+                                    "name": "BridgeExpertActionParams",
+                                    "caption": "Params (JSON object)"
+                                },
+                                {
+                                    "type": "Button",
+                                    "caption": "Execute bridge action",
+                                    "onClick": "IPS_RequestAction($id, 'ExecuteBridgeExpertAction', json_encode(['action' => $BridgeExpertActionName, 'params' => $BridgeExpertActionParams]));"
                                 }
                             ]
                         }

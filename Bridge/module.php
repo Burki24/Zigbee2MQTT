@@ -560,6 +560,9 @@ class Zigbee2MQTTBridge extends IPSModuleStrict
                     $this->TouchlinkFactoryReset((string) ($target['ieee_address'] ?? ''), (int) ($target['channel'] ?? 0));
                 }
                 break;
+            case 'ExecuteBridgeExpertAction':
+                $this->ExecuteBridgeExpertActionFromForm($value);
+                break;
             case 'SelectNetworkSecurityDevice':
                 $this->SelectNetworkSecurityDeviceFromForm($value);
                 break;
@@ -1465,6 +1468,33 @@ class Zigbee2MQTTBridge extends IPSModuleStrict
         }
 
         return $this->SendCheckedBridgeRequest('/bridge/request/touchlink/factory_reset', $payload, 70000) !== false;
+    }
+
+    /**
+     * SendBridgeAction
+     *
+     * Sendet eine generische Zigbee2MQTT-Bridge-Aktion an bridge/request/action.
+     *
+     * @param string $Action Name der Zigbee2MQTT-Aktion.
+     * @param array  $Params Parameter fuer das params-Objekt ohne transaction/action.
+     *
+     * @return bool
+     */
+    public function SendBridgeAction(string $Action, array $Params = []): bool
+    {
+        $action = trim($Action);
+        if ($action === '') {
+            trigger_error($this->Translate('Action name is required.'), E_USER_NOTICE);
+            return false;
+        }
+
+        unset($Params['transaction'], $Params['action']);
+        $payload = [
+            'action' => $action,
+            'params' => (object) $Params
+        ];
+
+        return $this->SendCheckedSensitiveBridgeRequest('/bridge/request/action', $payload, 30000) !== false;
     }
 
     /**
@@ -4349,6 +4379,62 @@ class Zigbee2MQTTBridge extends IPSModuleStrict
         $this->UpdateFormField('TouchlinkIeeeAddress', 'value', (string) ($target['ieee_address'] ?? ''));
         $this->UpdateFormField('TouchlinkChannel', 'value', (int) ($target['channel'] ?? 0));
         return true;
+    }
+
+    /**
+     * Fuehrt eine generische Bridge-Expertenaktion aus dem Formular aus.
+     */
+    private function ExecuteBridgeExpertActionFromForm(mixed $value): bool
+    {
+        $selection = $this->DecodeBridgeFormPayload($value);
+        if ($selection === null) {
+            $this->ShowBridgeExpertActionMessage('Bridge action failed', 'Action params must be a JSON object.');
+            return false;
+        }
+
+        $action = trim((string) ($selection['action'] ?? ''));
+        if ($action === '') {
+            $this->ShowBridgeExpertActionMessage('Input required', 'Action name is required.');
+            return false;
+        }
+
+        $paramsText = trim((string) ($selection['params'] ?? ''));
+        $params = [];
+        if ($paramsText !== '') {
+            try {
+                $decodedParams = json_decode($paramsText, true, 512, JSON_THROW_ON_ERROR);
+                $decodedObject = json_decode($paramsText, false, 512, JSON_THROW_ON_ERROR);
+            } catch (\JsonException) {
+                $this->ShowBridgeExpertActionMessage('Bridge action failed', 'Action params must be a JSON object.');
+                return false;
+            }
+
+            if (!\is_array($decodedParams) || !($decodedObject instanceof \stdClass)) {
+                $this->ShowBridgeExpertActionMessage('Bridge action failed', 'Action params must be a JSON object.');
+                return false;
+            }
+
+            $params = $decodedParams;
+        }
+
+        if (!$this->SendBridgeAction($action, $params)) {
+            $this->ShowBridgeExpertActionMessage('Bridge action failed', 'Zigbee2MQTT did not accept the expert action.');
+            return false;
+        }
+
+        $this->UpdateFormField('BridgeExpertActionParams', 'value', '');
+        $this->ShowBridgeExpertActionMessage('Bridge action executed', 'The Zigbee2MQTT expert action was sent successfully.');
+        return true;
+    }
+
+    /**
+     * Zeigt eine Rueckmeldung fuer Bridge-Expertenaktionen im Formular an.
+     */
+    private function ShowBridgeExpertActionMessage(string $title, string $message): void
+    {
+        $this->UpdateFormField('BridgeExpertActionMessageTitle', 'caption', $this->Translate($title));
+        $this->UpdateFormField('BridgeExpertActionMessageText', 'caption', $this->Translate($message));
+        $this->UpdateFormField('BridgeExpertActionMessage', 'visible', true);
     }
 
     /**

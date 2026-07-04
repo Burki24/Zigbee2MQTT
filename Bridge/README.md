@@ -25,6 +25,7 @@
     - [5.6.1 Backup](#561-backup)
     - [5.6.2 Install-Codes](#562-install-codes)
     - [5.6.3 Touchlink](#563-touchlink)
+    - [5.6.4 Bridge-Expertenaktion](#564-bridge-expertenaktion)
 - [6. Statusvariablen](#6-statusvariablen)
 - [7. PHP-Funktionsreferenz](#7-php-funktionsreferenz)
 - [8. Aktionen](#8-aktionen)
@@ -43,7 +44,7 @@
 - Diagnosebereich für Health Check, Coordinator Check, Bridge-Events, Warnungen/Fehler und auffällige Geräte
 - Zentrale OTA-Verwaltung für Update-Prüfung, Planung, Start, Fortschritt und Abschlussmeldungen
 - Kompakte Variablen-Wartungsübersicht zum Finden betroffener Geräte- und Gruppeninstanzen
-- Zigbee2MQTT-Wartung für Zigbee2MQTT-Backup, Install-Code und Touchlink-Scan/Identify/Factory-Reset
+- Zigbee2MQTT-Wartung für Zigbee2MQTT-Backup, Install-Code, Touchlink-Scan/Identify/Factory-Reset und gewarnte Bridge-Expertenaktionen
 - Viele PHP-Funktionen um interne Zigbee2MQTT Funktionen auszuführen (Gruppen verwalten, Geräte umbenennen usw...)
   
 ## 2. Voraussetzungen
@@ -84,7 +85,7 @@ Die Oberfläche trennt häufig benötigte Funktionen von administrativen Werkzeu
 | Netzwerksicherheit | Verwaltet `blocklist` und `passlist` direkt über bekannte Zigbee2MQTT-Geräte oder manuelle IEEE-Adressen. |
 | OTA-Updates | Listet bekannte OTA-fähige Geräte, prüft einzelne Geräte auf Updates, plant Aktualisierungen für die nächste Geräteanfrage und startet genau ein aktives Update gleichzeitig. Geplante Updates können aufgehoben, laufende Updates abgebrochen und Fortschritt, Restzeit sowie Abschlussmeldungen zentral angezeigt werden. |
 | Variablen-Wartung | Sucht alte Zigbee2MQTT-Variablen, fasst den Prüfbedarf pro Geräte- oder Gruppeninstanz zusammen und öffnet die zuständige Instanz für die eigentliche Prüfung. |
-| Zigbee2MQTT-Wartung | Erstellt ein Zigbee2MQTT-Backup als ZIP-Datei auf dem Symcon-Server, sendet Zigbee-3.0-Install-Codes und bietet Touchlink-Scan, Identify und Factory-Reset an. |
+| Zigbee2MQTT-Wartung | Erstellt ein Zigbee2MQTT-Backup als ZIP-Datei auf dem Symcon-Server, sendet Zigbee-3.0-Install-Codes, bietet Touchlink-Scan, Identify und Factory-Reset an und kann dokumentierte Zigbee2MQTT-Expertenaktionen senden. |
 
 ### 5.1 Anlernen
 
@@ -174,7 +175,7 @@ Bei OTA-fähigen Geräten bleiben stabile Update-Metadaten wie installierte Vers
 
 ### 5.6 Zigbee2MQTT-Wartung
 
-Der unter **Erweiterte Administration** einsortierte Bereich **Zigbee2MQTT-Wartung** stellt Werkzeuge für administrative Aufgaben bereit. Backups werden als ZIP-Datei auf dem Symcon-Server gespeichert. Zusätzlich können Zigbee-3.0-Install-Codes gesendet und Touchlink-Scan, Identify sowie Factory-Reset ausgeführt werden.
+Der unter **Erweiterte Administration** einsortierte Bereich **Zigbee2MQTT-Wartung** stellt Werkzeuge für administrative Aufgaben bereit. Backups werden als ZIP-Datei auf dem Symcon-Server gespeichert. Zusätzlich können Zigbee-3.0-Install-Codes gesendet, Touchlink-Scan, Identify sowie Factory-Reset ausgeführt und dokumentierte Zigbee2MQTT-Expertenaktionen an `bridge/request/action` gesendet werden.
 
 #### 5.6.1 Backup
 
@@ -206,6 +207,23 @@ Touchlink-Scan und Touchlink-Factory-Reset können die Zigbee-Kommunikation kurz
 
 > [!WARNING]
 > Verwenden Sie den Factory-Reset möglichst nur mit einer zuvor per Scan ausgewählten und identifizierten IEEE-Adresse. Ein Reset ohne eindeutiges Ziel kann unbeabsichtigt ein anderes, nahe gelegenes Touchlink-Gerät zurücksetzen.
+
+#### 5.6.4 Bridge-Expertenaktion
+
+Die Bridge-Wartung enthält eine bewusst einfache Expertenfunktion für `bridge/request/action`. Zigbee2MQTT veröffentlicht mögliche Actions über `bridge/definitions`; je nach Zigbee2MQTT-Version, Adapter und Gerät können diese Actions Bridge- oder Gerätezustände direkt verändern.
+
+Das Formular erwartet den Action-Namen und optional ein JSON-Objekt für `params`. Die `transaction` wird vom Modul selbst verwaltet und darf nicht mit angegeben werden.
+
+Beispiel für das Parameterfeld:
+
+```json
+{
+  "option": "value"
+}
+```
+
+> [!WARNING]
+> Verwenden Sie diese Funktion nur für dokumentierte Zigbee2MQTT-Actions, deren Wirkung bekannt ist. Für normale Bedienung sollten die spezialisierten Bridge-, Device- und Group-Funktionen genutzt werden.
 
 ## 6. Statusvariablen
 
@@ -670,6 +688,22 @@ bool Z2M_TouchlinkFactoryReset(int $InstanzID, string $IeeeAddress = '', int $Ch
 ```
 
 Startet einen Touchlink-Factory-Reset. Mit IEEE-Adresse und Kanal wird ein konkretes Scan-Ergebnis adressiert. Ohne Ziel setzt Zigbee2MQTT das nächstgelegene gefundene Touchlink-Gerät zurück; diese Funktion sollte nur bewusst genutzt werden.
+
+---
+
+### Z2M_SendBridgeAction <!-- omit in toc -->
+
+```php
+bool Z2M_SendBridgeAction(int $InstanzID, string $Action, array $Params = []);
+```
+
+Sendet eine generische Zigbee2MQTT-Expertenaktion an `bridge/request/action`. Das Modul baut den Payload als `{"action":"...","params":{...}}` auf und verwaltet die `transaction` selbst. Die Funktion ist nur für dokumentierte Zigbee2MQTT-Actions gedacht.
+
+Beispiel:
+
+```php
+Z2M_SendBridgeAction($bridgeID, 'example/action', ['option' => 'value']);
+```
 
 ---
 

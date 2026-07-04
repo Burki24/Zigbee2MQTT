@@ -311,6 +311,12 @@ Details stehen in der [Dokumentation der Zigbee2MQTT Actions](actions/README.md)
 
 Die Änderungen sind anhand der funktionalen Commits chronologisch gegliedert. Automatisch erzeugte Metadaten-Commits sowie reine Screenshot-Korrekturen werden nicht einzeln aufgeführt.
 
+### 4. Juli 2026: Bridge-Expertenaktionen
+
+- Die Bridge-Wartung bietet eine gewarnte Expertenfunktion für dokumentierte Zigbee2MQTT-`bridge/request/action`-Actions.
+- Der Payload wird als `action` plus `params` gesendet; die `transaction` wird weiterhin vom Modul verwaltet.
+- Action-Name und JSON-Parameter werden geprüft und mit lokalisierten Rückmeldungen im Formular quittiert.
+
 ### 2. Juli 2026: Actions-Dokumentation
 
 - Eine eigene Dokumentation für die mitgelieferten Symcon-Actions ergänzt. Sie beschreibt Verfügbarkeit, Voraussetzungen, Parameter, Anwendung in Symcon und passende PHP-Skriptbeispiele.
