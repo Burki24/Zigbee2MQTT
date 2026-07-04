@@ -3,7 +3,7 @@
 [![Symcon Version](https://img.shields.io/badge/Symcon%20Version-9.0%3E-green)](https://www.symcon.de/de/service/dokumentation/einfuehrung/systemvoraussetzungen/versionenuebersicht/#version-90)
 [![License](https://img.shields.io/badge/License-CC%20BY--NC--SA%204.0-green.svg)](https://creativecommons.org/licenses/by-nc-sa/4.0/)
 [![Check Style](https://github.com/Nall-chan/Zigbee2MQTT/workflows/Check%20Style/badge.svg)](https://github.com/Nall-chan/Zigbee2MQTT/actions)
-[![Run Tests](https://github.com/Nall-chan/Zigbee2MQTT/workflows/Run%20Tests/badge.svg)](https://github.com/Nall-chan/Zigbee2MQTT/actions)  
+[![Run Tests](https://github.com/Nall-chan/Zigbee2MQTT/workflows/Run%20Tests/badge.svg)](https://github.com/Nall-chan/Zigbee2MQTT/actions)
 
 # Zigbee2MQTT-Bridge  <!-- omit in toc -->
 
@@ -46,16 +46,16 @@
 - Kompakte Variablen-Wartungsübersicht zum Finden betroffener Geräte- und Gruppeninstanzen
 - Zigbee2MQTT-Wartung für Zigbee2MQTT-Backup, Install-Code, Touchlink-Scan/Identify/Factory-Reset und gewarnte Bridge-Expertenaktionen
 - Viele PHP-Funktionen um interne Zigbee2MQTT Funktionen auszuführen (Gruppen verwalten, Geräte umbenennen usw...)
-  
+
 ## 2. Voraussetzungen
 
 - mindestens IP-Symcon Version 9.0
 - MQTT-Broker (interner MQTT-Server von Symcon oder externer z.B. Mosquitto)
-- installiertes und lauffähiges [zigbee2mqtt](https://www.zigbee2mqtt.io)  
-  
+- installiertes und lauffähiges [zigbee2mqtt](https://www.zigbee2mqtt.io)
+
 ## 3. Software-Installation
 
-- Dieses Modul ist Bestandteil der [Zigbee2MQTT-Library](../README.md#3-installation).  
+- Dieses Modul ist Bestandteil der [Zigbee2MQTT-Library](../README.md#3-installation).
 
 ## 4. Konfiguration
 
@@ -223,7 +223,7 @@ Beispiel für das Parameterfeld:
 ```
 
 > [!WARNING]
-> Verwenden Sie diese Funktion nur für dokumentierte Zigbee2MQTT-Actions, deren Wirkung bekannt ist. Für normale Bedienung sollten die spezialisierten Bridge-, Device- und Group-Funktionen genutzt werden.
+> Verwenden Sie diese Funktion nur für Actions, die von Ihrer Zigbee2MQTT-Installation unter bridge/definitions veröffentlicht werden und deren Parameter und Auswirkungen vollständig bekannt sind. Die Action raw ermöglicht Low-Level-Zigbee-Befehle und kann bei fehlerhafter Verwendung das Zigbee-Netzwerk beeinträchtigen. Für reguläre Bedien- und Verwaltungsaufgaben sollten die spezialisierten Bridge-, Device- und Group-Funktionen verwendet werden. [Zigbee2MQTT-Doku](https://www.zigbee2mqtt.io/guide/usage/mqtt_topics_and_messages.html#action)
 
 ## 6. Statusvariablen
 
@@ -262,7 +262,7 @@ OTA-Aktualisierungen können zentral über den Bereich **OTA-Updates** in der Br
 bool Z2M_InstallSymconExtension(int $InstanzID);
 ```
 
-Die aktuelle Symcon Erweiterung wird in Z2M installiert.  
+Die aktuelle Symcon Erweiterung wird in Z2M installiert.
 
 ---
 
@@ -282,7 +282,7 @@ Fordert die aktuellen Bridge-Optionen von Zigbee2MQTT an und aktualisiert die Br
 bool Z2M_SetLastSeen(int $InstanzID);
 ```
 
-Die Konfiguration der `last_seen` Einstellung in Z2M wird auf `epoch` verändert, damit die Instanzen in Symcon den Wert korrekt darstellen können.  
+Die Konfiguration der `last_seen` Einstellung in Z2M wird auf `epoch` verändert, damit die Instanzen in Symcon den Wert korrekt darstellen können.
 
 ---
 
