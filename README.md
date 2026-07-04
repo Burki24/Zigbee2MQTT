@@ -496,6 +496,7 @@ Die Änderungen sind anhand der funktionalen Commits chronologisch gegliedert. A
 - Der Payload wird als `action` plus `params` gesendet; die `transaction` wird weiterhin vom Modul verwaltet.
 - Action-Name und JSON-Parameter werden geprüft und mit lokalisierten Rückmeldungen im Formular quittiert.
 - Eine eigene Dokumentation für die mitgelieferten Symcon-Actions ergänzt. Sie beschreibt Verfügbarkeit, Voraussetzungen, Parameter, Anwendung in Symcon und passende PHP-Skriptbeispiele.
+- Readme-Dateien der einzelnen Module überarbeitet.
 
 **Version 5.42:**
 
