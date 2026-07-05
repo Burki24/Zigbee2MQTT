@@ -490,16 +490,13 @@ Die Änderungen sind anhand der funktionalen Commits chronologisch gegliedert. A
 - Spezialkacheln und der Debug-Export formatieren Variablenwerte nur noch über Symcon, wenn hinterlegte Altprofile noch existieren. Dadurch lösen gelöschte alte `Z2M.*`-Profile keine Laufzeitwarnungen mehr aus; die Kacheln fallen stattdessen auf eine einfache Wertdarstellung zurück.
 - Die lokale Variablen-Wartung löscht Kandidaten jetzt aus dem gespeicherten Suchlauf und aktualisiert die Tabellen fehlertolerant. Dadurch wird beim Löschen verwaister Variablen kein unmittelbarer Neu-Scan der Instanz ausgelöst und Symcon-Formularfehler durch inzwischen entfernte oder unerwartete Darstellungen werden abgefangen.
 
-### 2. bis 4. Juli 2026: Bridge-Expertenaktionen
+### 2. bis 5. Juli 2026: Bridge-Expertenaktionen
 
 - Die Bridge-Wartung bietet eine gewarnte Expertenfunktion für dokumentierte Zigbee2MQTT-`bridge/request/action`-Actions.
 - Der Payload wird als `action` plus `params` gesendet; die `transaction` wird weiterhin vom Modul verwaltet.
 - Action-Name und JSON-Parameter werden geprüft und mit lokalisierten Rückmeldungen im Formular quittiert.
 - Eine eigene Dokumentation für die mitgelieferten Symcon-Actions ergänzt. Sie beschreibt Verfügbarkeit, Voraussetzungen, Parameter, Anwendung in Symcon und passende PHP-Skriptbeispiele.
 - Readme-Dateien der einzelnen Module überarbeitet.
-
-### 5. Juli 2026: Stabilere Zigbee2MQTT-Transaktionen
-
 - Transaktionsdaten werden intern in einem chunked Buffer gespeichert. Große Zigbee2MQTT-Antworten, zum Beispiel `getDeviceInfo` bei Installationen mit vielen Geräten, überschreiten dadurch nicht mehr die Symcon-Buffergrenze und erzeugen keine falschen Timeout-Meldungen mehr.
 
 **Version 5.42:**
