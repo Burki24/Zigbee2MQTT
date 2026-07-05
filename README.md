@@ -498,6 +498,10 @@ Die Änderungen sind anhand der funktionalen Commits chronologisch gegliedert. A
 - Eine eigene Dokumentation für die mitgelieferten Symcon-Actions ergänzt. Sie beschreibt Verfügbarkeit, Voraussetzungen, Parameter, Anwendung in Symcon und passende PHP-Skriptbeispiele.
 - Readme-Dateien der einzelnen Module überarbeitet.
 
+### 5. Juli 2026: Stabilere Zigbee2MQTT-Transaktionen
+
+- Transaktionsdaten werden intern in einem chunked Buffer gespeichert. Große Zigbee2MQTT-Antworten, zum Beispiel `getDeviceInfo` bei Installationen mit vielen Geräten, überschreiten dadurch nicht mehr die Symcon-Buffergrenze und erzeugen keine falschen Timeout-Meldungen mehr.
+
 **Version 5.42:**
 
 - Bridge Instanz konnte den Namen der bereits installierten Erweiterung nicht korrekt erkennen und übernehmen.

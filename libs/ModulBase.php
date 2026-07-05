@@ -1364,7 +1364,8 @@ abstract class ModulBase extends \IPSModuleStrict
             'latestPayload',
             'missingTranslations',
             'brightnessConfig',
-            'TransactionData'             => [],
+            'TransactionData',
+            'Multi_TransactionData'       => [],
             default                       => false
         };
     }
