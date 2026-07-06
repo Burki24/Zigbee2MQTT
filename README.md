@@ -498,6 +498,8 @@ Die Änderungen sind anhand der funktionalen Commits chronologisch gegliedert. A
 - Eine eigene Dokumentation für die mitgelieferten Symcon-Actions ergänzt. Sie beschreibt Verfügbarkeit, Voraussetzungen, Parameter, Anwendung in Symcon und passende PHP-Skriptbeispiele.
 - Readme-Dateien der einzelnen Module überarbeitet.
 - Transaktionsdaten werden intern in einem chunked Buffer gespeichert. Große Zigbee2MQTT-Antworten, zum Beispiel `getDeviceInfo` bei Installationen mit vielen Geräten, überschreiten dadurch nicht mehr die Symcon-Buffergrenze und erzeugen keine falschen Timeout-Meldungen mehr.
+- OTA-Formularlisten werden während eines Modul-Updates nur noch aktualisiert, wenn die Symcon-Formularschnittstelle verfügbar ist. Dadurch erzeugen OTA-Statusänderungen während `VM_UPDATE` keine `InstanceInterface is not available`-Warnungen mehr.
+- Verwaiste interne Variablenregistrierungen werden vor einer Neuanlage bereinigt. Dadurch führen bereits gelöschte Maintained-Variablen beim Update nicht mehr zu `Variable #... existiert nicht`-Warnungen.
 
 **Version 5.42:**
 

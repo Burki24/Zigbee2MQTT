@@ -1785,6 +1785,56 @@ abstract class ModulBase extends \IPSModuleStrict
     }
 
     /**
+     * Entfernt verwaiste interne Variablenregistrierungen vor einer Neuanlage.
+     *
+     * Bei Modul-Updates kann Symcon noch eine alte Maintained-Variable kennen,
+     * obwohl das Objekt bereits geloescht wurde. Ein RegisterVariable*-Aufruf
+     * wuerde dann mit "Variable #... existiert nicht" abbrechen.
+     */
+    private function PrepareVariableRegistration(string $ident): void
+    {
+        if ($this->GetObjectIDByIdent($ident) !== false) {
+            return;
+        }
+
+        set_error_handler(static function (): bool
+        {
+            return true;
+        });
+        try {
+            parent::UnregisterVariable($ident);
+        } catch (\Throwable $exception) {
+            $this->SendDebug(__FUNCTION__, 'Verwaiste Variablenregistrierung konnte nicht bereinigt werden: ' . $exception->getMessage(), 0);
+        } finally {
+            restore_error_handler();
+        }
+    }
+
+    protected function RegisterVariableBoolean(string $Ident, string $Name, string|array $ProfileOrPresentation = '', int $Position = 0): bool
+    {
+        $this->PrepareVariableRegistration($Ident);
+        return parent::RegisterVariableBoolean($Ident, $Name, $ProfileOrPresentation, $Position);
+    }
+
+    protected function RegisterVariableInteger(string $Ident, string $Name, string|array $ProfileOrPresentation = '', int $Position = 0): bool
+    {
+        $this->PrepareVariableRegistration($Ident);
+        return parent::RegisterVariableInteger($Ident, $Name, $ProfileOrPresentation, $Position);
+    }
+
+    protected function RegisterVariableFloat(string $Ident, string $Name, string|array $ProfileOrPresentation = '', int $Position = 0): bool
+    {
+        $this->PrepareVariableRegistration($Ident);
+        return parent::RegisterVariableFloat($Ident, $Name, $ProfileOrPresentation, $Position);
+    }
+
+    protected function RegisterVariableString(string $Ident, string $Name, string|array $ProfileOrPresentation = '', int $Position = 0): bool
+    {
+        $this->PrepareVariableRegistration($Ident);
+        return parent::RegisterVariableString($Ident, $Name, $ProfileOrPresentation, $Position);
+    }
+
+    /**
      * convertToSnakeCase
      *
      * Diese Hilfsfunktion entfernt das Prefix "Z2M_" und

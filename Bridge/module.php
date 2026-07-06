@@ -2956,14 +2956,35 @@ class Zigbee2MQTTBridge extends IPSModuleStrict
         $rows = $this->BuildOTADeviceRows();
         $availableRows = $this->FilterOTADeviceRowsByState($rows, ['available']);
         $activeRows = $this->FilterOTADeviceRowsByState($rows, ['requested', 'scheduled', 'updating']);
-        $this->UpdateFormField('OTAStatus', 'caption', $this->BuildOTAStatusCaption($rows));
-        $this->UpdateFormField('OTAKnownDevices', 'values', json_encode($this->BuildOTAKnownDeviceFormValues($rows)));
-        $this->UpdateFormField('OTAKnownDevices', 'rowCount', min(10, max(3, \count($rows) + 1)));
-        $this->UpdateFormField('OTAAvailableUpdates', 'values', json_encode($this->BuildOTAAvailableUpdateFormValues($availableRows)));
-        $this->UpdateFormField('OTAAvailableUpdates', 'rowCount', min(8, max(3, \count($availableRows) + 1)));
-        $this->UpdateFormField('OTAActiveUpdates', 'values', json_encode($this->BuildOTAActiveUpdateFormValues($activeRows)));
-        $this->UpdateFormField('OTAActiveUpdates', 'rowCount', min(8, max(3, \count($activeRows) + 1)));
-        $this->UpdateFormField('OTAUpdateResults', 'values', json_encode($this->BuildOTAUpdateResultFormValues()));
+        $this->TryUpdateFormField('OTAStatus', 'caption', $this->BuildOTAStatusCaption($rows));
+        $this->TryUpdateFormField('OTAKnownDevices', 'values', json_encode($this->BuildOTAKnownDeviceFormValues($rows)));
+        $this->TryUpdateFormField('OTAKnownDevices', 'rowCount', min(10, max(3, \count($rows) + 1)));
+        $this->TryUpdateFormField('OTAAvailableUpdates', 'values', json_encode($this->BuildOTAAvailableUpdateFormValues($availableRows)));
+        $this->TryUpdateFormField('OTAAvailableUpdates', 'rowCount', min(8, max(3, \count($availableRows) + 1)));
+        $this->TryUpdateFormField('OTAActiveUpdates', 'values', json_encode($this->BuildOTAActiveUpdateFormValues($activeRows)));
+        $this->TryUpdateFormField('OTAActiveUpdates', 'rowCount', min(8, max(3, \count($activeRows) + 1)));
+        $this->TryUpdateFormField('OTAUpdateResults', 'values', json_encode($this->BuildOTAUpdateResultFormValues()));
+    }
+
+    /**
+     * Aktualisiert ein Formularfeld, sofern die Symcon-Formularschnittstelle verfuegbar ist.
+     *
+     * MessageSink kann waehrend eines Modul-Updates durch VM_UPDATE ausgeloest werden.
+     * In diesem Moment steht die InstanceInterface-Schnittstelle nicht immer bereit.
+     */
+    private function TryUpdateFormField(string $name, string $field, mixed $value): void
+    {
+        set_error_handler(static function (): bool
+        {
+            return true;
+        });
+        try {
+            $this->UpdateFormField($name, $field, $value);
+        } catch (\Throwable $exception) {
+            $this->SendDebug(__FUNCTION__, 'Formularaktualisierung uebersprungen: ' . $exception->getMessage(), 0);
+        } finally {
+            restore_error_handler();
+        }
     }
 
     /**
