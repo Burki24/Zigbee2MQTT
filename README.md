@@ -490,7 +490,7 @@ Die Änderungen sind anhand der funktionalen Commits chronologisch gegliedert. A
 - Spezialkacheln und der Debug-Export formatieren Variablenwerte nur noch über Symcon, wenn hinterlegte Altprofile noch existieren. Dadurch lösen gelöschte alte `Z2M.*`-Profile keine Laufzeitwarnungen mehr aus; die Kacheln fallen stattdessen auf eine einfache Wertdarstellung zurück.
 - Die lokale Variablen-Wartung löscht Kandidaten jetzt aus dem gespeicherten Suchlauf und aktualisiert die Tabellen fehlertolerant. Dadurch wird beim Löschen verwaister Variablen kein unmittelbarer Neu-Scan der Instanz ausgelöst und Symcon-Formularfehler durch inzwischen entfernte oder unerwartete Darstellungen werden abgefangen.
 
-### 2. bis 5. Juli 2026: Bridge-Expertenaktionen
+### 2. bis 6. Juli 2026: Bridge-Expertenaktionen
 
 - Die Bridge-Wartung bietet eine gewarnte Expertenfunktion für dokumentierte Zigbee2MQTT-`bridge/request/action`-Actions.
 - Der Payload wird als `action` plus `params` gesendet; die `transaction` wird weiterhin vom Modul verwaltet.
