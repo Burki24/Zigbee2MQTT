@@ -207,11 +207,11 @@ class Zigbee2MQTTBridge extends IPSModuleStrict
         $installedExtVersion = (empty($this->GetValue('extension_version')) ? -1 : (float) $this->GetValue('extension_version'));
         $this->SetValue('extension_is_current', $this->actualExtensionVersion <= $installedExtVersion);
         if ($this->actualExtensionVersion <= $installedExtVersion) {
-            $this->UpdateFormField('InstallExtension', 'caption', $this->Translate('Symcon-Extension is up-to-date'));
-            $this->UpdateFormField('InstallExtension', 'enabled', false);
+            $this->TryUpdateFormField('InstallExtension', 'caption', $this->Translate('Symcon-Extension is up-to-date'));
+            $this->TryUpdateFormField('InstallExtension', 'enabled', false);
         } else {
-            $this->UpdateFormField('InstallExtension', 'caption', $this->Translate('Install or upgrade Symcon-Extension'));
-            $this->UpdateFormField('InstallExtension', 'enabled', true);
+            $this->TryUpdateFormField('InstallExtension', 'caption', $this->Translate('Install or upgrade Symcon-Extension'));
+            $this->TryUpdateFormField('InstallExtension', 'enabled', true);
             if (!empty($BaseTopic)) {
                 if ($online) {
                     @$this->InstallSymconExtension();
@@ -254,12 +254,12 @@ class Zigbee2MQTTBridge extends IPSModuleStrict
     }
 
     /**
-     * Aktualisiert die OTA-Übersicht bei Änderungen an beobachteten Device-Variablen.
+     * Aktualisiert OTA-Beobachtungen bei Änderungen an beobachteten Device-Variablen.
      */
     public function MessageSink(int $TimeStamp, int $SenderID, int $Message, array $Data): void
     {
         if ($Message === VM_UPDATE && \in_array($SenderID, $this->ReadAttributeArray(self::ATTRIBUTE_OTA_MONITORED_VARIABLES), true)) {
-            $this->UpdateOTAFormLists();
+            $this->SendDebug(__FUNCTION__, 'OTA-Formularaktualisierung nach VM_UPDATE uebersprungen', 0);
             return;
         }
 
@@ -268,7 +268,6 @@ class Zigbee2MQTTBridge extends IPSModuleStrict
             \in_array($SenderID, $this->ReadAttributeArray(self::ATTRIBUTE_OTA_MONITORED_DEVICES), true)
         ) {
             $this->SynchronizeOTAMessageSubscriptions();
-            $this->UpdateOTAFormLists();
         }
     }
 
@@ -393,7 +392,7 @@ class Zigbee2MQTTBridge extends IPSModuleStrict
                 }
                 if (isset($Payload['config']['permit_join'])) {
                     $this->ConfigPermitJoin = $Payload['config']['permit_join'];
-                    $this->UpdateFormField('PermitJoinOption', 'visible', $Payload['config']['permit_join']);
+                    $this->TryUpdateFormField('PermitJoinOption', 'visible', $Payload['config']['permit_join']);
                     if ($Payload['config']['permit_join']) {
                         $this->LogMessage($this->Translate("Danger! In the Zigbee2MQTT configuration permit_join is activated.\r\nThis leads to a possible security risk!"), KL_ERROR);
                     }
@@ -417,11 +416,11 @@ class Zigbee2MQTTBridge extends IPSModuleStrict
                 if (isset($Payload['config']['advanced']['last_seen'])) {
                     $this->ConfigLastSeen = $Payload['config']['advanced']['last_seen'];
                     if ($Payload['config']['advanced']['last_seen'] == 'epoch') {
-                        $this->UpdateFormField('SetLastSeen', 'caption', $this->Translate('last_seen setting is correct'));
-                        $this->UpdateFormField('SetLastSeen', 'enabled', false);
+                        $this->TryUpdateFormField('SetLastSeen', 'caption', $this->Translate('last_seen setting is correct'));
+                        $this->TryUpdateFormField('SetLastSeen', 'enabled', false);
                     } else {
-                        $this->UpdateFormField('SetLastSeen', 'caption', $this->Translate('Set last_seen setting to epoch'));
-                        $this->UpdateFormField('SetLastSeen', 'enabled', true);
+                        $this->TryUpdateFormField('SetLastSeen', 'caption', $this->Translate('Set last_seen setting to epoch'));
+                        $this->TryUpdateFormField('SetLastSeen', 'enabled', true);
                         $this->LogMessage($this->Translate('Wrong last_seen setting in Zigbee2MQTT. Please set last_seen to epoch.'), KL_ERROR);
                     }
                 }
@@ -459,11 +458,11 @@ class Zigbee2MQTTBridge extends IPSModuleStrict
                             $Version = $matches[1];
                         }
                         if ($this->actualExtensionVersion <= (float) $Version) {
-                            $this->UpdateFormField('InstallExtension', 'caption', $this->Translate('Symcon-Extension is up-to-date'));
-                            $this->UpdateFormField('InstallExtension', 'enabled', false);
+                            $this->TryUpdateFormField('InstallExtension', 'caption', $this->Translate('Symcon-Extension is up-to-date'));
+                            $this->TryUpdateFormField('InstallExtension', 'enabled', false);
                         } else {
-                            $this->UpdateFormField('InstallExtension', 'caption', $this->Translate('Install or upgrade Symcon-Extension'));
-                            $this->UpdateFormField('InstallExtension', 'enabled', true);
+                            $this->TryUpdateFormField('InstallExtension', 'caption', $this->Translate('Install or upgrade Symcon-Extension'));
+                            $this->TryUpdateFormField('InstallExtension', 'enabled', true);
                             $this->LogMessage($this->Translate('Symcon Extension in Zigbee2MQTT is outdated. Please update the extension.'), KL_ERROR);
                         }
                     }
@@ -543,7 +542,7 @@ class Zigbee2MQTTBridge extends IPSModuleStrict
                 break;
             case 'TouchlinkScan':
                 $this->TouchlinkScan();
-                $this->UpdateFormField('TouchlinkDeviceList', 'values', json_encode($this->BuildTouchlinkDeviceFormValues()));
+                $this->TryUpdateFormField('TouchlinkDeviceList', 'values', json_encode($this->BuildTouchlinkDeviceFormValues()));
                 break;
             case 'SelectTouchlinkDevice':
                 $this->SelectTouchlinkDeviceFromForm($value);
@@ -1927,10 +1926,10 @@ class Zigbee2MQTTBridge extends IPSModuleStrict
             return false;
         }
 
-        $this->UpdateFormField('InstallCodeCatalogID', 'value', (string) $entry['id']);
-        $this->UpdateFormField('InstallCodeLabel', 'value', (string) $entry['label']);
-        $this->UpdateFormField('InstallCode', 'value', '');
-        $this->UpdateFormField('InstallCodeEditorHint', 'visible', true);
+        $this->TryUpdateFormField('InstallCodeCatalogID', 'value', (string) $entry['id']);
+        $this->TryUpdateFormField('InstallCodeLabel', 'value', (string) $entry['label']);
+        $this->TryUpdateFormField('InstallCode', 'value', '');
+        $this->TryUpdateFormField('InstallCodeEditorHint', 'visible', true);
         return true;
     }
 
@@ -1968,12 +1967,12 @@ class Zigbee2MQTTBridge extends IPSModuleStrict
         }
 
         $this->WriteAttributeArray(self::ATTRIBUTE_PENDING_INSTALL_CODE_DELETE, $entry);
-        $this->UpdateFormField(
+        $this->TryUpdateFormField(
             'InstallCodeDeleteWarningText',
             'caption',
             \sprintf($this->Translate('Delete stored install code "%s"? This cannot be undone.'), (string) $entry['label'])
         );
-        $this->UpdateFormField('InstallCodeDeleteWarning', 'visible', true);
+        $this->TryUpdateFormField('InstallCodeDeleteWarning', 'visible', true);
         return true;
     }
 
@@ -1985,7 +1984,7 @@ class Zigbee2MQTTBridge extends IPSModuleStrict
         $pending = $this->ReadAttributeArray(self::ATTRIBUTE_PENDING_INSTALL_CODE_DELETE);
         $id = (string) ($pending['id'] ?? '');
         $this->WriteAttributeArray(self::ATTRIBUTE_PENDING_INSTALL_CODE_DELETE, []);
-        $this->UpdateFormField('InstallCodeDeleteWarning', 'visible', false);
+        $this->TryUpdateFormField('InstallCodeDeleteWarning', 'visible', false);
         if ($id === '') {
             $this->ShowInstallCodeMessage('Install code not found', 'The selected stored install code no longer exists.');
             return false;
@@ -2097,8 +2096,8 @@ class Zigbee2MQTTBridge extends IPSModuleStrict
     private function UpdateStoredInstallCodeFormList(): void
     {
         $values = $this->BuildStoredInstallCodeFormValues();
-        $this->UpdateFormField('StoredInstallCodeList', 'values', json_encode($values));
-        $this->UpdateFormField('StoredInstallCodeList', 'rowCount', min(8, max(3, \count($values) + 1)));
+        $this->TryUpdateFormField('StoredInstallCodeList', 'values', json_encode($values));
+        $this->TryUpdateFormField('StoredInstallCodeList', 'rowCount', min(8, max(3, \count($values) + 1)));
     }
 
     /**
@@ -2106,10 +2105,10 @@ class Zigbee2MQTTBridge extends IPSModuleStrict
      */
     private function ClearInstallCodeEditor(): void
     {
-        $this->UpdateFormField('InstallCodeCatalogID', 'value', '');
-        $this->UpdateFormField('InstallCodeLabel', 'value', '');
-        $this->UpdateFormField('InstallCode', 'value', '');
-        $this->UpdateFormField('InstallCodeEditorHint', 'visible', false);
+        $this->TryUpdateFormField('InstallCodeCatalogID', 'value', '');
+        $this->TryUpdateFormField('InstallCodeLabel', 'value', '');
+        $this->TryUpdateFormField('InstallCode', 'value', '');
+        $this->TryUpdateFormField('InstallCodeEditorHint', 'visible', false);
     }
 
     /**
@@ -2117,9 +2116,9 @@ class Zigbee2MQTTBridge extends IPSModuleStrict
      */
     private function ShowInstallCodeMessage(string $title, string $message): void
     {
-        $this->UpdateFormField('InstallCodeMessageTitle', 'caption', $this->Translate($title));
-        $this->UpdateFormField('InstallCodeMessageText', 'caption', $this->Translate($message));
-        $this->UpdateFormField('InstallCodeMessage', 'visible', true);
+        $this->TryUpdateFormField('InstallCodeMessageTitle', 'caption', $this->Translate($title));
+        $this->TryUpdateFormField('InstallCodeMessageText', 'caption', $this->Translate($message));
+        $this->TryUpdateFormField('InstallCodeMessage', 'visible', true);
     }
 
     /**
@@ -2300,9 +2299,9 @@ class Zigbee2MQTTBridge extends IPSModuleStrict
      */
     private function ShowBackupMessage(string $title, string $message): void
     {
-        $this->UpdateFormField('BackupMessageTitle', 'caption', $title);
-        $this->UpdateFormField('BackupMessageText', 'caption', $message);
-        $this->UpdateFormField('BackupMessage', 'visible', true);
+        $this->TryUpdateFormField('BackupMessageTitle', 'caption', $title);
+        $this->TryUpdateFormField('BackupMessageText', 'caption', $message);
+        $this->TryUpdateFormField('BackupMessage', 'visible', true);
     }
 
     /**
@@ -2526,9 +2525,9 @@ class Zigbee2MQTTBridge extends IPSModuleStrict
             return;
         }
 
-        $this->UpdateFormField('PairingStatus', 'caption', $this->BuildPairingStatusCaption());
-        $this->UpdateFormField('StartPairing', 'enabled', !$active);
-        $this->UpdateFormField('StopPairing', 'enabled', $active);
+        $this->TryUpdateFormField('PairingStatus', 'caption', $this->BuildPairingStatusCaption());
+        $this->TryUpdateFormField('StartPairing', 'enabled', !$active);
+        $this->TryUpdateFormField('StopPairing', 'enabled', $active);
     }
 
     /**
@@ -2974,9 +2973,14 @@ class Zigbee2MQTTBridge extends IPSModuleStrict
      */
     private function TryUpdateFormField(string $name, string $field, mixed $value): void
     {
-        set_error_handler(static function (): bool
-        {
-            return true;
+        $warning = null;
+        set_error_handler(static function (int $severity, string $message) use (&$warning): bool {
+            if (str_contains($message, 'InstanceInterface is not available')) {
+                $warning = $message;
+                return true;
+            }
+
+            return false;
         });
         try {
             $this->UpdateFormField($name, $field, $value);
@@ -2984,6 +2988,10 @@ class Zigbee2MQTTBridge extends IPSModuleStrict
             $this->SendDebug(__FUNCTION__, 'Formularaktualisierung uebersprungen: ' . $exception->getMessage(), 0);
         } finally {
             restore_error_handler();
+        }
+
+        if ($warning !== null) {
+            $this->SendDebug(__FUNCTION__, 'Formularaktualisierung uebersprungen: ' . $warning, 0);
         }
     }
 
@@ -3103,7 +3111,7 @@ class Zigbee2MQTTBridge extends IPSModuleStrict
         }
 
         $this->WriteAttributeArray(self::ATTRIBUTE_PENDING_OTA_UPDATE, $row);
-        $this->UpdateFormField(
+        $this->TryUpdateFormField(
             'OTAUpdateWarningText',
             'caption',
             sprintf(
@@ -3111,7 +3119,7 @@ class Zigbee2MQTTBridge extends IPSModuleStrict
                 $row['instance']
             )
         );
-        $this->UpdateFormField('OTAUpdateWarning', 'visible', true);
+        $this->TryUpdateFormField('OTAUpdateWarning', 'visible', true);
         return true;
     }
 
@@ -3122,7 +3130,7 @@ class Zigbee2MQTTBridge extends IPSModuleStrict
     {
         $pending = $this->ReadAttributeArray(self::ATTRIBUTE_PENDING_OTA_UPDATE);
         $this->WriteAttributeArray(self::ATTRIBUTE_PENDING_OTA_UPDATE, []);
-        $this->UpdateFormField('OTAUpdateWarning', 'visible', false);
+        $this->TryUpdateFormField('OTAUpdateWarning', 'visible', false);
         $row = $this->ResolveOTADeviceRow($pending);
         if ($row === null) {
             return false;
@@ -3321,7 +3329,6 @@ class Zigbee2MQTTBridge extends IPSModuleStrict
             ];
         }
         $this->WriteAttributeArray(self::ATTRIBUTE_OTA_CHECK_RESULTS, $checks);
-        $this->UpdateOTAFormLists();
         $this->ShowOTAMessage($isAbort && $success ? 'OTA update aborted' : ($success ? 'OTA update successful' : 'OTA update failed'), $message);
         return true;
     }
@@ -3375,9 +3382,9 @@ class Zigbee2MQTTBridge extends IPSModuleStrict
      */
     private function ShowOTAMessage(string $title, string $message): void
     {
-        $this->UpdateFormField('OTAMessageTitle', 'caption', $this->Translate($title));
-        $this->UpdateFormField('OTAMessageText', 'caption', $this->Translate($message));
-        $this->UpdateFormField('OTAMessage', 'visible', true);
+        $this->TryUpdateFormField('OTAMessageTitle', 'caption', $this->Translate($title));
+        $this->TryUpdateFormField('OTAMessageText', 'caption', $this->Translate($message));
+        $this->TryUpdateFormField('OTAMessage', 'visible', true);
     }
 
     /**
@@ -3411,8 +3418,8 @@ class Zigbee2MQTTBridge extends IPSModuleStrict
             return false;
         }
 
-        $this->UpdateFormField('StaleVariableOpenInstance', 'objectID', $instanceID);
-        $this->UpdateFormField('StaleVariableOpenInstance', 'visible', true);
+        $this->TryUpdateFormField('StaleVariableOpenInstance', 'objectID', $instanceID);
+        $this->TryUpdateFormField('StaleVariableOpenInstance', 'visible', true);
 
         return true;
     }
@@ -3562,11 +3569,11 @@ class Zigbee2MQTTBridge extends IPSModuleStrict
      */
     private function UpdateStaleVariableFormLists(array $scan): void
     {
-        $this->UpdateFormField('StaleVariableStatus', 'caption', $this->BuildStaleVariableStatusCaption());
+        $this->TryUpdateFormField('StaleVariableStatus', 'caption', $this->BuildStaleVariableStatusCaption());
         $summary = $this->BuildStaleVariableInstanceSummaryFormValues($scan);
-        $this->UpdateFormField('StaleVariableInstanceSummary', 'values', json_encode($summary));
-        $this->UpdateFormField('StaleVariableInstanceSummary', 'rowCount', min(12, max(3, \count($summary) + 1)));
-        $this->UpdateFormField('StaleVariableOpenInstance', 'visible', false);
+        $this->TryUpdateFormField('StaleVariableInstanceSummary', 'values', json_encode($summary));
+        $this->TryUpdateFormField('StaleVariableInstanceSummary', 'rowCount', min(12, max(3, \count($summary) + 1)));
+        $this->TryUpdateFormField('StaleVariableOpenInstance', 'visible', false);
     }
 
     /**
@@ -3662,7 +3669,7 @@ class Zigbee2MQTTBridge extends IPSModuleStrict
             'operation'    => $operation,
             'ieee_address' => $ieeeAddress
         ]);
-        $this->UpdateFormField(
+        $this->TryUpdateFormField(
             'PasslistWarningText',
             'caption',
             \sprintf(
@@ -3670,7 +3677,7 @@ class Zigbee2MQTTBridge extends IPSModuleStrict
                 $ieeeAddress
             )
         );
-        $this->UpdateFormField('PasslistWarning', 'visible', true);
+        $this->TryUpdateFormField('PasslistWarning', 'visible', true);
         return true;
     }
 
@@ -3691,7 +3698,7 @@ class Zigbee2MQTTBridge extends IPSModuleStrict
         }
 
         $this->WriteAttributeArray(self::ATTRIBUTE_PENDING_PASSLIST_CHANGE, []);
-        $this->UpdateFormField('PasslistWarning', 'visible', false);
+        $this->TryUpdateFormField('PasslistWarning', 'visible', false);
         return true;
     }
 
@@ -3740,9 +3747,9 @@ class Zigbee2MQTTBridge extends IPSModuleStrict
             return false;
         }
 
-        $this->UpdateFormField('NetworkSecuritySelectedDevice', 'value', (string) ($selection['device'] ?? ''));
-        $this->UpdateFormField('NetworkSecuritySelectedIeeeAddress', 'value', $ieeeAddress);
-        $this->UpdateFormField('NetworkSecurityIeeeAddress', 'value', '');
+        $this->TryUpdateFormField('NetworkSecuritySelectedDevice', 'value', (string) ($selection['device'] ?? ''));
+        $this->TryUpdateFormField('NetworkSecuritySelectedIeeeAddress', 'value', $ieeeAddress);
+        $this->TryUpdateFormField('NetworkSecurityIeeeAddress', 'value', '');
         return true;
     }
 
@@ -3831,10 +3838,10 @@ class Zigbee2MQTTBridge extends IPSModuleStrict
     {
         $devices = $this->BuildNetworkSecurityDevices(true);
         $availableDevices = $this->BuildNetworkSecurityAvailableDeviceFormValues($devices);
-        $this->UpdateFormField('NetworkSecurityAvailableDeviceList', 'values', json_encode($availableDevices));
-        $this->UpdateFormField('NetworkSecurityAvailableDeviceList', 'rowCount', min(10, max(4, \count($availableDevices) + 1)));
-        $this->UpdateFormField('NetworkSecurityBlocklist', 'values', json_encode($this->BuildNetworkSecurityListFormValues('blocklist', $devices)));
-        $this->UpdateFormField('NetworkSecurityPasslist', 'values', json_encode($this->BuildNetworkSecurityListFormValues('passlist', $devices)));
+        $this->TryUpdateFormField('NetworkSecurityAvailableDeviceList', 'values', json_encode($availableDevices));
+        $this->TryUpdateFormField('NetworkSecurityAvailableDeviceList', 'rowCount', min(10, max(4, \count($availableDevices) + 1)));
+        $this->TryUpdateFormField('NetworkSecurityBlocklist', 'values', json_encode($this->BuildNetworkSecurityListFormValues('blocklist', $devices)));
+        $this->TryUpdateFormField('NetworkSecurityPasslist', 'values', json_encode($this->BuildNetworkSecurityListFormValues('passlist', $devices)));
     }
 
     /**
@@ -3842,8 +3849,8 @@ class Zigbee2MQTTBridge extends IPSModuleStrict
      */
     private function ShowNetworkSecurityFormError(string $message): void
     {
-        $this->UpdateFormField('NetworkSecurityErrorText', 'caption', $this->Translate($message));
-        $this->UpdateFormField('NetworkSecurityError', 'visible', true);
+        $this->TryUpdateFormField('NetworkSecurityErrorText', 'caption', $this->Translate($message));
+        $this->TryUpdateFormField('NetworkSecurityError', 'visible', true);
     }
 
     /**
@@ -4063,11 +4070,11 @@ class Zigbee2MQTTBridge extends IPSModuleStrict
      */
     private function UpdateDiagnosticFormFields(): void
     {
-        $this->UpdateFormField('DiagnosticHealthStatus', 'caption', $this->BuildHealthStatusCaption());
-        $this->UpdateFormField('DiagnosticCoordinatorStatus', 'caption', $this->BuildCoordinatorStatusCaption());
+        $this->TryUpdateFormField('DiagnosticHealthStatus', 'caption', $this->BuildHealthStatusCaption());
+        $this->TryUpdateFormField('DiagnosticCoordinatorStatus', 'caption', $this->BuildCoordinatorStatusCaption());
         $missingRouters = $this->BuildMissingRouterFormValues();
-        $this->UpdateFormField('DiagnosticMissingRoutersList', 'values', json_encode($missingRouters));
-        $this->UpdateFormField('DiagnosticMissingRoutersList', 'rowCount', min(8, max(4, \count($missingRouters) + 1)));
+        $this->TryUpdateFormField('DiagnosticMissingRoutersList', 'values', json_encode($missingRouters));
+        $this->TryUpdateFormField('DiagnosticMissingRoutersList', 'rowCount', min(8, max(4, \count($missingRouters) + 1)));
     }
 
     /**
@@ -4075,9 +4082,9 @@ class Zigbee2MQTTBridge extends IPSModuleStrict
      */
     private function ShowDiagnosticMessage(string $title, string $message): void
     {
-        $this->UpdateFormField('DiagnosticMessageTitle', 'caption', $this->Translate($title));
-        $this->UpdateFormField('DiagnosticMessageText', 'caption', $this->Translate($message));
-        $this->UpdateFormField('DiagnosticMessage', 'visible', true);
+        $this->TryUpdateFormField('DiagnosticMessageTitle', 'caption', $this->Translate($title));
+        $this->TryUpdateFormField('DiagnosticMessageText', 'caption', $this->Translate($message));
+        $this->TryUpdateFormField('DiagnosticMessage', 'visible', true);
     }
 
     /**
@@ -4145,7 +4152,7 @@ class Zigbee2MQTTBridge extends IPSModuleStrict
         $this->WriteAttributeArray(self::ATTRIBUTE_NETWORK_DEVICES, $networkDevices);
         $this->WriteAttributeArray(self::ATTRIBUTE_DIAGNOSTIC_UNSUPPORTED_DEVICES, $unsupported);
         $this->WriteAttributeArray(self::ATTRIBUTE_DIAGNOSTIC_INTERVIEW_DEVICES, $interviewIssues);
-        $this->UpdateOTAFormLists();
+        $this->SynchronizeOTAMessageSubscriptions();
     }
 
     /**
@@ -4397,8 +4404,8 @@ class Zigbee2MQTTBridge extends IPSModuleStrict
             return false;
         }
 
-        $this->UpdateFormField('TouchlinkIeeeAddress', 'value', (string) ($target['ieee_address'] ?? ''));
-        $this->UpdateFormField('TouchlinkChannel', 'value', (int) ($target['channel'] ?? 0));
+        $this->TryUpdateFormField('TouchlinkIeeeAddress', 'value', (string) ($target['ieee_address'] ?? ''));
+        $this->TryUpdateFormField('TouchlinkChannel', 'value', (int) ($target['channel'] ?? 0));
         return true;
     }
 
@@ -4443,7 +4450,7 @@ class Zigbee2MQTTBridge extends IPSModuleStrict
             return false;
         }
 
-        $this->UpdateFormField('BridgeExpertActionParams', 'value', '');
+        $this->TryUpdateFormField('BridgeExpertActionParams', 'value', '');
         $this->ShowBridgeExpertActionMessage('Bridge action executed', 'The Zigbee2MQTT expert action was sent successfully.');
         return true;
     }
@@ -4453,9 +4460,9 @@ class Zigbee2MQTTBridge extends IPSModuleStrict
      */
     private function ShowBridgeExpertActionMessage(string $title, string $message): void
     {
-        $this->UpdateFormField('BridgeExpertActionMessageTitle', 'caption', $this->Translate($title));
-        $this->UpdateFormField('BridgeExpertActionMessageText', 'caption', $this->Translate($message));
-        $this->UpdateFormField('BridgeExpertActionMessage', 'visible', true);
+        $this->TryUpdateFormField('BridgeExpertActionMessageTitle', 'caption', $this->Translate($title));
+        $this->TryUpdateFormField('BridgeExpertActionMessageText', 'caption', $this->Translate($message));
+        $this->TryUpdateFormField('BridgeExpertActionMessage', 'visible', true);
     }
 
     /**
