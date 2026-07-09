@@ -2071,9 +2071,10 @@ abstract class ModulBase extends \IPSModuleStrict
      *
      * Beispiele:
      * ```php
-     * // Array Payload
+     * // Payload mit einem unbrauchbaren numerischen Root-Eintrag
      * $payload = [0 => 'value', 'temperature' => 21.5];
      * $this->processPayload($payload);
+     * // Verarbeitet wird nur "temperature"; Root-Eintrag 0 hat keinen Variablen-Ident.
      *
      * // Object Payload mit Composite-Struktur
      * $payload = [
@@ -2106,7 +2107,13 @@ abstract class ModulBase extends \IPSModuleStrict
             unset($payload['exposes']);
         }
 
+        $payload = $this->filterPayloadRootIdentEntries($payload);
+
         $this->latestPayload = $payload;
+        if ($payload === []) {
+            return;
+        }
+
         $this->lastPayload = $this->lastPayload + $payload;
 
         // Verschachtelte Strukturen flach machen
@@ -2114,8 +2121,55 @@ abstract class ModulBase extends \IPSModuleStrict
 
         // Payload-Daten verarbeiten
         foreach ($flattenedPayload as $key => $value) {
+            if (!\is_string($key)) {
+                $this->SendDebug(
+                    'processPayload',
+                    \sprintf(
+                        'Ueberspringe Payload-Eintrag ohne Variablen-Ident: Key=%s, Value=%s',
+                        (string) $key,
+                        $this->formatPayloadDebugValue($value)
+                    ),
+                    0
+                );
+                continue;
+            }
             $this->processPayloadEntry($key, $value);
         }
+    }
+
+    /**
+     * Entfernt numerisch indizierte Root-Eintraege aus MQTT-Payloads.
+     *
+     * Zigbee2MQTT-Geraete-Payloads muessen Property-Namen enthalten, damit sie
+     * auf Symcon-Variablen abgebildet werden koennen. Ein reines JSON-Array wie
+     * [9] liefert nur den numerischen Key 0 und ist fuer die Variablenlogik nicht
+     * verarbeitbar.
+     *
+     * @param array<mixed,mixed> $payload
+     *
+     * @return array<string,mixed>
+     */
+    private function filterPayloadRootIdentEntries(array $payload): array
+    {
+        $filteredPayload = [];
+        foreach ($payload as $key => $value) {
+            if (!\is_string($key)) {
+                $this->SendDebug(
+                    'processPayload',
+                    \sprintf(
+                        'Ueberspringe Payload-Eintrag ohne Variablen-Ident: Key=%s, Value=%s',
+                        (string) $key,
+                        $this->formatPayloadDebugValue($value)
+                    ),
+                    0
+                );
+                continue;
+            }
+
+            $filteredPayload[$key] = $value;
+        }
+
+        return $filteredPayload;
     }
 
     /**

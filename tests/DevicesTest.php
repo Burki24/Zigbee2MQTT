@@ -770,6 +770,22 @@ class DevicesTest extends DumpInclude
         $this->assertArrayNotHasKey('countdown_l2', $latestPayload);
     }
 
+    public function testReceiveDataIgnoresNumericRootPayloadEntries(): void
+    {
+        [$iid, $debug] = $this->createTestInstance('RTCGQ01LM.json');
+        $interface = IPS\InstanceManager::getInstanceInterface($iid);
+        $topic = $debug['Config']['MQTTBaseTopic'] . '/' . $debug['Config']['MQTTTopic'];
+
+        $interface->ReceiveData(self::buildMqttRequest($topic, [
+            0             => 9,
+            'temperature' => 21.5
+        ]));
+
+        $latestPayload = self::getExportDebugData($iid)['LatestPayload'];
+        $this->assertSame(['temperature' => 21.5], $latestPayload);
+        $this->assertFalse(@IPS_GetObjectIDByIdent('0', $iid));
+    }
+
     public function testVariableSelectionCreatesBinaryAndEnumVariablesWithIncompleteFeatureIdentity(): void
     {
         [$iid] = $this->createTestInstance('RTCGQ01LM.json');
