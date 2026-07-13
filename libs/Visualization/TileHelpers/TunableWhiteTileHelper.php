@@ -23,11 +23,26 @@ trait TunableWhiteTileHelper
      */
     protected function HasTunableWhiteTileCapabilities(): bool
     {
+        $colorTemperatureFeature = $this->FindTunableWhiteTileFeature('color_temp');
+        if ($colorTemperatureFeature === null) {
+            return false;
+        }
+        if (isset($colorTemperatureFeature['access'])
+            && (((int) $colorTemperatureFeature['access']) & 0b010) === 0
+        ) {
+            return false;
+        }
+        if (isset($colorTemperatureFeature['value_min'], $colorTemperatureFeature['value_max'])
+            && (float) $colorTemperatureFeature['value_max'] <= (float) $colorTemperatureFeature['value_min']
+        ) {
+            return false;
+        }
+
         return method_exists($this, 'GetVisualizationTile')
             && $this->GetObjectIDByIdent('state') !== false
             && $this->GetObjectIDByIdent('color_temp') !== false
             && $this->GetObjectIDByIdent('color_temp_kelvin') !== false
-            && $this->FindTunableWhiteTileFeature('color_temp') !== null;
+            && $colorTemperatureFeature !== null;
     }
 
     /**
@@ -237,28 +252,8 @@ trait TunableWhiteTileHelper
      */
     private function GetTunableWhiteTileKelvinRange(): array
     {
-        $variableID = $this->GetObjectIDByIdent('color_temp_kelvin');
-        if ($variableID !== false) {
-            $presentation = \IPS_GetVariable($variableID)['VariablePresentation'] ?? [];
-            $minimum = (int) ($presentation['MIN'] ?? 0);
-            $maximum = (int) ($presentation['MAX'] ?? 0);
-            if ($minimum > 0 && $maximum > $minimum) {
-                return [$minimum, $maximum];
-            }
-        }
-
         $feature = $this->FindTunableWhiteTileFeature('color_temp') ?? [];
-        if (isset($feature['value_min'], $feature['value_max'])
-            && (int) $feature['value_min'] > 0
-            && (int) $feature['value_max'] > 0
-        ) {
-            return [
-                $this->convertMiredToKelvin((int) $feature['value_max']),
-                $this->convertMiredToKelvin((int) $feature['value_min'])
-            ];
-        }
-
-        return [1800, 6500];
+        return $this->GetColorTemperaturePresentationRange($feature);
     }
 
     /**

@@ -179,7 +179,7 @@ trait VariablePresentationHelper
     /**
      * Liefert den Kelvin-Bereich fuer die Farbtemperaturdarstellung.
      */
-    private function GetColorTemperaturePresentationRange(array $feature): array
+    protected function GetColorTemperaturePresentationRange(array $feature): array
     {
         $overrideRange = $this->ReadColorTemperaturePresentationOverrideRange();
         if ($overrideRange !== null) {
@@ -189,7 +189,10 @@ trait VariablePresentationHelper
         $minKelvin = 1000;
         $maxKelvin = 12000;
 
-        if (isset($feature['value_min'], $feature['value_max']) && (int) $feature['value_min'] > 0 && (int) $feature['value_max'] > 0) {
+        if (isset($feature['value_min'], $feature['value_max'])
+            && (int) $feature['value_min'] > 0
+            && (int) $feature['value_max'] > (int) $feature['value_min']
+        ) {
             $minKelvin = $this->convertMiredToKelvin((int) $feature['value_max']);
             $maxKelvin = $this->convertMiredToKelvin((int) $feature['value_min']);
         }

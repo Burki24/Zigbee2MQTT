@@ -1,6 +1,6 @@
 /*
  IPSymconExtension
- Version: 6.04
+ Version: 6.05
 */
 
 class IPSymconExtension {
@@ -296,10 +296,48 @@ class IPSymconExtension {
     }
     #processExposeFeatures(expose, groupExposeType) {
         expose.features.forEach(feature => {
-            if (!groupExposeType.features.some(f => f.property === feature.property)) {
+            const existingIndex = groupExposeType.features.findIndex(f => f.property === feature.property);
+            if (existingIndex === -1) {
                 groupExposeType.features.push(feature);
+                return;
             }
+
+            groupExposeType.features[existingIndex] = this.#mergeGroupExposeFeature(
+                groupExposeType.features[existingIndex],
+                feature
+            );
         });
+    }
+
+    #mergeGroupExposeFeature(existing, incoming) {
+        const merged = {...existing};
+        if (Number.isFinite(existing.access) && Number.isFinite(incoming.access)) {
+            merged.access = existing.access & incoming.access;
+        }
+
+        if (existing.type !== 'numeric' || incoming.type !== 'numeric') {
+            return merged;
+        }
+
+        const minimumValues = [existing.value_min, incoming.value_min].filter(Number.isFinite);
+        const maximumValues = [existing.value_max, incoming.value_max].filter(Number.isFinite);
+        if (minimumValues.length > 0) {
+            merged.value_min = Math.max(...minimumValues);
+        }
+        if (maximumValues.length > 0) {
+            merged.value_max = Math.min(...maximumValues);
+        }
+
+        if (Number.isFinite(merged.value_min)
+            && Number.isFinite(merged.value_max)
+            && merged.value_max <= merged.value_min
+        ) {
+            // Ohne gemeinsamen Wertebereich darf die Gruppe keinen Slider-Befehl anbieten.
+            merged.access = Number.isFinite(merged.access) ? merged.access & ~2 : 1;
+            delete merged.presets;
+        }
+
+        return merged;
     }
 
     #createEndpointPayload(device) {
