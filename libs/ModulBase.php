@@ -2590,7 +2590,7 @@ abstract class ModulBase extends \IPSModuleStrict
         if ($this->isCompositeKey($ident)) {
             $payload = $this->buildNestedPayload($ident, $value);
             $this->SendDebug(__FUNCTION__, 'Sende composite payload: ' . json_encode($payload), 0);
-            return $this->SendSetCommand($payload);
+            return $this->SendSetCommandAndUpdateLocalIfNoFeedback($ident, $value, $payload, __FUNCTION__);
         }
 
         if ($ident === 'brightness') {
@@ -2623,7 +2623,8 @@ abstract class ModulBase extends \IPSModuleStrict
         }
 
         if (($feature['type'] ?? '') === 'binary' && isset($feature['value_on'], $feature['value_off'])) {
-            return $this->SendSetCommand([$ident => $value ? $feature['value_on'] : $feature['value_off']]);
+            $payloadValue = $value ? $feature['value_on'] : $feature['value_off'];
+            return $this->SendSetCommandAndUpdateLocalIfNoFeedback($ident, $value, [$ident => $payloadValue], __FUNCTION__);
         }
 
         return null;
@@ -2650,6 +2651,54 @@ abstract class ModulBase extends \IPSModuleStrict
     private function HasExposeProperty(string $property): bool
     {
         return $this->findExposeFeatureByProperty($property) !== null;
+    }
+
+    /**
+     * Prueft, ob Zigbee2MQTT fuer eine Aktion voraussichtlich wieder einen Wert publiziert.
+     */
+    private function ShouldWaitForZigbee2MQTTFeedback(string $ident): bool
+    {
+        $feature = $this->findExposeFeatureByProperty($ident);
+        if ($feature === null && $this->isCompositeKey($ident)) {
+            $parts = explode('__', $ident);
+            $childIdent = end($parts);
+            if (\is_string($childIdent) && $childIdent !== '') {
+                $feature = $this->findExposeFeatureByProperty($childIdent);
+            }
+        }
+
+        if ($feature === null) {
+            return true;
+        }
+
+        return (((int) ($feature['access'] ?? 0)) & 0b001) !== 0;
+    }
+
+    /**
+     * Merkt nur reine Schreib- und Befehlswerte lokal, die keine Rueckmeldung liefern.
+     */
+    private function UpdateLocalValueAfterSetIfNoFeedback(string $ident, mixed $value, string $context): void
+    {
+        if ($this->ShouldWaitForZigbee2MQTTFeedback($ident)) {
+            $this->SendDebug($context, 'Set-Befehl gesendet; lokaler Wert wird erst nach Zigbee2MQTT-Rueckmeldung aktualisiert.', 0);
+            return;
+        }
+
+        $this->SendDebug($context, 'Set-Befehl ohne erwartete Rueckmeldung; lokaler Wert wird lokal gemerkt.', 0);
+        $this->SetValueDirect($ident, $value);
+    }
+
+    /**
+     * Sendet ein Set-Payload und merkt Werte ohne Zigbee2MQTT-Rueckmeldung lokal.
+     */
+    private function SendSetCommandAndUpdateLocalIfNoFeedback(string $ident, mixed $localValue, array $payload, string $context): bool
+    {
+        if (!$this->SendSetCommand($payload)) {
+            return false;
+        }
+
+        $this->UpdateLocalValueAfterSetIfNoFeedback($ident, $localValue, $context);
+        return true;
     }
 
     /**
@@ -2685,8 +2734,7 @@ abstract class ModulBase extends \IPSModuleStrict
     private function sendBrightnessAction(mixed $value): bool
     {
         $payload = ['brightness' => $this->normalizeValueToRange($value, true)];
-        $this->SendSetCommand($payload);
-        return true;
+        return $this->SendSetCommandAndUpdateLocalIfNoFeedback('brightness', $value, $payload, __FUNCTION__);
     }
 
     /**
@@ -2696,7 +2744,7 @@ abstract class ModulBase extends \IPSModuleStrict
     {
         $payload = [$ident => $value];
         $this->SendDebug('handleStandardVariable', 'Sende payload: ' . json_encode($payload), 0);
-        return $this->SendSetCommand($payload);
+        return $this->SendSetCommandAndUpdateLocalIfNoFeedback($ident, $value, $payload, 'handleStandardVariable');
     }
 
     /**
@@ -2738,25 +2786,15 @@ abstract class ModulBase extends \IPSModuleStrict
 
             $payload = [$ident => $enumStateValue];
             $this->SendDebug(__FUNCTION__, 'Enum-State-Payload wird gesendet: ' . json_encode($payload), 0);
-
-            if (!$this->SendSetCommand($payload)) {
-                return false;
-            }
-
-            $this->SetValueDirect($ident, $enumStateValue);
-            return true;
+            return $this->SendSetCommandAndUpdateLocalIfNoFeedback($ident, $enumStateValue, $payload, __FUNCTION__);
         }
 
         // State Pattern Prüfung
         if (preg_match(self::STATE_PATTERN['SYMCON'], $ident)) {
-            $payload = [$ident => $this->convertOnOffValue($value, false)];
+            $stateValue = $this->convertOnOffValue($value, false);
+            $payload = [$ident => $stateValue];
             $this->SendDebug(__FUNCTION__, 'State-Payload wird gesendet: ' . json_encode($payload), 0);
-
-            if (!$this->SendSetCommand($payload)) {
-                return false;
-            }
-            $this->SetValueDirect($ident, $this->convertOnOffValue($value, false));
-            return true;
+            return $this->SendSetCommandAndUpdateLocalIfNoFeedback($ident, $stateValue, $payload, __FUNCTION__);
         }
 
         // Prüfe auf vordefinierte States
@@ -2765,23 +2803,22 @@ abstract class ModulBase extends \IPSModuleStrict
             if (isset($stateInfo['values'])) {
                 $index = \is_bool($value) ? (int) $value : $value;
                 if (isset($stateInfo['values'][$index])) {
-                    $payload = [$ident => $stateInfo['values'][$index]];
+                    $stateValue = $stateInfo['values'][$index];
+                    $payload = [$ident => $stateValue];
                     $this->SendDebug(__FUNCTION__, 'Vordefinierter State-Payload wird gesendet: ' . json_encode($payload), 0);
-                    if (!$this->SendSetCommand($payload)) {
-                        return false;
-                    }
-                    $this->SetValueDirect($ident, $stateInfo['values'][$index]);
-                    return true;
+                    return $this->SendSetCommandAndUpdateLocalIfNoFeedback($ident, $stateValue, $payload, __FUNCTION__);
                 }
             }
         }
 
         // Überprüfen, ob der Wert in STATE_PATTERN definiert ist
-        if (isset(self::STATE_PATTERN[strtoupper($value)])) {
-            $adjustedValue = self::STATE_PATTERN[strtoupper($value)];
-            $this->SendDebug(__FUNCTION__, 'State-Wert gefunden: ' . $value . ' -> ' . json_encode($adjustedValue), 0);
-            $this->SetValueDirect($ident, $adjustedValue);
-            return true;
+        $stringValue = (string) $value;
+        if (isset(self::STATE_PATTERN[strtoupper($stringValue)])) {
+            $adjustedValue = self::STATE_PATTERN[strtoupper($stringValue)];
+            $this->SendDebug(__FUNCTION__, 'State-Wert gefunden: ' . $stringValue . ' -> ' . json_encode($adjustedValue), 0);
+            $payload = [$ident => $adjustedValue];
+            $this->SendDebug(__FUNCTION__, 'State-Payload wird gesendet: ' . json_encode($payload), 0);
+            return $this->SendSetCommandAndUpdateLocalIfNoFeedback($ident, $adjustedValue, $payload, __FUNCTION__);
         }
 
         $this->SendDebug(__FUNCTION__, 'Kein passender State-Handler gefunden', 0);
@@ -2952,9 +2989,7 @@ abstract class ModulBase extends \IPSModuleStrict
             return false;
         }
 
-        $this->SetValueDirect('color_temp', $convertedValue);
-        $this->SetValueDirect('color_temp_kelvin', $kelvinValue);
-        $this->UpdateColorTemperatureWhiteColorVariable($kelvinValue);
+        $this->UpdateColorTemperatureLocallyIfNoFeedback($convertedValue, $kelvinValue);
         return true;
     }
 
@@ -2976,11 +3011,24 @@ abstract class ModulBase extends \IPSModuleStrict
         }
 
         $kelvinValue = $this->convertMiredToKelvin($convertedValue);
-        $this->SetValueDirect('color_temp', $convertedValue);
-        $this->SetValueDirect('color_temp_kelvin', $kelvinValue);
-        $this->UpdateColorTemperatureWhiteColorVariable($kelvinValue);
+        $this->UpdateColorTemperatureLocallyIfNoFeedback($convertedValue, $kelvinValue);
 
         return true;
+    }
+
+    /**
+     * Aktualisiert abgeleitete Farbtemperaturwerte nur bei Befehlen ohne Zigbee2MQTT-Rueckmeldung.
+     */
+    private function UpdateColorTemperatureLocallyIfNoFeedback(int $miredValue, int $kelvinValue): void
+    {
+        if ($this->ShouldWaitForZigbee2MQTTFeedback('color_temp')) {
+            $this->SendDebug('handleColorVariable', 'Farbtemperatur wird erst nach Zigbee2MQTT-Rueckmeldung aktualisiert.', 0);
+            return;
+        }
+
+        $this->SetValueDirect('color_temp', $miredValue);
+        $this->SetValueDirect('color_temp_kelvin', $kelvinValue);
+        $this->UpdateColorTemperatureWhiteColorVariable($kelvinValue);
     }
 
     /**
@@ -3041,7 +3089,7 @@ abstract class ModulBase extends \IPSModuleStrict
         }
 
         $this->SetValueDirect($presetIdent, $value);
-        $this->SetValueDirect($mainIdent, $value);
+        $this->UpdateLocalValueAfterSetIfNoFeedback($mainIdent, $value, __FUNCTION__);
         return true;
     }
 

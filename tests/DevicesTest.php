@@ -241,6 +241,7 @@ class DevicesTest extends DumpInclude
     public function testCoverStateActionKeepsEnumValue(): void
     {
         $device = $this->createDeviceActionTestDouble();
+        $stateID = $device->registerStringVariableForTest('state');
         $device->setExposesForTest([
             [
                 'type'     => 'cover',
@@ -259,13 +260,16 @@ class DevicesTest extends DumpInclude
         $device->RequestAction('state', 'OPEN');
         $this->assertSame('/Wohnbereich/Beschattung/Terrassenfenster/set', $device->sentTopic);
         $this->assertSame(['state' => 'OPEN'], $device->sentPayload);
+        $this->assertSame('OPEN', GetValue($stateID));
 
         $device->RequestAction('state', 'STOP');
         $this->assertSame(['state' => 'STOP'], $device->sentPayload);
+        $this->assertSame('STOP', GetValue($stateID));
 
         $device->sentPayload = [];
         $device->RequestAction('state', 'UNKNOWN');
         $this->assertSame([], $device->sentPayload);
+        $this->assertSame('STOP', GetValue($stateID));
     }
 
     public function testLanguageNeutralNumericValuesAreNotReportedAsMissingTranslations(): void
@@ -489,7 +493,7 @@ class DevicesTest extends DumpInclude
         );
     }
 
-    public function testSwitchStateActionStillMapsBooleanToOnOff(): void
+    public function testSwitchStateActionMapsBooleanToOnOffAndWaitsForFeedback(): void
     {
         $device = $this->createDeviceActionTestDouble();
         $stateID = $device->registerBooleanVariableForTest('state');
@@ -511,11 +515,12 @@ class DevicesTest extends DumpInclude
 
         $device->RequestAction('state', true);
         $this->assertSame(['state' => 'ON'], $device->sentPayload);
-        $this->assertTrue(GetValue($stateID));
+        $this->assertFalse(GetValue($stateID));
 
+        SetValue($stateID, true);
         $device->RequestAction('state', false);
         $this->assertSame(['state' => 'OFF'], $device->sentPayload);
-        $this->assertFalse(GetValue($stateID));
+        $this->assertTrue(GetValue($stateID));
     }
 
     public function testCommandRejectsInvalidJsonPayloadWithoutTypeError(): void
@@ -2497,6 +2502,12 @@ class DevicesTest extends DumpInclude
             public function registerBooleanVariableForTest(string $ident): int
             {
                 $this->RegisterVariableBoolean($ident, $ident);
+                return $this->GetIDForIdent($ident);
+            }
+
+            public function registerStringVariableForTest(string $ident): int
+            {
+                $this->RegisterVariableString($ident, $ident);
                 return $this->GetIDForIdent($ident);
             }
 

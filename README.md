@@ -505,6 +505,12 @@ Die Änderungen sind anhand der funktionalen Commits chronologisch gegliedert. A
 
 - Numerisch indizierte Root-Payloads ohne Zigbee2MQTT-Property werden beim Payload-Import jetzt ignoriert. Dadurch lösen Geräte, die einzelne Werte oder Listenfragmente ohne Variablen-Ident senden, keinen `TypeError` in der Variablenverarbeitung mehr aus.
 
+### 13. Juli 2026: Rueckmeldebasierte Aktionsverarbeitung
+
+- Lesbare Set-Aktionen wie Schalter, Helligkeit, Farbtemperatur und andere Statuswerte aktualisieren lokale Symcon-Werte erst nach einer Rueckmeldung von Zigbee2MQTT.
+- Reine Schreib- und Befehlswerte ohne eigene Rueckmeldung, zum Beispiel Szenen, Presets, Effekte oder andere `access: 2`-Funktionen, merken nach erfolgreichem Senden weiterhin den zuletzt gewaehlten Wert lokal.
+- Helligkeitsaktionen nutzen dieselbe Rueckmeldepruefung wie andere Standardaktionen und geben Sendefehler wieder korrekt an die Aktion zurueck.
+
 **Version 5.42:**
 
 - Bridge Instanz konnte den Namen der bereits installierten Erweiterung nicht korrekt erkennen und übernehmen.
