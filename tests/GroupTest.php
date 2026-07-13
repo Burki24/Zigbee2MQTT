@@ -57,6 +57,34 @@ class GroupTest extends DumpInclude
         $this->assertNotContains('AdvancedGroupSettings', $topLevelNames);
     }
 
+    public function testTunableWhiteGroupUsesCustomTileAndKeepsItOnBrightnessUpdates(): void
+    {
+        [$groupID, $debug] = $this->createTunableWhiteGroup();
+        $group = IPS\InstanceManager::getInstanceInterface($groupID);
+
+        $html = $group->GetVisualizationTile();
+        $this->assertStringContainsString('"type":"tunableWhite"', $html);
+        $this->assertStringContainsString('TunableWhiteTile.SetBrightness', $html);
+        $this->assertStringContainsString('TunableWhiteTile.SetColorTemperature', $html);
+        $this->assertStringContainsString('TunableWhiteTile.SetPreset', $html);
+
+        $topic = $debug['Config']['MQTTBaseTopic'] . '/' . $debug['Config']['MQTTTopic'];
+        $messageCount = count($group->getMessages());
+        $group->ReceiveData(self::buildMqttRequest($topic, ['brightness' => 127]));
+
+        $visualizationMessages = array_values(array_filter(
+            array_slice($group->getMessages(), $messageCount),
+            static fn (array $message): bool => ($message['Message'] ?? null) === 10541
+        ));
+        $this->assertCount(1, $visualizationMessages);
+
+        $tileData = json_decode($visualizationMessages[0]['Data'][0], true, 512, JSON_THROW_ON_ERROR);
+        $this->assertSame('tunableWhite', $tileData['type'] ?? null);
+        $this->assertArrayHasKey('brightness', $tileData);
+        $this->assertArrayHasKey('colorTemperature', $tileData);
+        $this->assertNotEmpty($tileData['presets'] ?? []);
+    }
+
     public function testGroupAvailableDeviceListIsFilledFromExistingDeviceInstances(): void
     {
         $this->createConfiguredDevice('zigbee2mqtt', 'Flur/Beleuchtung/Deckenlicht');
@@ -414,6 +442,46 @@ class GroupTest extends DumpInclude
         IPS_ApplyChanges($instanceID);
 
         return $instanceID;
+    }
+
+    private function createTunableWhiteGroup(): array
+    {
+        $debug = json_decode(
+            file_get_contents(__DIR__ . '/TestDumps/TunableWhiteLight.json'),
+            true,
+            512,
+            JSON_THROW_ON_ERROR
+        );
+        $debug['Config']['MQTTTopic'] = 'Test/TunableWhiteGroup';
+        $groupID = $this->createConfiguredGroup(
+            $debug['Config']['MQTTBaseTopic'],
+            $debug['Config']['MQTTTopic']
+        );
+        $group = IPS\InstanceManager::getInstanceInterface($groupID);
+        $group->BUFFER_MQTT_SUSPENDED = false;
+
+        $payload = $debug['LastPayload'];
+        $payload['exposes'] = $debug['Exposes'];
+        $topic = $debug['Config']['MQTTBaseTopic'] . '/' . $debug['Config']['MQTTTopic'];
+        $group->ReceiveData(self::buildMqttRequest($topic . '/availability', ['state' => 'online']));
+        $group->ReceiveData(self::buildMqttRequest($topic, $payload));
+
+        return [$groupID, $debug];
+    }
+
+    private static function buildMqttRequest(string $topic, array $payload): string
+    {
+        return json_encode(
+            [
+                'DataID'           => '{7F7632D9-FA40-4F38-8DEA-C83CD4325A32}',
+                'PacketType'       => 3,
+                'QualityOfService' => 0,
+                'Retain'           => false,
+                'Topic'            => $topic,
+                'Payload'          => bin2hex(json_encode($payload))
+            ],
+            JSON_UNESCAPED_SLASHES
+        );
     }
 
     private function createGroupFormTestDouble(array $devices): Zigbee2MQTTGroup
