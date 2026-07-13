@@ -365,6 +365,43 @@ trait VariableCatalogHelper
         }
 
         if (isset($entry['feature']) && \is_array($entry['feature'])) {
+            if (str_ends_with($ident, '_presets')
+                && isset($entry['feature']['presets'])
+                && \is_array($entry['feature']['presets'])
+                && $entry['feature']['presets'] !== []
+            ) {
+                $feature = $entry['feature'];
+                $property = (string) ($feature['preset_property'] ?? substr($ident, 0, -8));
+                if ($property === '') {
+                    return false;
+                }
+
+                // Fuer Darstellung und Aktion wird wieder das urspruengliche Expose-Feature benoetigt.
+                $feature['property'] = $property;
+                unset($feature['preset_property']);
+                $variableType = $this->getVariableTypeFromFeature(
+                    (string) ($feature['type'] ?? 'numeric'),
+                    $property,
+                    isset($feature['unit']) && \is_string($feature['unit']) ? $feature['unit'] : '',
+                    isset($feature['value_step']) ? (float) $feature['value_step'] : 1.0,
+                    isset($feature['group_type']) && \is_string($feature['group_type']) ? $feature['group_type'] : null
+                );
+                $this->registerPresetVariables($feature['presets'], $property, $variableType, $feature);
+
+                if ($this->GetObjectIDByIdent($ident) !== false) {
+                    if (isset($entry['lastValue'])) {
+                        $this->SetValue($ident, $entry['lastValue']);
+                    } else {
+                        $mainVariableID = $this->GetObjectIDByIdent($property);
+                        if ($mainVariableID !== false) {
+                            $this->SetValue($ident, \GetValue($mainVariableID));
+                        }
+                    }
+                }
+
+                return $this->GetObjectIDByIdent($ident) !== false;
+            }
+
             $this->registerVariable($entry['feature']);
             if ($this->GetObjectIDByIdent($ident) !== false && isset($entry['lastValue'])) {
                 $this->SetValue($ident, $entry['lastValue']);
@@ -780,6 +817,16 @@ trait VariableCatalogHelper
         if ($property !== '' && !isset($feature['color_mode'])) {
             $this->RememberVariableDefinition($property, $feature, 'expose');
             $idents[] = $this->NormalizeVariableIdent($property);
+
+            if (isset($feature['presets']) && \is_array($feature['presets']) && $feature['presets'] !== []) {
+                $presetIdent = $property . '_presets';
+                $this->RememberVariableDefinition(
+                    $presetIdent,
+                    $this->BuildPresetCatalogFeature($feature, $property, $feature['presets']),
+                    'expose'
+                );
+                $idents[] = $this->NormalizeVariableIdent($presetIdent);
+            }
         }
 
         if (!isset($feature['features']) || !\is_array($feature['features'])) {
@@ -793,6 +840,19 @@ trait VariableCatalogHelper
         }
 
         return $idents;
+    }
+
+    /**
+     * Baut die vollstaendige Katalogdefinition einer abgeleiteten Preset-Variable.
+     */
+    private function BuildPresetCatalogFeature(array $feature, string $property, array $presets): array
+    {
+        $presetFeature = $feature;
+        $presetFeature['property'] = $property . '_presets';
+        $presetFeature['preset_property'] = $property;
+        $presetFeature['presets'] = $presets;
+        $presetFeature['label'] = $this->FormatVariableCatalogLabel($property) . ' Presets';
+        return $presetFeature;
     }
 
     /**
@@ -958,6 +1018,9 @@ trait VariableCatalogHelper
 
         if ($feature !== null) {
             if (isset($feature['presets']) && \is_array($feature['presets']) && $feature['presets'] !== []) {
+                if (isset($feature['preset_property']) && \is_string($feature['preset_property'])) {
+                    $feature['property'] = $feature['preset_property'];
+                }
                 $presentation = $this->BuildPresetPresentation(
                     $feature['presets'],
                     $this->GetVariableSelectionPresetType($entry),

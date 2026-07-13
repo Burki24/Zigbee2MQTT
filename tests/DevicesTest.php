@@ -1198,6 +1198,36 @@ class DevicesTest extends DumpInclude
         $this->assertSame(80, GetValue($brightnessID));
     }
 
+    public function testDeletedPresetVariableIsImmediatelyRestoredFromCatalog(): void
+    {
+        [$iid] = $this->createTestInstance('TunableWhiteLight.json');
+
+        $catalog = $this->readStubAttributeArray($iid, 'VariableCatalog');
+        $this->assertSame('color_temp', $catalog['color_temp_presets']['feature']['preset_property'] ?? null);
+        $this->assertCount(5, $catalog['color_temp_presets']['feature']['presets'] ?? []);
+        $this->assertSame(7, $catalog['color_temp_presets']['feature']['access'] ?? null);
+
+        $presetID = IPS_GetObjectIDByIdent('color_temp_presets', $iid);
+        $this->assertNotFalse($presetID);
+        IPS_DeleteVariable($presetID);
+
+        // Die Formularabfrage erkennt die Benutzerloeschung, darf die Variable aber nicht anlegen.
+        IPS_GetConfigurationForm($iid);
+        $this->assertFalse(@IPS_GetObjectIDByIdent('color_temp_presets', $iid));
+
+        IPS_RequestAction($iid, 'ToggleVariableCreation', 'color_temp_presets');
+
+        $presetID = IPS_GetObjectIDByIdent('color_temp_presets', $iid);
+        $this->assertNotFalse($presetID);
+        $presetVariable = IPS_GetVariable($presetID);
+        $this->assertSame(VARIABLE_PRESENTATION_ENUMERATION, $presetVariable['VariablePresentation']['PRESENTATION'] ?? null);
+        $this->assertSame($iid, $presetVariable['VariableAction']);
+        $presetOptions = json_decode($presetVariable['VariablePresentation']['OPTIONS'] ?? '[]', true);
+        $this->assertSame([153, 250, 370, 454, 555], array_column($presetOptions, 'Value'));
+        $this->assertSame(['Sehr kalt', 'Kalt', 'Neutral', 'Warm', 'Sehr warm'], array_column($presetOptions, 'Caption'));
+        $this->assertSame(GetValue(IPS_GetObjectIDByIdent('color_temp', $iid)), GetValue($presetID));
+    }
+
     public function testColorTemperatureVisualizationRequiresExposeSupport(): void
     {
         [$iid] = $this->createTestInstance('TunableWhiteLight.json');

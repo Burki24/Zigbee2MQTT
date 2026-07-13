@@ -1461,11 +1461,8 @@ abstract class ModulBase extends \IPSModuleStrict
                     continue;
                 }
 
+                // registerVariable() verarbeitet vorhandene Presets bereits zentral.
                 $this->registerVariable($expose);
-                if (isset($expose['presets'])) {
-                    $variableType = $this->getVariableTypeFromFeature($expose['type'], $expose['property'], $expose['unit'] ?? '', $expose['value_step'] ?? 1.0, null);
-                    $this->registerPresetVariables($expose['presets'], $expose['property'], $variableType, $expose);
-                }
             }
         }
         $this->RefreshExposeVariableCatalog($exposes);
@@ -4629,12 +4626,6 @@ abstract class ModulBase extends \IPSModuleStrict
             return;
         }
 
-        $presetIdent = $property . '_presets';
-        $presetFeature = ['property' => $presetIdent, 'type' => $type, 'label' => $this->FormatVariableCatalogLabel($property) . ' Presets'];
-        if (!$this->CanCreateVariable($presetIdent, $presetFeature, 'expose')) {
-            return;
-        }
-
         $variableType = $this->getVariableTypeFromFeature($type, $property, $unit, $step, $groupType);
         $this->registerPresetVariables($feature['presets'], $feature['property'], $variableType, $feature);
         $this->SendDebug(__FUNCTION__, 'Registered presets for: ' . $feature['property'], 0);
@@ -4763,7 +4754,8 @@ abstract class ModulBase extends \IPSModuleStrict
 
         // Hole ident für Preset-Variable
         $presetIdent = $property . '_presets';
-        if (!$this->CanCreateVariable($presetIdent, ['property' => $presetIdent, 'type' => $feature['type'] ?? 'numeric'], 'expose')) {
+        $presetFeature = $this->BuildPresetCatalogFeature($feature, $property, $presets);
+        if (!$this->CanCreateVariable($presetIdent, $presetFeature, 'expose')) {
             return;
         }
 
