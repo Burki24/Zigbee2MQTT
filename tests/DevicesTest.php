@@ -1184,6 +1184,52 @@ class DevicesTest extends DumpInclude
         $this->assertNotSame(0xFF9227, GetValue($colorID));
     }
 
+    public function testPresetValuesAreDistributedUniquelyWithinExposeRange(): void
+    {
+        [$iid, $Debug] = $this->createTestInstance('TunableWhiteLight.json');
+        $exposes = $Debug['Exposes'];
+
+        foreach ($exposes as &$expose) {
+            if (!isset($expose['features']) || !\is_array($expose['features'])) {
+                continue;
+            }
+            foreach ($expose['features'] as &$feature) {
+                if (($feature['property'] ?? '') === 'color_temp') {
+                    // Z2M liefert fuer "warm" und "warmest" denselben Grenzwert.
+                    $feature['value_min'] = 200;
+                    $feature['value_max'] = 454;
+                    $feature['presets'][0]['value'] = 200;
+                    $feature['presets'][4]['value'] = 454;
+                    // Sonderwerte ausserhalb des Bereichs duerfen nicht veraendert werden.
+                    $feature['presets'][] = ['name' => 'previous', 'value' => 65535];
+                }
+            }
+            unset($feature);
+        }
+        unset($expose);
+
+        $presetID = IPS_GetObjectIDByIdent('color_temp_presets', $iid);
+        $this->assertNotFalse($presetID);
+        IPS_DeleteVariable($presetID);
+
+        $this->writeStubAttributeArray($iid, 'Exposes', $exposes);
+        IPS_RequestAction($iid, 'RefreshVariableSelection', true);
+        $catalog = $this->readStubAttributeArray($iid, 'VariableCatalog');
+        $this->assertSame(454, $catalog['color_temp_presets']['feature']['value_max'] ?? null);
+        IPS_RequestAction($iid, 'ToggleVariableCreation', 'color_temp_presets');
+
+        $presetID = IPS_GetObjectIDByIdent('color_temp_presets', $iid);
+        $this->assertNotFalse($presetID);
+        $presetVariable = IPS_GetVariable($presetID);
+        $presetOptions = json_decode($presetVariable['VariablePresentation']['OPTIONS'] ?? '[]', true);
+        $this->assertSame([200, 250, 370, 412, 454, 65535], array_column($presetOptions, 'Value'));
+        $this->assertSame(
+            ['Sehr kalt', 'Kalt', 'Neutral', 'Warm', 'Sehr warm'],
+            array_slice(array_column($presetOptions, 'Caption'), 0, 5)
+        );
+        $this->assertCount(6, array_unique(array_column($presetOptions, 'Value')));
+    }
+
     public function testBrightnessPresentationRequiresWriteAccess(): void
     {
         [$iid] = $this->createTestInstance('ReadOnlyBrightness.json');

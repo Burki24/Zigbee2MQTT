@@ -698,7 +698,7 @@ trait VariablePresentationHelper
             foreach (self::$presetDefinitions[$property]['values'] as $value => $caption) {
                 $options[] = $this->BuildPresetPresentationOption($value, (string) $caption, $variableType);
             }
-            return $options;
+            return $this->NormalizePresetPresentationOptions($options, $variableType, $feature);
         }
 
         $options = [];
@@ -714,7 +714,151 @@ trait VariablePresentationHelper
             $options[] = $this->BuildPresetPresentationOption($preset['value'], $caption, $variableType);
         }
 
+        return $this->NormalizePresetPresentationOptions($options, $variableType, $feature);
+    }
+
+    /**
+     * Verhindert doppelte Enum-Werte, ohne gueltige Z2M-Sonderwerte zu veraendern.
+     *
+     * Kollidierende Optionen innerhalb des Expose-Bereichs werden zwischen ihren
+     * benachbarten Stufen interpoliert. Werte ausserhalb des Bereichs, beispielsweise
+     * `previous = 65535`, bleiben als eigenstaendige Befehlswerte erhalten.
+     */
+    private function NormalizePresetPresentationOptions(array $options, string $variableType, array $feature): array
+    {
+        if ($options === []) {
+            return [];
+        }
+
+        $hasRange = isset($feature['value_min'], $feature['value_max'])
+            && \is_numeric($feature['value_min'])
+            && \is_numeric($feature['value_max']);
+        if (!$hasRange) {
+            return $this->RemoveDuplicatePresetPresentationOptions($options);
+        }
+
+        $minimum = (float) $feature['value_min'];
+        $maximum = (float) $feature['value_max'];
+        if ($maximum <= $minimum) {
+            return $this->RemoveDuplicatePresetPresentationOptions($options);
+        }
+
+        $rangeOptions = [];
+        $rangeIndexes = [];
+        foreach ($options as $index => $option) {
+            $value = (float) $option['Value'];
+            if ($value < $minimum || $value > $maximum) {
+                continue;
+            }
+            $rangeOptions[] = $option;
+            $rangeIndexes[] = $index;
+        }
+
+        if (!$this->HasDuplicatePresetPresentationValues($rangeOptions)) {
+            return $this->RemoveDuplicatePresetPresentationOptions($options);
+        }
+
+        $step = isset($feature['value_step']) && \is_numeric($feature['value_step'])
+            ? abs((float) $feature['value_step'])
+            : ($variableType === 'float' ? 0.0 : 1.0);
+        $rangeOptions = $this->InterpolateDuplicatePresetPresentationOptions(
+            $rangeOptions,
+            $minimum,
+            $maximum,
+            $step,
+            $variableType
+        );
+        foreach ($rangeIndexes as $rangeIndex => $optionIndex) {
+            $options[$optionIndex] = $rangeOptions[$rangeIndex];
+        }
+
+        return $this->RemoveDuplicatePresetPresentationOptions($options);
+    }
+
+    /**
+     * Verteilt aufeinanderfolgende gleiche Presets zwischen den Nachbarwerten.
+     */
+    private function InterpolateDuplicatePresetPresentationOptions(
+        array $options,
+        float $minimum,
+        float $maximum,
+        float $step,
+        string $variableType
+    ): array {
+        $lastIndex = count($options) - 1;
+        for ($startIndex = 0; $startIndex <= $lastIndex; $startIndex++) {
+            $endIndex = $startIndex;
+            while ($endIndex < $lastIndex && $options[$endIndex + 1]['Value'] === $options[$startIndex]['Value']) {
+                $endIndex++;
+            }
+            if ($endIndex === $startIndex) {
+                continue;
+            }
+
+            $runLength = $endIndex - $startIndex + 1;
+            $lowerValue = $startIndex > 0 ? (float) $options[$startIndex - 1]['Value'] : $minimum;
+            $upperValue = $endIndex < $lastIndex ? (float) $options[$endIndex + 1]['Value'] : $maximum;
+
+            for ($runIndex = 0; $runIndex < $runLength; $runIndex++) {
+                if ($startIndex === 0 && $endIndex === $lastIndex) {
+                    $divisor = max(1, $runLength - 1);
+                    $position = $runIndex;
+                } elseif ($startIndex === 0) {
+                    $divisor = $runLength;
+                    $position = $runIndex;
+                } elseif ($endIndex === $lastIndex) {
+                    $divisor = $runLength;
+                    $position = $runIndex + 1;
+                } else {
+                    $divisor = $runLength + 1;
+                    $position = $runIndex + 1;
+                }
+
+                $value = $lowerValue + (($upperValue - $lowerValue) * $position / $divisor);
+                if ($step > 0.0 && $value > $minimum && $value < $maximum) {
+                    $value = $minimum + round(($value - $minimum) / $step) * $step;
+                }
+                $options[$startIndex + $runIndex]['Value'] = $this->NormalizePresetPresentationValue($value, $variableType);
+            }
+
+            $startIndex = $endIndex;
+        }
+
         return $options;
+    }
+
+    /**
+     * Entfernt doppelte Werte, da Symcon diese in Aufzaehlungen nicht akzeptiert.
+     */
+    private function RemoveDuplicatePresetPresentationOptions(array $options): array
+    {
+        $uniqueOptions = [];
+        $knownValues = [];
+        foreach ($options as $option) {
+            $valueKey = \gettype($option['Value']) . ':' . (string) $option['Value'];
+            if (isset($knownValues[$valueKey])) {
+                continue;
+            }
+            $knownValues[$valueKey] = true;
+            $uniqueOptions[] = $option;
+        }
+        return $uniqueOptions;
+    }
+
+    /**
+     * Prueft die Optionsliste auf doppelte Werte.
+     */
+    private function HasDuplicatePresetPresentationValues(array $options): bool
+    {
+        return count($this->RemoveDuplicatePresetPresentationOptions($options)) !== count($options);
+    }
+
+    /**
+     * Normalisiert einen berechneten Preset-Wert auf den Variablentyp.
+     */
+    private function NormalizePresetPresentationValue(float $value, string $variableType): int|float
+    {
+        return $variableType === 'float' ? $value : (int) round($value);
     }
 
     /**
