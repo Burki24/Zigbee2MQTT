@@ -1213,6 +1213,28 @@ class DevicesTest extends DumpInclude
         $this->assertSame('', IPS\InstanceManager::getInstanceInterface($iid)->GetVisualizationTile());
     }
 
+    public function testBrightnessUpdateOnlyRefreshesActiveTunableWhiteTile(): void
+    {
+        [$iid, $debug] = $this->createTestInstance('TunableWhiteLight.json');
+        $interface = IPS\InstanceManager::getInstanceInterface($iid);
+        $topic = $debug['Config']['MQTTBaseTopic'] . '/' . $debug['Config']['MQTTTopic'];
+        $messageCount = count($interface->getMessages());
+
+        $interface->ReceiveData(self::buildMqttRequest($topic, ['brightness' => 127]));
+
+        $visualizationMessages = array_values(array_filter(
+            array_slice($interface->getMessages(), $messageCount),
+            static fn (array $message): bool => ($message['Message'] ?? null) === 10541
+        ));
+        $this->assertCount(1, $visualizationMessages);
+
+        $tileData = json_decode($visualizationMessages[0]['Data'][0], true, 512, JSON_THROW_ON_ERROR);
+        $this->assertSame('tunableWhite', $tileData['type'] ?? null);
+        $this->assertSame(50, $tileData['brightness']['value'] ?? null);
+        $this->assertArrayHasKey('colorTemperature', $tileData);
+        $this->assertNotEmpty($tileData['presets'] ?? []);
+    }
+
     public function testPresetValuesAreDistributedUniquelyWithinExposeRange(): void
     {
         [$iid, $Debug] = $this->createTestInstance('TunableWhiteLight.json');

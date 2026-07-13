@@ -1752,17 +1752,46 @@ abstract class ModulBase extends \IPSModuleStrict
     }
 
     /**
-     * Aktualisiert alle eigenen HTML-SDK-Kacheln, die den geaenderten Ident verwenden.
+     * Aktualisiert ausschliesslich die aktuell ausgewaehlte HTML-SDK-Kachel.
+     *
+     * Die Reihenfolge muss der Auswahl in Device::GetVisualizationTileDefinition()
+     * entsprechen. Andernfalls kann eine weitere kompatible Kachel ihren anders
+     * aufgebauten Datensatz an dieselbe Visualisierung senden und deren Zustand
+     * ueberschreiben.
      */
     private function UpdateCustomTileValuesIfRelevant(string $ident): void
     {
-        $this->UpdateTunableWhiteTileValueIfRelevant($ident);
-        $this->UpdateHeatingTileValueIfRelevant($ident);
-        $this->UpdateSensorTileValueIfRelevant($ident);
-        $this->UpdateSecurityTileValueIfRelevant($ident);
-        $this->UpdateWindowHandleTileValueIfRelevant($ident);
-        $this->UpdateActionTileValueIfRelevant($ident);
-        $this->UpdateMeteredSwitchTileValueIfRelevant($ident);
+        if ($this->ShouldForceSensorTile()) {
+            $this->UpdateSensorTileValueIfRelevant($ident);
+            return;
+        }
+        if ($this->ShouldUseTunableWhiteTile()) {
+            $this->UpdateTunableWhiteTileValueIfRelevant($ident);
+            return;
+        }
+        if ($this->ShouldUseHeatingTile()) {
+            $this->UpdateHeatingTileValueIfRelevant($ident);
+            return;
+        }
+        if ($this->ShouldUseMeteredSwitchTile()) {
+            $this->UpdateMeteredSwitchTileValueIfRelevant($ident);
+            return;
+        }
+        if ($this->ShouldUseWindowHandleTile()) {
+            $this->UpdateWindowHandleTileValueIfRelevant($ident);
+            return;
+        }
+        if ($this->ShouldUseSecurityTile()) {
+            $this->UpdateSecurityTileValueIfRelevant($ident);
+            return;
+        }
+        if ($this->ShouldUseActionTile()) {
+            $this->UpdateActionTileValueIfRelevant($ident);
+            return;
+        }
+        if ($this->ShouldUseSensorTile()) {
+            $this->UpdateSensorTileValueIfRelevant($ident);
+        }
     }
 
     /**
