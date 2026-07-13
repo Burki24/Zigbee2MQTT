@@ -272,6 +272,8 @@ Geräte-Instanzen können automatisch eine moderne HTML-SDK-Kachel verwenden, we
 
 Unterstützt werden derzeit eigene Kacheln für:
 
+- RGB-, RGBW- und RGBWW-Leuchten mit nativer Symcon-Farbauswahl
+- Tunable-White-Leuchten mit Farbtemperatur und Presets
 - Heizungen und Heizventile
 - Schaltaktoren mit Leistungsmessung, auch mit mehreren Schaltausgängen
 - Sensoren wie Temperatur, Luftfeuchtigkeit, Bodenfeuchtigkeit, Helligkeit und Batterie

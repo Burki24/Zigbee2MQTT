@@ -150,7 +150,7 @@ trait TunableWhiteTileHelper
     /**
      * Liefert Helligkeitswert, Bereich und Prozentanzeige.
      */
-    private function BuildTunableWhiteTileBrightnessData(): array
+    protected function BuildTunableWhiteTileBrightnessData(): array
     {
         $variableID = $this->GetObjectIDByIdent('brightness');
         $range = $this->GetTunableWhiteTileNumericRange('brightness', 0.0, 254.0, 1.0);
@@ -182,7 +182,7 @@ trait TunableWhiteTileHelper
     /**
      * Liefert aktuellen Kelvin- und Mired-Wert samt Darstellungsbereich.
      */
-    private function BuildTunableWhiteTileColorTemperatureData(): array
+    protected function BuildTunableWhiteTileColorTemperatureData(): array
     {
         $kelvinID = $this->GetObjectIDByIdent('color_temp_kelvin');
         $miredID = $this->GetObjectIDByIdent('color_temp');
@@ -201,7 +201,7 @@ trait TunableWhiteTileHelper
     /**
      * Liest die bereits normalisierten Presets aus der nativen Variablendarstellung.
      */
-    private function GetTunableWhiteTilePresets(): array
+    protected function GetTunableWhiteTilePresets(): array
     {
         $variableID = $this->GetObjectIDByIdent('color_temp_presets');
         if ($variableID === false) {
@@ -237,7 +237,7 @@ trait TunableWhiteTileHelper
     /**
      * Prueft einen Preset-Aktionswert gegen die aktuell dargestellten Optionen.
      */
-    private function IsTunableWhiteTilePresetValue(float $value): bool
+    protected function IsTunableWhiteTilePresetValue(float $value): bool
     {
         foreach ($this->GetTunableWhiteTilePresets() as $preset) {
             if ((float) $preset['value'] === $value) {
@@ -250,7 +250,7 @@ trait TunableWhiteTileHelper
     /**
      * Liefert den Kelvin-Bereich aus der aktuellen Variablendarstellung.
      */
-    private function GetTunableWhiteTileKelvinRange(): array
+    protected function GetTunableWhiteTileKelvinRange(): array
     {
         $feature = $this->FindTunableWhiteTileFeature('color_temp') ?? [];
         return $this->GetColorTemperaturePresentationRange($feature);
@@ -259,7 +259,7 @@ trait TunableWhiteTileHelper
     /**
      * Liefert Min, Max und Schritt eines numerischen Expose-Features.
      */
-    private function GetTunableWhiteTileNumericRange(string $property, float $defaultMin, float $defaultMax, float $defaultStep): array
+    protected function GetTunableWhiteTileNumericRange(string $property, float $defaultMin, float $defaultMax, float $defaultStep): array
     {
         $feature = $this->FindTunableWhiteTileFeature($property) ?? [];
         $minimum = isset($feature['value_min']) && \is_numeric($feature['value_min']) ? (float) $feature['value_min'] : $defaultMin;

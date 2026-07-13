@@ -75,6 +75,8 @@ trait Constants
     protected const PROPERTY_DISABLE_METERED_SWITCH_TILE = 'DisableMeteredSwitchTile';
     /** @var string Property zum Deaktivieren der Tunable-White-Kachel */
     protected const PROPERTY_DISABLE_TUNABLE_WHITE_TILE = 'DisableTunableWhiteTile';
+    /** @var string Property zum Deaktivieren der RGB-Licht-Kachel */
+    protected const PROPERTY_DISABLE_COLOR_LIGHT_TILE = 'DisableColorLightTile';
     /** @var string Property zum Deaktivieren der Heizungs-Kachel */
     protected const PROPERTY_DISABLE_HEATING_TILE = 'DisableHeatingTile';
     /** @var string Property zum Deaktivieren der Sicherheits-Kachel */

@@ -79,6 +79,8 @@
 
    Die allgemeine Variablenverwaltung folgt der Geräteinstanz: Exposes und Payload-Daten bestimmen, welche Variablen angelegt werden können. Neue oder erneut registrierte Gruppenvariablen verwenden moderne Symcon-Variablendarstellungen. Das Modul setzt keine Symcon-Standardprofile und erzeugt keine dynamischen `Z2M.*`-Profile mehr. Benutzerdefinierte Darstellungen oder Profile haben Vorrang und werden nicht überschrieben.
 
+   Lichtgruppen erhalten abhängig von ihren gemeinsamen Exposes dieselben Tunable-White- beziehungsweise RGB-/RGBW-/RGBWW-Kacheln wie einzelne Geräte. Die RGB-Kachel öffnet beim Klick auf die Farbanzeige den nativen Symcon-Color-Picker der Gruppen-Farbvariable. Farbtemperaturregler und Presets werden nur angezeigt, wenn die Gruppe diese Fähigkeiten gemeinsam bereitstellt.
+
 **Gruppenmitglieder**
 
 ![Gruppenmitglieder verwalten](imgs/members.png)

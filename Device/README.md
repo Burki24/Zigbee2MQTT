@@ -191,6 +191,8 @@ Der Override korrigiert die Symcon-Darstellung der `color_temp_kelvin`-Variable,
 
 RGB-, HS- und XY-Farb-Exposes werden als Integer-Variable ohne Modulprofil angelegt und nutzen die native Symcon-Farbdarstellung für Hex/sRGB-Farbwerte. Dadurch kann die Symcon-Standardkachel für RGB-Leuchtmittel die Farbe über den üblichen ColorHex-Wert verwenden, ohne dass ein Legacy-Profil wie `~Color` benötigt wird.
 
+RGB-, RGBW- und RGBWW-Leuchten verwenden standardmäßig die eigene **RGB-Licht-Kachel**. Sie kombiniert Ein/Aus, Helligkeit und die aktuelle Farbe. Ein Klick auf die Farbanzeige öffnet die vorhandene Farbvariable als maximierte native Symcon-Kachel, sodass der originale Symcon-Color-Picker erhalten bleibt. Unterstützt das Leuchtmittel zusätzlich `color_temp`, ergänzt dieselbe Kachel den Kelvin-Regler und vorhandene Farbtemperatur-Presets. Über **Visualisierung → RGB-Licht-Kachel deaktivieren** kann auf die nächste passende Darstellung zurückgeschaltet werden.
+
 Bei reinen Tunable-White-Leuchtmitteln ohne RGB/HS/XY-Farb-Expose legt das Modul zusätzlich eine abgeleitete Variable `color` ohne Modulprofil an. Diese Variable nutzt ebenfalls die native Symcon-Farbdarstellung für Hex/sRGB-Farbwerte und zeigt den aktuellen Weißton an, bleibt aber eine reine Darstellung und ersetzt keine echte RGB-Steuerung.
 
 ### 4.5 Gerätewartung

@@ -104,6 +104,27 @@ class GroupTest extends DumpInclude
         }
     }
 
+    public function testColorLightGroupUsesNativeColorPickerTile(): void
+    {
+        $debug = json_decode(file_get_contents(__DIR__ . '/TestDumps/ColorLight.json'), true, 512, JSON_THROW_ON_ERROR);
+        $debug['Config']['MQTTTopic'] = 'Test/ColorLightGroup';
+        $groupID = $this->createConfiguredGroup($debug['Config']['MQTTBaseTopic'], $debug['Config']['MQTTTopic']);
+        $group = IPS\InstanceManager::getInstanceInterface($groupID);
+        $group->BUFFER_MQTT_SUSPENDED = false;
+        $payload = $debug['LastPayload'];
+        $payload['exposes'] = $debug['Exposes'];
+        $topic = $debug['Config']['MQTTBaseTopic'] . '/' . $debug['Config']['MQTTTopic'];
+        $group->ReceiveData(self::buildMqttRequest($topic, $payload));
+
+        $colorID = IPS_GetObjectIDByIdent('color', $groupID);
+        $html = $group->GetVisualizationTile();
+        $this->assertNotFalse($colorID);
+        $this->assertStringContainsString('"type":"colorLight"', $html);
+        $this->assertStringContainsString('"variant":"rgbww"', $html);
+        $this->assertStringContainsString('"objectID":' . $colorID, $html);
+        $this->assertStringContainsString("typeof openObject==='function'", $html);
+    }
+
     public function testGroupAvailableDeviceListIsFilledFromExistingDeviceInstances(): void
     {
         $this->createConfiguredDevice('zigbee2mqtt', 'Flur/Beleuchtung/Deckenlicht');

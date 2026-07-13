@@ -1,0 +1,108 @@
+<!doctype html>
+<html lang="de">
+<head>
+    <meta charset="utf-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1">
+    <style>
+        :root { --accent:#f1a33c; --track:color-mix(in srgb,currentColor 15%,transparent); }
+        * { box-sizing:border-box; }
+        html,body { width:100%; height:100%; margin:0; overflow:hidden; }
+        button,input { font:inherit; }
+        .tile { display:grid; grid-template-rows:1fr auto; gap:14px; width:100%; height:100%; min-height:240px; padding:58px 18px 18px; color:var(--text); }
+        .controls { display:grid; grid-template-columns:minmax(112px,.42fr) minmax(190px,1fr); align-items:center; gap:clamp(18px,5vw,38px); min-height:0; }
+        .power-area { display:grid; justify-items:center; gap:10px; }
+        .power-button { display:grid; place-items:center; width:clamp(84px,24vw,126px); height:clamp(84px,24vw,126px); border:1px solid var(--line); border-radius:50%; color:var(--muted); background:var(--chip); box-shadow:inset 0 0 0 7px color-mix(in srgb,currentColor 3%,transparent); cursor:pointer; transition:transform 120ms ease,color 180ms ease,background 180ms ease,box-shadow 180ms ease; }
+        .power-button:hover,.color-button:hover { transform:scale(1.025); }
+        .power-button:active,.color-button:active { transform:scale(.97); }
+        .tile.on .power-button { color:#fff7e8; border-color:color-mix(in srgb,var(--current-color) 65%,transparent); background:radial-gradient(circle at 50% 38%,#fff 0%,var(--current-color) 58%,color-mix(in srgb,var(--current-color) 72%,#000) 100%); box-shadow:0 0 30px color-mix(in srgb,var(--current-color) 38%,transparent); }
+        .bulb-icon { width:46%; height:46%; fill:none; stroke:currentColor; stroke-linecap:round; stroke-linejoin:round; stroke-width:1.7; }
+        .power-caption { color:var(--muted); font-size:var(--z2m-font-small); }
+        .stack { display:grid; align-content:center; gap:clamp(13px,3vh,22px); min-width:0; }
+        .control { display:grid; gap:8px; min-width:0; }
+        .hidden { display:none !important; }
+        .control-header { display:flex; align-items:baseline; justify-content:space-between; gap:12px; }
+        .control-label { color:var(--muted); font-size:var(--z2m-font-caption); font-weight:500; letter-spacing:.04em; text-transform:uppercase; }
+        .control-value { font-size:var(--z2m-font-normal); font-variant-numeric:tabular-nums; white-space:nowrap; }
+        .range-wrap { display:grid; align-items:center; height:25px; }
+        input[type="range"] { width:100%; height:8px; margin:0; border-radius:999px; outline:none; appearance:none; cursor:pointer; }
+        input[type="range"]::-webkit-slider-thumb { width:22px; height:22px; border:2px solid color-mix(in srgb,currentColor 24%,transparent); border-radius:50%; background:#fff; box-shadow:0 2px 7px rgba(0,0,0,.25); appearance:none; }
+        input[type="range"]::-moz-range-thumb { width:19px; height:19px; border:2px solid color-mix(in srgb,currentColor 24%,transparent); border-radius:50%; background:#fff; box-shadow:0 2px 7px rgba(0,0,0,.25); }
+        #temperatureSlider { background:linear-gradient(90deg,#ff9b45,#fff0ca 48%,#d8eaff); }
+        .temperature-scale { display:flex; justify-content:space-between; margin-top:-4px; color:var(--muted); font-size:var(--z2m-font-axis); }
+        .color-button { display:grid; grid-template-columns:34px 1fr auto; align-items:center; gap:10px; width:100%; min-height:42px; padding:5px 12px 5px 5px; border:1px solid var(--line); border-radius:9px; color:var(--text); background:var(--chip); cursor:pointer; text-align:left; transition:transform 120ms ease,border-color 160ms ease; }
+        .color-button:hover { border-color:color-mix(in srgb,var(--current-color) 70%,currentColor); }
+        .swatch { width:32px; height:32px; border:1px solid color-mix(in srgb,currentColor 25%,transparent); border-radius:7px; background:var(--current-color); box-shadow:inset 0 0 8px rgba(255,255,255,.25); }
+        .picker-hint { color:var(--muted); font-size:var(--z2m-font-small); }
+        .picker-arrow { color:var(--muted); font-size:1.25em; }
+        .presets { display:grid; grid-template-columns:repeat(auto-fit,minmax(78px,1fr)); gap:8px; min-height:36px; }
+        .preset-button { min-width:0; height:36px; padding:0 9px; overflow:hidden; border:1px solid var(--line); border-radius:8px; color:var(--text); background:var(--chip); cursor:pointer; font-size:var(--z2m-font-small); text-overflow:ellipsis; white-space:nowrap; }
+        .preset-button.active { border-color:var(--accent); color:#fff; background:var(--accent); }
+        .tile.off .stack,.tile.off .presets { opacity:.72; }
+        @media (max-width:430px),(max-height:330px) {
+            .tile { gap:9px; padding:52px 14px 14px; }
+            .controls { grid-template-columns:86px minmax(0,1fr); gap:15px; }
+            .power-button { width:76px; height:76px; }
+            .power-caption,.temperature-scale,.picker-hint { display:none; }
+            .stack { gap:10px; }
+            .color-button { grid-template-columns:30px 1fr auto; min-height:36px; }
+            .swatch { width:28px; height:28px; }
+            .presets { gap:6px; }
+            .preset-button { height:32px; padding:0 6px; }
+        }
+        @media (max-width:300px) { .controls { grid-template-columns:1fr; } .power-area { display:none; } }
+    </style>
+    __THEME_SUPPORT__
+</head>
+<body>
+    <main id="tile" class="tile">
+        <section class="controls">
+            <div class="power-area">
+                <button id="powerButton" class="power-button" type="button">
+                    <svg class="bulb-icon" viewBox="0 0 24 24" aria-hidden="true"><path d="M9 18h6"></path><path d="M10 21h4"></path><path d="M8.2 14.5A6 6 0 1 1 15.8 14.5C14.8 15.3 14.5 16 14.5 17h-5c0-1-.3-1.7-1.3-2.5Z"></path></svg>
+                </button>
+                <div id="powerCaption" class="power-caption"></div>
+            </div>
+            <div class="stack">
+                <div id="brightnessControl" class="control">
+                    <div class="control-header"><span id="brightnessLabel" class="control-label"></span><span id="brightnessValue" class="control-value"></span></div>
+                    <div class="range-wrap"><input id="brightnessSlider" type="range"></div>
+                </div>
+                <div id="colorControl" class="control">
+                    <span id="colorLabel" class="control-label"></span>
+                    <button id="colorButton" class="color-button" type="button"><span class="swatch"></span><span id="pickerHint" class="picker-hint"></span><span class="picker-arrow">›</span></button>
+                    <input id="fallbackColorPicker" class="hidden" type="color">
+                </div>
+                <div id="temperatureControl" class="control">
+                    <div class="control-header"><span id="temperatureLabel" class="control-label"></span><span id="temperatureValue" class="control-value"></span></div>
+                    <div class="range-wrap"><input id="temperatureSlider" type="range"></div>
+                    <div class="temperature-scale"><span id="temperatureMin"></span><span id="temperatureMax"></span></div>
+                </div>
+            </div>
+        </section>
+        <section id="presets" class="presets"></section>
+    </main>
+    <script>
+        let data=__INITIAL_DATA__;
+        const byId=id=>document.getElementById(id), tile=byId('tile'), powerButton=byId('powerButton'), powerCaption=byId('powerCaption'), brightnessControl=byId('brightnessControl'), brightnessLabel=byId('brightnessLabel'), brightnessValue=byId('brightnessValue'), brightnessSlider=byId('brightnessSlider'), colorControl=byId('colorControl'), colorLabel=byId('colorLabel'), colorButton=byId('colorButton'), pickerHint=byId('pickerHint'), fallbackColorPicker=byId('fallbackColorPicker'), temperatureControl=byId('temperatureControl'), temperatureLabel=byId('temperatureLabel'), temperatureValue=byId('temperatureValue'), temperatureSlider=byId('temperatureSlider'), temperatureMin=byId('temperatureMin'), temperatureMax=byId('temperatureMax'), presets=byId('presets');
+        const number=(value,fallback=0)=>Number.isFinite(Number(value))?Number(value):fallback;
+        const sendAction=(ident,value)=>{ if(typeof requestAction==='function') requestAction(ident,value); };
+        function normalizeMessage(message){ if(message&&typeof message==='object')return message;if(typeof message!=='string')return null;try{const value=JSON.parse(message);return value&&typeof value==='object'?value:null;}catch{return null;} }
+        function handleMessage(message){const next=normalizeMessage(message);if(next){data=next;render();}}
+        function setRange(slider,config){slider.min=String(number(config.min));slider.max=String(number(config.max,100));slider.step=String(Math.max(Number.EPSILON,number(config.step,1)));slider.value=String(number(config.value,number(config.min)));}
+        function renderBrightness(){const config=data.brightness||{},available=Boolean(config.available);brightnessControl.classList.toggle('hidden',!available);if(!available)return;setRange(brightnessSlider,config);const percent=Math.max(0,Math.min(100,Math.round(number(config.percent))));brightnessValue.textContent=`${percent} %`;brightnessSlider.style.background=`linear-gradient(90deg,var(--current-color) 0%,var(--current-color) ${percent}%,var(--track) ${percent}%,var(--track) 100%)`;}
+        function renderColor(){const config=data.color||{},available=Boolean(config.available);colorControl.classList.toggle('hidden',!available);if(!available)return;const hex=String(config.hex||'#000000');tile.style.setProperty('--current-color',hex);fallbackColorPicker.value=hex;pickerHint.textContent=String(data.labels?.openColorPicker||'Open color picker');colorButton.title=pickerHint.textContent;}
+        function renderTemperature(){const config=data.colorTemperature||{},available=Boolean(config.available);temperatureControl.classList.toggle('hidden',!available);if(!available)return;setRange(temperatureSlider,config);temperatureValue.textContent=`${Math.round(number(config.value,number(config.min)))} K`;temperatureMin.textContent=`${Math.round(number(config.min))} K`;temperatureMax.textContent=`${Math.round(number(config.max))} K`;}
+        function renderPresets(){presets.replaceChildren();const items=Array.isArray(data.presets)?data.presets:[];presets.classList.toggle('hidden',items.length===0);const current=Math.round(number(data.colorTemperature?.mired));for(const preset of items){const button=document.createElement('button'),value=Math.round(number(preset.value));button.className=`preset-button${value===current?' active':''}`;button.type='button';button.textContent=String(preset.caption||`${preset.kelvin} K`);button.title=`${Math.round(number(preset.kelvin))} K`;button.addEventListener('click',()=>sendAction('ColorLightTile.SetPreset',value));presets.appendChild(button);}}
+        function render(){const isOn=Boolean(data.state?.value);tile.classList.toggle('on',isOn);tile.classList.toggle('off',!isOn);powerCaption.textContent=String(data.state?.formatted||'');powerButton.title=String(data.labels?.toggle||'');brightnessLabel.textContent=String(data.labels?.brightness||'Brightness');colorLabel.textContent=String(data.labels?.color||'Color');temperatureLabel.textContent=String(data.labels?.colorTemperature||'Color temperature');renderColor();renderBrightness();renderTemperature();renderPresets();}
+        powerButton.addEventListener('click',()=>sendAction('ColorLightTile.Toggle',true));
+        brightnessSlider.addEventListener('input',()=>{const config=data.brightness||{};config.value=number(brightnessSlider.value);const span=number(config.max)-number(config.min);config.percent=span>0?Math.round((config.value-number(config.min))*100/span):0;renderBrightness();});
+        brightnessSlider.addEventListener('change',()=>sendAction('ColorLightTile.SetBrightness',number(brightnessSlider.value)));
+        colorButton.addEventListener('click',()=>{const objectID=Math.round(number(data.color?.objectID));if(objectID>0&&typeof openObject==='function'){openObject(objectID);return;}fallbackColorPicker.click();});
+        fallbackColorPicker.addEventListener('input',()=>{data.color.hex=fallbackColorPicker.value;data.color.value=parseInt(fallbackColorPicker.value.slice(1),16);renderColor();});
+        fallbackColorPicker.addEventListener('change',()=>sendAction('ColorLightTile.SetColor',parseInt(fallbackColorPicker.value.slice(1),16)));
+        temperatureSlider.addEventListener('input',()=>{data.colorTemperature.value=Math.round(number(temperatureSlider.value));temperatureValue.textContent=`${data.colorTemperature.value} K`;});
+        temperatureSlider.addEventListener('change',()=>sendAction('ColorLightTile.SetColorTemperature',Math.round(number(temperatureSlider.value))));
+        render();
+    </script>
+</body>
+</html>
