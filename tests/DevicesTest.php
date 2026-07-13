@@ -1197,6 +1197,8 @@ class DevicesTest extends DumpInclude
         $this->assertStringContainsString('TunableWhiteTile.SetBrightness', $html);
         $this->assertStringContainsString('TunableWhiteTile.SetColorTemperature', $html);
         $this->assertStringContainsString('TunableWhiteTile.SetPreset', $html);
+        $this->assertStringNotContainsString('id="title"', $html);
+        $this->assertStringNotContainsString('id="status"', $html);
         $this->assertStringNotContainsString('__THEME_SUPPORT__', $html);
 
         $form = json_decode(IPS_GetConfigurationForm($iid), true);

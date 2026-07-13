@@ -32,45 +32,13 @@
 
         .tile {
             display: grid;
-            grid-template-rows: auto 1fr auto;
+            grid-template-rows: 1fr auto;
             gap: 14px;
             width: 100%;
             height: 100%;
             min-height: 240px;
-            padding: 18px;
+            padding: 58px 18px 18px;
             color: var(--text);
-        }
-
-        .header {
-            display: flex;
-            align-items: center;
-            justify-content: space-between;
-            gap: 12px;
-            min-width: 0;
-        }
-
-        .title {
-            overflow: hidden;
-            font-size: var(--z2m-font-title);
-            font-weight: 500;
-            line-height: 1.25;
-            text-overflow: ellipsis;
-            white-space: nowrap;
-        }
-
-        .status {
-            flex: 0 0 auto;
-            padding: 5px 10px;
-            border-radius: 999px;
-            color: var(--muted);
-            background: var(--chip);
-            font-size: var(--z2m-font-small);
-            font-weight: 500;
-        }
-
-        .tile.on .status {
-            color: var(--accent-strong);
-            background: color-mix(in srgb, var(--accent) 16%, transparent);
         }
 
         .controls {
@@ -265,7 +233,7 @@
         @media (max-width: 430px), (max-height: 310px) {
             .tile {
                 gap: 10px;
-                padding: 14px;
+                padding: 52px 14px 14px;
             }
 
             .controls {
@@ -312,11 +280,6 @@
 </head>
 <body>
     <main id="tile" class="tile">
-        <header class="header">
-            <div id="title" class="title"></div>
-            <div id="status" class="status"></div>
-        </header>
-
         <section class="controls">
             <div class="power-area">
                 <button id="powerButton" class="power-button" type="button">
@@ -363,8 +326,6 @@
         let data = __INITIAL_DATA__;
 
         const tile = document.getElementById("tile");
-        const title = document.getElementById("title");
-        const status = document.getElementById("status");
         const powerButton = document.getElementById("powerButton");
         const powerCaption = document.getElementById("powerCaption");
         const brightnessLabel = document.getElementById("brightnessLabel");
@@ -478,11 +439,9 @@
             const isOn = Boolean(data.state?.value);
             tile.classList.toggle("on", isOn);
             tile.classList.toggle("off", !isOn);
-            title.textContent = String(data.name || "");
             brightnessLabel.textContent = String(data.labels?.brightness || "Brightness");
             temperatureLabel.textContent = String(data.labels?.colorTemperature || "Color temperature");
             powerButton.title = String(data.labels?.toggle || "Turn light on/off");
-            status.textContent = String(data.state?.formatted || "");
             powerCaption.textContent = String(data.state?.formatted || "");
             renderBrightness();
             renderTemperature();
