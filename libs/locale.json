@@ -37,6 +37,8 @@
             "State": "Status",
             "Action": "Aktion",
             "Active visualization:": "Aktive Visualisierung:",
+            "Tunable white tile": "Tunable-White-Kachel",
+            "Turn light on/off": "Licht ein-/ausschalten",
             "Metered switch tile": "Schalter-/Leistungsmessungs-Kachel",
             "Heating tile": "Heizungs-Kachel",
             "Security tile": "Sicherheits-Kachel",

@@ -57,6 +57,12 @@
                 },
                 {
                     "type": "CheckBox",
+                    "name": "DisableTunableWhiteTile",
+                    "caption": "Disable tunable white tile",
+                    "visible": false
+                },
+                {
+                    "type": "CheckBox",
                     "name": "DisableMeteredSwitchTile",
                     "caption": "Disable switch tile",
                     "visible": false

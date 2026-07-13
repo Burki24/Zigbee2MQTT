@@ -163,7 +163,9 @@ Der Bereich ist nur für die Darstellung relevant. Er ändert keine Gerätewerte
 
 ### 4.4 Farbtemperatur in der Beleuchtungs-Kachel
 
-Für Leuchtmittel mit `color_temp` legt das Modul zusätzlich die Variable `color_temp_kelvin` an. Diese Variable wird für die Farbtemperatur-Seite der Symcon-Standardkachel **Beleuchtung** verwendet, damit die Bedienung in Kelvin statt in Mired erfolgt.
+Für Leuchtmittel mit `color_temp` legt das Modul zusätzlich die Variable `color_temp_kelvin` an. Diese Variable wird von der Tunable-White-Kachel und beim Rückfall von der Symcon-Standardkachel **Beleuchtung** verwendet, damit die Bedienung in Kelvin statt in Mired erfolgt.
+
+Tunable-White-Leuchten mit `state` und `color_temp` verwenden standardmäßig die eigene **Tunable-White-Kachel**. Sie kombiniert Ein/Aus, Helligkeit, einen Kelvin-Regler und die von Zigbee2MQTT gemeldeten Farbtemperatur-Presets. Über **Visualisierung → Tunable-White-Kachel deaktivieren** kann jederzeit auf die Symcon-Standarddarstellung zurückgeschaltet werden.
 
 Zigbee2MQTT liefert den Bereich für `color_temp` normalerweise in Mired. Das Modul rechnet diesen Bereich automatisch in Kelvin um:
 

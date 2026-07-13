@@ -13,6 +13,7 @@ require_once __DIR__ . '/Configuration/DeviceFormHelper.php';
 require_once __DIR__ . '/Configuration/VariableCatalogHelper.php';
 require_once __DIR__ . '/Maintenance/VariableMaintenanceHelper.php';
 require_once __DIR__ . '/Visualization/VariablePresentationHelper.php';
+require_once __DIR__ . '/Visualization/TileHelpers/TunableWhiteTileHelper.php';
 require_once __DIR__ . '/Visualization/TileHelpers/MeteredSwitchTileHelper.php';
 require_once __DIR__ . '/Visualization/TileHelpers/HeatingTileHelper.php';
 require_once __DIR__ . '/Visualization/TileHelpers/SensorTileHelper.php';
@@ -47,6 +48,7 @@ abstract class ModulBase extends \IPSModuleStrict
     use \Zigbee2MQTT\Maintenance\VariableMaintenanceHelper;
     use DeviceFormHelper;
     use VariablePresentationHelper;
+    use TunableWhiteTileHelper;
     use MeteredSwitchTileHelper;
     use HeatingTileHelper;
     use SensorTileHelper;
@@ -446,6 +448,7 @@ abstract class ModulBase extends \IPSModuleStrict
 
         $this->RegisterPropertyString(self::MQTT_BASE_TOPIC, '');
         $this->RegisterPropertyString(self::MQTT_TOPIC, '');
+        $this->RegisterPropertyBoolean(self::PROPERTY_DISABLE_TUNABLE_WHITE_TILE, false);
         $this->RegisterPropertyBoolean(self::PROPERTY_DISABLE_METERED_SWITCH_TILE, false);
         $this->RegisterPropertyBoolean(self::PROPERTY_DISABLE_HEATING_TILE, false);
         $this->RegisterPropertyBoolean(self::PROPERTY_DISABLE_SECURITY_TILE, false);
@@ -1115,7 +1118,7 @@ abstract class ModulBase extends \IPSModuleStrict
      */
     protected function UpdateCustomTileVisualizationType(): void
     {
-        $this->SetVisualizationType(($this->ShouldUseHeatingTile() || $this->ShouldUseMeteredSwitchTile() || $this->ShouldUseWindowHandleTile() || $this->ShouldUseSecurityTile() || $this->ShouldUseActionTile() || $this->ShouldUseSensorTile()) ? 1 : 0);
+        $this->SetVisualizationType(($this->ShouldUseTunableWhiteTile() || $this->ShouldUseHeatingTile() || $this->ShouldUseMeteredSwitchTile() || $this->ShouldUseWindowHandleTile() || $this->ShouldUseSecurityTile() || $this->ShouldUseActionTile() || $this->ShouldUseSensorTile()) ? 1 : 0);
     }
 
     // Variablenmanagement
@@ -1695,6 +1698,7 @@ abstract class ModulBase extends \IPSModuleStrict
     private function handleTileRequestAction(string $ident, mixed $value): ?bool
     {
         return match (true) {
+            str_starts_with($ident, 'TunableWhiteTile.')   => $this->HandleTunableWhiteTileAction($ident, $value),
             str_starts_with($ident, 'HeatingTile.')       => $this->HandleHeatingTileAction($ident, $value),
             str_starts_with($ident, 'SensorTile.')        => $this->HandleSensorTileAction($ident, $value),
             str_starts_with($ident, 'SecurityTile.')      => $this->HandleSecurityTileAction($ident, $value),
@@ -1752,6 +1756,7 @@ abstract class ModulBase extends \IPSModuleStrict
      */
     private function UpdateCustomTileValuesIfRelevant(string $ident): void
     {
+        $this->UpdateTunableWhiteTileValueIfRelevant($ident);
         $this->UpdateHeatingTileValueIfRelevant($ident);
         $this->UpdateSensorTileValueIfRelevant($ident);
         $this->UpdateSecurityTileValueIfRelevant($ident);

@@ -488,6 +488,12 @@ class Zigbee2MQTTDevice extends \Zigbee2MQTT\ModulBase
                 'data'     => fn (): array => $this->BuildSensorTileData()
             ];
         }
+        if ($this->ShouldUseTunableWhiteTile()) {
+            return [
+                'template' => 'tunable_white_tile.html',
+                'data'     => fn (): array => $this->BuildTunableWhiteTileData()
+            ];
+        }
         if ($this->ShouldUseHeatingTile()) {
             return [
                 'template' => 'heating_tile.html',

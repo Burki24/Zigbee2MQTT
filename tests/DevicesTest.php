@@ -946,6 +946,7 @@ class DevicesTest extends DumpInclude
         $topic = $Debug['Config']['MQTTBaseTopic'] . '/' . $Debug['Config']['MQTTTopic'];
 
         $this->removeStubProperties($iid, [
+            'DisableTunableWhiteTile',
             'DisableMeteredSwitchTile',
             'DisableHeatingTile',
             'DisableSecurityTile',
@@ -1182,6 +1183,32 @@ class DevicesTest extends DumpInclude
 
         $interface->ReceiveData(self::buildMqttRequest($topic, ['color_temp' => 153]));
         $this->assertNotSame(0xFF9227, GetValue($colorID));
+    }
+
+    public function testTunableWhiteLightUsesCustomTileWithPresets(): void
+    {
+        [$iid] = $this->createTestInstance('TunableWhiteLight.json');
+
+        $html = IPS\InstanceManager::getInstanceInterface($iid)->GetVisualizationTile();
+        $this->assertStringContainsString('"type":"tunableWhite"', $html);
+        $this->assertStringContainsString('"brightness":{"available":true,"value":100,"percent":39', $html);
+        $this->assertStringContainsString('"colorTemperature":{"available":true,"value":2202,"mired":454', $html);
+        $this->assertStringContainsString('"presets":[{"value":153,"kelvin":6535,"caption":"Sehr kalt"}', $html);
+        $this->assertStringContainsString('TunableWhiteTile.SetBrightness', $html);
+        $this->assertStringContainsString('TunableWhiteTile.SetColorTemperature', $html);
+        $this->assertStringContainsString('TunableWhiteTile.SetPreset', $html);
+        $this->assertStringNotContainsString('__THEME_SUPPORT__', $html);
+
+        $form = json_decode(IPS_GetConfigurationForm($iid), true);
+        $this->assertFormItemVisible($form, 'VisualizationSettings');
+        $this->assertFormItemVisible($form, 'DisableTunableWhiteTile');
+        $status = $this->findFormItemByName($form, 'VisualizationStatus');
+        $this->assertNotNull($status);
+        $this->assertStringContainsString('Tunable-White-Kachel', $status['caption']);
+
+        IPS_SetProperty($iid, 'DisableTunableWhiteTile', true);
+        IPS_ApplyChanges($iid);
+        $this->assertSame('', IPS\InstanceManager::getInstanceInterface($iid)->GetVisualizationTile());
     }
 
     public function testPresetValuesAreDistributedUniquelyWithinExposeRange(): void

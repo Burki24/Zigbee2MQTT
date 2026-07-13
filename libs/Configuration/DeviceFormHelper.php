@@ -417,6 +417,11 @@ trait DeviceFormHelper
     private function BuildDeviceFormTileStates(): array
     {
         $tiles = [
+            self::PROPERTY_DISABLE_TUNABLE_WHITE_TILE => $this->BuildDeviceFormTileState(
+                $this->HasTunableWhiteTileCapabilities(),
+                self::PROPERTY_DISABLE_TUNABLE_WHITE_TILE,
+                $this->Translate('Tunable white tile')
+            ),
             self::PROPERTY_DISABLE_METERED_SWITCH_TILE => $this->BuildDeviceFormTileState(
                 $this->HasMeteredSwitchTileCapabilities(),
                 self::PROPERTY_DISABLE_METERED_SWITCH_TILE,
@@ -440,7 +445,8 @@ trait DeviceFormHelper
         ];
 
         $hasActiveSpecificTile =
-            $tiles[self::PROPERTY_DISABLE_METERED_SWITCH_TILE]['enabled']
+            $tiles[self::PROPERTY_DISABLE_TUNABLE_WHITE_TILE]['enabled']
+            || $tiles[self::PROPERTY_DISABLE_METERED_SWITCH_TILE]['enabled']
             || $tiles[self::PROPERTY_DISABLE_HEATING_TILE]['enabled']
             || $tiles[self::PROPERTY_DISABLE_SECURITY_TILE]['enabled']
             || $tiles[self::PROPERTY_DISABLE_WINDOW_HANDLE_TILE]['enabled'];
@@ -2720,6 +2726,9 @@ trait DeviceFormHelper
     {
         if ($tiles['SensorTile']['enabled'] && $this->ShouldForceSensorTile()) {
             return $tiles['SensorTile']['label'];
+        }
+        if ($tiles[self::PROPERTY_DISABLE_TUNABLE_WHITE_TILE]['enabled']) {
+            return $tiles[self::PROPERTY_DISABLE_TUNABLE_WHITE_TILE]['label'];
         }
         if ($tiles[self::PROPERTY_DISABLE_HEATING_TILE]['enabled']) {
             return $tiles[self::PROPERTY_DISABLE_HEATING_TILE]['label'];
