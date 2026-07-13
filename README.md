@@ -510,6 +510,7 @@ Die Änderungen sind anhand der funktionalen Commits chronologisch gegliedert. A
 - Lesbare Set-Aktionen wie Schalter, Helligkeit, Farbtemperatur und andere Statuswerte aktualisieren lokale Symcon-Werte erst nach einer Rueckmeldung von Zigbee2MQTT.
 - Reine Schreib- und Befehlswerte ohne eigene Rueckmeldung, zum Beispiel Szenen, Presets, Effekte oder andere `access: 2`-Funktionen, merken nach erfolgreichem Senden weiterhin den zuletzt gewaehlten Wert lokal.
 - Helligkeitsaktionen nutzen dieselbe Rueckmeldepruefung wie andere Standardaktionen und geben Sendefehler wieder korrekt an die Aktion zurueck.
+- Unveraenderte Payload-Werte werden nicht mehr erneut in Symcon-Variablen geschrieben. Dadurch sinken FlowHandler-, Ereignis-, Archiv- und Kachel-Aktualisierungen bei haeufig sendenden Geraeten deutlich.
 
 **Version 5.42:**
 

@@ -1097,7 +1097,7 @@ abstract class ModulBase extends \IPSModuleStrict
      */
     protected function ReadAttributeBooleanSafe(string $name, bool $default): bool
     {
-        set_error_handler(static function (): bool
+        \set_error_handler(static function (): bool
         {
             return true;
         });
@@ -1106,7 +1106,7 @@ abstract class ModulBase extends \IPSModuleStrict
         } catch (\Throwable) {
             return $default;
         } finally {
-            restore_error_handler();
+            \restore_error_handler();
         }
     }
 
@@ -1225,25 +1225,33 @@ abstract class ModulBase extends \IPSModuleStrict
                     if ($association['Name'] == $value) {
                         $adjustedValue = $association['Value'];
                         $this->SendDebug(__FUNCTION__, 'Profilwert gefunden: ' . $value . ' -> ' . $adjustedValue, 0);
-                        $result = $this->SetModuleValue($ident, $variableID, $adjustedValue);
-                        $this->UpdateCustomTileValuesIfRelevant($ident);
+                        $changed = false;
+                        $result = $this->SetModuleValue($ident, $variableID, $adjustedValue, $changed);
+                        if ($changed) {
+                            $this->UpdateCustomTileValuesIfRelevant($ident);
+                        }
                         return $result;
                     }
                 }
             }
         }
 
-        $this->SendDebug(__FUNCTION__, 'Setze Variable: ' . $ident . ' auf Wert: ' . json_encode($adjustedValue), 0);
-        $result = $this->SetModuleValue($ident, $variableID, $adjustedValue);
+        $changed = false;
+        $result = $this->SetModuleValue($ident, $variableID, $adjustedValue, $changed);
+        if ($changed) {
+            $this->SendDebug(__FUNCTION__, 'Setze Variable: ' . $ident . ' auf Wert: ' . json_encode($adjustedValue), 0);
+        }
 
         // Spezialbehandlung für ColorTemp
-        if ($ident === 'color_temp') {
+        if ($changed && $ident === 'color_temp') {
             $kelvinIdent = 'color_temp_kelvin';
             $kelvinValue = $this->convertMiredToKelvin($value);
             $this->SetValueDirect($kelvinIdent, $kelvinValue);
             $this->UpdateColorTemperatureWhiteColorVariable($kelvinValue);
         }
-        $this->UpdateCustomTileValuesIfRelevant($ident);
+        if ($changed) {
+            $this->UpdateCustomTileValuesIfRelevant($ident);
+        }
         return $result;
     }
 
@@ -1328,10 +1336,13 @@ abstract class ModulBase extends \IPSModuleStrict
                 break;
         }
 
-        $this->SendDebug(__FUNCTION__, \sprintf('Setze Variable: %s, Typ: %s, Wert: %s', $ident, $debugVarType, json_encode($value)), 0);
         // Setze den Wert der Variable
-        $this->SetModuleValue($ident, $variableID, $value);
-        $this->UpdateCustomTileValuesIfRelevant($ident);
+        $changed = false;
+        $this->SetModuleValue($ident, $variableID, $value, $changed);
+        if ($changed) {
+            $this->SendDebug(__FUNCTION__, \sprintf('Setze Variable: %s, Typ: %s, Wert: %s', $ident, $debugVarType, json_encode($value)), 0);
+            $this->UpdateCustomTileValuesIfRelevant($ident);
+        }
     }
 
     /**
@@ -1339,7 +1350,7 @@ abstract class ModulBase extends \IPSModuleStrict
      */
     protected function UpdateCustomTileVisualizationValue(string $value): void
     {
-        set_error_handler(static function (): bool
+        \set_error_handler(static function (): bool
         {
             return true;
         });
@@ -1348,7 +1359,7 @@ abstract class ModulBase extends \IPSModuleStrict
         } catch (\Throwable) {
             // Beim Modul-Reload kann das InstanceInterface kurz fehlen; der naechste Wert aktualisiert die Kachel erneut.
         } finally {
-            restore_error_handler();
+            \restore_error_handler();
         }
     }
 
@@ -1631,7 +1642,7 @@ abstract class ModulBase extends \IPSModuleStrict
      */
     private function ReadPropertySafe(\Closure $reader, bool|int|float|string $default): bool|int|float|string
     {
-        set_error_handler(static function (): bool
+        \set_error_handler(static function (): bool
         {
             return true;
         });
@@ -1640,7 +1651,7 @@ abstract class ModulBase extends \IPSModuleStrict
         } catch (\Throwable) {
             return $default;
         } finally {
-            restore_error_handler();
+            \restore_error_handler();
         }
     }
 
@@ -1755,8 +1766,14 @@ abstract class ModulBase extends \IPSModuleStrict
     /**
      * Setzt einen Variablenwert module-strict-konform.
      */
-    private function SetModuleValue(string $ident, int $variableID, mixed $value): bool
+    private function SetModuleValue(string $ident, int $variableID, mixed $value, ?bool &$changed = null): bool
     {
+        $changed = true;
+        if ($this->IsModuleValueUnchanged($variableID, $value)) {
+            $changed = false;
+            return true;
+        }
+
         if (\defined('PHPUNIT_TESTSUITE') && \constant('PHPUNIT_TESTSUITE')) {
             \SetValue($variableID, $value);
             return true;
@@ -1773,6 +1790,30 @@ abstract class ModulBase extends \IPSModuleStrict
         } finally {
             restore_error_handler();
         }
+    }
+
+    /**
+     * Prüft, ob der gewünschte Wert bereits unveraendert in der Symcon-Variable steht.
+     */
+    private function IsModuleValueUnchanged(int $variableID, mixed $value): bool
+    {
+        \set_error_handler(static function (): bool
+        {
+            return true;
+        });
+        try {
+            $currentValue = \GetValue($variableID);
+        } catch (\Throwable) {
+            return false;
+        } finally {
+            \restore_error_handler();
+        }
+
+        if (\is_float($currentValue) || \is_float($value)) {
+            return \abs((float) $currentValue - (float) $value) < 0.000000001;
+        }
+
+        return $currentValue === $value;
     }
 
     /**
