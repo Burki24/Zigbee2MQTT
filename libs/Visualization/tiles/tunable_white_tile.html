@@ -371,8 +371,9 @@
             if (!nextData) {
                 return;
             }
+            const previousData = data;
             data = nextData;
-            render();
+            renderChanges(previousData);
         }
 
         function sendAction(ident, value) {
@@ -384,6 +385,26 @@
         function number(value, fallback = 0) {
             const result = Number(value);
             return Number.isFinite(result) ? result : fallback;
+        }
+
+        function sameValue(previousValue, nextValue) {
+            return JSON.stringify(previousValue ?? null) === JSON.stringify(nextValue ?? null);
+        }
+
+        function renderChanges(previousData) {
+            if (!sameValue(previousData.state, data.state) || !sameValue(previousData.labels, data.labels)) {
+                renderState();
+            }
+            if (!sameValue(previousData.brightness, data.brightness)) {
+                renderBrightness();
+            }
+            if (!sameValue(previousData.colorTemperature, data.colorTemperature)) {
+                renderTemperature();
+                updatePresetSelection();
+            }
+            if (!sameValue(previousData.presets, data.presets)) {
+                renderPresets();
+            }
         }
 
         function setRange(slider, config) {
@@ -436,6 +457,7 @@
                 const button = document.createElement("button");
                 const presetValue = Math.round(number(preset.value));
                 button.className = `preset-button${presetValue === currentMired ? " active" : ""}`;
+                button.dataset.value = String(presetValue);
                 button.type = "button";
                 button.textContent = String(preset.caption || `${preset.kelvin} K`);
                 button.title = `${Math.round(number(preset.kelvin))} K`;
@@ -443,7 +465,7 @@
                     data.colorTemperature.mired = presetValue;
                     data.colorTemperature.value = Math.round(number(preset.kelvin));
                     renderTemperature();
-                    renderPresets();
+                    updatePresetSelection();
                     sendAction("TunableWhiteTile.SetPreset", presetValue);
                 });
                 fragment.appendChild(button);
@@ -451,7 +473,14 @@
             presets.replaceChildren(fragment);
         }
 
-        function render() {
+        function updatePresetSelection() {
+            const currentMired = Math.round(number(data.colorTemperature?.mired));
+            for (const button of presets.querySelectorAll(".preset-button")) {
+                button.classList.toggle("active", Math.round(number(button.dataset.value)) === currentMired);
+            }
+        }
+
+        function renderState() {
             const isOn = Boolean(data.state?.value);
             tile.classList.toggle("on", isOn);
             tile.classList.toggle("off", !isOn);
@@ -459,6 +488,10 @@
             temperatureLabel.textContent = String(data.labels?.colorTemperature || "Color temperature");
             powerButton.title = String(data.labels?.toggle || "Turn light on/off");
             powerCaption.textContent = String(data.state?.formatted || "");
+        }
+
+        function render() {
+            renderState();
             renderBrightness();
             renderTemperature();
             renderPresets();
@@ -469,7 +502,7 @@
                 data.state = {};
             }
             data.state.value = !Boolean(data.state.value);
-            render();
+            renderState();
             sendAction("TunableWhiteTile.Toggle", true);
         });
 

@@ -1203,6 +1203,7 @@ class DevicesTest extends DumpInclude
         $this->assertStringNotContainsString('__THEME_SUPPORT__', $html);
         $this->assertStringContainsString('presetLayoutReserved', $html);
         $this->assertStringContainsString('presets.replaceChildren(fragment)', $html);
+        $this->assertStringContainsString('renderChanges(previousData)', $html);
 
         $form = json_decode(IPS_GetConfigurationForm($iid), true);
         $this->assertFormItemVisible($form, 'VisualizationSettings');
@@ -1233,6 +1234,7 @@ class DevicesTest extends DumpInclude
         $this->assertStringContainsString('ColorLightTile.SetPreset', $html);
         $this->assertStringContainsString('presetLayoutReserved', $html);
         $this->assertStringContainsString('presets.replaceChildren(fragment)', $html);
+        $this->assertStringContainsString('renderChanges(previous)', $html);
 
         $form = json_decode(IPS_GetConfigurationForm($iid), true);
         $this->assertFormItemVisible($form, 'DisableColorLightTile');
