@@ -946,8 +946,6 @@ class DevicesTest extends DumpInclude
         $topic = $Debug['Config']['MQTTBaseTopic'] . '/' . $Debug['Config']['MQTTTopic'];
 
         $this->removeStubProperties($iid, [
-            'DisableColorLightTile',
-            'DisableTunableWhiteTile',
             'DisableMeteredSwitchTile',
             'DisableHeatingTile',
             'DisableSecurityTile',
@@ -1186,67 +1184,41 @@ class DevicesTest extends DumpInclude
         $this->assertNotSame(0xFF9227, GetValue($colorID));
     }
 
-    public function testTunableWhiteLightUsesCustomTileWithPresets(): void
+    public function testTunableWhiteLightUsesStandardVisualization(): void
     {
-        [$iid] = $this->createTestInstance('TunableWhiteLight.json');
+        [$iid, $debug] = $this->createTestInstance('TunableWhiteLight.json');
+        $interface = IPS\InstanceManager::getInstanceInterface($iid);
 
-        $html = IPS\InstanceManager::getInstanceInterface($iid)->GetVisualizationTile();
-        $this->assertStringContainsString('"type":"tunableWhite"', $html);
-        $this->assertStringContainsString('"brightness":{"available":true,"value":100,"percent":39', $html);
-        $this->assertStringContainsString('"colorTemperature":{"available":true,"value":2202,"mired":454', $html);
-        $this->assertStringContainsString('"presets":[{"value":153,"kelvin":6535,"caption":"Sehr kalt"}', $html);
-        $this->assertStringContainsString('TunableWhiteTile.SetBrightness', $html);
-        $this->assertStringContainsString('TunableWhiteTile.SetColorTemperature', $html);
-        $this->assertStringContainsString('TunableWhiteTile.SetPreset', $html);
-        $this->assertStringNotContainsString('id="title"', $html);
-        $this->assertStringNotContainsString('id="status"', $html);
-        $this->assertStringNotContainsString('__THEME_SUPPORT__', $html);
-        $this->assertStringContainsString('layoutCapabilities', $html);
-        $this->assertStringContainsString('presets.replaceChildren(fragment)', $html);
-        $this->assertStringContainsString('renderChanges(previousData)', $html);
-        $this->assertStringContainsString('data = mergeTileData(data, patch)', $html);
-        $this->assertStringContainsString('preserveLayoutCapabilities()', $html);
-        $this->assertStringNotContainsString('data = nextData', $html);
+        $this->assertSame('', $interface->GetVisualizationTile());
+        $this->assertNotFalse(IPS_GetObjectIDByIdent('color_temp_kelvin', $iid));
+        $this->assertNotFalse(IPS_GetObjectIDByIdent('color_temp_presets', $iid));
 
         $form = json_decode(IPS_GetConfigurationForm($iid), true);
-        $this->assertFormItemVisible($form, 'VisualizationSettings');
-        $this->assertFormItemVisible($form, 'DisableTunableWhiteTile');
-        $status = $this->findFormItemByName($form, 'VisualizationStatus');
-        $this->assertNotNull($status);
-        $this->assertStringContainsString('Tunable-White-Kachel', $status['caption']);
+        $this->assertNull($this->findFormItemByName($form, 'DisableTunableWhiteTile'));
+        $this->assertFormItemHidden($form, 'VisualizationSettings');
 
-        IPS_SetProperty($iid, 'DisableTunableWhiteTile', true);
-        IPS_ApplyChanges($iid);
-        $this->assertSame('', IPS\InstanceManager::getInstanceInterface($iid)->GetVisualizationTile());
+        $topic = $debug['Config']['MQTTBaseTopic'] . '/' . $debug['Config']['MQTTTopic'];
+        $messageCount = count($interface->getMessages());
+        $interface->ReceiveData(self::buildMqttRequest($topic, ['brightness' => 127]));
+        $visualizationMessages = array_filter(
+            array_slice($interface->getMessages(), $messageCount),
+            static fn (array $message): bool => ($message['Message'] ?? null) === 10541
+        );
+        $this->assertCount(0, $visualizationMessages);
     }
 
-    public function testColorLightUsesNativeColorPickerTileWithWhiteControls(): void
+    public function testColorLightUsesStandardVisualizationWithNativeColorPresentation(): void
     {
         [$iid, $debug] = $this->createTestInstance('ColorLight.json');
         $interface = IPS\InstanceManager::getInstanceInterface($iid);
         $colorID = IPS_GetObjectIDByIdent('color', $iid);
         $this->assertNotFalse($colorID);
-
-        $html = $interface->GetVisualizationTile();
-        $this->assertStringContainsString('"type":"colorLight"', $html);
-        $this->assertStringContainsString('"variant":"rgbww"', $html);
-        $this->assertStringContainsString('"objectID":' . $colorID, $html);
-        $this->assertStringContainsString("typeof openObject==='function'", $html);
-        $this->assertStringContainsString('ColorLightTile.SetBrightness', $html);
-        $this->assertStringContainsString('ColorLightTile.SetColorTemperature', $html);
-        $this->assertStringContainsString('ColorLightTile.SetPreset', $html);
-        $this->assertStringContainsString('layoutCapabilities', $html);
-        $this->assertStringContainsString('presets.replaceChildren(fragment)', $html);
-        $this->assertStringContainsString('renderChanges(previous)', $html);
-        $this->assertStringContainsString('data=mergeTileData(data,patch)', $html);
-        $this->assertStringContainsString('preserveLayoutCapabilities()', $html);
-        $this->assertStringNotContainsString('data=next', $html);
+        $this->assertSame('', $interface->GetVisualizationTile());
+        $this->assertSame(VARIABLE_PRESENTATION_COLOR, IPS_GetVariable($colorID)['VariablePresentation']['PRESENTATION'] ?? null);
 
         $form = json_decode(IPS_GetConfigurationForm($iid), true);
-        $this->assertFormItemVisible($form, 'DisableColorLightTile');
-        $status = $this->findFormItemByName($form, 'VisualizationStatus');
-        $this->assertNotNull($status);
-        $this->assertStringContainsString('RGB-Licht-Kachel', $status['caption']);
+        $this->assertNull($this->findFormItemByName($form, 'DisableColorLightTile'));
+        $this->assertFormItemHidden($form, 'VisualizationSettings');
 
         $topic = $debug['Config']['MQTTBaseTopic'] . '/' . $debug['Config']['MQTTTopic'];
         $messageCount = count($interface->getMessages());
@@ -1256,68 +1228,7 @@ class DevicesTest extends DumpInclude
             array_slice($interface->getMessages(), $messageCount),
             static fn (array $message): bool => ($message['Message'] ?? null) === 10541
         ));
-        $this->assertNotEmpty($visualizationMessages);
-        foreach ($visualizationMessages as $message) {
-            $tileData = json_decode($message['Data'][0], true, 512, JSON_THROW_ON_ERROR);
-            $this->assertSame('colorLight', $tileData['type'] ?? null);
-            $this->assertSame($colorID, $tileData['color']['objectID'] ?? null);
-            $this->assertArrayHasKey('brightness', $tileData);
-            $this->assertArrayHasKey('colorTemperature', $tileData);
-        }
-    }
-
-    public function testColorLightTileAdaptsToRgbAndRgbwCapabilities(): void
-    {
-        [$iid, $debug] = $this->createTestInstance('ColorLight.json');
-        $interface = IPS\InstanceManager::getInstanceInterface($iid);
-
-        $rgbExposes = $debug['Exposes'];
-        $rgbExposes[0]['features'] = array_values(array_filter(
-            $rgbExposes[0]['features'],
-            static fn (array $feature): bool => ($feature['property'] ?? '') !== 'color_temp'
-        ));
-        $this->writeStubAttributeArray($iid, 'Exposes', $rgbExposes);
-        $html = $interface->GetVisualizationTile();
-        $this->assertStringContainsString('"variant":"rgb"', $html);
-        $this->assertStringContainsString('"colorTemperature":{"available":false}', $html);
-
-        $rgbwExposes = $debug['Exposes'];
-        foreach ($rgbwExposes[0]['features'] as &$feature) {
-            if (($feature['property'] ?? '') === 'color_temp') {
-                unset($feature['presets']);
-            }
-        }
-        unset($feature);
-        $presetID = IPS_GetObjectIDByIdent('color_temp_presets', $iid);
-        $this->assertNotFalse($presetID);
-        IPS_DeleteVariable($presetID);
-        $this->writeStubAttributeArray($iid, 'Exposes', $rgbwExposes);
-        $html = $interface->GetVisualizationTile();
-        $this->assertStringContainsString('"variant":"rgbw"', $html);
-        $this->assertStringContainsString('"colorTemperature":{"available":true', $html);
-        $this->assertStringContainsString('"presets":[]', $html);
-    }
-
-    public function testBrightnessUpdateOnlyRefreshesActiveTunableWhiteTile(): void
-    {
-        [$iid, $debug] = $this->createTestInstance('TunableWhiteLight.json');
-        $interface = IPS\InstanceManager::getInstanceInterface($iid);
-        $topic = $debug['Config']['MQTTBaseTopic'] . '/' . $debug['Config']['MQTTTopic'];
-        $messageCount = count($interface->getMessages());
-
-        $interface->ReceiveData(self::buildMqttRequest($topic, ['brightness' => 127]));
-
-        $visualizationMessages = array_values(array_filter(
-            array_slice($interface->getMessages(), $messageCount),
-            static fn (array $message): bool => ($message['Message'] ?? null) === 10541
-        ));
-        $this->assertCount(1, $visualizationMessages);
-
-        $tileData = json_decode($visualizationMessages[0]['Data'][0], true, 512, JSON_THROW_ON_ERROR);
-        $this->assertSame('tunableWhite', $tileData['type'] ?? null);
-        $this->assertSame(50, $tileData['brightness']['value'] ?? null);
-        $this->assertArrayHasKey('colorTemperature', $tileData);
-        $this->assertNotEmpty($tileData['presets'] ?? []);
+        $this->assertCount(0, $visualizationMessages);
     }
 
     public function testPresetValuesAreDistributedUniquelyWithinExposeRange(): void

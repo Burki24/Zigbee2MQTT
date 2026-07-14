@@ -57,17 +57,14 @@ class GroupTest extends DumpInclude
         $this->assertNotContains('AdvancedGroupSettings', $topLevelNames);
     }
 
-    public function testTunableWhiteGroupUsesCustomTileAndKeepsItOnBrightnessUpdates(): void
+    public function testTunableWhiteGroupUsesStandardVisualization(): void
     {
         [$groupID, $debug] = $this->createTunableWhiteGroup();
         $group = IPS\InstanceManager::getInstanceInterface($groupID);
 
-        $html = $group->GetVisualizationTile();
-        $this->assertStringContainsString('"type":"tunableWhite"', $html);
-        $this->assertStringContainsString('TunableWhiteTile.SetBrightness', $html);
-        $this->assertStringContainsString('TunableWhiteTile.SetColorTemperature', $html);
-        $this->assertStringContainsString('TunableWhiteTile.SetPreset', $html);
-        $this->assertStringContainsString('"colorTemperature":{"available":true,"value":2202,"mired":454,"min":2202,"max":5000', $html);
+        $this->assertFalse(method_exists($group, 'GetVisualizationTile'));
+        $this->assertNotFalse(IPS_GetObjectIDByIdent('color_temp_kelvin', $groupID));
+        $this->assertNotFalse(IPS_GetObjectIDByIdent('color_temp_presets', $groupID));
 
         $topic = $debug['Config']['MQTTBaseTopic'] . '/' . $debug['Config']['MQTTTopic'];
         $messageCount = count($group->getMessages());
@@ -77,34 +74,10 @@ class GroupTest extends DumpInclude
             array_slice($group->getMessages(), $messageCount),
             static fn (array $message): bool => ($message['Message'] ?? null) === 10541
         ));
-        $this->assertCount(1, $visualizationMessages);
-
-        $tileData = json_decode($visualizationMessages[0]['Data'][0], true, 512, JSON_THROW_ON_ERROR);
-        $this->assertSame('tunableWhite', $tileData['type'] ?? null);
-        $this->assertArrayHasKey('brightness', $tileData);
-        $this->assertArrayHasKey('colorTemperature', $tileData);
-        $this->assertNotEmpty($tileData['presets'] ?? []);
-
-        foreach ([200 => 5000, 454 => 2202] as $mired => $kelvin) {
-            $messageCount = count($group->getMessages());
-            $group->ReceiveData(self::buildMqttRequest($topic, ['color_temp' => $mired]));
-
-            $boundaryMessages = array_values(array_filter(
-                array_slice($group->getMessages(), $messageCount),
-                static fn (array $message): bool => ($message['Message'] ?? null) === 10541
-            ));
-            $this->assertNotEmpty($boundaryMessages);
-            foreach ($boundaryMessages as $message) {
-                $boundaryData = json_decode($message['Data'][0], true, 512, JSON_THROW_ON_ERROR);
-                $this->assertSame('tunableWhite', $boundaryData['type'] ?? null);
-                $this->assertSame(2202, $boundaryData['colorTemperature']['min'] ?? null);
-                $this->assertSame(5000, $boundaryData['colorTemperature']['max'] ?? null);
-                $this->assertSame($kelvin, $boundaryData['colorTemperature']['value'] ?? null);
-            }
-        }
+        $this->assertCount(0, $visualizationMessages);
     }
 
-    public function testColorLightGroupUsesNativeColorPickerTile(): void
+    public function testColorLightGroupUsesStandardVisualizationWithNativeColorPresentation(): void
     {
         $debug = json_decode(file_get_contents(__DIR__ . '/TestDumps/ColorLight.json'), true, 512, JSON_THROW_ON_ERROR);
         $debug['Config']['MQTTTopic'] = 'Test/ColorLightGroup';
@@ -117,12 +90,9 @@ class GroupTest extends DumpInclude
         $group->ReceiveData(self::buildMqttRequest($topic, $payload));
 
         $colorID = IPS_GetObjectIDByIdent('color', $groupID);
-        $html = $group->GetVisualizationTile();
         $this->assertNotFalse($colorID);
-        $this->assertStringContainsString('"type":"colorLight"', $html);
-        $this->assertStringContainsString('"variant":"rgbww"', $html);
-        $this->assertStringContainsString('"objectID":' . $colorID, $html);
-        $this->assertStringContainsString("typeof openObject==='function'", $html);
+        $this->assertFalse(method_exists($group, 'GetVisualizationTile'));
+        $this->assertSame(VARIABLE_PRESENTATION_COLOR, IPS_GetVariable($colorID)['VariablePresentation']['PRESENTATION'] ?? null);
     }
 
     public function testGroupAvailableDeviceListIsFilledFromExistingDeviceInstances(): void

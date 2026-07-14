@@ -317,8 +317,7 @@ Die Änderungen sind anhand der funktionalen Commits chronologisch gegliedert. A
 
 - Sämtliche Module wurden auf `IPSModuleStrict` migriert. Die Mindestversion wurde abschließend auf IP-Symcon 9.0 angehoben.
 - Numeric-, Enum-, Temperatur- und Farbtemperatur-Exposes erhalten passendere moderne Variablendarstellungen, soweit die Exposes die dafür notwendigen Werte liefern.
-- Die Kelvin-Farbtemperaturvariable `color_temp_kelvin` nutzt den aus dem Zigbee2MQTT-Mired-Bereich berechneten Kelvin-Bereich für die Tunable-White-Kachel und die Symcon-Standardkachel Beleuchtung.
-- Tunable-White-Leuchten erhalten eine eigene Kachel mit Ein/Aus, Helligkeit, Kelvin-Regler und den von Zigbee2MQTT gemeldeten Farbtemperatur-Presets. Die Kachel kann in der Instanzkonfiguration deaktiviert werden.
+- Die Kelvin-Farbtemperaturvariable `color_temp_kelvin` nutzt den aus dem Zigbee2MQTT-Mired-Bereich berechneten Kelvin-Bereich für die Symcon-Standardkachel Beleuchtung. Farbtemperatur-Presets bleiben als native Aufzählungsvariable verfügbar.
 - Moderne HTML-SDK-Kacheln wurden schrittweise für Heizungen, Schaltaktoren mit Messwerten, Sensoren, Sicherheitsgeräte, Fenstergriffe und Aktionsgeräte ergänzt.
 - Heizungs-Kacheln zeigen Ist- und Solltemperatur ohne Ringslider und bedienen die Solltemperatur per Plus-/Minus-Tasten. Später kamen breitere Preset-Tasten und pro Instanz konfigurierbare Solltemperaturen hinzu.
 - Schaltaktoren mit Messwerten zeigen Energie, Leistung, Spannung und Strom in einer eigenen Ansicht. Archivierte Werte können direkt aus der Kachel als Graphen geöffnet werden.
@@ -514,6 +513,12 @@ Die Änderungen sind anhand der funktionalen Commits chronologisch gegliedert. A
 - Reine Schreib- und Befehlswerte ohne eigene Rueckmeldung, zum Beispiel Szenen, Presets, Effekte oder andere `access: 2`-Funktionen, merken nach erfolgreichem Senden weiterhin den zuletzt gewaehlten Wert lokal.
 - Helligkeitsaktionen nutzen dieselbe Rueckmeldepruefung wie andere Standardaktionen und geben Sendefehler wieder korrekt an die Aktion zurueck.
 - Unveraenderte Payload-Werte werden nicht mehr erneut in Symcon-Variablen geschrieben. Dadurch sinken FlowHandler-, Ereignis-, Archiv- und Kachel-Aktualisierungen bei haeufig sendenden Geraeten deutlich.
+
+### 14. Juli 2026: Standardkacheln fuer Beleuchtung
+
+- RGB-, RGBW-, RGBWW- und Tunable-White-Leuchten sowie entsprechende Gruppen verwenden wieder die responsive Symcon-Standarddarstellung.
+- Die experimentellen RGB- und Tunable-White-HTML-Kacheln sowie ihre Konfigurationsschalter wurden entfernt.
+- Native Farb-, Helligkeits- und Kelvin-Darstellungen, normalisierte Farbtemperatur-Presets sowie geraete- und gruppenspezifische Min-/Max-Bereiche bleiben erhalten.
 
 **Version 5.42:**
 

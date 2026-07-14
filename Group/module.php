@@ -137,39 +137,6 @@ class Zigbee2MQTTGroup extends \Zigbee2MQTT\ModulBase
     }
 
     /**
-     * Liefert fuer unterstuetzte Lichtgruppen die passende HTML-SDK-Kachel.
-     */
-    public function GetVisualizationTile(): string
-    {
-        $isColorLight = $this->ShouldUseColorLightTile();
-        if (!$isColorLight && !$this->ShouldUseTunableWhiteTile()) {
-            return '';
-        }
-
-        $tilePath = dirname(__DIR__) . '/libs/Visualization/tiles/';
-        $html = file_get_contents($tilePath . ($isColorLight ? 'color_light_tile.html' : 'tunable_white_tile.html'));
-        $themeSupport = is_file($tilePath . 'theme_support.html') ? file_get_contents($tilePath . 'theme_support.html') : '';
-        if (!\is_string($html)) {
-            return '';
-        }
-        if (!\is_string($themeSupport)) {
-            $themeSupport = '';
-        }
-
-        return str_replace(
-            ['__THEME_SUPPORT__', '__INITIAL_DATA__'],
-            [
-                $themeSupport,
-                json_encode(
-                    $isColorLight ? $this->BuildColorLightTileData() : $this->BuildTunableWhiteTileData(),
-                    JSON_HEX_TAG | JSON_HEX_APOS | JSON_HEX_AMP | JSON_HEX_QUOT
-                )
-            ],
-            $html
-        );
-    }
-
-    /**
      * RequestAction
      *
      * @param  string $ident

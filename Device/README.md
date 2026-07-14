@@ -163,9 +163,7 @@ Der Bereich ist nur für die Darstellung relevant. Er ändert keine Gerätewerte
 
 ### 4.4 Farbtemperatur in der Beleuchtungs-Kachel
 
-Für Leuchtmittel mit `color_temp` legt das Modul zusätzlich die Variable `color_temp_kelvin` an. Diese Variable wird von der Tunable-White-Kachel und beim Rückfall von der Symcon-Standardkachel **Beleuchtung** verwendet, damit die Bedienung in Kelvin statt in Mired erfolgt.
-
-Tunable-White-Leuchten mit `state` und `color_temp` verwenden standardmäßig die eigene **Tunable-White-Kachel**. Sie kombiniert Ein/Aus, Helligkeit, einen Kelvin-Regler und die von Zigbee2MQTT gemeldeten Farbtemperatur-Presets. Über **Visualisierung → Tunable-White-Kachel deaktivieren** kann jederzeit auf die Symcon-Standarddarstellung zurückgeschaltet werden.
+Für Leuchtmittel mit `color_temp` legt das Modul zusätzlich die Variable `color_temp_kelvin` an. Diese Variable wird von der Symcon-Standardkachel **Beleuchtung** verwendet, damit die Bedienung in Kelvin statt in Mired erfolgt. Farbtemperatur-Presets bleiben als eigene native Aufzählungsvariable verfügbar.
 
 Zigbee2MQTT liefert den Bereich für `color_temp` normalerweise in Mired. Das Modul rechnet diesen Bereich automatisch in Kelvin um:
 
@@ -191,7 +189,7 @@ Der Override korrigiert die Symcon-Darstellung der `color_temp_kelvin`-Variable,
 
 RGB-, HS- und XY-Farb-Exposes werden als Integer-Variable ohne Modulprofil angelegt und nutzen die native Symcon-Farbdarstellung für Hex/sRGB-Farbwerte. Dadurch kann die Symcon-Standardkachel für RGB-Leuchtmittel die Farbe über den üblichen ColorHex-Wert verwenden, ohne dass ein Legacy-Profil wie `~Color` benötigt wird.
 
-RGB-, RGBW- und RGBWW-Leuchten verwenden standardmäßig die eigene **RGB-Licht-Kachel**. Sie kombiniert Ein/Aus, Helligkeit und die aktuelle Farbe. Ein Klick auf die Farbanzeige öffnet die vorhandene Farbvariable als maximierte native Symcon-Kachel, sodass der originale Symcon-Color-Picker erhalten bleibt. Unterstützt das Leuchtmittel zusätzlich `color_temp`, ergänzt dieselbe Kachel den Kelvin-Regler und vorhandene Farbtemperatur-Presets. Über **Visualisierung → RGB-Licht-Kachel deaktivieren** kann auf die nächste passende Darstellung zurückgeschaltet werden.
+RGB-, RGBW-, RGBWW- und Tunable-White-Leuchten verwenden die responsive Symcon-Standardkachel. Dadurch bleiben die native Farbauswahl und die von Symcon bereitgestellten Detailansichten erhalten.
 
 Bei reinen Tunable-White-Leuchtmitteln ohne RGB/HS/XY-Farb-Expose legt das Modul zusätzlich eine abgeleitete Variable `color` ohne Modulprofil an. Diese Variable nutzt ebenfalls die native Symcon-Farbdarstellung für Hex/sRGB-Farbwerte und zeigt den aktuellen Weißton an, bleibt aber eine reine Darstellung und ersetzt keine echte RGB-Steuerung.
 
