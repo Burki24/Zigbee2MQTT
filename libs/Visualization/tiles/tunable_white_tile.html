@@ -32,7 +32,7 @@
 
         .tile {
             display: grid;
-            grid-template-rows: 1fr auto;
+            grid-template-rows: minmax(0, 1fr) minmax(36px, auto);
             gap: 14px;
             width: 100%;
             height: 100%;
@@ -195,7 +195,17 @@
         }
 
         .presets.hidden {
-            display: none;
+            visibility: hidden;
+            pointer-events: none;
+        }
+
+        .tile.no-presets {
+            grid-template-rows: minmax(0, 1fr) 0;
+            gap: 0;
+        }
+
+        .tile.no-presets .presets {
+            min-height: 0;
         }
 
         .preset-button {
@@ -324,6 +334,7 @@
 
     <script>
         let data = __INITIAL_DATA__;
+        let presetLayoutReserved = Array.isArray(data.presets) && data.presets.length > 0;
 
         const tile = document.getElementById("tile");
         const powerButton = document.getElementById("powerButton");
@@ -412,10 +423,14 @@
         }
 
         function renderPresets() {
-            presets.replaceChildren();
             const items = Array.isArray(data.presets) ? data.presets : [];
+            if (items.length > 0) {
+                presetLayoutReserved = true;
+            }
+            tile.classList.toggle("no-presets", !presetLayoutReserved);
             presets.classList.toggle("hidden", items.length === 0);
             const currentMired = Math.round(number(data.colorTemperature?.mired));
+            const fragment = document.createDocumentFragment();
 
             for (const preset of items) {
                 const button = document.createElement("button");
@@ -431,8 +446,9 @@
                     renderPresets();
                     sendAction("TunableWhiteTile.SetPreset", presetValue);
                 });
-                presets.appendChild(button);
+                fragment.appendChild(button);
             }
+            presets.replaceChildren(fragment);
         }
 
         function render() {

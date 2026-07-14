@@ -8,7 +8,7 @@
         * { box-sizing:border-box; }
         html,body { width:100%; height:100%; margin:0; overflow:hidden; }
         button,input { font:inherit; }
-        .tile { display:grid; grid-template-rows:1fr auto; gap:14px; width:100%; height:100%; min-height:240px; padding:58px 18px 18px; color:var(--text); }
+        .tile { display:grid; grid-template-rows:minmax(0,1fr) minmax(36px,auto); gap:14px; width:100%; height:100%; min-height:240px; padding:58px 18px 18px; color:var(--text); }
         .controls { display:grid; grid-template-columns:minmax(112px,.42fr) minmax(190px,1fr); align-items:center; gap:clamp(18px,5vw,38px); min-height:0; }
         .power-area { display:grid; justify-items:center; gap:10px; }
         .power-button { display:grid; place-items:center; width:clamp(84px,24vw,126px); height:clamp(84px,24vw,126px); border:1px solid var(--line); border-radius:50%; color:var(--muted); background:var(--chip); box-shadow:inset 0 0 0 7px color-mix(in srgb,currentColor 3%,transparent); cursor:pointer; transition:transform 120ms ease,color 180ms ease,background 180ms ease,box-shadow 180ms ease; }
@@ -35,6 +35,9 @@
         .picker-hint { color:var(--muted); font-size:var(--z2m-font-small); }
         .picker-arrow { color:var(--muted); font-size:1.25em; }
         .presets { display:grid; grid-template-columns:repeat(auto-fit,minmax(78px,1fr)); gap:8px; min-height:36px; }
+        .presets.hidden { display:grid !important; visibility:hidden; pointer-events:none; }
+        .tile.no-presets { grid-template-rows:minmax(0,1fr) 0; gap:0; }
+        .tile.no-presets .presets { min-height:0; }
         .preset-button { min-width:0; height:36px; padding:0 9px; overflow:hidden; border:1px solid var(--line); border-radius:8px; color:var(--text); background:var(--chip); cursor:pointer; font-size:var(--z2m-font-small); text-overflow:ellipsis; white-space:nowrap; }
         .preset-button.active { border-color:var(--accent); color:#fff; background:var(--accent); }
         .tile.off .stack,.tile.off .presets { opacity:.72; }
@@ -82,7 +85,7 @@
         <section id="presets" class="presets"></section>
     </main>
     <script>
-        let data=__INITIAL_DATA__;
+        let data=__INITIAL_DATA__,presetLayoutReserved=Array.isArray(data.presets)&&data.presets.length>0;
         const byId=id=>document.getElementById(id), tile=byId('tile'), powerButton=byId('powerButton'), powerCaption=byId('powerCaption'), brightnessControl=byId('brightnessControl'), brightnessLabel=byId('brightnessLabel'), brightnessValue=byId('brightnessValue'), brightnessSlider=byId('brightnessSlider'), colorControl=byId('colorControl'), colorLabel=byId('colorLabel'), colorButton=byId('colorButton'), pickerHint=byId('pickerHint'), fallbackColorPicker=byId('fallbackColorPicker'), temperatureControl=byId('temperatureControl'), temperatureLabel=byId('temperatureLabel'), temperatureValue=byId('temperatureValue'), temperatureSlider=byId('temperatureSlider'), temperatureMin=byId('temperatureMin'), temperatureMax=byId('temperatureMax'), presets=byId('presets');
         const number=(value,fallback=0)=>Number.isFinite(Number(value))?Number(value):fallback;
         const sendAction=(ident,value)=>{ if(typeof requestAction==='function') requestAction(ident,value); };
@@ -92,7 +95,7 @@
         function renderBrightness(){const config=data.brightness||{},available=Boolean(config.available);brightnessControl.classList.toggle('hidden',!available);if(!available)return;setRange(brightnessSlider,config);const percent=Math.max(0,Math.min(100,Math.round(number(config.percent))));brightnessValue.textContent=`${percent} %`;brightnessSlider.style.background=`linear-gradient(90deg,var(--current-color) 0%,var(--current-color) ${percent}%,var(--track) ${percent}%,var(--track) 100%)`;}
         function renderColor(){const config=data.color||{},available=Boolean(config.available);colorControl.classList.toggle('hidden',!available);if(!available)return;const hex=String(config.hex||'#000000');tile.style.setProperty('--current-color',hex);fallbackColorPicker.value=hex;pickerHint.textContent=String(data.labels?.openColorPicker||'Open color picker');colorButton.title=pickerHint.textContent;}
         function renderTemperature(){const config=data.colorTemperature||{},available=Boolean(config.available);temperatureControl.classList.toggle('hidden',!available);if(!available)return;setRange(temperatureSlider,config);temperatureValue.textContent=`${Math.round(number(config.value,number(config.min)))} K`;temperatureMin.textContent=`${Math.round(number(config.min))} K`;temperatureMax.textContent=`${Math.round(number(config.max))} K`;}
-        function renderPresets(){presets.replaceChildren();const items=Array.isArray(data.presets)?data.presets:[];presets.classList.toggle('hidden',items.length===0);const current=Math.round(number(data.colorTemperature?.mired));for(const preset of items){const button=document.createElement('button'),value=Math.round(number(preset.value));button.className=`preset-button${value===current?' active':''}`;button.type='button';button.textContent=String(preset.caption||`${preset.kelvin} K`);button.title=`${Math.round(number(preset.kelvin))} K`;button.addEventListener('click',()=>sendAction('ColorLightTile.SetPreset',value));presets.appendChild(button);}}
+        function renderPresets(){const items=Array.isArray(data.presets)?data.presets:[];if(items.length>0)presetLayoutReserved=true;tile.classList.toggle('no-presets',!presetLayoutReserved);presets.classList.toggle('hidden',items.length===0);const current=Math.round(number(data.colorTemperature?.mired)),fragment=document.createDocumentFragment();for(const preset of items){const button=document.createElement('button'),value=Math.round(number(preset.value));button.className=`preset-button${value===current?' active':''}`;button.type='button';button.textContent=String(preset.caption||`${preset.kelvin} K`);button.title=`${Math.round(number(preset.kelvin))} K`;button.addEventListener('click',()=>sendAction('ColorLightTile.SetPreset',value));fragment.appendChild(button);}presets.replaceChildren(fragment);}
         function render(){const isOn=Boolean(data.state?.value);tile.classList.toggle('on',isOn);tile.classList.toggle('off',!isOn);powerCaption.textContent=String(data.state?.formatted||'');powerButton.title=String(data.labels?.toggle||'');brightnessLabel.textContent=String(data.labels?.brightness||'Brightness');colorLabel.textContent=String(data.labels?.color||'Color');temperatureLabel.textContent=String(data.labels?.colorTemperature||'Color temperature');renderColor();renderBrightness();renderTemperature();renderPresets();}
         powerButton.addEventListener('click',()=>sendAction('ColorLightTile.Toggle',true));
         brightnessSlider.addEventListener('input',()=>{const config=data.brightness||{};config.value=number(brightnessSlider.value);const span=number(config.max)-number(config.min);config.percent=span>0?Math.round((config.value-number(config.min))*100/span):0;renderBrightness();});

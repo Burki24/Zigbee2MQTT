@@ -1201,6 +1201,8 @@ class DevicesTest extends DumpInclude
         $this->assertStringNotContainsString('id="title"', $html);
         $this->assertStringNotContainsString('id="status"', $html);
         $this->assertStringNotContainsString('__THEME_SUPPORT__', $html);
+        $this->assertStringContainsString('presetLayoutReserved', $html);
+        $this->assertStringContainsString('presets.replaceChildren(fragment)', $html);
 
         $form = json_decode(IPS_GetConfigurationForm($iid), true);
         $this->assertFormItemVisible($form, 'VisualizationSettings');
@@ -1229,6 +1231,8 @@ class DevicesTest extends DumpInclude
         $this->assertStringContainsString('ColorLightTile.SetBrightness', $html);
         $this->assertStringContainsString('ColorLightTile.SetColorTemperature', $html);
         $this->assertStringContainsString('ColorLightTile.SetPreset', $html);
+        $this->assertStringContainsString('presetLayoutReserved', $html);
+        $this->assertStringContainsString('presets.replaceChildren(fragment)', $html);
 
         $form = json_decode(IPS_GetConfigurationForm($iid), true);
         $this->assertFormItemVisible($form, 'DisableColorLightTile');
