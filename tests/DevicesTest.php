@@ -1201,9 +1201,12 @@ class DevicesTest extends DumpInclude
         $this->assertStringNotContainsString('id="title"', $html);
         $this->assertStringNotContainsString('id="status"', $html);
         $this->assertStringNotContainsString('__THEME_SUPPORT__', $html);
-        $this->assertStringContainsString('presetLayoutReserved', $html);
+        $this->assertStringContainsString('layoutCapabilities', $html);
         $this->assertStringContainsString('presets.replaceChildren(fragment)', $html);
         $this->assertStringContainsString('renderChanges(previousData)', $html);
+        $this->assertStringContainsString('data = mergeTileData(data, patch)', $html);
+        $this->assertStringContainsString('preserveLayoutCapabilities()', $html);
+        $this->assertStringNotContainsString('data = nextData', $html);
 
         $form = json_decode(IPS_GetConfigurationForm($iid), true);
         $this->assertFormItemVisible($form, 'VisualizationSettings');
@@ -1232,9 +1235,12 @@ class DevicesTest extends DumpInclude
         $this->assertStringContainsString('ColorLightTile.SetBrightness', $html);
         $this->assertStringContainsString('ColorLightTile.SetColorTemperature', $html);
         $this->assertStringContainsString('ColorLightTile.SetPreset', $html);
-        $this->assertStringContainsString('presetLayoutReserved', $html);
+        $this->assertStringContainsString('layoutCapabilities', $html);
         $this->assertStringContainsString('presets.replaceChildren(fragment)', $html);
         $this->assertStringContainsString('renderChanges(previous)', $html);
+        $this->assertStringContainsString('data=mergeTileData(data,patch)', $html);
+        $this->assertStringContainsString('preserveLayoutCapabilities()', $html);
+        $this->assertStringNotContainsString('data=next', $html);
 
         $form = json_decode(IPS_GetConfigurationForm($iid), true);
         $this->assertFormItemVisible($form, 'DisableColorLightTile');

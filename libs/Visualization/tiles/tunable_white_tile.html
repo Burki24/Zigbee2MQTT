@@ -334,7 +334,11 @@
 
     <script>
         let data = __INITIAL_DATA__;
-        let presetLayoutReserved = Array.isArray(data.presets) && data.presets.length > 0;
+        const layoutCapabilities = {
+            brightness: Boolean(data.brightness?.available),
+            colorTemperature: Boolean(data.colorTemperature?.available),
+            presets: Array.isArray(data.presets) ? data.presets : []
+        };
 
         const tile = document.getElementById("tile");
         const powerButton = document.getElementById("powerButton");
@@ -367,13 +371,37 @@
         }
 
         function handleMessage(message) {
-            const nextData = normalizeMessage(message);
-            if (!nextData) {
+            const patch = normalizeMessage(message);
+            if (!patch) {
                 return;
             }
             const previousData = data;
-            data = nextData;
+            data = mergeTileData(data, patch);
+            preserveLayoutCapabilities();
             renderChanges(previousData);
+        }
+
+        function isPlainObject(value) {
+            return value !== null && typeof value === "object" && !Array.isArray(value);
+        }
+
+        function mergeTileData(current, patch) {
+            if (!isPlainObject(current) || !isPlainObject(patch)) {
+                return patch;
+            }
+            const merged = { ...current };
+            for (const [key, value] of Object.entries(patch)) {
+                merged[key] = isPlainObject(value) && isPlainObject(current[key])
+                    ? mergeTileData(current[key], value)
+                    : value;
+            }
+            return merged;
+        }
+
+        function preserveLayoutCapabilities() {
+            data.brightness = { ...(data.brightness || {}), available: layoutCapabilities.brightness };
+            data.colorTemperature = { ...(data.colorTemperature || {}), available: layoutCapabilities.colorTemperature };
+            data.presets = layoutCapabilities.presets;
         }
 
         function sendAction(ident, value) {
@@ -401,9 +429,6 @@
             if (!sameValue(previousData.colorTemperature, data.colorTemperature)) {
                 renderTemperature();
                 updatePresetSelection();
-            }
-            if (!sameValue(previousData.presets, data.presets)) {
-                renderPresets();
             }
         }
 
@@ -444,11 +469,8 @@
         }
 
         function renderPresets() {
-            const items = Array.isArray(data.presets) ? data.presets : [];
-            if (items.length > 0) {
-                presetLayoutReserved = true;
-            }
-            tile.classList.toggle("no-presets", !presetLayoutReserved);
+            const items = layoutCapabilities.presets;
+            tile.classList.toggle("no-presets", items.length === 0);
             presets.classList.toggle("hidden", items.length === 0);
             const currentMired = Math.round(number(data.colorTemperature?.mired));
             const fragment = document.createDocumentFragment();
