@@ -839,18 +839,52 @@ class DevicesTest extends DumpInclude
                 'values' => ['local', 'remote']
             ]
         ];
+        $catalog['generated_readonly_text'] = [
+            'ident'     => 'generated_readonly_text',
+            'property'  => 'generated_readonly_text',
+            'label'     => 'Generated Read-only Text',
+            'source'    => 'payload',
+            'type'      => 'text',
+            'created'   => false,
+            'lastValue' => 'sunny',
+            'feature'   => [
+                'name'   => 'generated_readonly_text',
+                'type'   => 'text',
+                'access' => 1
+            ]
+        ];
+        $catalog['generated_writable_text'] = [
+            'ident'     => 'generated_writable_text',
+            'property'  => 'generated_writable_text',
+            'label'     => 'Generated Writable Text',
+            'source'    => 'payload',
+            'type'      => 'text',
+            'created'   => false,
+            'lastValue' => 'value',
+            'feature'   => [
+                'name'   => 'generated_writable_text',
+                'type'   => 'text',
+                'access' => 7
+            ]
+        ];
         $this->writeStubAttributeArray($iid, 'VariableCatalog', $catalog);
 
         IPS_RequestAction($iid, 'ToggleVariableCreation', 'generated_binary');
         IPS_RequestAction($iid, 'ToggleVariableCreation', 'generated_enum');
         IPS_RequestAction($iid, 'ToggleVariableCreation', 'generated_writable_enum');
+        IPS_RequestAction($iid, 'ToggleVariableCreation', 'generated_readonly_text');
+        IPS_RequestAction($iid, 'ToggleVariableCreation', 'generated_writable_text');
 
         $binaryID = @IPS_GetObjectIDByIdent('generated_binary', $iid);
         $enumID = @IPS_GetObjectIDByIdent('generated_enum', $iid);
         $writableEnumID = @IPS_GetObjectIDByIdent('generated_writable_enum', $iid);
+        $readonlyTextID = @IPS_GetObjectIDByIdent('generated_readonly_text', $iid);
+        $writableTextID = @IPS_GetObjectIDByIdent('generated_writable_text', $iid);
         $this->assertNotFalse($binaryID);
         $this->assertNotFalse($enumID);
         $this->assertNotFalse($writableEnumID);
+        $this->assertNotFalse($readonlyTextID);
+        $this->assertNotFalse($writableTextID);
         $binaryVariable = IPS_GetVariable($binaryID);
         $this->assertSame('', $binaryVariable['VariableProfile']);
         $this->assertSame(VARIABLE_PRESENTATION_VALUE_PRESENTATION, $binaryVariable['VariablePresentation']['PRESENTATION'] ?? null);
@@ -862,6 +896,12 @@ class DevicesTest extends DumpInclude
         $this->assertSame('', $writableEnumVariable['VariableProfile']);
         $this->assertSame(VARIABLE_PRESENTATION_ENUMERATION, $writableEnumVariable['VariablePresentation']['PRESENTATION'] ?? null);
         $this->assertTrue(HasAction($writableEnumID));
+        $readonlyTextVariable = IPS_GetVariable($readonlyTextID);
+        $this->assertSame([], $readonlyTextVariable['VariablePresentation']);
+        $this->assertFalse(HasAction($readonlyTextID));
+        $writableTextVariable = IPS_GetVariable($writableTextID);
+        $this->assertSame(VARIABLE_PRESENTATION_TEXT_BOX, $writableTextVariable['VariablePresentation']['PRESENTATION'] ?? null);
+        $this->assertTrue(HasAction($writableTextID));
     }
 
     public function testVariableSelectionRefreshRemovesHistoricalEntriesWithoutDeletingVariables(): void

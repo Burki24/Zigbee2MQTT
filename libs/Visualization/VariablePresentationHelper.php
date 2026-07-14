@@ -39,18 +39,21 @@ trait VariablePresentationHelper
             case 'enum':
                 return $this->BuildEnumerationPresentation($feature);
             case 'text':
-                return $this->BuildTextFeaturePresentation();
+                return $this->BuildTextFeaturePresentation($feature);
         }
 
         return null;
     }
 
     /**
-     * Erstellt fuer laengere Textwerte die native Textbox-Darstellung.
+     * Erstellt fuer schreibbare Textwerte die native Textbox-Darstellung.
+     *
+     * Die Textbox setzt in Symcon eine Variablenaktion voraus. Reine
+     * Statuswerte duerfen diese Darstellung daher nicht erhalten.
      */
-    protected function BuildTextFeaturePresentation(): ?array
+    protected function BuildTextFeaturePresentation(array $feature): ?array
     {
-        if (!$this->SupportsTextBoxPresentation()) {
+        if (!$this->SupportsTextBoxPresentation() || !$this->IsWritableFeature($feature)) {
             return null;
         }
 
