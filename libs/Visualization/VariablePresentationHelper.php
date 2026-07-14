@@ -46,19 +46,22 @@ trait VariablePresentationHelper
     }
 
     /**
-     * Erstellt fuer schreibbare Textwerte die native Textbox-Darstellung.
+     * Erstellt fuer schreibbare Textwerte die native Werteingabe.
      *
-     * Die Textbox setzt in Symcon eine Variablenaktion voraus. Reine
-     * Statuswerte duerfen diese Darstellung daher nicht erhalten.
+     * Die Werteingabe setzt in Symcon eine Variablenaktion voraus. Reine
+     * Statuswerte duerfen diese Darstellung daher nicht erhalten. Die
+     * separate Text-Box-Darstellung besitzt keinen Konverter fuer das
+     * klassische WebFront und darf hier deshalb nicht verwendet werden.
      */
     protected function BuildTextFeaturePresentation(array $feature): ?array
     {
-        if (!$this->SupportsTextBoxPresentation() || !$this->IsWritableFeature($feature)) {
+        if (!$this->SupportsValueInputPresentation() || !$this->IsWritableFeature($feature)) {
             return null;
         }
 
         return [
-            'PRESENTATION' => \constant('VARIABLE_PRESENTATION_TEXT_BOX')
+            'PRESENTATION' => \constant('VARIABLE_PRESENTATION_VALUE_INPUT'),
+            'MULTILINE'    => true
         ];
     }
 
@@ -1136,9 +1139,9 @@ trait VariablePresentationHelper
     /**
      * Prueft, ob Textbox-Darstellungen verfuegbar sind.
      */
-    private function SupportsTextBoxPresentation(): bool
+    private function SupportsValueInputPresentation(): bool
     {
-        return \defined('VARIABLE_PRESENTATION_TEXT_BOX');
+        return \defined('VARIABLE_PRESENTATION_VALUE_INPUT');
     }
 
     /**

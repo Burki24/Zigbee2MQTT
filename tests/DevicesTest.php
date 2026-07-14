@@ -146,7 +146,8 @@ class DevicesTest extends DumpInclude
         $this->assertNotFalse($scheduleTuesdayID);
         $scheduleTuesdayVariable = IPS_GetVariable($scheduleTuesdayID);
         $this->assertSame('', $scheduleTuesdayVariable['VariableProfile']);
-        $this->assertSame(VARIABLE_PRESENTATION_TEXT_BOX, $scheduleTuesdayVariable['VariablePresentation']['PRESENTATION'] ?? null);
+        $this->assertSame(VARIABLE_PRESENTATION_VALUE_INPUT, $scheduleTuesdayVariable['VariablePresentation']['PRESENTATION'] ?? null);
+        $this->assertTrue($scheduleTuesdayVariable['VariablePresentation']['MULTILINE'] ?? false);
 
         $demandID = IPS_CreateVariable(VARIABLETYPE_FLOAT);
         IPS_SetParent($demandID, $iid);
@@ -900,7 +901,8 @@ class DevicesTest extends DumpInclude
         $this->assertSame([], $readonlyTextVariable['VariablePresentation']);
         $this->assertFalse(HasAction($readonlyTextID));
         $writableTextVariable = IPS_GetVariable($writableTextID);
-        $this->assertSame(VARIABLE_PRESENTATION_TEXT_BOX, $writableTextVariable['VariablePresentation']['PRESENTATION'] ?? null);
+        $this->assertSame(VARIABLE_PRESENTATION_VALUE_INPUT, $writableTextVariable['VariablePresentation']['PRESENTATION'] ?? null);
+        $this->assertTrue($writableTextVariable['VariablePresentation']['MULTILINE'] ?? false);
         $this->assertTrue(HasAction($writableTextID));
     }
 
