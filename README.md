@@ -520,6 +520,37 @@ Die Änderungen sind anhand der funktionalen Commits chronologisch gegliedert. A
 - Die experimentellen RGB- und Tunable-White-HTML-Kacheln sowie ihre Konfigurationsschalter wurden entfernt.
 - Native Farb-, Helligkeits- und Kelvin-Darstellungen, normalisierte Farbtemperatur-Presets sowie geraete- und gruppenspezifische Min-/Max-Bereiche bleiben erhalten.
 
+### 14. Juli 2026: Textdarstellungen und Übersetzungen
+
+- Schreibgeschützte Textvariablen erhalten keine Darstellung mehr, die eine Variablenaktion voraussetzt. Dadurch entfallen die entsprechenden Kompatibilitätsfehler in der Variablenkonfiguration.
+- Beschreibbare Textvariablen verwenden die native mehrzeilige Werteingabe anstelle der nicht vom klassischen WebFront konvertierbaren Text-Box-Darstellung.
+- 26 Übersetzungen wurden ergänzt und eine bestehende Übersetzung überarbeitet. Dies umfasst insbesondere Wetterwerte wie Wind, Böen, Niederschlag, Taupunkt, gefühlte Temperatur, Hitze- und Luftfeuchtigkeitsindex sowie zusätzliche Geräte-, Betriebs- und Zeitmodi.
+
+### 15. Juli 2026: Sicherheit, Stabilität und Performance in `dev_V6_opt`
+
+- Zugangsdaten, Installcodes, Tokens, Schlüssel und eingebettete URL-Zugangsdaten werden in Discovery-Debugausgaben rekursiv maskiert. Die unveränderte Übermittlung dieser Werte an Zigbee2MQTT bleibt davon unberührt.
+- Variablenaktionen werden vollständig mit den aktuellen Schreibrechten eines Exposes synchronisiert. Nicht mehr beschreibbare Variablen verlieren ihre Standardaktion; explizite Aktionskonfigurationen haben weiterhin Vorrang.
+- `LastPayload` führt partielle MQTT-Nachrichten nun korrekt zusammen: neue Werte ersetzen alte Werte, nicht erneut gesendete Felder verschachtelter Objekte bleiben erhalten und Listen werden vollständig ersetzt.
+- Die laufende OTA-Anzeige wird bei Statusänderungen wieder automatisch aktualisiert. Schutzprüfungen verhindern Fehler, wenn Formular oder Instanz während eines Reloads vorübergehend nicht erreichbar sind.
+- Die MQTT-Transaktionsverwaltung verhindert ID-Kollisionen und das Überschreiben offener Anfragen, validiert Antwort-IDs und schützt sämtliche Pufferzugriffe mit zuverlässig freigegebenen Sperren.
+- `SendGetCommand()` fordert nur noch Properties an, die laut Zigbee2MQTT-Expose tatsächlich per `GET` lesbar und nicht gefiltert sind. Leere oder ausschließlich schreibbare Anfragen werden nicht gesendet.
+- Änderungen am Variablenkatalog werden während Payload-, Expose-, Aktualisierungs- und Wiederaufbauvorgängen gesammelt und höchstens einmal persistiert. Unveränderte Kataloge verursachen keinen erneuten Attributschreibzugriff.
+- Die Discovery zeigt sofort den zuletzt bekannten Stand an und aktualisiert einen älter als 60 Sekunden gewordenen Cache asynchron. Eine zusätzliche Schaltfläche ermöglicht weiterhin eine manuelle Aktualisierung.
+- Die automatisierten Regressionstests wurden für die neuen Schutzmechanismen und für die bereits entfernte Profil-Diagnose des Bridge-Formulars angepasst und erweitert.
+
+### 15. Juli 2026: Interne Aufteilung in `dev_V6_opt`
+
+- Umfangreiche Verantwortlichkeiten wurden ohne beabsichtigte Funktionsänderung aus `Bridge/module.php` und `libs/ModulBase.php` in spezialisierte Helper ausgelagert.
+- Die Bridge-Helper kapseln Konfiguration, Geräte, Gruppen und Szenen, Diagnose, Requests, OTA, Netzwerksicherheit, Installcodes, Backups, Pairing, veraltete Variablen und Touchlink.
+- Die Modul-Helper kapseln Gerätebefehle und -aktionen, Payload-Verarbeitung und -struktur, Expose-Registrierung, Variablenwerte, Variablenlaufzeit und sichere Runtime-Zugriffe.
+- Für eine einheitliche Verzeichnisstruktur liegen die Bridge-Helper unter `Bridge/Helper` und die Helper der Modulbasis unter `libs/ModulHelper`.
+
+### 15. Juli 2026: Virtueller Gerätesimulator in `dev_V6`
+
+- Ein eigenständiger MQTT-Gerätesimulator ermöglicht Configurator-, Instanz- und Variablentests ohne physisch vorhandenes Zigbee-Gerät und ohne Änderungen an einer laufenden Zigbee2MQTT-Installation.
+- Neben einer virtuellen Tunable-White-Leuchte steht ein umfassendes Testgerät mit gruppierten und eigenständigen Binary-, Numeric-, Enum-, Text-, Composite- und List-Exposes sowie Konfigurations- und Diagnosekategorien bereit.
+- Der Simulator verwendet standardmäßig das isolierte Basistopic `Z2M-SIM`, beantwortet die vom Configurator verwendeten Symcon-Extension-Requests, übernimmt Transaktions-IDs und spiegelt `/set`-Befehle als aktualisierten Gerätezustand zurück.
+
 **Version 5.42:**
 
 - Bridge Instanz konnte den Namen der bereits installierten Erweiterung nicht korrekt erkennen und übernehmen.
