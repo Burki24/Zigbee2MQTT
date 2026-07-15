@@ -11,11 +11,20 @@ require_once dirname(__DIR__) . '/libs/phpMQTT.php';
  *
  * @property array $ManuelTopics
  * @property array $ManuelBrokerConfig
+ * @property bool  $DiscoveryRefreshRunning
+ * @property bool  $DiscoveryRefreshScheduled
  */
 class Zigbee2MQTTDiscovery extends IPSModuleStrict
 {
     use Zigbee2MQTT\Constants;
     use Zigbee2MQTT\BufferHelper;
+
+    private const ATTRIBUTE_DISCOVERY_CACHE = 'DiscoveryCache';
+    private const TIMER_DISCOVERY_REFRESH = 'DiscoveryRefresh';
+    private const DISCOVERY_CACHE_TTL_SECONDS = 60;
+
+    /** Merkt, ob der letzte direkte MQTT-Verbindungsaufbau fehlgeschlagen ist. */
+    private bool $lastBridgeSearchConnectionFailed = false;
 
     /**
      * Create
@@ -31,6 +40,14 @@ class Zigbee2MQTTDiscovery extends IPSModuleStrict
         // Init Buffers
         $this->ManuelBrokerConfig = [];
         $this->ManuelTopics = [];
+        $this->DiscoveryRefreshRunning = false;
+        $this->DiscoveryRefreshScheduled = false;
+        $this->RegisterAttributeString(self::ATTRIBUTE_DISCOVERY_CACHE, '');
+        $this->RegisterTimer(
+            self::TIMER_DISCOVERY_REFRESH,
+            0,
+            "IPS_RequestAction(\$_IPS['TARGET'], 'RefreshDiscoveryCache', true);"
+        );
     }
 
     /**
@@ -47,6 +64,11 @@ class Zigbee2MQTTDiscovery extends IPSModuleStrict
         // Buffer leeren
         $this->ManuelTopics = [];
         $this->ManuelBrokerConfig = [];
+        $this->DiscoveryRefreshRunning = false;
+        $this->DiscoveryRefreshScheduled = false;
+        if ($this->IsDiscoveryCacheStale($this->ReadDiscoveryCache())) {
+            $this->ScheduleDiscoveryRefresh();
+        }
     }
 
     /**
@@ -73,9 +95,20 @@ class Zigbee2MQTTDiscovery extends IPSModuleStrict
     public function RequestAction(string $ident, mixed $value): void
     {
         switch ($ident) {
+            case 'RefreshDiscovery':
+                $this->UpdateFormField('RefreshDiscovery', 'caption', $this->Translate('Please wait'));
+                $this->UpdateFormField('RefreshDiscovery', 'enabled', false);
+                $this->ScheduleDiscoveryRefresh();
+                break;
+            case 'RefreshDiscoveryCache':
+                $this->RefreshDiscoveryCache();
+                break;
             case 'CheckMQTTBroker':
                 $Config = json_decode($value, true);
-                $this->SendDebug('Manuel CheckMQTTBroker', (string) $value, 0);
+                $this->SendRedactedDebug(
+                    'Manuel CheckMQTTBroker',
+                    \is_array($Config) ? $Config : ['Input' => '[invalid JSON]']
+                );
                 $Url = \is_array($Config) ? parse_url((string) ($Config['Url'] ?? '')) : false;
                 if (!\is_array($Config)
                     || !\is_array($Url)
@@ -169,17 +202,24 @@ class Zigbee2MQTTDiscovery extends IPSModuleStrict
             $Form['actions'][0]['caption'] = 'Add external broker';
         }
 
-        $FoundZ2mBySplitterId = $this->checkAllMqttServers();
+        $DiscoveryCache = $this->ReadDiscoveryCache();
+        $FoundZ2mBySplitterId = $DiscoveryCache['topics'] ?? null;
+        if ($this->IsDiscoveryCacheStale($DiscoveryCache)) {
+            $this->ScheduleDiscoveryRefresh();
+        }
         $IPSConfigurators = $this->GetConfigurators();
         $this->SendDebug('Known Configurators', json_encode($IPSConfigurators), 0);
         $Values = [];
 
         if ($FoundZ2mBySplitterId === null) {
             if (!count($this->ManuelTopics)) {
-                $Form['actions'][2]['visible'] = true;
+                $Form['actions'][3]['visible'] = true;
             }
         } else {
             foreach ($FoundZ2mBySplitterId as $SplitterId => $Topics) {
+                if (!IPS_InstanceExists((int) $SplitterId)) {
+                    continue;
+                }
                 foreach ($Topics as $key => $Topic) {
                     $instanceID = array_search($Topic, $IPSConfigurators);
                     if ($instanceID) {
@@ -270,8 +310,101 @@ class Zigbee2MQTTDiscovery extends IPSModuleStrict
         }
 
         $Form['actions'][1]['values'] = $Values;
-        $this->SendDebug('Form', json_encode($Form), 0);
+        $this->SendRedactedDebug('Form', $Form);
         return json_encode($Form);
+    }
+
+    /**
+     * Fuehrt den eigentlichen Scan aus und stellt einen schmalen Test- und Erweiterungspunkt bereit.
+     */
+    protected function ScanMqttServers(array $fallbackTopics = []): ?array
+    {
+        return $this->checkAllMqttServers($fallbackTopics);
+    }
+
+    /**
+     * Plant eine einmalige Discovery-Aktualisierung ausserhalb des Formularaufbaus.
+     */
+    private function ScheduleDiscoveryRefresh(): void
+    {
+        if ($this->DiscoveryRefreshRunning || $this->DiscoveryRefreshScheduled) {
+            return;
+        }
+
+        $this->DiscoveryRefreshScheduled = true;
+        try {
+            $this->SetTimerInterval(self::TIMER_DISCOVERY_REFRESH, 100);
+        } catch (\Throwable) {
+            $this->DiscoveryRefreshScheduled = false;
+        }
+    }
+
+    /**
+     * Aktualisiert den persistenten Discovery-Cache im Timer-Kontext.
+     */
+    private function RefreshDiscoveryCache(): void
+    {
+        $this->SetTimerInterval(self::TIMER_DISCOVERY_REFRESH, 0);
+        $this->DiscoveryRefreshScheduled = false;
+        if ($this->DiscoveryRefreshRunning) {
+            return;
+        }
+
+        $this->DiscoveryRefreshRunning = true;
+        try {
+            $previousCache = $this->ReadDiscoveryCache();
+            $previousTopics = isset($previousCache['topics']) && \is_array($previousCache['topics'])
+                ? $previousCache['topics']
+                : [];
+            $topics = $this->ScanMqttServers($previousTopics);
+            $cache = json_encode([
+                'timestamp' => time(),
+                'topics'    => $topics
+            ]);
+            $this->WriteAttributeString(
+                self::ATTRIBUTE_DISCOVERY_CACHE,
+                \is_string($cache) ? $cache : ''
+            );
+        } catch (\Throwable $e) {
+            $this->SendDebug('RefreshDiscoveryCache', $e->getMessage(), 0);
+        } finally {
+            $this->DiscoveryRefreshRunning = false;
+        }
+
+        $this->ReloadForm();
+    }
+
+    /**
+     * Liest und validiert den zuletzt erfolgreich aufgebauten Discovery-Cache.
+     *
+     * @return array{timestamp:int,topics:array|null}|null
+     */
+    private function ReadDiscoveryCache(): ?array
+    {
+        try {
+            $cache = json_decode($this->ReadAttributeString(self::ATTRIBUTE_DISCOVERY_CACHE), true);
+        } catch (\Throwable) {
+            return null;
+        }
+        if (!\is_array($cache)
+            || !isset($cache['timestamp'])
+            || !\is_int($cache['timestamp'])
+            || !\array_key_exists('topics', $cache)
+            || ($cache['topics'] !== null && !\is_array($cache['topics']))
+        ) {
+            return null;
+        }
+
+        return $cache;
+    }
+
+    /**
+     * Ermittelt, ob eine Discovery im Hintergrund neu angestossen werden muss.
+     */
+    private function IsDiscoveryCacheStale(?array $cache): bool
+    {
+        return $cache === null
+            || time() - (int) $cache['timestamp'] >= self::DISCOVERY_CACHE_TTL_SECONDS;
     }
 
     /**
@@ -311,6 +444,7 @@ class Zigbee2MQTTDiscovery extends IPSModuleStrict
      */
     private function SearchBridges(array $Config): ?array
     {
+        $this->lastBridgeSearchConnectionFailed = false;
         $ClientId = IPS_GetName(0) . IPS_GetLicensee();
         $mqtt = new \Zigbee2MQTT\phpMQTT($Config['Host'], $Config['Port'], $ClientId);
         if ($Config['UseSSL']) {
@@ -332,6 +466,7 @@ class Zigbee2MQTTDiscovery extends IPSModuleStrict
             );
         }
         if (!$mqtt->connect(true, null, $Config['UserName'], $Config['Password'])) {
+            $this->lastBridgeSearchConnectionFailed = true;
             return null;
         }
 
@@ -370,7 +505,7 @@ class Zigbee2MQTTDiscovery extends IPSModuleStrict
      * @uses strstr()
      * @uses json_encode()
      */
-    private function checkAllMqttServers(): ?array
+    private function checkAllMqttServers(array $fallbackTopics = []): ?array
     {
         $Topics = [];
         $MqttSplitters = $this->getAllMqTTSplitterInstances();
@@ -385,6 +520,11 @@ class Zigbee2MQTTDiscovery extends IPSModuleStrict
                     $FoundTopics = $this->SearchBridges($Config);
                     if ($FoundTopics !== null) {
                         $Topics[$SplitterId] = $FoundTopics;
+                    } elseif ($this->lastBridgeSearchConnectionFailed
+                        && isset($fallbackTopics[$SplitterId])
+                        && \is_array($fallbackTopics[$SplitterId])
+                    ) {
+                        $Topics[$SplitterId] = $fallbackTopics[$SplitterId];
                     }
                 }
             }
@@ -467,8 +607,102 @@ class Zigbee2MQTTDiscovery extends IPSModuleStrict
                     );
             }
         }
-        $this->SendDebug('MQTTSplitter', json_encode($MqttSplitter), 0);
+        $this->SendRedactedDebug('MQTTSplitter', $MqttSplitter);
         return $MqttSplitter;
+    }
+
+    /**
+     * Gibt strukturierte Debugdaten aus, nachdem Zugangsdaten rekursiv maskiert wurden.
+     */
+    private function SendRedactedDebug(string $message, mixed $data): void
+    {
+        $encodedData = json_encode($this->RedactSensitiveDebugData($data));
+        $this->SendDebug($message, $encodedData === false ? '[unencodable debug data]' : $encodedData, 0);
+    }
+
+    /**
+     * Maskiert typische Zugangsdaten und Geheimnisse in beliebig verschachtelten Daten.
+     */
+    private function RedactSensitiveDebugData(mixed $data): mixed
+    {
+        if (\is_object($data)) {
+            $data = get_object_vars($data);
+        }
+        if (!\is_array($data)) {
+            return $data;
+        }
+
+        $redacted = [];
+        foreach ($data as $key => $value) {
+            if (\is_string($key) && $this->IsSensitiveDebugKey($key)) {
+                $redacted[$key] = $value === '' || $value === null ? $value : '[redacted]';
+                continue;
+            }
+            if (\is_string($key) && \is_string($value) && $this->IsUrlDebugKey($key)) {
+                $redacted[$key] = $this->RedactSensitiveUrl($value);
+                continue;
+            }
+            $redacted[$key] = $this->RedactSensitiveDebugData($value);
+        }
+
+        return $redacted;
+    }
+
+    /**
+     * Erkennt Zugangsdaten unabhaengig von Grossschreibung und Trennzeichen im Schluessel.
+     */
+    private function IsSensitiveDebugKey(string $key): bool
+    {
+        $normalizedKey = strtolower((string) preg_replace('/[^a-z0-9]/i', '', $key));
+        foreach (
+            [
+                'username',
+                'password',
+                'passphrase',
+                'token',
+                'secret',
+                'apikey',
+                'installcode',
+                'privatekey',
+                'pincode'
+            ] as $sensitiveSuffix
+        ) {
+            if (str_ends_with($normalizedKey, $sensitiveSuffix)) {
+                return true;
+            }
+        }
+
+        return false;
+    }
+
+    /**
+     * Erkennt Felder, deren URL moeglicherweise eingebettete Zugangsdaten enthaelt.
+     */
+    private function IsUrlDebugKey(string $key): bool
+    {
+        return \in_array(
+            strtolower((string) preg_replace('/[^a-z0-9]/i', '', $key)),
+            ['url', 'uri', 'brokerurl', 'brokeruri'],
+            true
+        );
+    }
+
+    /**
+     * Entfernt Benutzerinformationen und geheime Query-Parameter aus einer Debug-URL.
+     */
+    private function RedactSensitiveUrl(string $url): string
+    {
+        $url = (string) preg_replace(
+            '#^([a-z][a-z0-9+.-]*://)[^/@\s]+@#i',
+            '$1[redacted]@',
+            $url
+        );
+
+        return (string) preg_replace(
+            '/([?&][a-z0-9_-]*(?:user(?:name)?|password|passphrase|token|secret|api[_-]?key|install[_-]?code|private[_-]?key|pin[_-]?code)=)[^&#]*/i',
+            '$1[redacted]',
+            $url
+        );
     }
 
 }

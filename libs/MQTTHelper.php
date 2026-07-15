@@ -14,6 +14,9 @@ trait SendData
 {
     use Constants;
 
+    private const TRANSACTION_ID_MIN = 1;
+    private const TRANSACTION_ID_MAX = 10000;
+
     /** @var mixed $MQTTDataArray
      *  Vorlage Daten Array zum versenden an einen MQTT-Splitter
      */
@@ -128,8 +131,11 @@ trait SendData
      */
     protected function ClearTransactionData(): void
     {
-        $this->Multi_TransactionData = [];
-        $this->TransactionData = [];
+        $this->ExecuteWithTransactionLock(function (): void
+        {
+            $this->Multi_TransactionData = [];
+            $this->TransactionData = [];
+        });
     }
 
     /**
@@ -325,7 +331,7 @@ trait SendData
         );
 
         while (microtime(true) < $Deadline) {
-            $Buffer = $this->ReadTransactionData();
+            $Buffer = $this->ExecuteWithTransactionLock(fn (): array => $this->ReadTransactionData());
             if (!isset($Buffer[$TransactionId])) {
                 $this->SendDebug(
                     __FUNCTION__ . ':Abort',
@@ -370,6 +376,64 @@ trait SendData
     }
 
     /**
+     * Fuehrt einen Zugriff auf den Transaktionsbuffer unter garantiertem Lock aus.
+     *
+     * Der Lock wird auch dann freigegeben, wenn Lesen, Schreiben oder die
+     * Aufbereitung einer Antwort eine Exception ausloest.
+     */
+    private function ExecuteWithTransactionLock(\Closure $Operation): mixed
+    {
+        if (!$this->lock('TransactionData')) {
+            throw new \RuntimeException($this->Translate('Transaction Data is locked'), E_USER_NOTICE);
+        }
+
+        try {
+            return $Operation();
+        } finally {
+            $this->unlock('TransactionData');
+        }
+    }
+
+    /**
+     * Ermittelt eine freie Transaktions-ID, ohne offene Anfragen zu ueberschreiben.
+     */
+    private function FindAvailableTransactionId(array $TransactionData): int
+    {
+        $Candidate = mt_rand(self::TRANSACTION_ID_MIN, self::TRANSACTION_ID_MAX);
+        $Capacity = self::TRANSACTION_ID_MAX - self::TRANSACTION_ID_MIN + 1;
+        for ($Attempt = 0; $Attempt < $Capacity; $Attempt++) {
+            if (!array_key_exists($Candidate, $TransactionData)) {
+                return $Candidate;
+            }
+
+            $Candidate++;
+            if ($Candidate > self::TRANSACTION_ID_MAX) {
+                $Candidate = self::TRANSACTION_ID_MIN;
+            }
+        }
+
+        throw new \RuntimeException($this->Translate('No transaction IDs available'), E_USER_NOTICE);
+    }
+
+    /**
+     * Akzeptiert ausschliesslich numerische Transaktions-IDs aus dem gueltigen Bereich.
+     */
+    private function NormalizeTransactionId(mixed $TransactionId): ?int
+    {
+        if (\is_string($TransactionId) && ctype_digit($TransactionId)) {
+            $TransactionId = (int) $TransactionId;
+        }
+        if (!\is_int($TransactionId)
+            || $TransactionId < self::TRANSACTION_ID_MIN
+            || $TransactionId > self::TRANSACTION_ID_MAX
+        ) {
+            return null;
+        }
+
+        return $TransactionId;
+    }
+
+    /**
      * AddTransaction
      *
      * Generiert eine TransactionId, fuegt diese dem Payload hinzu und erzeugt einen Eintrag im Transaktionsbuffer.
@@ -380,22 +444,23 @@ trait SendData
      */
     private function AddTransaction(array &$Payload, string $Topic): int
     {
-        if (!$this->lock('TransactionData')) {
-            throw new \Exception($this->Translate('Transaction Data is locked'), E_USER_NOTICE);
-        }
-        $TransactionId = mt_rand(1, 10000);
-        $Payload['transaction'] = $TransactionId;
-        $TransactionData = $this->ReadTransactionData();
-        $TransactionData[$TransactionId] = [
-            '__meta'   => [
-                'requestTopic'  => self::NormalizeTransactionTopic($Topic),
-                'responseTopic' => self::GetResponseTopicForRequest($Topic)
-            ],
-            '__result' => null
-        ];
-        $this->WriteTransactionData($TransactionData);
-        $this->unlock('TransactionData');
-        return $TransactionId;
+        return $this->ExecuteWithTransactionLock(
+            function () use (&$Payload, $Topic): int
+            {
+                $TransactionData = $this->ReadTransactionData();
+                $TransactionId = $this->FindAvailableTransactionId($TransactionData);
+                $TransactionData[$TransactionId] = [
+                    '__meta'   => [
+                        'requestTopic'  => self::NormalizeTransactionTopic($Topic),
+                        'responseTopic' => self::GetResponseTopicForRequest($Topic)
+                    ],
+                    '__result' => null
+                ];
+                $this->WriteTransactionData($TransactionData);
+                $Payload['transaction'] = $TransactionId;
+                return $TransactionId;
+            }
+        );
     }
 
     /**
@@ -408,20 +473,37 @@ trait SendData
      */
     private function UpdateTransaction(array $Data): bool
     {
-        if (!$this->lock('TransactionData')) {
-            throw new \Exception($this->Translate('Transaction Data is locked'), E_USER_NOTICE);
+        $TransactionId = $this->NormalizeTransactionId($Data['transaction'] ?? null);
+        if ($TransactionId === null) {
+            $this->SendDebug(__FUNCTION__, 'Ignored response with invalid transaction id', 0);
+            return false;
         }
-        $TransactionData = $this->ReadTransactionData();
-        if (isset($TransactionData[$Data['transaction']])) {
-            $TransactionData[$Data['transaction']] = $this->SetTransactionResult($TransactionData[$Data['transaction']], $Data);
-            $this->WriteTransactionData($TransactionData);
-            $this->unlock('TransactionData');
+
+        $Updated = $this->ExecuteWithTransactionLock(
+            function () use ($Data, $TransactionId): bool
+            {
+                $TransactionData = $this->ReadTransactionData();
+                if (!array_key_exists($TransactionId, $TransactionData)) {
+                    return false;
+                }
+
+                $Transaction = $TransactionData[$TransactionId];
+                if (!\is_array($Transaction)) {
+                    return false;
+                }
+
+                $TransactionData[$TransactionId] = $this->SetTransactionResult($Transaction, $Data);
+                $this->WriteTransactionData($TransactionData);
+                return true;
+            }
+        );
+        if ($Updated) {
             return true;
         }
-        $this->unlock('TransactionData');
+
         $this->SendDebug(
             __FUNCTION__,
-            \sprintf('No pending transaction for id %s', (string) $Data['transaction']),
+            \sprintf('No pending transaction for id %d', $TransactionId),
             0
         );
         return false;
@@ -443,25 +525,36 @@ trait SendData
     {
         $ResponseTopic = self::NormalizeTransactionTopic($ResponseTopic);
 
-        if (!$this->lock('TransactionData')) {
-            throw new \Exception($this->Translate('Transaction Data is locked'), E_USER_NOTICE);
-        }
+        $TransactionId = $this->ExecuteWithTransactionLock(
+            function () use ($ResponseTopic, $Data): int|false
+            {
+                $TransactionData = $this->ReadTransactionData();
+                foreach ($TransactionData as $TransactionId => $Transaction) {
+                    if (!\is_array($Transaction)) {
+                        continue;
+                    }
 
-        $TransactionData = $this->ReadTransactionData();
-        foreach ($TransactionData as $TransactionId => $Transaction) {
-            if (!\is_array($Transaction)) {
-                continue;
+                    $Meta = $Transaction['__meta'] ?? null;
+                    if (!\is_array($Meta) || (($Meta['responseTopic'] ?? '') !== $ResponseTopic)) {
+                        continue;
+                    }
+
+                    $NormalizedId = $this->NormalizeTransactionId($TransactionId);
+                    if ($NormalizedId === null) {
+                        continue;
+                    }
+
+                    $ResponseData = $Data;
+                    $ResponseData['transaction'] = $NormalizedId;
+                    $TransactionData[$TransactionId] = $this->SetTransactionResult($Transaction, $ResponseData);
+                    $this->WriteTransactionData($TransactionData);
+                    return $NormalizedId;
+                }
+
+                return false;
             }
-
-            $Meta = $Transaction['__meta'] ?? null;
-            if (!\is_array($Meta) || (($Meta['responseTopic'] ?? '') !== $ResponseTopic)) {
-                continue;
-            }
-
-            $Data['transaction'] = (int) $TransactionId;
-            $TransactionData[$TransactionId] = $this->SetTransactionResult($Transaction, $Data);
-            $this->WriteTransactionData($TransactionData);
-            $this->unlock('TransactionData');
+        );
+        if ($TransactionId !== false) {
             $this->SendDebug(
                 __FUNCTION__,
                 \sprintf('Transaction %d matched by response topic %s', $TransactionId, $ResponseTopic),
@@ -470,7 +563,6 @@ trait SendData
             return true;
         }
 
-        $this->unlock('TransactionData');
         $this->SendDebug(__FUNCTION__, \sprintf('No pending transaction for response topic %s', $ResponseTopic), 0);
         return false;
     }
@@ -578,13 +670,12 @@ trait SendData
      */
     private function RemoveTransaction(int $TransactionId): void
     {
-        if (!$this->lock('TransactionData')) {
-            throw new \Exception($this->Translate('Transaction Data is locked'), E_USER_NOTICE);
-        }
-        $TransactionData = $this->ReadTransactionData();
-        unset($TransactionData[$TransactionId]);
-        $this->WriteTransactionData($TransactionData);
-        $this->unlock('TransactionData');
+        $this->ExecuteWithTransactionLock(function () use ($TransactionId): void
+        {
+            $TransactionData = $this->ReadTransactionData();
+            unset($TransactionData[$TransactionId]);
+            $this->WriteTransactionData($TransactionData);
+        });
     }
 
     /**

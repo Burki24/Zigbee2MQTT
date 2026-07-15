@@ -12,6 +12,94 @@ namespace Zigbee2MQTT;
  */
 trait VariableCatalogHelper
 {
+    /** @var array<string,array>|null Im aktuellen Batch bearbeiteter Variablenkatalog. */
+    private ?array $variableCatalogBatch = null;
+
+    /** @var array<string,array>|null Stand des Variablenkatalogs beim Start des aeussersten Batches. */
+    private ?array $variableCatalogBatchOriginal = null;
+
+    /** Verschachtelungstiefe der laufenden Katalogverarbeitung. */
+    private int $variableCatalogBatchDepth = 0;
+
+    /** Merkt, ob der Katalog innerhalb des laufenden Batches veraendert wurde. */
+    private bool $variableCatalogBatchDirty = false;
+
+    /**
+     * Startet eine verschachtelbare Katalogverarbeitung.
+     *
+     * Der aeusserste Aufruf liest das Attribut genau einmal. Alle inneren Aufrufe
+     * arbeiten anschliessend auf demselben In-Memory-Stand.
+     */
+    protected function BeginVariableCatalogBatch(): void
+    {
+        if ($this->variableCatalogBatchDepth === 0) {
+            $catalog = $this->ReadVariableCatalog();
+            $this->variableCatalogBatch = $catalog;
+            $this->variableCatalogBatchOriginal = $catalog;
+            $this->variableCatalogBatchDirty = false;
+        }
+
+        ++$this->variableCatalogBatchDepth;
+    }
+
+    /**
+     * Beendet eine Katalogverarbeitung und schreibt nur den final geaenderten Stand.
+     */
+    protected function EndVariableCatalogBatch(): void
+    {
+        if ($this->variableCatalogBatchDepth === 0) {
+            return;
+        }
+
+        --$this->variableCatalogBatchDepth;
+        if ($this->variableCatalogBatchDepth > 0) {
+            return;
+        }
+
+        $catalog = $this->variableCatalogBatch ?? [];
+        $originalCatalog = $this->variableCatalogBatchOriginal ?? [];
+        $mustWrite = $this->variableCatalogBatchDirty && $catalog !== $originalCatalog;
+
+        // Zustand vor dem Attributzugriff zuruecksetzen, damit auch ein Fehler beim
+        // Schreiben keinen vermeintlich weiterlaufenden Batch hinterlaesst.
+        $this->variableCatalogBatch = null;
+        $this->variableCatalogBatchOriginal = null;
+        $this->variableCatalogBatchDirty = false;
+
+        if ($mustWrite) {
+            $this->WriteAttributeArray(self::ATTRIBUTE_VARIABLE_CATALOG, $catalog);
+        }
+    }
+
+    /**
+     * Liest innerhalb eines Batches den aktuellen In-Memory-Stand.
+     *
+     * @return array<string,array>
+     */
+    protected function ReadVariableCatalog(): array
+    {
+        return $this->variableCatalogBatch
+            ?? $this->ReadAttributeArray(self::ATTRIBUTE_VARIABLE_CATALOG);
+    }
+
+    /**
+     * Aktualisiert innerhalb eines Batches nur den In-Memory-Stand.
+     *
+     * @param array<string,array> $catalog
+     */
+    protected function WriteVariableCatalog(array $catalog): void
+    {
+        if ($this->variableCatalogBatch !== null) {
+            if ($catalog !== $this->variableCatalogBatch) {
+                $this->variableCatalogBatch = $catalog;
+                $this->variableCatalogBatchDirty = true;
+            }
+            return;
+        }
+
+        $this->WriteAttributeArray(self::ATTRIBUTE_VARIABLE_CATALOG, $catalog);
+    }
+
     /**
      * Aktiviert oder deaktiviert die automatische Anlage einer Variable.
      */
@@ -26,11 +114,11 @@ trait VariableCatalogHelper
             $this->RemoveVariableFromAttributeList(self::ATTRIBUTE_DISABLED_VARIABLES, $ident);
             $this->RemoveVariableFromAttributeList(self::ATTRIBUTE_DELETED_VARIABLES, $ident);
 
-            $catalog = $this->ReadAttributeArray(self::ATTRIBUTE_VARIABLE_CATALOG);
+            $catalog = $this->ReadVariableCatalog();
             if (isset($catalog[$ident]) && $this->GetObjectIDByIdent($ident) === false) {
                 $catalog[$ident]['created'] = false;
                 unset($catalog[$ident]['deleted']);
-                $this->WriteAttributeArray(self::ATTRIBUTE_VARIABLE_CATALOG, $catalog);
+                $this->WriteVariableCatalog($catalog);
             }
 
             $this->CreateVariableFromCatalog($ident);
@@ -62,7 +150,7 @@ trait VariableCatalogHelper
     {
         $this->RefreshVariableCatalog();
 
-        $catalog = $this->ReadAttributeArray(self::ATTRIBUTE_VARIABLE_CATALOG);
+        $catalog = $this->ReadVariableCatalog();
         $presentationMigrationByIdent = $this->ReadPresentationMigrationLogByIdent();
         ksort($catalog);
 
@@ -174,7 +262,7 @@ trait VariableCatalogHelper
             return;
         }
 
-        $catalog = $this->ReadAttributeArray(self::ATTRIBUTE_VARIABLE_CATALOG);
+        $catalog = $this->ReadVariableCatalog();
         $entry = $catalog[$ident] ?? [
             'ident'   => $ident,
             'created' => false
@@ -206,7 +294,7 @@ trait VariableCatalogHelper
         }
 
         $catalog[$ident] = $entry;
-        $this->WriteAttributeArray(self::ATTRIBUTE_VARIABLE_CATALOG, $catalog);
+        $this->WriteVariableCatalog($catalog);
     }
 
     /**
@@ -244,7 +332,7 @@ trait VariableCatalogHelper
             return false;
         }
 
-        $catalog = $this->ReadAttributeArray(self::ATTRIBUTE_VARIABLE_CATALOG);
+        $catalog = $this->ReadVariableCatalog();
         if ((bool) ($catalog[$ident]['created'] ?? false)) {
             $this->MarkVariableAsDeleted($ident);
             $this->SendDebug(__FUNCTION__, 'Known variable was deleted by user, not recreated: ' . $ident, 0);
@@ -275,7 +363,7 @@ trait VariableCatalogHelper
             return;
         }
 
-        $catalog = $this->ReadAttributeArray(self::ATTRIBUTE_VARIABLE_CATALOG);
+        $catalog = $this->ReadVariableCatalog();
         $entry = $catalog[$ident] ?? [
             'ident'    => $ident,
             'property' => $ident,
@@ -287,7 +375,7 @@ trait VariableCatalogHelper
         unset($entry['deleted']);
         if (($catalog[$ident] ?? null) !== $entry) {
             $catalog[$ident] = $entry;
-            $this->WriteAttributeArray(self::ATTRIBUTE_VARIABLE_CATALOG, $catalog);
+            $this->WriteVariableCatalog($catalog);
         }
         $this->RemoveVariableFromAttributeList(self::ATTRIBUTE_DELETED_VARIABLES, $ident);
     }
@@ -303,10 +391,10 @@ trait VariableCatalogHelper
         }
 
         $this->AddVariableToAttributeList(self::ATTRIBUTE_DELETED_VARIABLES, $ident);
-        $catalog = $this->ReadAttributeArray(self::ATTRIBUTE_VARIABLE_CATALOG);
+        $catalog = $this->ReadVariableCatalog();
         if (isset($catalog[$ident])) {
             $catalog[$ident]['deleted'] = true;
-            $this->WriteAttributeArray(self::ATTRIBUTE_VARIABLE_CATALOG, $catalog);
+            $this->WriteVariableCatalog($catalog);
         }
     }
 
@@ -358,7 +446,7 @@ trait VariableCatalogHelper
     private function CreateVariableFromCatalog(string $ident): bool
     {
         $ident = $this->NormalizeVariableIdent($ident);
-        $catalog = $this->ReadAttributeArray(self::ATTRIBUTE_VARIABLE_CATALOG);
+        $catalog = $this->ReadVariableCatalog();
         $entry = $catalog[$ident] ?? null;
         if (!\is_array($entry)) {
             return false;
@@ -453,6 +541,19 @@ trait VariableCatalogHelper
      */
     private function RefreshVariableCatalog(): void
     {
+        $this->BeginVariableCatalogBatch();
+        try {
+            $this->RefreshVariableCatalogBatch();
+        } finally {
+            $this->EndVariableCatalogBatch();
+        }
+    }
+
+    /**
+     * Aktualisiert den Variablenkatalog innerhalb eines bereits gestarteten Batches.
+     */
+    private function RefreshVariableCatalogBatch(): void
+    {
         $this->RefreshExposeVariableCatalog();
         $validIdents = array_fill_keys($this->CollectCurrentVariableCatalogIdents(), true);
 
@@ -467,10 +568,10 @@ trait VariableCatalogHelper
                 continue;
             }
 
-            $catalog = $this->ReadAttributeArray(self::ATTRIBUTE_VARIABLE_CATALOG);
+            $catalog = $this->ReadVariableCatalog();
             if (!isset($catalog[$ident]) && isset($validIdents[$ident])) {
                 $this->RememberVariableDefinition($ident, ['property' => $ident], 'existing');
-                $catalog = $this->ReadAttributeArray(self::ATTRIBUTE_VARIABLE_CATALOG);
+                $catalog = $this->ReadVariableCatalog();
             }
             if (isset($catalog[$ident])) {
                 $this->MarkVariableCreated($ident);
@@ -489,8 +590,21 @@ trait VariableCatalogHelper
      */
     private function RebuildVariableCatalogFromCurrentData(): void
     {
-        $previousCatalog = $this->ReadAttributeArray(self::ATTRIBUTE_VARIABLE_CATALOG);
-        $this->WriteAttributeArray(self::ATTRIBUTE_VARIABLE_CATALOG, []);
+        $this->BeginVariableCatalogBatch();
+        try {
+            $this->RebuildVariableCatalogFromCurrentDataBatch();
+        } finally {
+            $this->EndVariableCatalogBatch();
+        }
+    }
+
+    /**
+     * Baut den Variablenkatalog innerhalb eines bereits gestarteten Batches neu auf.
+     */
+    private function RebuildVariableCatalogFromCurrentDataBatch(): void
+    {
+        $previousCatalog = $this->ReadVariableCatalog();
+        $this->WriteVariableCatalog([]);
 
         $validIdents = [];
         foreach ($this->ReadAttributeArray(self::ATTRIBUTE_EXPOSES) as $expose) {
@@ -519,7 +633,7 @@ trait VariableCatalogHelper
         }
 
         $validIdents = array_fill_keys(array_unique(array_filter($validIdents)), true);
-        $catalog = $this->ReadAttributeArray(self::ATTRIBUTE_VARIABLE_CATALOG);
+        $catalog = $this->ReadVariableCatalog();
         foreach ($previousCatalog as $ident => $entry) {
             $ident = (string) $ident;
             if (!\is_array($entry)
@@ -533,7 +647,7 @@ trait VariableCatalogHelper
             $catalog[$ident]['created'] = (bool) ($entry['created'] ?? false) || (bool) ($currentEntry['created'] ?? false);
         }
 
-        $this->WriteAttributeArray(self::ATTRIBUTE_VARIABLE_CATALOG, $catalog);
+        $this->WriteVariableCatalog($catalog);
         $knownIdents = array_fill_keys(array_keys($catalog), true);
         $this->RestrictVariableAttributeList(self::ATTRIBUTE_DISABLED_VARIABLES, $knownIdents);
         $this->RestrictVariableAttributeList(self::ATTRIBUTE_DELETED_VARIABLES, $knownIdents);
@@ -646,6 +760,19 @@ trait VariableCatalogHelper
      */
     private function RefreshExposeVariableCatalog(?array $exposes = null): void
     {
+        $this->BeginVariableCatalogBatch();
+        try {
+            $this->RefreshExposeVariableCatalogBatch($exposes);
+        } finally {
+            $this->EndVariableCatalogBatch();
+        }
+    }
+
+    /**
+     * Aktualisiert den expose-basierten Katalog innerhalb eines laufenden Batches.
+     */
+    private function RefreshExposeVariableCatalogBatch(?array $exposes = null): void
+    {
         $exposes ??= $this->ReadAttributeArray(self::ATTRIBUTE_EXPOSES);
         if ($exposes === []) {
             return;
@@ -751,7 +878,7 @@ trait VariableCatalogHelper
      */
     private function RefreshDeletedVariableCatalogState(): void
     {
-        foreach ($this->ReadAttributeArray(self::ATTRIBUTE_VARIABLE_CATALOG) as $ident => $entry) {
+        foreach ($this->ReadVariableCatalog() as $ident => $entry) {
             if (!\is_array($entry) || !(bool) ($entry['created'] ?? false)) {
                 continue;
             }
@@ -863,7 +990,7 @@ trait VariableCatalogHelper
     private function RemoveStaleExposeCatalogEntries(array $validExposeIdents): void
     {
         $validExposeIdents = array_unique($validExposeIdents);
-        $catalog = $this->ReadAttributeArray(self::ATTRIBUTE_VARIABLE_CATALOG);
+        $catalog = $this->ReadVariableCatalog();
         $changed = false;
         $removedIdents = [];
 
@@ -886,7 +1013,7 @@ trait VariableCatalogHelper
         }
 
         if ($changed) {
-            $this->WriteAttributeArray(self::ATTRIBUTE_VARIABLE_CATALOG, $catalog);
+            $this->WriteVariableCatalog($catalog);
             foreach ($removedIdents as $removedIdent) {
                 $this->RemoveVariableFromAttributeList(self::ATTRIBUTE_DISABLED_VARIABLES, $removedIdent);
                 $this->RemoveVariableFromAttributeList(self::ATTRIBUTE_DELETED_VARIABLES, $removedIdent);

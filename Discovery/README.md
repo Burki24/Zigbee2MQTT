@@ -34,7 +34,7 @@ Mit dieser Instanz werden alle mit MQTT-Brokern(Servern) verbundenen Zigbee2MQTT
 
 ## 3. Verwendung der Instanzen
 
- Beim Öffnen der Instanz wird automatisch ein Suchlauf an allen in Symcon eingerichteten MQTT Clients und Server gestartet.  
+ Beim Öffnen der Instanz wird der zuletzt bekannte Discovery-Stand sofort angezeigt. Ist der Cache älter als 60 Sekunden, wird im Hintergrund automatisch ein Suchlauf an allen in Symcon eingerichteten MQTT Clients und Servern gestartet und das Formular anschließend aktualisiert. Über `Discovery aktualisieren` kann dieser Suchlauf jederzeit manuell angestoßen werden.
  Alternativ kann ein externer Broker manuell angegeben werden.  
 ![Übersicht Konfigurator](imgs/config1.png)
 ![Übersicht Konfigurator](imgs/config2.png)

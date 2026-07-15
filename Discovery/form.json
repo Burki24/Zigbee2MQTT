@@ -32,6 +32,12 @@
             "values": []
         },
         {
+            "type": "Button",
+            "name": "RefreshDiscovery",
+            "caption": "Refresh discovery",
+            "onClick": "IPS_RequestAction($id, 'RefreshDiscovery', true);"
+        },
+        {
             "name": "BrokerPopup",
             "type": "PopupAlert",
             "visible": false,

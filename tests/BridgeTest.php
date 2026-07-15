@@ -67,15 +67,12 @@ class BridgeTest extends TestCase
         $this->assertNull($this->findFormField($form, 'StaleVariableDeleteWarning'));
     }
 
-    public function testConfigurationFormShowsReadOnlyVariableProfileDiagnostics(): void
+    public function testConfigurationFormOmitsObsoleteVariableProfileDiagnostics(): void
     {
         $form = json_decode(file_get_contents(__DIR__ . '/../Bridge/form.json'), true);
 
-        $this->assertNotNull($this->findFormField($form, 'VariableProfileDiagnostics'));
-        $diagnosticsList = $this->findFormField($form, 'VariableProfileDiagnosticsList');
-        $this->assertNotNull($diagnosticsList);
-        $this->assertFalse($diagnosticsList['add']);
-        $this->assertFalse($diagnosticsList['delete']);
+        $this->assertNull($this->findFormField($form, 'VariableProfileDiagnostics'));
+        $this->assertNull($this->findFormField($form, 'VariableProfileDiagnosticsList'));
     }
 
     public function testConfigurationFormShowsTestCenterAtTopLevel(): void
@@ -654,6 +651,21 @@ class BridgeTest extends TestCase
         $values = json_decode($bridge->updatedFields['OTAActiveUpdates']['values'], true);
 
         $this->assertSame('12,5 %', $values[0]['progress']);
+    }
+
+    public function testBridgeOTAVariableUpdatesTolerateUnavailableFormInterface(): void
+    {
+        $bridge = $this->createBridgeTestDouble(true);
+        $bridge->writeDiagnosticAttribute('OTAMonitoredVariables', [12345]);
+        $bridge->failFormUpdates = true;
+
+        $bridge->MessageSink(0, 12345, VM_UPDATE, [12.5, true, 1.1, time()]);
+
+        $this->assertSame([], $bridge->updatedFields);
+        $this->assertCount(1, array_filter(
+            $bridge->debugMessages,
+            static fn (array $entry): bool => $entry['Message'] === 'TryUpdateFormField'
+        ));
     }
 
     public function testOTAStateTranslationAlwaysReturnsString(): void
@@ -1542,6 +1554,8 @@ class BridgeTest extends TestCase
             public int $lastTimeout = -1;
             public bool $lastSensitive = false;
             public array $updatedFields = [];
+            public array $debugMessages = [];
+            public bool $failFormUpdates = false;
             private string $testBaseTopic = '';
             private array $testValues = [];
 
@@ -1650,11 +1664,15 @@ class BridgeTest extends TestCase
 
             protected function SendDebug(string $Message, string $Data, int $Format): bool
             {
+                $this->debugMessages[] = ['Message' => $Message, 'Data' => $Data, 'Format' => $Format];
                 return true;
             }
 
             protected function UpdateFormField(string $Field, string $Parameter, mixed $Value): bool
             {
+                if ($this->failFormUpdates) {
+                    throw new \RuntimeException('InstanceInterface is not available');
+                }
                 $this->updatedFields[$Field][$Parameter] = $Value;
                 return true;
             }

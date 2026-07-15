@@ -12,6 +12,173 @@ use PHPUnit\Framework\TestCase;
  */
 class MQTTHelperTest extends TestCase
 {
+    public function testAddTransactionUsesOnlyFreeIdsAndPreservesPendingEntries(): void
+    {
+        $helper = new class() {
+            use \Zigbee2MQTT\SendData {
+                AddTransaction as public createTransaction;
+            }
+
+            public array $TransactionData = [];
+            public array $Multi_TransactionData = [];
+            public int $lockCount = 0;
+            public int $unlockCount = 0;
+
+            public function lock(string $name): bool
+            {
+                $this->lockCount++;
+                return true;
+            }
+
+            public function unlock(string $name): void
+            {
+                $this->unlockCount++;
+            }
+
+            public function Translate(string $text): string
+            {
+                return $text;
+            }
+        };
+        $helper->Multi_TransactionData = array_fill_keys(range(1, 10000), []);
+        unset($helper->Multi_TransactionData[7777]);
+        $payload = [];
+
+        $transactionId = $helper->createTransaction($payload, '/bridge/request/health_check');
+
+        $this->assertSame(7777, $transactionId);
+        $this->assertSame(7777, $payload['transaction']);
+        $this->assertCount(10000, $helper->Multi_TransactionData);
+        $this->assertArrayHasKey(1, $helper->Multi_TransactionData);
+        $this->assertSame(1, $helper->lockCount);
+        $this->assertSame(1, $helper->unlockCount);
+    }
+
+    public function testTransactionLockIsReleasedWhenNoIdIsAvailable(): void
+    {
+        $helper = new class() {
+            use \Zigbee2MQTT\SendData {
+                AddTransaction as public createTransaction;
+            }
+
+            public array $TransactionData = [];
+            public array $Multi_TransactionData = [];
+            public int $unlockCount = 0;
+
+            public function lock(string $name): bool
+            {
+                return true;
+            }
+
+            public function unlock(string $name): void
+            {
+                $this->unlockCount++;
+            }
+
+            public function Translate(string $text): string
+            {
+                return $text;
+            }
+        };
+        $helper->Multi_TransactionData = array_fill_keys(range(1, 10000), []);
+        $payload = [];
+
+        try {
+            $helper->createTransaction($payload, '/bridge/request/health_check');
+            $this->fail('A full transaction ID range must reject another transaction.');
+        } catch (\RuntimeException $exception) {
+            $this->assertSame('No transaction IDs available', $exception->getMessage());
+        }
+
+        $this->assertSame(1, $helper->unlockCount);
+        $this->assertArrayNotHasKey('transaction', $payload);
+    }
+
+    public function testTransactionLockIsReleasedWhenBufferWriteFails(): void
+    {
+        $helper = new class() {
+            use \Zigbee2MQTT\SendData {
+                AddTransaction as public createTransaction;
+            }
+
+            public int $unlockCount = 0;
+
+            public function __get(string $name): array
+            {
+                return [];
+            }
+
+            public function __set(string $name, mixed $value): void
+            {
+                if ($name === 'Multi_TransactionData') {
+                    throw new \RuntimeException('Buffer write failed');
+                }
+            }
+
+            public function lock(string $name): bool
+            {
+                return true;
+            }
+
+            public function unlock(string $name): void
+            {
+                $this->unlockCount++;
+            }
+
+            public function Translate(string $text): string
+            {
+                return $text;
+            }
+        };
+        $payload = [];
+
+        try {
+            $helper->createTransaction($payload, '/bridge/request/health_check');
+            $this->fail('A failed buffer write must abort the transaction.');
+        } catch (\RuntimeException $exception) {
+            $this->assertSame('Buffer write failed', $exception->getMessage());
+        }
+
+        $this->assertSame(1, $helper->unlockCount);
+        $this->assertArrayNotHasKey('transaction', $payload);
+    }
+
+    public function testInvalidTransactionIdIsRejectedBeforeLockingBuffer(): void
+    {
+        $helper = new class() {
+            use \Zigbee2MQTT\SendData {
+                UpdateTransaction as public completeTransaction;
+            }
+
+            public array $TransactionData = [];
+            public array $Multi_TransactionData = [];
+            public int $lockCount = 0;
+
+            public function lock(string $name): bool
+            {
+                $this->lockCount++;
+                return true;
+            }
+
+            public function unlock(string $name): void
+            {
+            }
+
+            public function SendDebug(string $message, mixed $data, int $format): void
+            {
+            }
+
+            public function Translate(string $text): string
+            {
+                return $text;
+            }
+        };
+
+        $this->assertFalse($helper->completeTransaction(['transaction' => ['invalid']]));
+        $this->assertFalse($helper->completeTransaction(['transaction' => 10001]));
+        $this->assertSame(0, $helper->lockCount);
+    }
+
     public function testExtensionListResponseWithoutTransactionIsMatchedByResponseTopic(): void
     {
         $helper = new class() {

@@ -503,22 +503,29 @@ Die Änderungen sind anhand der funktionalen Commits chronologisch gegliedert. A
 - OTA-Formularlisten werden während eines Modul-Updates nur noch aktualisiert, wenn die Symcon-Formularschnittstelle verfügbar ist. Dadurch erzeugen OTA-Statusänderungen während `VM_UPDATE` keine `InstanceInterface is not available`-Warnungen mehr.
 - Verwaiste interne Variablenregistrierungen werden vor einer Neuanlage bereinigt. Dadurch führen bereits gelöschte Maintained-Variablen beim Update nicht mehr zu `Variable #... existiert nicht`-Warnungen.
 
-### 9. Juli 2026: Robuste Payload-Verarbeitung
+### 9. bis 15. Juli 2026: Robuste Payload-Verarbeitung, ueckmeldebasierte Aktionsverarbeitung, Textdarstellungen und Übersetzungen, Sicherheit, Stabilität und Performance
 
 - Numerisch indizierte Root-Payloads ohne Zigbee2MQTT-Property werden beim Payload-Import jetzt ignoriert. Dadurch lösen Geräte, die einzelne Werte oder Listenfragmente ohne Variablen-Ident senden, keinen `TypeError` in der Variablenverarbeitung mehr aus.
-
-### 13. Juli 2026: Rueckmeldebasierte Aktionsverarbeitung
-
 - Lesbare Set-Aktionen wie Schalter, Helligkeit, Farbtemperatur und andere Statuswerte aktualisieren lokale Symcon-Werte erst nach einer Rueckmeldung von Zigbee2MQTT.
 - Reine Schreib- und Befehlswerte ohne eigene Rueckmeldung, zum Beispiel Szenen, Presets, Effekte oder andere `access: 2`-Funktionen, merken nach erfolgreichem Senden weiterhin den zuletzt gewaehlten Wert lokal.
 - Helligkeitsaktionen nutzen dieselbe Rueckmeldepruefung wie andere Standardaktionen und geben Sendefehler wieder korrekt an die Aktion zurueck.
 - Unveraenderte Payload-Werte werden nicht mehr erneut in Symcon-Variablen geschrieben. Dadurch sinken FlowHandler-, Ereignis-, Archiv- und Kachel-Aktualisierungen bei haeufig sendenden Geraeten deutlich.
-
-### 14. Juli 2026: Standardkacheln fuer Beleuchtung
-
-- RGB-, RGBW-, RGBWW- und Tunable-White-Leuchten sowie entsprechende Gruppen verwenden wieder die responsive Symcon-Standarddarstellung.
-- Die experimentellen RGB- und Tunable-White-HTML-Kacheln sowie ihre Konfigurationsschalter wurden entfernt.
-- Native Farb-, Helligkeits- und Kelvin-Darstellungen, normalisierte Farbtemperatur-Presets sowie geraete- und gruppenspezifische Min-/Max-Bereiche bleiben erhalten.
+- Schreibgeschützte Textvariablen erhalten keine Darstellung mehr, die eine Variablenaktion voraussetzt. Dadurch entfallen die entsprechenden Kompatibilitätsfehler in der Variablenkonfiguration.
+- Beschreibbare Textvariablen verwenden die native mehrzeilige Werteingabe anstelle der nicht vom klassischen WebFront konvertierbaren Text-Box-Darstellung.
+- 26 Übersetzungen wurden ergänzt und eine bestehende Übersetzung überarbeitet. Dies umfasst insbesondere Wetterwerte wie Wind, Böen, Niederschlag, Taupunkt, gefühlte Temperatur, Hitze- und Luftfeuchtigkeitsindex sowie zusätzliche Geräte-, Betriebs- und Zeitmodi.
+- Zugangsdaten, Installcodes, Tokens, Schlüssel und eingebettete URL-Zugangsdaten werden in Discovery-Debugausgaben rekursiv maskiert. Die unveränderte Übermittlung dieser Werte an Zigbee2MQTT bleibt davon unberührt.
+- Variablenaktionen werden vollständig mit den aktuellen Schreibrechten eines Exposes synchronisiert. Nicht mehr beschreibbare Variablen verlieren ihre Standardaktion; explizite Aktionskonfigurationen haben weiterhin Vorrang.
+- `LastPayload` führt partielle MQTT-Nachrichten nun korrekt zusammen: neue Werte ersetzen alte Werte, nicht erneut gesendete Felder verschachtelter Objekte bleiben erhalten und Listen werden vollständig ersetzt.
+- Die laufende OTA-Anzeige wird bei Statusänderungen wieder automatisch aktualisiert. Schutzprüfungen verhindern Fehler, wenn Formular oder Instanz während eines Reloads vorübergehend nicht erreichbar sind.
+- Die MQTT-Transaktionsverwaltung verhindert ID-Kollisionen und das Überschreiben offener Anfragen, validiert Antwort-IDs und schützt sämtliche Pufferzugriffe mit zuverlässig freigegebenen Sperren.
+- `SendGetCommand()` fordert nur noch Properties an, die laut Zigbee2MQTT-Expose tatsächlich per `GET` lesbar und nicht gefiltert sind. Leere oder ausschließlich schreibbare Anfragen werden nicht gesendet.
+- Änderungen am Variablenkatalog werden während Payload-, Expose-, Aktualisierungs- und Wiederaufbauvorgängen gesammelt und höchstens einmal persistiert. Unveränderte Kataloge verursachen keinen erneuten Attributschreibzugriff.
+- Die Discovery zeigt sofort den zuletzt bekannten Stand an und aktualisiert einen älter als 60 Sekunden gewordenen Cache asynchron. Eine zusätzliche Schaltfläche ermöglicht weiterhin eine manuelle Aktualisierung.
+- Die automatisierten Regressionstests wurden für die neuen Schutzmechanismen und für die bereits entfernte Profil-Diagnose des Bridge-Formulars angepasst und erweitert.
+- Umfangreiche Verantwortlichkeiten wurden ohne beabsichtigte Funktionsänderung aus `Bridge/module.php` und `libs/ModulBase.php` in spezialisierte Helper ausgelagert.
+- Die Bridge-Helper kapseln Konfiguration, Geräte, Gruppen und Szenen, Diagnose, Requests, OTA, Netzwerksicherheit, Installcodes, Backups, Pairing, veraltete Variablen und Touchlink.
+- Die Modul-Helper kapseln Gerätebefehle und -aktionen, Payload-Verarbeitung und -struktur, Expose-Registrierung, Variablenwerte, Variablenlaufzeit und sichere Runtime-Zugriffe.
+- Für eine einheitliche Verzeichnisstruktur liegen die Bridge-Helper unter `Bridge/Helper` und die Helper der Modulbasis unter `libs/ModulHelper`.
 
 **Version 5.42:**
 

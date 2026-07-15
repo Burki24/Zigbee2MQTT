@@ -583,6 +583,72 @@ class DevicesTest extends DumpInclude
         $this->assertSame([], $device->sentPayload);
     }
 
+    public function testSendGetCommandIncludesOnlyPropertiesWithGetAccess(): void
+    {
+        $device = $this->createDeviceActionTestDouble();
+        $device->setExposesForTest([
+            [
+                'type'     => 'light',
+                'features' => [
+                    ['type' => 'binary', 'property' => 'state', 'access' => 7],
+                    ['type' => 'numeric', 'property' => 'brightness', 'access' => 3],
+                    ['type' => 'enum', 'property' => 'effect', 'access' => 2],
+                    ['type' => 'numeric', 'property' => 'power', 'access' => 5],
+                    ['type' => 'numeric', 'property' => 'linkquality', 'access' => 1],
+                    ['type' => 'numeric', 'property' => '', 'access' => 7]
+                ]
+            ],
+            [
+                'type'     => 'composite',
+                'property' => 'wifi_config',
+                'access'   => 7,
+                'category' => 'config',
+                'features' => [
+                    ['type' => 'text', 'property' => 'ssid', 'access' => 3],
+                    ['type' => 'text', 'property' => 'password', 'access' => 2]
+                ]
+            ],
+            [
+                'type'     => 'composite',
+                'property' => 'write_only_composite',
+                'access'   => 3,
+                'features' => [
+                    ['type' => 'text', 'property' => 'child_value', 'access' => 7]
+                ]
+            ],
+            ['type' => 'enum', 'property' => 'identify', 'access' => 2, 'category' => 'config']
+        ]);
+
+        $this->assertTrue($device->SendGetCommand());
+        $this->assertSame('/Wohnbereich/Beschattung/Terrassenfenster/get', $device->sentTopic);
+        $this->assertSame([
+            'state'       => '',
+            'power'       => '',
+            'wifi_config' => ''
+        ], $device->sentPayload);
+
+        $device->setFilteredAttributesForTest(['power']);
+        $this->assertTrue($device->SendGetCommand());
+        $this->assertSame([
+            'state'       => '',
+            'wifi_config' => ''
+        ], $device->sentPayload);
+    }
+
+    public function testSendGetCommandSkipsRequestWithoutGettableProperties(): void
+    {
+        $device = $this->createDeviceActionTestDouble();
+        $device->setExposesForTest([
+            ['type' => 'numeric', 'property' => 'temperature', 'access' => 1],
+            ['type' => 'enum', 'property' => 'identify', 'access' => 2],
+            ['type' => 'numeric', 'property' => 'configuration', 'access' => 3]
+        ]);
+
+        $this->assertFalse($device->SendGetCommand());
+        $this->assertSame('', $device->sentTopic);
+        $this->assertSame([], $device->sentPayload);
+    }
+
     public function testColorTransitionRequiresNativeColorExpose(): void
     {
         $device = $this->createDeviceActionTestDouble();
@@ -666,6 +732,77 @@ class DevicesTest extends DumpInclude
 
         IPS_RequestAction($iid, 'ToggleVariableCreation', 'power');
         $this->assertNotFalse(@IPS_GetObjectIDByIdent('power', $iid), 'Re-enabled variable should be created again.');
+    }
+
+    public function testPayloadCatalogUpdatesAreWrittenAsSingleBatch(): void
+    {
+        $iid = IPS_CreateInstance('{E5BB36C6-A70B-EB23-3716-9151A09AC8A2}');
+        $device = new class($iid) extends Zigbee2MQTTDevice {
+            public int $variableCatalogWriteCount = 0;
+
+            protected function WriteAttributeArray(string $name, array $value): void
+            {
+                if ($name === self::ATTRIBUTE_VARIABLE_CATALOG) {
+                    ++$this->variableCatalogWriteCount;
+                }
+
+                parent::WriteAttributeArray($name, $value);
+            }
+
+            protected function SendDebug(string $Message, string $Data, int $Format): bool
+            {
+                return true;
+            }
+
+            public function processPayloadForTest(array $payload): void
+            {
+                $method = new ReflectionMethod(Zigbee2MQTT\ModulBase::class, 'processPayload');
+                $method->invoke($this, $payload);
+            }
+
+            public function getVariableCatalogForTest(): array
+            {
+                return $this->ReadAttributeArray(self::ATTRIBUTE_VARIABLE_CATALOG);
+            }
+        };
+        $device->Create();
+        $device->variableCatalogWriteCount = 0;
+
+        $payload = [
+            'exposes' => [
+                [
+                    'type'     => 'numeric',
+                    'name'     => 'temperature',
+                    'label'    => 'Temperature',
+                    'property' => 'temperature',
+                    'access'   => 1,
+                    'unit'     => '°C'
+                ],
+                [
+                    'type'     => 'numeric',
+                    'name'     => 'humidity',
+                    'label'    => 'Humidity',
+                    'property' => 'humidity',
+                    'access'   => 1,
+                    'unit'     => '%'
+                ]
+            ],
+            'temperature' => 21.5,
+            'humidity'    => 48.0
+        ];
+
+        $device->processPayloadForTest($payload);
+
+        $this->assertSame(1, $device->variableCatalogWriteCount);
+        $catalog = $device->getVariableCatalogForTest();
+        $this->assertSame('temperature', $catalog['temperature']['property']);
+        $this->assertSame('humidity', $catalog['humidity']['property']);
+        $this->assertTrue($catalog['temperature']['created']);
+        $this->assertTrue($catalog['humidity']['created']);
+
+        $device->variableCatalogWriteCount = 0;
+        $device->processPayloadForTest($payload);
+        $this->assertSame(0, $device->variableCatalogWriteCount, 'An unchanged batch must not rewrite the catalog attribute.');
     }
 
     public function testVariableSelectionCreatesNumericVariableWithoutExposeName(): void
@@ -790,6 +927,37 @@ class DevicesTest extends DumpInclude
         $latestPayload = self::getExportDebugData($iid)['LatestPayload'];
         $this->assertSame(['temperature' => 21.5], $latestPayload);
         $this->assertFalse(@IPS_GetObjectIDByIdent('0', $iid));
+    }
+
+    public function testLastPayloadTracksLatestValuesAndMergesPartialObjects(): void
+    {
+        [$iid, $debug] = $this->createTestInstance('RTCGQ01LM.json');
+        $interface = IPS\InstanceManager::getInstanceInterface($iid);
+        $topic = $debug['Config']['MQTTBaseTopic'] . '/' . $debug['Config']['MQTTTopic'];
+
+        $interface->ReceiveData(self::buildMqttRequest($topic, [
+            'temperature' => 21.5,
+            'nested_test' => ['left' => 1, 'right' => 2],
+            'list_test'   => [1, 2, 3]
+        ]));
+        $interface->ReceiveData(self::buildMqttRequest($topic, [
+            'temperature' => 23.25,
+            'nested_test' => ['left' => 9],
+            'list_test'   => [4]
+        ]));
+
+        $debugData = self::getExportDebugData($iid);
+        $this->assertSame(23.25, $debugData['LastPayload']['temperature']);
+        $this->assertSame(['left' => 9, 'right' => 2], $debugData['LastPayload']['nested_test']);
+        $this->assertSame([4], $debugData['LastPayload']['list_test']);
+        $this->assertSame([
+            'temperature' => 23.25,
+            'nested_test' => ['left' => 9],
+            'list_test'   => [4]
+        ], $debugData['LatestPayload']);
+
+        IPS_ApplyChanges($iid);
+        $this->assertSame(23.25, self::getExportDebugData($iid)['LastPayload']['temperature']);
     }
 
     public function testVariableSelectionCreatesBinaryAndEnumVariablesWithIncompleteFeatureIdentity(): void
@@ -1331,6 +1499,44 @@ class DevicesTest extends DumpInclude
         $this->assertSame(VARIABLE_PRESENTATION_VALUE_PRESENTATION, $variable['VariablePresentation']['PRESENTATION'] ?? null);
         $this->assertNotSame(VARIABLE_PRESENTATION_SLIDER, $variable['VariablePresentation']['PRESENTATION'] ?? null);
         $this->assertSame(80, GetValue($brightnessID));
+    }
+
+    public function testVariableActionFollowsChangingFeatureWriteAccess(): void
+    {
+        [$iid] = $this->createTestInstance('TunableWhiteLight.json');
+        $brightnessID = IPS_GetObjectIDByIdent('brightness', $iid);
+        $this->assertNotFalse($brightnessID);
+        $this->assertTrue(HasAction($brightnessID));
+
+        $interface = IPS\InstanceManager::getInstanceInterface($iid);
+        $synchronizeAction = new \ReflectionMethod($interface, 'synchronizeVariableAction');
+        $synchronizeAction->setAccessible(true);
+
+        // Das aktuelle Feature ist verbindlich, auch wenn die gespeicherten Exposes noch beschreibbar sind.
+        $synchronizeAction->invoke($interface, 'brightness', ['access' => 1]);
+        $this->assertFalse(HasAction($brightnessID));
+
+        $synchronizeAction->invoke($interface, 'brightness', ['access' => 7]);
+        $this->assertTrue(HasAction($brightnessID));
+    }
+
+    public function testExplicitStateActionConfigurationOverridesFeatureWriteAccess(): void
+    {
+        [$iid] = $this->createTestInstance('TunableWhiteLight.json');
+        $brightnessID = IPS_GetObjectIDByIdent('brightness', $iid);
+        $this->assertNotFalse($brightnessID);
+        $this->assertTrue(HasAction($brightnessID));
+
+        $interface = IPS\InstanceManager::getInstanceInterface($iid);
+        $synchronizeStateAction = new \ReflectionMethod($interface, 'synchronizeStateFeatureAction');
+        $synchronizeStateAction->setAccessible(true);
+        $feature = ['access' => 7];
+
+        $synchronizeStateAction->invoke($interface, ['ident' => 'brightness', 'enableAction' => false], $feature);
+        $this->assertFalse(HasAction($brightnessID));
+
+        $synchronizeStateAction->invoke($interface, ['ident' => 'brightness', 'enableAction' => true], $feature);
+        $this->assertTrue(HasAction($brightnessID));
     }
 
     public function testDeletedPresetVariableIsImmediatelyRestoredFromCatalog(): void
@@ -2662,6 +2868,11 @@ class DevicesTest extends DumpInclude
             public function setExposesForTest(array $exposes): void
             {
                 $this->WriteAttributeArray(self::ATTRIBUTE_EXPOSES, $exposes);
+            }
+
+            public function setFilteredAttributesForTest(array $filtered): void
+            {
+                $this->WriteAttributeArray(self::ATTRIBUTE_FILTERED, $filtered);
             }
 
             public function registerBooleanVariableForTest(string $ident): int

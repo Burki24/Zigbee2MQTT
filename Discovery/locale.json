@@ -16,6 +16,7 @@
             "Username": "Benutzername",
             "Password": "Passwort",
             "Save": "Speichern",
+            "Refresh discovery": "Discovery aktualisieren",
             "Please wait": "Bitte warte",
             "Configurator": "Konfigurator",
             "Could not connect to broker!": "Verbindung zum Broker konnte\r\nnicht hergestellt werden!",

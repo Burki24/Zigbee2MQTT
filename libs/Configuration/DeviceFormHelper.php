@@ -2214,7 +2214,7 @@ trait DeviceFormHelper
     {
         $candidates = [];
         $this->CollectDevicePayloadAttributes($this->ReadAttributeArray(self::ATTRIBUTE_EXPOSES), $candidates);
-        $candidates = array_merge($candidates, array_keys($this->ReadAttributeArray(self::ATTRIBUTE_VARIABLE_CATALOG)));
+        $candidates = array_merge($candidates, array_keys($this->ReadVariableCatalog()));
 
         if (@IPS_ObjectExists($this->InstanceID)) {
             foreach (IPS_GetChildrenIDs($this->InstanceID) as $childID) {
