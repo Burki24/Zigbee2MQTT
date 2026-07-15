@@ -929,6 +929,30 @@ class DevicesTest extends DumpInclude
         $this->assertFalse(@IPS_GetObjectIDByIdent('0', $iid));
     }
 
+    public function testReceiveDataWritesRepeatedUnchangedPayloadValues(): void
+    {
+        [$iid, $debug] = $this->createTestInstance('RTCGQ01LM.json');
+        $interface = IPS\InstanceManager::getInstanceInterface($iid);
+        $topic = $debug['Config']['MQTTBaseTopic'] . '/' . $debug['Config']['MQTTTopic'];
+        $occupancyID = IPS_GetObjectIDByIdent('occupancy', $iid);
+        $occupancy = GetValue($occupancyID);
+        $countWrites = static function () use ($iid): int
+        {
+            return \count(\array_filter(
+                IPS\DebugServer::getDebugMessages($iid),
+                static fn (array $entry): bool => $entry['Message'] === 'SetValue'
+                    && $entry['Data'] === 'Setze Variable: occupancy auf Wert: false'
+            ));
+        };
+        $writeCount = $countWrites();
+
+        $interface->ReceiveData(self::buildMqttRequest($topic, ['occupancy' => $occupancy]));
+        $interface->ReceiveData(self::buildMqttRequest($topic, ['occupancy' => $occupancy]));
+
+        $this->assertSame($writeCount + 2, $countWrites());
+        $this->assertSame($occupancy, GetValue($occupancyID));
+    }
+
     public function testLastPayloadTracksLatestValuesAndMergesPartialObjects(): void
     {
         [$iid, $debug] = $this->createTestInstance('RTCGQ01LM.json');

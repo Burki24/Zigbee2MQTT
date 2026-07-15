@@ -117,33 +117,25 @@ trait VariableValueProcessingHelper
                     if ($association['Name'] == $value) {
                         $adjustedValue = $association['Value'];
                         $this->SendDebug(__FUNCTION__, 'Profilwert gefunden: ' . $value . ' -> ' . $adjustedValue, 0);
-                        $changed = false;
-                        $result = $this->SetModuleValue($ident, $variableID, $adjustedValue, $changed);
-                        if ($changed) {
-                            $this->UpdateCustomTileValuesIfRelevant($ident);
-                        }
+                        $result = $this->SetModuleValue($ident, $variableID, $adjustedValue);
+                        $this->UpdateCustomTileValuesIfRelevant($ident);
                         return $result;
                     }
                 }
             }
         }
 
-        $changed = false;
-        $result = $this->SetModuleValue($ident, $variableID, $adjustedValue, $changed);
-        if ($changed) {
-            $this->SendDebug(__FUNCTION__, 'Setze Variable: ' . $ident . ' auf Wert: ' . json_encode($adjustedValue), 0);
-        }
+        $this->SendDebug(__FUNCTION__, 'Setze Variable: ' . $ident . ' auf Wert: ' . json_encode($adjustedValue), 0);
+        $result = $this->SetModuleValue($ident, $variableID, $adjustedValue);
 
         // Spezialbehandlung für ColorTemp
-        if ($changed && $ident === 'color_temp') {
+        if ($ident === 'color_temp') {
             $kelvinIdent = 'color_temp_kelvin';
             $kelvinValue = $this->convertMiredToKelvin($value);
             $this->SetValueDirect($kelvinIdent, $kelvinValue);
             $this->UpdateColorTemperatureWhiteColorVariable($kelvinValue);
         }
-        if ($changed) {
-            $this->UpdateCustomTileValuesIfRelevant($ident);
-        }
+        $this->UpdateCustomTileValuesIfRelevant($ident);
         return $result;
     }
 
@@ -229,12 +221,9 @@ trait VariableValueProcessingHelper
         }
 
         // Setze den Wert der Variable
-        $changed = false;
-        $this->SetModuleValue($ident, $variableID, $value, $changed);
-        if ($changed) {
-            $this->SendDebug(__FUNCTION__, \sprintf('Setze Variable: %s, Typ: %s, Wert: %s', $ident, $debugVarType, json_encode($value)), 0);
-            $this->UpdateCustomTileValuesIfRelevant($ident);
-        }
+        $this->SendDebug(__FUNCTION__, \sprintf('Setze Variable: %s, Typ: %s, Wert: %s', $ident, $debugVarType, json_encode($value)), 0);
+        $this->SetModuleValue($ident, $variableID, $value);
+        $this->UpdateCustomTileValuesIfRelevant($ident);
     }
 
     /**

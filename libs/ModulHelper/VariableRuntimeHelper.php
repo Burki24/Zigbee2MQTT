@@ -75,14 +75,8 @@ trait VariableRuntimeHelper
     /**
      * Setzt einen Variablenwert module-strict-konform.
      */
-    private function SetModuleValue(string $ident, int $variableID, mixed $value, ?bool &$changed = null): bool
+    private function SetModuleValue(string $ident, int $variableID, mixed $value): bool
     {
-        $changed = true;
-        if ($this->IsModuleValueUnchanged($variableID, $value)) {
-            $changed = false;
-            return true;
-        }
-
         if (\defined('PHPUNIT_TESTSUITE') && \constant('PHPUNIT_TESTSUITE')) {
             \SetValue($variableID, $value);
             return true;
@@ -99,30 +93,6 @@ trait VariableRuntimeHelper
         } finally {
             restore_error_handler();
         }
-    }
-
-    /**
-     * Prüft, ob der gewünschte Wert bereits unveraendert in der Symcon-Variable steht.
-     */
-    private function IsModuleValueUnchanged(int $variableID, mixed $value): bool
-    {
-        \set_error_handler(static function (): bool
-        {
-            return true;
-        });
-        try {
-            $currentValue = \GetValue($variableID);
-        } catch (\Throwable) {
-            return false;
-        } finally {
-            \restore_error_handler();
-        }
-
-        if (\is_float($currentValue) || \is_float($value)) {
-            return \abs((float) $currentValue - (float) $value) < 0.000000001;
-        }
-
-        return $currentValue === $value;
     }
 
     /**

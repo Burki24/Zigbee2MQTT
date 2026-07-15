@@ -509,7 +509,7 @@ Die Änderungen sind anhand der funktionalen Commits chronologisch gegliedert. A
 - Lesbare Set-Aktionen wie Schalter, Helligkeit, Farbtemperatur und andere Statuswerte aktualisieren lokale Symcon-Werte erst nach einer Rueckmeldung von Zigbee2MQTT.
 - Reine Schreib- und Befehlswerte ohne eigene Rueckmeldung, zum Beispiel Szenen, Presets, Effekte oder andere `access: 2`-Funktionen, merken nach erfolgreichem Senden weiterhin den zuletzt gewaehlten Wert lokal.
 - Helligkeitsaktionen nutzen dieselbe Rueckmeldepruefung wie andere Standardaktionen und geben Sendefehler wieder korrekt an die Aktion zurueck.
-- Unveraenderte Payload-Werte werden nicht mehr erneut in Symcon-Variablen geschrieben. Dadurch sinken FlowHandler-, Ereignis-, Archiv- und Kachel-Aktualisierungen bei haeufig sendenden Geraeten deutlich.
+- Auch unveraenderte Payload-Werte werden bei jeder empfangenen Zigbee2MQTT-Nachricht erneut in die zugehoerige Symcon-Variable geschrieben. Dadurch bleiben Automationen kompatibel, die auf eine Wertaktualisierung statt ausschliesslich auf eine Wertaenderung reagieren, beispielsweise bei Radar- und Bewegungsmeldern.
 - Schreibgeschützte Textvariablen erhalten keine Darstellung mehr, die eine Variablenaktion voraussetzt. Dadurch entfallen die entsprechenden Kompatibilitätsfehler in der Variablenkonfiguration.
 - Beschreibbare Textvariablen verwenden die native mehrzeilige Werteingabe anstelle der nicht vom klassischen WebFront konvertierbaren Text-Box-Darstellung.
 - 26 Übersetzungen wurden ergänzt und eine bestehende Übersetzung überarbeitet. Dies umfasst insbesondere Wetterwerte wie Wind, Böen, Niederschlag, Taupunkt, gefühlte Temperatur, Hitze- und Luftfeuchtigkeitsindex sowie zusätzliche Geräte-, Betriebs- und Zeitmodi.
