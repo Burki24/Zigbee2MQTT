@@ -47,4 +47,55 @@ class DiscoveryTest extends DumpInclude
             $reflection->invoke($discovery, 12345)
         );
     }
+
+    public function testManualBrokerDebugDoesNotContainCredentials(): void
+    {
+        $instanceID = 990005;
+        $discovery = new Zigbee2MQTTDiscovery($instanceID);
+
+        $discovery->RequestAction('CheckMQTTBroker', json_encode([
+            'Url'          => 'invalid://url-debug-user:url-debug-password@broker.test?access_token=url-debug-token',
+            'UserName'     => 'manual-debug-user',
+            'Password'     => 'manual-debug-password',
+            'ClientSecret' => 'manual-client-secret',
+            'ApiKey'       => 'manual-api-key'
+        ]));
+
+        $debug = json_encode(IPS\DebugServer::getDebugMessages($instanceID));
+        $this->assertIsString($debug);
+        $this->assertStringNotContainsString('manual-debug-user', $debug);
+        $this->assertStringNotContainsString('manual-debug-password', $debug);
+        $this->assertStringNotContainsString('manual-client-secret', $debug);
+        $this->assertStringNotContainsString('manual-api-key', $debug);
+        $this->assertStringNotContainsString('url-debug-user', $debug);
+        $this->assertStringNotContainsString('url-debug-password', $debug);
+        $this->assertStringNotContainsString('url-debug-token', $debug);
+        $this->assertStringContainsString('[redacted]', $debug);
+    }
+
+    public function testFormDebugRedactsNestedBrokerCredentialsWithoutChangingForm(): void
+    {
+        $instanceID = 990006;
+        $discovery = new Zigbee2MQTTDiscovery($instanceID);
+        $discovery->ManuelTopics = ['zigbee2mqtt'];
+        $discovery->ManuelBrokerConfig = [
+            'Host'         => 'mqtt.example.test',
+            'Port'         => 1883,
+            'UseSSL'       => false,
+            'UserName'     => 'form-debug-user',
+            'Password'     => 'form-debug-password',
+            'ClientSecret' => 'nested-debug-secret'
+        ];
+
+        $form = $discovery->GetConfigurationForm();
+        $this->assertStringContainsString('form-debug-user', $form);
+        $this->assertStringContainsString('form-debug-password', $form);
+
+        $debug = json_encode(IPS\DebugServer::getDebugMessages($instanceID));
+        $this->assertIsString($debug);
+        $this->assertStringNotContainsString('form-debug-user', $debug);
+        $this->assertStringNotContainsString('form-debug-password', $debug);
+        $this->assertStringNotContainsString('nested-debug-secret', $debug);
+        $this->assertStringContainsString('[redacted]', $debug);
+    }
 }

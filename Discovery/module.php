@@ -75,7 +75,10 @@ class Zigbee2MQTTDiscovery extends IPSModuleStrict
         switch ($ident) {
             case 'CheckMQTTBroker':
                 $Config = json_decode($value, true);
-                $this->SendDebug('Manuel CheckMQTTBroker', (string) $value, 0);
+                $this->SendRedactedDebug(
+                    'Manuel CheckMQTTBroker',
+                    \is_array($Config) ? $Config : ['Input' => '[invalid JSON]']
+                );
                 $Url = \is_array($Config) ? parse_url((string) ($Config['Url'] ?? '')) : false;
                 if (!\is_array($Config)
                     || !\is_array($Url)
@@ -270,7 +273,7 @@ class Zigbee2MQTTDiscovery extends IPSModuleStrict
         }
 
         $Form['actions'][1]['values'] = $Values;
-        $this->SendDebug('Form', json_encode($Form), 0);
+        $this->SendRedactedDebug('Form', $Form);
         return json_encode($Form);
     }
 
@@ -467,8 +470,102 @@ class Zigbee2MQTTDiscovery extends IPSModuleStrict
                     );
             }
         }
-        $this->SendDebug('MQTTSplitter', json_encode($MqttSplitter), 0);
+        $this->SendRedactedDebug('MQTTSplitter', $MqttSplitter);
         return $MqttSplitter;
+    }
+
+    /**
+     * Gibt strukturierte Debugdaten aus, nachdem Zugangsdaten rekursiv maskiert wurden.
+     */
+    private function SendRedactedDebug(string $message, mixed $data): void
+    {
+        $encodedData = json_encode($this->RedactSensitiveDebugData($data));
+        $this->SendDebug($message, $encodedData === false ? '[unencodable debug data]' : $encodedData, 0);
+    }
+
+    /**
+     * Maskiert typische Zugangsdaten und Geheimnisse in beliebig verschachtelten Daten.
+     */
+    private function RedactSensitiveDebugData(mixed $data): mixed
+    {
+        if (\is_object($data)) {
+            $data = get_object_vars($data);
+        }
+        if (!\is_array($data)) {
+            return $data;
+        }
+
+        $redacted = [];
+        foreach ($data as $key => $value) {
+            if (\is_string($key) && $this->IsSensitiveDebugKey($key)) {
+                $redacted[$key] = $value === '' || $value === null ? $value : '[redacted]';
+                continue;
+            }
+            if (\is_string($key) && \is_string($value) && $this->IsUrlDebugKey($key)) {
+                $redacted[$key] = $this->RedactSensitiveUrl($value);
+                continue;
+            }
+            $redacted[$key] = $this->RedactSensitiveDebugData($value);
+        }
+
+        return $redacted;
+    }
+
+    /**
+     * Erkennt Zugangsdaten unabhaengig von Grossschreibung und Trennzeichen im Schluessel.
+     */
+    private function IsSensitiveDebugKey(string $key): bool
+    {
+        $normalizedKey = strtolower((string) preg_replace('/[^a-z0-9]/i', '', $key));
+        foreach (
+            [
+                'username',
+                'password',
+                'passphrase',
+                'token',
+                'secret',
+                'apikey',
+                'installcode',
+                'privatekey',
+                'pincode'
+            ] as $sensitiveSuffix
+        ) {
+            if (str_ends_with($normalizedKey, $sensitiveSuffix)) {
+                return true;
+            }
+        }
+
+        return false;
+    }
+
+    /**
+     * Erkennt Felder, deren URL moeglicherweise eingebettete Zugangsdaten enthaelt.
+     */
+    private function IsUrlDebugKey(string $key): bool
+    {
+        return \in_array(
+            strtolower((string) preg_replace('/[^a-z0-9]/i', '', $key)),
+            ['url', 'uri', 'brokerurl', 'brokeruri'],
+            true
+        );
+    }
+
+    /**
+     * Entfernt Benutzerinformationen und geheime Query-Parameter aus einer Debug-URL.
+     */
+    private function RedactSensitiveUrl(string $url): string
+    {
+        $url = (string) preg_replace(
+            '#^([a-z][a-z0-9+.-]*://)[^/@\s]+@#i',
+            '$1[redacted]@',
+            $url
+        );
+
+        return (string) preg_replace(
+            '/([?&][a-z0-9_-]*(?:user(?:name)?|password|passphrase|token|secret|api[_-]?key|install[_-]?code|private[_-]?key|pin[_-]?code)=)[^&#]*/i',
+            '$1[redacted]',
+            $url
+        );
     }
 
 }
