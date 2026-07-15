@@ -791,8 +791,8 @@ abstract class ModulBase extends \IPSModuleStrict
                 10
             );
 
-            // Zentrale EnableAction-Prüfung für brightness Migration
-            $this->checkAndEnableAction('brightness', $brightnessFeature);
+            // Standardaktion fuer die migrierte Helligkeitsvariable synchronisieren.
+            $this->synchronizeVariableAction('brightness', $brightnessFeature);
         }
         // Flag für beendete Migration wieder setzen
         $this->BUFFER_MQTT_SUSPENDED = false;
@@ -2411,7 +2411,7 @@ abstract class ModulBase extends \IPSModuleStrict
                 $varType['presentation']
             );
             $this->MarkVariableCreated($key);
-            $this->checkAndEnableAction($key);
+            $this->synchronizeVariableAction($key);
         }
 
         $this->SetValue($key, $value);
@@ -2531,7 +2531,7 @@ abstract class ModulBase extends \IPSModuleStrict
             return;
         }
 
-        $this->checkAndEnableAction($ident, $variableProps);
+        $this->synchronizeVariableAction($ident, $variableProps);
         $this->SetValue($ident, $value);
     }
 
@@ -4166,9 +4166,9 @@ abstract class ModulBase extends \IPSModuleStrict
             return;
         }
 
-        // Zentrale EnableAction-Prüfung für die Hauptvariable, außer bei composite
+        // Standardaktion der Hauptvariable synchronisieren, ausser bei composite.
         if ($variableType != 'composite') {
-            $this->checkAndEnableAction($ident, $feature);
+            $this->synchronizeVariableAction($ident, $feature);
         }
 
         $this->registerColorTemperatureKelvinVariable($property, $feature);
@@ -4196,7 +4196,7 @@ abstract class ModulBase extends \IPSModuleStrict
         $ident = str_replace('&', '_and_', $featureProperty);
         $this->RegisterVariableBoolean($ident, $this->Translate($this->convertLabelToName($featureProperty)), '');
         $this->MarkVariableCreated($ident);
-        $this->checkAndEnableAction($ident, $feature, true);
+        $this->synchronizeVariableAction($ident, $feature, true);
         return true;
     }
 
@@ -4240,7 +4240,7 @@ abstract class ModulBase extends \IPSModuleStrict
                 return true;
         }
 
-        $this->enableStateFeatureAction($stateConfig, $feature);
+        $this->synchronizeStateFeatureAction($stateConfig, $feature);
         return true;
     }
 
@@ -4287,16 +4287,19 @@ abstract class ModulBase extends \IPSModuleStrict
      * @param array $stateConfig State-Konfiguration aus getStateConfiguration().
      * @param array|null $feature Optionale Expose-Daten.
      */
-    private function enableStateFeatureAction(array $stateConfig, ?array $feature): void
+    private function synchronizeStateFeatureAction(array $stateConfig, ?array $feature): void
     {
         if (isset($stateConfig['enableAction'])) {
             if ($stateConfig['enableAction']) {
-                $this->checkAndEnableAction($stateConfig['ident'], $feature, true);
+                $this->synchronizeVariableAction($stateConfig['ident'], $feature, true);
+            } else {
+                $this->DisableAction($stateConfig['ident']);
+                $this->SendDebug(__FUNCTION__, 'Disabled action for ' . $stateConfig['ident'] . ' (explicit state configuration)', 0);
             }
             return;
         }
 
-        $this->checkAndEnableAction($stateConfig['ident'], $feature);
+        $this->synchronizeVariableAction($stateConfig['ident'], $feature);
     }
 
     /**
@@ -4563,7 +4566,7 @@ abstract class ModulBase extends \IPSModuleStrict
         $this->RecordLegacyProfilePresentationReplacement($kelvinIdent, $profileOrPresentation);
         $this->RegisterVariableInteger($kelvinIdent, $this->Translate('Color Temperature Kelvin'), $profileOrPresentation);
         $this->MarkVariableCreated($kelvinIdent);
-        $this->checkAndEnableAction($kelvinIdent, null, true);
+        $this->synchronizeVariableAction($kelvinIdent, null, true);
 
         $this->registerColorTemperatureWhiteColorVariable();
     }
@@ -4704,7 +4707,7 @@ abstract class ModulBase extends \IPSModuleStrict
                 $this->RegisterVariableInteger('color', $this->Translate($this->convertLabelToName('color')), $colorPresentation);
                 $this->MarkVariableCreated('color');
                 // Farbvariablen erhalten IMMER EnableAction, unabhängig von Access-Prüfung
-                $this->checkAndEnableAction('color', null, true);
+                $this->synchronizeVariableAction('color', null, true);
                 $this->SendDebug(__FUNCTION__ . ' :: Line ' . __LINE__ . ' :: Creating composite color_xy', 'color', 0);
                 break;
             case 'color_hs':
@@ -4716,7 +4719,7 @@ abstract class ModulBase extends \IPSModuleStrict
                 $this->RegisterVariableInteger('color_hs', $this->Translate($this->convertLabelToName('color_hs')), $colorPresentation);
                 $this->MarkVariableCreated('color_hs');
                 // Farbvariablen erhalten IMMER EnableAction, unabhängig von Access-Prüfung
-                $this->checkAndEnableAction('color_hs', null, true);
+                $this->synchronizeVariableAction('color_hs', null, true);
                 $this->SendDebug(__FUNCTION__ . ' :: Line ' . __LINE__ . ' :: Creating composite color_hs', 'color_hs', 0);
                 break;
             case 'color_rgb':
@@ -4728,7 +4731,7 @@ abstract class ModulBase extends \IPSModuleStrict
                 $this->RegisterVariableInteger('color_rgb', $this->Translate($this->convertLabelToName('color_rgb')), $colorPresentation);
                 $this->MarkVariableCreated('color_rgb');
                 // Farbvariablen erhalten IMMER EnableAction, unabhängig von Access-Prüfung
-                $this->checkAndEnableAction('color_rgb', null, true);
+                $this->synchronizeVariableAction('color_rgb', null, true);
                 $this->SendDebug(__FUNCTION__ . ' :: Line ' . __LINE__ . ' :: Creating composite color_rgb', 'color_rgb', 0);
                 break;
             default:
@@ -4805,8 +4808,8 @@ abstract class ModulBase extends \IPSModuleStrict
         }
         $this->MarkVariableCreated($presetIdent);
 
-        // Zentrale EnableAction-Prüfung für Preset-Variable
-        $this->checkAndEnableAction($presetIdent, $feature);
+        // Standardaktion der Preset-Variable synchronisieren.
+        $this->synchronizeVariableAction($presetIdent, $feature);
     }
 
     /**
@@ -4888,8 +4891,8 @@ abstract class ModulBase extends \IPSModuleStrict
         }
         $this->MarkVariableCreated($ident);
 
-        // Zentrale EnableAction-Prüfung für spezielle Variable
-        $this->checkAndEnableAction($ident, $feature);
+        // Standardaktion der speziellen Variable synchronisieren.
+        $this->synchronizeVariableAction($ident, $feature);
         return;
     }
 
@@ -4917,7 +4920,7 @@ abstract class ModulBase extends \IPSModuleStrict
      *
      * Hinweis: EnableAction wird nur zurückgegeben wenn explizit in stateDefinitions
      * definiert. Ansonsten wird EnableAction zentral in registerVariable() über
-     * checkAndEnableAction() basierend auf Access-Rechten bestimmt.
+     * synchronizeVariableAction() basierend auf Access-Rechten bestimmt.
      *
      * @param string $featureId Feature-Identifikator (z.B. 'state', 'state_left')
      * @param array|null $feature Optionales Feature-Array mit weiteren Eigenschaften:
@@ -4947,7 +4950,7 @@ abstract class ModulBase extends \IPSModuleStrict
      * ```
      *
      * @see \Zigbee2MQTT\ModulBase::registerVariable() Verwendet die Konfiguration und trifft EnableAction-Entscheidung
-     * @see \Zigbee2MQTT\ModulBase::checkAndEnableAction() Zentrale EnableAction-Logik
+     * @see \Zigbee2MQTT\ModulBase::synchronizeVariableAction() Zentrale Aktionssynchronisierung
      * @see \IPSModule::SendDebug()
      * @see preg_match()
      */
@@ -5056,14 +5059,16 @@ abstract class ModulBase extends \IPSModuleStrict
     }
 
     /**
-     * checkAndEnableAction
+     * synchronizeVariableAction
      *
-     * Zentrale Hilfsfunktion zur konsistenten EnableAction-Prüfung
+     * Synchronisiert die Standardaktion einer Variable mit ihren Schreibrechten.
      *
-     * Diese Methode implementiert die einheitliche Logik für EnableAction basierend auf:
+     * Diese Methode ermittelt den Sollzustand basierend auf:
      * 1. Access-Rechte aus Feature-Array (0b010 Flag für Schreibzugriff)
      * 2. Access-Rechte aus knownVariables
      * 3. Spezielle Variablen (color_temp_kelvin)
+     *
+     * Ohne Schreibzugriff wird eine eventuell noch vorhandene Standardaktion entfernt.
      *
      * @param string $ident Identifikator der Variable
      * @param array|null $feature Optional: Feature-Array mit Access-Informationen
@@ -5073,9 +5078,10 @@ abstract class ModulBase extends \IPSModuleStrict
      *
      * @see \Zigbee2MQTT\ModulBase::getKnownVariables()
      * @see \IPSModule::EnableAction()
+     * @see \IPSModule::DisableAction()
      * @see \IPSModule::SendDebug()
      */
-    private function checkAndEnableAction(string $ident, ?array $feature = null, bool $forceEnable = false): void
+    private function synchronizeVariableAction(string $ident, ?array $feature = null, bool $forceEnable = false): void
     {
         // Spezielle Variablen oder erzwungene Aktivierung
         if ($forceEnable) {
@@ -5084,10 +5090,15 @@ abstract class ModulBase extends \IPSModuleStrict
             return;
         }
 
-        // Prüfe Access-Rechte aus Feature-Array
-        if (isset($feature['access']) && ($feature['access'] & 0b010) != 0) {
-            $this->EnableAction($ident);
-            $this->SendDebug(__FUNCTION__, 'Enabled action for ' . $ident . ' (has write access from feature)', 0);
+        // Explizite Access-Rechte des aktuellen Features sind verbindlich.
+        if (isset($feature['access'])) {
+            if (($feature['access'] & 0b010) != 0) {
+                $this->EnableAction($ident);
+                $this->SendDebug(__FUNCTION__, 'Enabled action for ' . $ident . ' (has write access from feature)', 0);
+            } else {
+                $this->DisableAction($ident);
+                $this->SendDebug(__FUNCTION__, 'Disabled action for ' . $ident . ' (feature has no write access)', 0);
+            }
             return;
         }
 
@@ -5099,7 +5110,8 @@ abstract class ModulBase extends \IPSModuleStrict
             return;
         }
 
-        // Keine Berechtigung gefunden
-        $this->SendDebug(__FUNCTION__, 'Skipped EnableAction for ' . $ident . ' (no write access)', 0);
+        // Keine Berechtigung gefunden: eventuell vorhandene Standardaktion entfernen.
+        $this->DisableAction($ident);
+        $this->SendDebug(__FUNCTION__, 'Disabled action for ' . $ident . ' (no write access)', 0);
     }
 }

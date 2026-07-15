@@ -1333,6 +1333,44 @@ class DevicesTest extends DumpInclude
         $this->assertSame(80, GetValue($brightnessID));
     }
 
+    public function testVariableActionFollowsChangingFeatureWriteAccess(): void
+    {
+        [$iid] = $this->createTestInstance('TunableWhiteLight.json');
+        $brightnessID = IPS_GetObjectIDByIdent('brightness', $iid);
+        $this->assertNotFalse($brightnessID);
+        $this->assertTrue(HasAction($brightnessID));
+
+        $interface = IPS\InstanceManager::getInstanceInterface($iid);
+        $synchronizeAction = new \ReflectionMethod($interface, 'synchronizeVariableAction');
+        $synchronizeAction->setAccessible(true);
+
+        // Das aktuelle Feature ist verbindlich, auch wenn die gespeicherten Exposes noch beschreibbar sind.
+        $synchronizeAction->invoke($interface, 'brightness', ['access' => 1]);
+        $this->assertFalse(HasAction($brightnessID));
+
+        $synchronizeAction->invoke($interface, 'brightness', ['access' => 7]);
+        $this->assertTrue(HasAction($brightnessID));
+    }
+
+    public function testExplicitStateActionConfigurationOverridesFeatureWriteAccess(): void
+    {
+        [$iid] = $this->createTestInstance('TunableWhiteLight.json');
+        $brightnessID = IPS_GetObjectIDByIdent('brightness', $iid);
+        $this->assertNotFalse($brightnessID);
+        $this->assertTrue(HasAction($brightnessID));
+
+        $interface = IPS\InstanceManager::getInstanceInterface($iid);
+        $synchronizeStateAction = new \ReflectionMethod($interface, 'synchronizeStateFeatureAction');
+        $synchronizeStateAction->setAccessible(true);
+        $feature = ['access' => 7];
+
+        $synchronizeStateAction->invoke($interface, ['ident' => 'brightness', 'enableAction' => false], $feature);
+        $this->assertFalse(HasAction($brightnessID));
+
+        $synchronizeStateAction->invoke($interface, ['ident' => 'brightness', 'enableAction' => true], $feature);
+        $this->assertTrue(HasAction($brightnessID));
+    }
+
     public function testDeletedPresetVariableIsImmediatelyRestoredFromCatalog(): void
     {
         [$iid] = $this->createTestInstance('TunableWhiteLight.json');
