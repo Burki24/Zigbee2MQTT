@@ -953,6 +953,30 @@ class DevicesTest extends DumpInclude
         $this->assertSame($occupancy, GetValue($occupancyID));
     }
 
+    public function testReceiveDataReportsPayloadProcessingHelper(): void
+    {
+        [$iid, $debug] = $this->createTestInstance('RTCGQ01LM.json');
+        $interface = IPS\InstanceManager::getInstanceInterface($iid);
+        $topic = $debug['Config']['MQTTBaseTopic'] . '/' . $debug['Config']['MQTTTopic'];
+
+        $interface->ReceiveData(self::buildMqttRequest($topic, ['occupancy' => false]));
+
+        $helperTraces = array_values(array_filter(
+            IPS\DebugServer::getDebugMessages($iid),
+            static fn (array $entry): bool => $entry['Message'] === 'HelperTrace'
+                && str_contains($entry['Data'], 'PayloadProcessingHelper::processPayload')
+        ));
+        $this->assertNotEmpty($helperTraces);
+        $this->assertTrue((bool) array_filter(
+            $helperTraces,
+            static fn (array $entry): bool => str_contains($entry['Data'], '[START]')
+        ));
+        $this->assertTrue((bool) array_filter(
+            $helperTraces,
+            static fn (array $entry): bool => str_contains($entry['Data'], '[END]')
+        ));
+    }
+
     public function testLastPayloadTracksLatestValuesAndMergesPartialObjects(): void
     {
         [$iid, $debug] = $this->createTestInstance('RTCGQ01LM.json');

@@ -149,11 +149,15 @@ class Zigbee2MQTTBridge extends IPSModuleStrict
         $this->installedZhVersion = 0;
         $this->ExtensionFilename = '';
         $this->ConfigLastSeen = 'epoch';
-        $this->ClearTransactionData();
+        $this->TraceHelperCall('MQTTHelper', 'ClearTransactionData', fn (): mixed => $this->ClearTransactionData());
         $this->ConfigPermitJoin = false;
         $this->PermitJoinTarget = '';
 
-        $this->RegisterPermitJoinTimer();
+        $this->TraceHelperCall(
+            'BridgePairingHelper',
+            'RegisterPermitJoinTimer',
+            fn (): mixed => $this->RegisterPermitJoinTimer()
+        );
 
         $this->RegisterAttributeArray(self::ATTRIBUTE_DIAGNOSTIC_HEALTH, []);
         $this->RegisterAttributeArray(self::ATTRIBUTE_DIAGNOSTIC_COORDINATOR, []);
@@ -195,7 +199,7 @@ class Zigbee2MQTTBridge extends IPSModuleStrict
     public function ApplyChanges(): void
     {
         // Empty TransactionQueue
-        $this->ClearTransactionData();
+        $this->TraceHelperCall('MQTTHelper', 'ClearTransactionData', fn (): mixed => $this->ClearTransactionData());
 
         //Never delete this line!
         parent::ApplyChanges();
@@ -241,12 +245,20 @@ class Zigbee2MQTTBridge extends IPSModuleStrict
         $this->RegisterVariableInteger('network_channel', $this->Translate('Network Channel'));
 
         $this->UnregisterVariable('permit_join_timeout');
-        $this->UpdatePermitJoinStatus(false);
+        $this->TraceHelperCall(
+            'BridgePairingHelper',
+            'UpdatePermitJoinStatus',
+            fn (): mixed => $this->UpdatePermitJoinStatus(false)
+        );
 
         $online = false;
         if (!empty($BaseTopic)) {
             if (($this->HasActiveParent()) && (IPS_GetKernelRunlevel() == KR_READY)) {
-                $online = @$this->RequestOptions(self::TIMEOUT_BRIDGE_APPLY_OPTIONS_REQUEST);
+                $online = $this->TraceHelperCall(
+                    'BridgeConfigurationCommandHelper',
+                    'RequestOptions',
+                    fn (): mixed => @$this->RequestOptions(self::TIMEOUT_BRIDGE_APPLY_OPTIONS_REQUEST)
+                );
             }
         }
         $this->SendDebug('Online', $online ? 'true' : 'false', 0);
@@ -260,11 +272,19 @@ class Zigbee2MQTTBridge extends IPSModuleStrict
             $this->TryUpdateFormField('InstallExtension', 'enabled', true);
             if (!empty($BaseTopic)) {
                 if ($online) {
-                    @$this->InstallSymconExtension();
+                    $this->TraceHelperCall(
+                        'BridgeConfigurationCommandHelper',
+                        'InstallSymconExtension',
+                        fn (): mixed => @$this->InstallSymconExtension()
+                    );
                 }
             }
         }
-        $this->SynchronizeOTAMessageSubscriptions();
+        $this->TraceHelperCall(
+            'BridgeOTAFormHelper',
+            'SynchronizeOTAMessageSubscriptions',
+            fn (): mixed => $this->SynchronizeOTAMessageSubscriptions()
+        );
     }
 
     /**
@@ -284,7 +304,12 @@ class Zigbee2MQTTBridge extends IPSModuleStrict
     public function MessageSink(int $TimeStamp, int $SenderID, int $Message, array $Data): void
     {
         if ($Message === VM_UPDATE && \in_array($SenderID, $this->ReadAttributeArray(self::ATTRIBUTE_OTA_MONITORED_VARIABLES), true)) {
-            $this->TryUpdateOTAFormLists();
+            $this->TraceHelperCall(
+                'BridgeOTAFormHelper',
+                'TryUpdateOTAFormLists',
+                fn (): mixed => $this->TryUpdateOTAFormLists(),
+                'Message=VM_UPDATE'
+            );
             return;
         }
 
@@ -292,7 +317,12 @@ class Zigbee2MQTTBridge extends IPSModuleStrict
             \in_array($Message, [OM_CHILDADDED, OM_CHILDREMOVED], true) &&
             \in_array($SenderID, $this->ReadAttributeArray(self::ATTRIBUTE_OTA_MONITORED_DEVICES), true)
         ) {
-            $this->SynchronizeOTAMessageSubscriptions();
+            $this->TraceHelperCall(
+                'BridgeOTAFormHelper',
+                'SynchronizeOTAMessageSubscriptions',
+                fn (): mixed => $this->SynchronizeOTAMessageSubscriptions(),
+                'Message=' . $Message
+            );
         }
     }
 
@@ -342,34 +372,69 @@ class Zigbee2MQTTBridge extends IPSModuleStrict
         switch ($Topic) {
             case 'logging':
                 if (\is_array($Payload)) {
-                    $this->AppendBridgeLog($Payload);
+                    $this->TraceHelperCall(
+                        'BridgeDiagnosticHelper',
+                        'AppendBridgeLog',
+                        fn (): mixed => $this->AppendBridgeLog($Payload),
+                        'Topic=logging'
+                    );
                 }
                 break;
             case 'event':
                 if (\is_array($Payload)) {
-                    $this->AppendBridgeEvent($Payload);
+                    $this->TraceHelperCall(
+                        'BridgeDiagnosticHelper',
+                        'AppendBridgeEvent',
+                        fn (): mixed => $this->AppendBridgeEvent($Payload),
+                        'Topic=event'
+                    );
                 }
                 break;
             case 'devices':
                 if (\is_array($Payload)) {
-                    $this->UpdateDeviceDiagnostics($Payload);
+                    $this->TraceHelperCall(
+                        'BridgeDiagnosticHelper',
+                        'UpdateDeviceDiagnostics',
+                        fn (): mixed => $this->UpdateDeviceDiagnostics($Payload),
+                        'Topic=devices'
+                    );
                 }
                 break;
             case 'health':
                 if (\is_array($Payload)) {
-                    $this->StoreHealthCheckResult($Payload);
+                    $this->TraceHelperCall(
+                        'BridgeDiagnosticHelper',
+                        'StoreHealthCheckResult',
+                        fn (): mixed => $this->StoreHealthCheckResult($Payload),
+                        'Topic=health'
+                    );
                 }
                 break;
             case 'request': //nothing
                 break;
             case 'response': //response from request
-                if (isset($Payload['transaction']) && $this->UpdateTransaction($Payload)) {
+                if (isset($Payload['transaction']) && $this->TraceHelperCall(
+                    'MQTTHelper',
+                    'UpdateTransaction',
+                    fn (): mixed => $this->UpdateTransaction($Payload),
+                    'Topic=response'
+                )) {
                     break;
                 }
-                if (\is_array($Payload) && $this->UpdateTransactionByResponseTopic('/bridge/response/' . implode('/', $Topics), $Payload)) {
+                if (\is_array($Payload) && $this->TraceHelperCall(
+                    'MQTTHelper',
+                    'UpdateTransactionByResponseTopic',
+                    fn (): mixed => $this->UpdateTransactionByResponseTopic('/bridge/response/' . implode('/', $Topics), $Payload),
+                    'Response=' . implode('/', $Topics)
+                )) {
                     break;
                 }
-                if (\is_array($Payload) && $this->HandleOTAUpdateResponse($Payload, $Topics)) {
+                if (\is_array($Payload) && $this->TraceHelperCall(
+                    'BridgeOTAFormHelper',
+                    'HandleOTAUpdateResponse',
+                    fn (): mixed => $this->HandleOTAUpdateResponse($Payload, $Topics),
+                    'Response=' . implode('/', $Topics)
+                )) {
                     break;
                 }
                 if (is_array($Topics) && isset($Topics[0])) {
@@ -392,7 +457,12 @@ class Zigbee2MQTTBridge extends IPSModuleStrict
                     $this->SetValue('permit_join', $Payload['permit_join']);
                 }
                 if (array_key_exists('permit_join_end', $Payload)) {
-                    $this->SetValue('permit_join_end', $this->NormalizePermitJoinEnd($Payload['permit_join_end']));
+                    $this->SetValue('permit_join_end', $this->TraceHelperCall(
+                        'BridgePairingHelper',
+                        'NormalizePermitJoinEnd',
+                        fn (): mixed => $this->NormalizePermitJoinEnd($Payload['permit_join_end']),
+                        'Topic=info'
+                    ));
                 }
                 if (array_key_exists('permit_join', $Payload) && $Payload['permit_join'] === false) {
                     $this->PermitJoinTarget = '';
@@ -400,7 +470,12 @@ class Zigbee2MQTTBridge extends IPSModuleStrict
                     $this->SetValue('permit_join_target', '');
                 }
                 if (isset($Payload['permit_join']) || array_key_exists('permit_join_end', $Payload)) {
-                    $this->UpdatePermitJoinStatus();
+                    $this->TraceHelperCall(
+                        'BridgePairingHelper',
+                        'UpdatePermitJoinStatus',
+                        fn (): mixed => $this->UpdatePermitJoinStatus(),
+                        'Topic=info'
+                    );
                 }
                 if (isset($Payload['restart_required'])) {
                     $this->SetValue('restart_required', $Payload['restart_required']);
@@ -443,14 +518,17 @@ class Zigbee2MQTTBridge extends IPSModuleStrict
                     }
                 }
                 if (isset($Payload['config']) && \is_array($Payload['config'])) {
-                    $this->WriteAttributeArray(
-                        self::ATTRIBUTE_CONFIG_BLOCKLIST,
-                        $this->NormalizeNetworkSecurityDeviceList($Payload['config']['blocklist'] ?? [])
+                    $networkLists = $this->TraceHelperCall(
+                        'BridgeNetworkSecurityHelper',
+                        'NormalizeNetworkSecurityDeviceList',
+                        fn (): array => [
+                            'blocklist' => $this->NormalizeNetworkSecurityDeviceList($Payload['config']['blocklist'] ?? []),
+                            'passlist'  => $this->NormalizeNetworkSecurityDeviceList($Payload['config']['passlist'] ?? [])
+                        ],
+                        'Topic=info'
                     );
-                    $this->WriteAttributeArray(
-                        self::ATTRIBUTE_CONFIG_PASSLIST,
-                        $this->NormalizeNetworkSecurityDeviceList($Payload['config']['passlist'] ?? [])
-                    );
+                    $this->WriteAttributeArray(self::ATTRIBUTE_CONFIG_BLOCKLIST, $networkLists['blocklist']);
+                    $this->WriteAttributeArray(self::ATTRIBUTE_CONFIG_PASSLIST, $networkLists['passlist']);
                 }
                 if (isset($Payload['network'])) {
                     $this->SetValue('network_channel', $Payload['network']['channel']);
@@ -519,7 +597,36 @@ class Zigbee2MQTTBridge extends IPSModuleStrict
      */
     public function RequestAction(string $ident, mixed $value): void
     {
-        switch ($ident) {
+        $helper = match ($ident) {
+            'permit_join', 'StopPairing', 'log_level', 'restart_request'
+                => 'BridgeConfigurationCommandHelper',
+            'StartPairing', 'UpdatePermitJoinStatus'
+                => 'BridgePairingHelper',
+            'ClearBridgeDiagnostics', 'RunHealthCheck', 'RunCoordinatorCheck'
+                => 'BridgeDiagnosticHelper',
+            'CreateBackupFile'
+                => 'BridgeBackupHelper',
+            'SendInstallCode', 'SaveInstallCode', 'SelectStoredInstallCode', 'SendStoredInstallCode',
+            'RequestDeleteStoredInstallCode', 'ConfirmDeleteStoredInstallCode'
+                => 'BridgeInstallCodeHelper',
+            'TouchlinkScan', 'SelectTouchlinkDevice', 'TouchlinkIdentify', 'TouchlinkFactoryReset'
+                => 'BridgeTouchlinkHelper',
+            'ExecuteBridgeExpertAction'
+                => 'BridgeRequestHelper',
+            'SelectNetworkSecurityDevice', 'RefreshNetworkSecurityAvailableDevices', 'AddBlocklistDevice',
+            'RemoveBlocklistDevice', 'RequestPasslistChange', 'ConfirmPendingPasslistChange'
+                => 'BridgeNetworkSecurityHelper',
+            'ScanStaleVariables', 'SelectStaleVariableMaintenanceInstance'
+                => 'BridgeStaleVariableHelper',
+            'RefreshOTAStatus', 'CheckOTAUpdate', 'RequestOTAUpdate', 'ConfirmOTAUpdate',
+            'ScheduleOTAUpdate', 'UnscheduleOTAUpdate', 'AbortOTAUpdate'
+                => 'BridgeOTAFormHelper',
+            default => 'BridgeModule'
+        };
+
+        $this->TraceHelperCall($helper, $ident, function () use ($ident, $value): void
+        {
+            switch ($ident) {
             case 'permit_join':
                 $this->SetPermitJoin((bool) $value);
                 break;
@@ -635,7 +742,8 @@ class Zigbee2MQTTBridge extends IPSModuleStrict
             case 'AbortOTAUpdate':
                 $this->AbortOTAUpdateFromForm($value);
                 break;
-        }
+            }
+        }, 'Ident=' . $ident);
     }
 
     /**
@@ -666,7 +774,11 @@ class Zigbee2MQTTBridge extends IPSModuleStrict
         if ($this->ConfigPermitJoin) {
             $this->SetBridgeFormField($Form, 'PermitJoinOption', 'visible', true);
         }
-        return json_encode($this->BuildBridgeConfigurationForm($Form));
+        return json_encode($this->TraceHelperCall(
+            'BridgeModule',
+            'BuildBridgeConfigurationForm',
+            fn (): mixed => $this->BuildBridgeConfigurationForm($Form)
+        ));
     }
 
     /**
@@ -680,7 +792,12 @@ class Zigbee2MQTTBridge extends IPSModuleStrict
     {
         $Topic = '/bridge/request/networkmap';
         $Payload = ['type' => 'graphviz', 'routes' => true];
-        return $this->SendBridgeCommand($Topic, $Payload);
+        return $this->TraceHelperCall(
+            'BridgeRequestHelper',
+            'SendBridgeCommand',
+            fn (): mixed => $this->SendBridgeCommand($Topic, $Payload),
+            'Request=networkmap'
+        );
     }
 
     /**
@@ -711,7 +828,12 @@ class Zigbee2MQTTBridge extends IPSModuleStrict
             'params' => (object) $Params
         ];
 
-        return $this->SendCheckedSensitiveBridgeRequest('/bridge/request/action', $payload, 30000) !== false;
+        return $this->TraceHelperCall(
+            'BridgeRequestHelper',
+            'SendCheckedSensitiveBridgeRequest',
+            fn (): mixed => $this->SendCheckedSensitiveBridgeRequest('/bridge/request/action', $payload, 30000),
+            'Request=action'
+        ) !== false;
     }
 
     /**
@@ -739,6 +861,42 @@ class Zigbee2MQTTBridge extends IPSModuleStrict
         }
 
         return parent::SetValue($Ident, $Value);
+    }
+
+    /**
+     * Führt einen Helper-Aufruf mit einheitlichen Start-, Ende- und Fehler-Debugs aus.
+     *
+     * Der Kontext darf ausschließlich nicht sensible Kennungen enthalten. Payloads,
+     * Zugangsdaten und Installcodes werden bewusst nicht protokolliert.
+     */
+    private function TraceHelperCall(string $helper, string $operation, \Closure $callback, string $context = ''): mixed
+    {
+        $call = $helper . '::' . $operation;
+        $context = trim((string) preg_replace('/[\r\n]+/', ' ', $context));
+        if (strlen($context) > 160) {
+            $context = substr($context, 0, 157) . '...';
+        }
+        $suffix = $context === '' ? '' : ' | ' . $context;
+        $this->SendDebug('HelperTrace', $call . ' [START]' . $suffix, 0);
+
+        try {
+            $result = $callback();
+        } catch (\Throwable $exception) {
+            $this->SendDebug(
+                'HelperTrace',
+                $call . ' [ERROR] | Exception=' . $exception::class . ' | Code=' . $exception->getCode() . $suffix,
+                0
+            );
+            throw $exception;
+        }
+
+        $resultDescription = match (true) {
+            \is_bool($result) => $result ? 'true' : 'false',
+            $result === null  => 'null',
+            default           => get_debug_type($result)
+        };
+        $this->SendDebug('HelperTrace', $call . ' [END] | Result=' . $resultDescription . $suffix, 0);
+        return $result;
     }
 
     /**
@@ -955,31 +1113,106 @@ class Zigbee2MQTTBridge extends IPSModuleStrict
      */
     private function BuildBridgeConfigurationForm(array $form): array
     {
-        $this->SynchronizeOTAMessageSubscriptions();
-        $networkSecurityDevices = $this->BuildNetworkSecurityDevices();
-        $this->SetBridgeFormField($form, 'PairingTarget', 'options', $this->BuildPairingTargetOptions($networkSecurityDevices));
-        $this->SetBridgeFormField($form, 'PairingStatus', 'caption', $this->BuildPairingStatusCaption($networkSecurityDevices));
+        $this->TraceHelperCall(
+            'BridgeOTAFormHelper',
+            'SynchronizeOTAMessageSubscriptions',
+            fn (): mixed => $this->SynchronizeOTAMessageSubscriptions(),
+            'Form=Bridge'
+        );
+        $networkSecurityDevices = $this->TraceHelperCall(
+            'BridgeNetworkSecurityHelper',
+            'BuildNetworkSecurityDevices',
+            fn (): mixed => $this->BuildNetworkSecurityDevices(),
+            'Form=Bridge'
+        );
+        $this->SetBridgeFormField($form, 'PairingTarget', 'options', $this->TraceHelperCall(
+            'BridgePairingHelper',
+            'BuildPairingTargetOptions',
+            fn (): mixed => $this->BuildPairingTargetOptions($networkSecurityDevices),
+            'Form=Bridge'
+        ));
+        $this->SetBridgeFormField($form, 'PairingStatus', 'caption', $this->TraceHelperCall(
+            'BridgePairingHelper',
+            'BuildPairingStatusCaption',
+            fn (): mixed => $this->BuildPairingStatusCaption($networkSecurityDevices),
+            'Form=Bridge'
+        ));
         $this->SetBridgeFormField($form, 'StartPairing', 'enabled', !$this->GetValue('permit_join'));
         $this->SetBridgeFormField($form, 'StopPairing', 'enabled', $this->GetValue('permit_join'));
-        $availableDevices = $this->BuildNetworkSecurityAvailableDeviceFormValues($networkSecurityDevices);
+        $availableDevices = $this->TraceHelperCall(
+            'BridgeNetworkSecurityHelper',
+            'BuildNetworkSecurityAvailableDeviceFormValues',
+            fn (): mixed => $this->BuildNetworkSecurityAvailableDeviceFormValues($networkSecurityDevices),
+            'Form=Bridge'
+        );
         $this->SetBridgeFormField($form, 'NetworkSecurityAvailableDeviceList', 'values', $availableDevices);
         $this->SetBridgeFormField($form, 'NetworkSecurityAvailableDeviceList', 'rowCount', min(10, max(4, \count($availableDevices) + 1)));
-        $this->SetBridgeFormField($form, 'NetworkSecurityBlocklist', 'values', $this->BuildNetworkSecurityListFormValues('blocklist', $networkSecurityDevices));
-        $this->SetBridgeFormField($form, 'NetworkSecurityPasslist', 'values', $this->BuildNetworkSecurityListFormValues('passlist', $networkSecurityDevices));
-        $this->SetBridgeFormField($form, 'DiagnosticHealthStatus', 'caption', $this->BuildHealthStatusCaption());
-        $this->SetBridgeFormField($form, 'DiagnosticCoordinatorStatus', 'caption', $this->BuildCoordinatorStatusCaption());
-        $this->SetBridgeFormField($form, 'DiagnosticMissingRoutersList', 'values', $this->BuildMissingRouterFormValues());
+        $this->SetBridgeFormField($form, 'NetworkSecurityBlocklist', 'values', $this->TraceHelperCall(
+            'BridgeNetworkSecurityHelper',
+            'BuildNetworkSecurityListFormValues',
+            fn (): mixed => $this->BuildNetworkSecurityListFormValues('blocklist', $networkSecurityDevices),
+            'List=blocklist'
+        ));
+        $this->SetBridgeFormField($form, 'NetworkSecurityPasslist', 'values', $this->TraceHelperCall(
+            'BridgeNetworkSecurityHelper',
+            'BuildNetworkSecurityListFormValues',
+            fn (): mixed => $this->BuildNetworkSecurityListFormValues('passlist', $networkSecurityDevices),
+            'List=passlist'
+        ));
+        $this->SetBridgeFormField($form, 'DiagnosticHealthStatus', 'caption', $this->TraceHelperCall(
+            'BridgeDiagnosticHelper',
+            'BuildHealthStatusCaption',
+            fn (): mixed => $this->BuildHealthStatusCaption(),
+            'Form=Bridge'
+        ));
+        $this->SetBridgeFormField($form, 'DiagnosticCoordinatorStatus', 'caption', $this->TraceHelperCall(
+            'BridgeDiagnosticHelper',
+            'BuildCoordinatorStatusCaption',
+            fn (): mixed => $this->BuildCoordinatorStatusCaption(),
+            'Form=Bridge'
+        ));
+        $this->SetBridgeFormField($form, 'DiagnosticMissingRoutersList', 'values', $this->TraceHelperCall(
+            'BridgeDiagnosticHelper',
+            'BuildMissingRouterFormValues',
+            fn (): mixed => $this->BuildMissingRouterFormValues(),
+            'Form=Bridge'
+        ));
         $this->SetBridgeFormField($form, 'DiagnosticUnsupportedDevicesList', 'values', $this->BuildDeviceDiagnosticFormValues(self::ATTRIBUTE_DIAGNOSTIC_UNSUPPORTED_DEVICES));
         $this->SetBridgeFormField($form, 'DiagnosticInterviewDevicesList', 'values', $this->BuildDeviceDiagnosticFormValues(self::ATTRIBUTE_DIAGNOSTIC_INTERVIEW_DEVICES));
         $this->SetBridgeFormField($form, 'DiagnosticEventList', 'values', $this->BuildEventFormValues());
         $this->SetBridgeFormField($form, 'DiagnosticLogList', 'values', $this->BuildLogFormValues());
-        $storedInstallCodes = $this->BuildStoredInstallCodeFormValues();
+        $storedInstallCodes = $this->TraceHelperCall(
+            'BridgeInstallCodeHelper',
+            'BuildStoredInstallCodeFormValues',
+            fn (): mixed => $this->BuildStoredInstallCodeFormValues(),
+            'Form=Bridge'
+        );
         $this->SetBridgeFormField($form, 'StoredInstallCodeList', 'values', $storedInstallCodes);
         $this->SetBridgeFormField($form, 'StoredInstallCodeList', 'rowCount', min(8, max(3, \count($storedInstallCodes) + 1)));
-        $this->SetBridgeFormField($form, 'TouchlinkDeviceList', 'values', $this->BuildTouchlinkDeviceFormValues());
-        $otaRows = $this->BuildOTADeviceRows();
-        $this->SetBridgeFormField($form, 'OTAStatus', 'caption', $this->BuildOTAStatusCaption($otaRows));
-        $this->SetBridgeFormField($form, 'OTAKnownDevices', 'values', $this->BuildOTAKnownDeviceFormValues($otaRows));
+        $this->SetBridgeFormField($form, 'TouchlinkDeviceList', 'values', $this->TraceHelperCall(
+            'BridgeTouchlinkHelper',
+            'BuildTouchlinkDeviceFormValues',
+            fn (): mixed => $this->BuildTouchlinkDeviceFormValues(),
+            'Form=Bridge'
+        ));
+        $otaRows = $this->TraceHelperCall(
+            'BridgeOTAFormHelper',
+            'BuildOTADeviceRows',
+            fn (): mixed => $this->BuildOTADeviceRows(),
+            'Form=Bridge'
+        );
+        $this->SetBridgeFormField($form, 'OTAStatus', 'caption', $this->TraceHelperCall(
+            'BridgeOTAFormHelper',
+            'BuildOTAStatusCaption',
+            fn (): mixed => $this->BuildOTAStatusCaption($otaRows),
+            'Form=Bridge'
+        ));
+        $this->SetBridgeFormField($form, 'OTAKnownDevices', 'values', $this->TraceHelperCall(
+            'BridgeOTAFormHelper',
+            'BuildOTAKnownDeviceFormValues',
+            fn (): mixed => $this->BuildOTAKnownDeviceFormValues($otaRows),
+            'Form=Bridge'
+        ));
         $this->SetBridgeFormField($form, 'OTAKnownDevices', 'rowCount', min(10, max(3, \count($otaRows) + 1)));
         $availableOTARows = $this->FilterOTADeviceRowsByState($otaRows, ['available']);
         $this->SetBridgeFormField($form, 'OTAAvailableUpdates', 'values', $this->BuildOTAAvailableUpdateFormValues($availableOTARows));
@@ -988,9 +1221,24 @@ class Zigbee2MQTTBridge extends IPSModuleStrict
         $this->SetBridgeFormField($form, 'OTAActiveUpdates', 'values', $this->BuildOTAActiveUpdateFormValues($activeOTARows));
         $this->SetBridgeFormField($form, 'OTAActiveUpdates', 'rowCount', min(8, max(3, \count($activeOTARows) + 1)));
         $this->SetBridgeFormField($form, 'OTAUpdateResults', 'values', $this->BuildOTAUpdateResultFormValues());
-        $staleVariableScan = $this->ReadStaleVariableScan();
-        $this->SetBridgeFormField($form, 'StaleVariableStatus', 'caption', $this->BuildStaleVariableStatusCaption());
-        $staleVariableSummary = $this->BuildStaleVariableInstanceSummaryFormValues($staleVariableScan);
+        $staleVariableScan = $this->TraceHelperCall(
+            'BridgeStaleVariableHelper',
+            'ReadStaleVariableScan',
+            fn (): mixed => $this->ReadStaleVariableScan(),
+            'Form=Bridge'
+        );
+        $this->SetBridgeFormField($form, 'StaleVariableStatus', 'caption', $this->TraceHelperCall(
+            'BridgeStaleVariableHelper',
+            'BuildStaleVariableStatusCaption',
+            fn (): mixed => $this->BuildStaleVariableStatusCaption(),
+            'Form=Bridge'
+        ));
+        $staleVariableSummary = $this->TraceHelperCall(
+            'BridgeStaleVariableHelper',
+            'BuildStaleVariableInstanceSummaryFormValues',
+            fn (): mixed => $this->BuildStaleVariableInstanceSummaryFormValues($staleVariableScan),
+            'Form=Bridge'
+        );
         $this->SetBridgeFormField($form, 'StaleVariableInstanceSummary', 'values', $staleVariableSummary);
         $this->SetBridgeFormField($form, 'StaleVariableInstanceSummary', 'rowCount', min(12, max(3, \count($staleVariableSummary) + 1)));
         return $form;

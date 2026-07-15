@@ -526,6 +526,7 @@ Die Änderungen sind anhand der funktionalen Commits chronologisch gegliedert. A
 - Die Bridge-Helper kapseln Konfiguration, Geräte, Gruppen und Szenen, Diagnose, Requests, OTA, Netzwerksicherheit, Installcodes, Backups, Pairing, veraltete Variablen und Touchlink.
 - Die Modul-Helper kapseln Gerätebefehle und -aktionen, Payload-Verarbeitung und -struktur, Expose-Registrierung, Variablenwerte, Variablenlaufzeit und sichere Runtime-Zugriffe.
 - Für eine einheitliche Verzeichnisstruktur liegen die Bridge-Helper unter `Bridge/Helper` und die Helper der Modulbasis unter `libs/ModulHelper`.
+- Ein einheitliches `HelperTrace`-Debug kennzeichnet zentrale Helper-Aufrufe mit `START`, `END` beziehungsweise `ERROR`. Dadurch lassen sich Fehler in Bridge-Aktionen, Formularaufbau und Payload-Verarbeitung bis zum zuständigen Helper eingrenzen, ohne Payloads oder Zugangsdaten in den Trace aufzunehmen.
 
 **Version 5.42:**
 

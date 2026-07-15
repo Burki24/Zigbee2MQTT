@@ -42,6 +42,22 @@ class BridgeTest extends TestCase
         $this->assertSame(10000, $bridge->lastTimeout);
     }
 
+    public function testRequestActionReportsResponsibleBridgeHelper(): void
+    {
+        $bridge = $this->createBridgeTestDouble(true);
+
+        $bridge->RequestAction('RunHealthCheck', true);
+
+        $helperTraces = array_values(array_filter(
+            $bridge->debugMessages,
+            static fn (array $entry): bool => $entry['Message'] === 'HelperTrace'
+                && str_contains($entry['Data'], 'BridgeDiagnosticHelper::RunHealthCheck')
+        ));
+        $this->assertCount(2, $helperTraces);
+        $this->assertStringContainsString('[START]', $helperTraces[0]['Data']);
+        $this->assertStringContainsString('[END]', $helperTraces[1]['Data']);
+    }
+
     public function testConfigurationFormShowsCachedBridgeStatusOnDirectActionButtons(): void
     {
         $bridge = $this->createBridgeTestDouble(true);

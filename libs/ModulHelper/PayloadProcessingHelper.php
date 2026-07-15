@@ -107,11 +107,21 @@ trait PayloadProcessingHelper
 
     private function processPayload(array $payload): void
     {
-        $this->BeginVariableCatalogBatch();
+        $this->TraceHelperCall(
+            'VariableCatalogHelper',
+            'BeginVariableCatalogBatch',
+            fn (): mixed => $this->BeginVariableCatalogBatch(),
+            'Source=Payload'
+        );
         try {
             $this->processPayloadBatch($payload);
         } finally {
-            $this->EndVariableCatalogBatch();
+            $this->TraceHelperCall(
+                'VariableCatalogHelper',
+                'EndVariableCatalogBatch',
+                fn (): mixed => $this->EndVariableCatalogBatch(),
+                'Source=Payload'
+            );
         }
     }
 
@@ -120,7 +130,12 @@ trait PayloadProcessingHelper
         if (isset($payload['exposes'])) {
             if (\is_array($payload['exposes'])) {
                 $this->WriteAttributeArray(self::ATTRIBUTE_EXPOSES, $payload['exposes']);
-                $this->mapExposesToVariables($payload['exposes']);
+                $this->TraceHelperCall(
+                    'ExposeVariableRegistrationHelper',
+                    'mapExposesToVariables',
+                    fn (): mixed => $this->mapExposesToVariables($payload['exposes']),
+                    'Source=Payload'
+                );
             }
             unset($payload['exposes']);
         }
@@ -132,7 +147,13 @@ trait PayloadProcessingHelper
         }
 
         $this->lastPayload = $this->MergeLastPayload($this->lastPayload, $payload);
-        foreach ($this->flattenPayload($payload) as $key => $value) {
+        $flattenedPayload = $this->TraceHelperCall(
+            'PayloadStructureHelper',
+            'flattenPayload',
+            fn (): mixed => $this->flattenPayload($payload),
+            'Properties=' . \count($payload)
+        );
+        foreach ($flattenedPayload as $key => $value) {
             if (!\is_string($key)) {
                 $this->SendDebug(
                     'processPayload',
@@ -199,8 +220,18 @@ trait PayloadProcessingHelper
         }
 
         $this->SendDebug('processPayload', \sprintf('Verarbeite: Key=%s, Value=%s', $key, $this->formatPayloadDebugValue($value)), 0);
-        if (!$this->processSpecialVariable($key, $value)) {
-            $this->processVariable($key, $value);
+        if (!$this->TraceHelperCall(
+            'VariableValueProcessingHelper',
+            'processSpecialVariable',
+            fn (): mixed => $this->processSpecialVariable($key, $value),
+            'Ident=' . $key
+        )) {
+            $this->TraceHelperCall(
+                'PayloadVariableHelper',
+                'processVariable',
+                fn (): mixed => $this->processVariable($key, $value),
+                'Ident=' . $key
+            );
         }
     }
 

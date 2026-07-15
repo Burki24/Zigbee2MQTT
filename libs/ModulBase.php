@@ -516,12 +516,16 @@ abstract class ModulBase extends \IPSModuleStrict
         $this->RegisterAttributeArray(self::ATTRIBUTE_DISABLED_VARIABLES, []);
         $this->RegisterAttributeArray(self::ATTRIBUTE_DELETED_VARIABLES, []);
         $this->RegisterAttributeFloat(self::ATTRIBUTE_MODUL_VERSION, 5.0);
-        $this->InitializeLocalVariableMaintenance();
+        $this->TraceHelperCall(
+            'VariableMaintenanceHelper',
+            'InitializeLocalVariableMaintenance',
+            fn (): mixed => $this->InitializeLocalVariableMaintenance()
+        );
 
         // Init Buffers
         $this->BUFFER_MQTT_SUSPENDED = true;
         $this->BUFFER_PROCESSING_MIGRATION = false;
-        $this->ClearTransactionData();
+        $this->TraceHelperCall('MQTTHelper', 'ClearTransactionData', fn (): mixed => $this->ClearTransactionData());
         $this->lastPayload = [];
         $this->latestPayload = [];
         $this->missingTranslations = [];
@@ -552,7 +556,7 @@ abstract class ModulBase extends \IPSModuleStrict
 
         $BaseTopic = $this->ReadPropertyString(self::MQTT_BASE_TOPIC);
         $MQTTTopic = $this->ReadPropertyString(self::MQTT_TOPIC);
-        $this->ClearTransactionData();
+        $this->TraceHelperCall('MQTTHelper', 'ClearTransactionData', fn (): mixed => $this->ClearTransactionData());
         if (empty($BaseTopic) || empty($MQTTTopic)) {
             $this->SetStatus(IS_INACTIVE);
             $this->SetReceiveDataFilter('NOTHING_TO_RECEIVE'); //block all
@@ -567,9 +571,21 @@ abstract class ModulBase extends \IPSModuleStrict
         $this->SendDebug('Filter', '.*(' . $Filter1 . '|' . $Filter2 . '|' . $Filter3 . ').*', 0);
         $this->SetReceiveDataFilter('.*(' . $Filter1 . '|' . $Filter2 . '|' . $Filter3 . ').*');
         $this->SetStatus(IS_ACTIVE);
-        $this->RefreshExposeVariableCatalog();
-        $this->RefreshExistingExposeVariableRegistrations();
-        $this->UpdateCustomTileVisualizationType();
+        $this->TraceHelperCall(
+            'VariableCatalogHelper',
+            'RefreshExposeVariableCatalog',
+            fn (): mixed => $this->RefreshExposeVariableCatalog()
+        );
+        $this->TraceHelperCall(
+            'VariableCatalogHelper',
+            'RefreshExistingExposeVariableRegistrations',
+            fn (): mixed => $this->RefreshExistingExposeVariableRegistrations()
+        );
+        $this->TraceHelperCall(
+            'TileHelpers',
+            'UpdateCustomTileVisualizationType',
+            fn (): mixed => $this->UpdateCustomTileVisualizationType()
+        );
     }
 
     /**
@@ -599,7 +615,12 @@ abstract class ModulBase extends \IPSModuleStrict
                     $this->BUFFER_MQTT_SUSPENDED = false;
                 }
                 if (($this->HasActiveParent()) && (IPS_GetKernelRunlevel() == KR_READY)) {
-                    $this->checkExposeAttribute();
+                    $this->TraceHelperCall(
+                        'ExposeVariableRegistrationHelper',
+                        'checkExposeAttribute',
+                        fn (): mixed => $this->checkExposeAttribute(),
+                        'Message=FM_CONNECT'
+                    );
                 }
                 break;
             case IM_CHANGESTATUS:
@@ -607,9 +628,19 @@ abstract class ModulBase extends \IPSModuleStrict
                     $this->BUFFER_MQTT_SUSPENDED = false;
                     // Nur ein UpdateDeviceInfo wenn Parent aktiv und System bereit
                     if (($this->HasActiveParent()) && (IPS_GetKernelRunlevel() == KR_READY)) {
-                        if ($this->checkExposeAttribute()) {
+                        if ($this->TraceHelperCall(
+                            'ExposeVariableRegistrationHelper',
+                            'checkExposeAttribute',
+                            fn (): mixed => $this->checkExposeAttribute(),
+                            'Message=IM_CHANGESTATUS'
+                        )) {
                             $exposes = $this->ReadAttributeArray(self::ATTRIBUTE_EXPOSES);
-                            $this->mapExposesToVariables($exposes);
+                            $this->TraceHelperCall(
+                                'ExposeVariableRegistrationHelper',
+                                'mapExposesToVariables',
+                                fn (): mixed => $this->mapExposesToVariables($exposes),
+                                'Message=IM_CHANGESTATUS'
+                            );
                         }
                     }
                 }
@@ -636,7 +667,12 @@ abstract class ModulBase extends \IPSModuleStrict
     {
         $this->SendDebug(__FUNCTION__, 'Aufgerufen für Ident: ' . $Ident . ' mit Wert: ' . json_encode($Value), 0);
 
-        $result = $this->handleRequestAction($Ident, $Value);
+        $result = $this->TraceHelperCall(
+            'DeviceActionHelper',
+            'handleRequestAction',
+            fn (): mixed => $this->handleRequestAction($Ident, $Value),
+            'Ident=' . $Ident
+        );
 
         if ($result === false) {
             //hier eine exception werfen?
@@ -676,12 +712,21 @@ abstract class ModulBase extends \IPSModuleStrict
             return '';
         }
         // JSON-Nachricht dekodieren
-        [$topics, $payload] = $this->validateAndParseMessage($JSONString);
+        [$topics, $payload] = $this->TraceHelperCall(
+            'PayloadProcessingHelper',
+            'validateAndParseMessage',
+            fn (): mixed => $this->validateAndParseMessage($JSONString)
+        );
         if (!$topics) {
             return '';
         }
         // Behandelt Verfügbarkeit-Status
-        if ($this->handleAvailability($topics, $payload)) {
+        if ($this->TraceHelperCall(
+            'PayloadProcessingHelper',
+            'handleAvailability',
+            fn (): mixed => $this->handleAvailability($topics, $payload),
+            'Topic=' . (string) ($topics[0] ?? '')
+        )) {
             return '';
         }
         // Leere Payloads werden nur fuer handleAvailability benoetigt.
@@ -690,11 +735,21 @@ abstract class ModulBase extends \IPSModuleStrict
         }
 
         // Behandelt Symcon Extension Antworten, auch wenn Instanz noch in IS_CREATING ist.
-        if ($this->handleSymconExtensionResponses($topics, $payload)) {
+        if ($this->TraceHelperCall(
+            'PayloadProcessingHelper',
+            'handleSymconExtensionResponses',
+            fn (): mixed => $this->handleSymconExtensionResponses($topics, $payload),
+            'Topic=' . (string) ($topics[0] ?? '')
+        )) {
             return '';
         }
         // Verarbeitet Payload
-        $this->processPayload($payload);
+        $this->TraceHelperCall(
+            'PayloadProcessingHelper',
+            'processPayload',
+            fn (): mixed => $this->processPayload($payload),
+            'Properties=' . \count($payload)
+        );
         return '';
     }
 
@@ -787,12 +842,22 @@ abstract class ModulBase extends \IPSModuleStrict
         // Brightness-Variablenmigration
         $varID = $this->GetObjectIDByIdent('brightness');
         if ($varID !== false) {
-            $brightnessFeature = $this->findExposeFeatureByProperty('brightness') ?? [
+            $brightnessFeature = $this->TraceHelperCall(
+                'DeviceActionHelper',
+                'findExposeFeatureByProperty',
+                fn (): mixed => $this->findExposeFeatureByProperty('brightness'),
+                'Property=brightness'
+            ) ?? [
                 'name'     => 'brightness',
                 'property' => 'brightness',
                 'type'     => 'numeric'
             ];
-            $brightnessPresentation = $this->BuildBrightnessFeaturePresentation($brightnessFeature) ?? '';
+            $brightnessPresentation = $this->TraceHelperCall(
+                'VariablePresentationHelper',
+                'BuildBrightnessFeaturePresentation',
+                fn (): mixed => $this->BuildBrightnessFeaturePresentation($brightnessFeature),
+                'Property=brightness'
+            ) ?? '';
 
             $this->RegisterVariableInteger(
                 'brightness',
@@ -802,7 +867,12 @@ abstract class ModulBase extends \IPSModuleStrict
             );
 
             // Standardaktion fuer die migrierte Helligkeitsvariable synchronisieren.
-            $this->synchronizeVariableAction('brightness', $brightnessFeature);
+            $this->TraceHelperCall(
+                'ExposeVariableRegistrationHelper',
+                'synchronizeVariableAction',
+                fn (): mixed => $this->synchronizeVariableAction('brightness', $brightnessFeature),
+                'Ident=brightness'
+            );
         }
         // Flag für beendete Migration wieder setzen
         $this->BUFFER_MQTT_SUSPENDED = false;
@@ -837,7 +907,11 @@ abstract class ModulBase extends \IPSModuleStrict
         $DebugData['Exposes'] = $this->ReadAttributeArray(self::ATTRIBUTE_EXPOSES);
         $DebugData['LastPayload'] = $this->lastPayload;
         $DebugData['LatestPayload'] = $this->latestPayload;
-        $DebugData['SupportsOTA'] = $this->IsDeviceOTACapable();
+        $DebugData['SupportsOTA'] = $this->TraceHelperCall(
+            'VariableCatalogHelper',
+            'IsDeviceOTACapable',
+            fn (): mixed => $this->IsDeviceOTACapable()
+        );
         $DebugData['Childs'] = [];
         $DebugData['Profile'] = [];
         foreach (IPS_GetChildrenIDs($this->InstanceID) as $childID) {
@@ -857,6 +931,42 @@ abstract class ModulBase extends \IPSModuleStrict
         $DebugData['missingTranslations'] = $this->missingTranslations;
 
         return 'data:application/json;base64,' . base64_encode(json_encode($DebugData, JSON_PRETTY_PRINT));
+    }
+
+    /**
+     * Führt einen Helper-Aufruf mit einheitlichen Start-, Ende- und Fehler-Debugs aus.
+     *
+     * Der Kontext darf ausschließlich nicht sensible Kennungen enthalten. Payloads,
+     * Zugangsdaten und Installcodes werden bewusst nicht protokolliert.
+     */
+    private function TraceHelperCall(string $helper, string $operation, \Closure $callback, string $context = ''): mixed
+    {
+        $call = $helper . '::' . $operation;
+        $context = trim((string) preg_replace('/[\r\n]+/', ' ', $context));
+        if (strlen($context) > 160) {
+            $context = substr($context, 0, 157) . '...';
+        }
+        $suffix = $context === '' ? '' : ' | ' . $context;
+        $this->SendDebug('HelperTrace', $call . ' [START]' . $suffix, 0);
+
+        try {
+            $result = $callback();
+        } catch (\Throwable $exception) {
+            $this->SendDebug(
+                'HelperTrace',
+                $call . ' [ERROR] | Exception=' . $exception::class . ' | Code=' . $exception->getCode() . $suffix,
+                0
+            );
+            throw $exception;
+        }
+
+        $resultDescription = match (true) {
+            \is_bool($result) => $result ? 'true' : 'false',
+            $result === null  => 'null',
+            default           => get_debug_type($result)
+        };
+        $this->SendDebug('HelperTrace', $call . ' [END] | Result=' . $resultDescription . $suffix, 0);
+        return $result;
     }
 
     /**
@@ -930,10 +1040,15 @@ abstract class ModulBase extends \IPSModuleStrict
             return false;
         }
         $topic = self::SYMCON_EXTENSION_REQUEST . static::$ExtensionTopic . $mqttTopic;
-        $Result = $this->SendDataQuiet(
-            $topic,
-            [],
-            self::TIMEOUT_SYMCON_EXTENSION_INFO
+        $Result = $this->TraceHelperCall(
+            'MQTTHelper',
+            'SendDataQuiet',
+            fn (): mixed => $this->SendDataQuiet(
+                $topic,
+                [],
+                self::TIMEOUT_SYMCON_EXTENSION_INFO
+            ),
+            'Request=DeviceInfo'
         );
         if ($Result === false) {
             $this->LogMessage(\sprintf($this->Translate('Zigbee2MQTT did not response on Topic %s'), $topic), KL_WARNING);
