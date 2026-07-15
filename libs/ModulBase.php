@@ -32,17 +32,32 @@ require_once __DIR__ . '/ModulHelper/DeviceActionHelper.php';
 require_once __DIR__ . '/ModulHelper/ExposeVariableRegistrationHelper.php';
 
 /**
- * ModulBase
+ * Gemeinsame Basisklasse für Zigbee2MQTT-Geräte- und Gruppeninstanzen.
  *
- * Basisklasse für Geräte (Devices module.php) und Gruppen (Groups module.php)
+ * Die Klasse koordiniert den Symcon-Lebenszyklus, den MQTT-Empfang, Migrationen
+ * und gemeinsam benötigte Zustände. Die fachliche Verarbeitung ist überwiegend
+ * in Traits ausgelagert. Modulbezogene Traits liegen unter `libs/ModulHelper`,
+ * Konfigurations-, Wartungs- und Visualisierungshelfer in ihren jeweiligen
+ * Unterverzeichnissen von `libs`.
  *
- * Pseudo Variablen, welche über BufferHelper und die Magic-Functions __get und __set
- * direkt typsichere Werte, Arrays und Objekte in einem Instanz-Buffer schreiben und lesen.
- * @property bool $BUFFER_MQTT_SUSPENDED Zugriff auf den Buffer für laufende Migration
- * @property bool $BUFFER_PROCESSING_MIGRATION Zugriff auf den Buffer für MQTT Nachrichten nicht verarbeiten
- * @property array $lastPayload Zugriff auf den Buffer, welcher die zusammengeführten Payload-Werte enthält
- * @property array $latestPayload Zugriff auf den Buffer welcher das zuletzt empfangene Geräte-Payload enthält
- * @property array $missingTranslations Zugriff auf den Buffer, welcher ein Array von fehlenden Übersetzungen enthält
+ * Die angegebenen Pseudoeigenschaften werden durch den `BufferHelper` über
+ * `__get()` und `__set()` im Instanzpuffer gespeichert.
+ *
+ * @property bool  $BUFFER_MQTT_SUSPENDED          Sperrt die Verarbeitung eingehender MQTT-Nachrichten während Initialisierung oder Migration.
+ * @property bool  $BUFFER_PROCESSING_MIGRATION    Kennzeichnet eine aktuell laufende Bestandsmigration.
+ * @property array $lastPayload                    Enthält den über mehrere Nachrichten zusammengeführten Gerätezustand.
+ * @property array $latestPayload                  Enthält ausschließlich das zuletzt empfangene Geräte-Payload.
+ * @property array $missingTranslations            Sammelt während der Laufzeit erkannte, noch fehlende Übersetzungen.
+ *
+ * @see \Zigbee2MQTT\DeviceActionHelper Aktionsverarbeitung in `libs/ModulHelper/DeviceActionHelper.php`.
+ * @see \Zigbee2MQTT\DeviceCommandHelper Gerätebefehle in `libs/ModulHelper/DeviceCommandHelper.php`.
+ * @see \Zigbee2MQTT\ExposeVariableRegistrationHelper Expose- und Variablenregistrierung in `libs/ModulHelper/ExposeVariableRegistrationHelper.php`.
+ * @see \Zigbee2MQTT\PayloadProcessingHelper MQTT-Payload-Verarbeitung in `libs/ModulHelper/PayloadProcessingHelper.php`.
+ * @see \Zigbee2MQTT\PayloadStructureHelper Aufbereitung verschachtelter Payloads in `libs/ModulHelper/PayloadStructureHelper.php`.
+ * @see \Zigbee2MQTT\PayloadVariableHelper Zuordnung von Payloadwerten zu Variablen in `libs/ModulHelper/PayloadVariableHelper.php`.
+ * @see \Zigbee2MQTT\VariableValueProcessingHelper Wertkonvertierung in `libs/ModulHelper/VariableValueProcessingHelper.php`.
+ * @see \Zigbee2MQTT\VariableRuntimeHelper Variablenzugriffe zur Laufzeit in `libs/ModulHelper/VariableRuntimeHelper.php`.
+ * @see \Zigbee2MQTT\ModuleRuntimeSafetyHelper Defensive Symcon-Zugriffe in `libs/ModulHelper/ModuleRuntimeSafetyHelper.php`.
  */
 abstract class ModulBase extends \IPSModuleStrict
 {
@@ -75,16 +90,22 @@ abstract class ModulBase extends \IPSModuleStrict
     private const MINIMAL_MODUL_VERSION = 5.1;
 
     /**
-     * @var array STATE_PATTERN
-     * Definiert Nomenklatur für State-Variablen
-     *      KEY:
-     *      - BASE     'state' (Basisbezeichner)
-     *      - SUFFIX:   Zusatzbezeichner
-     *          - NUMERIC:   statel1, state_l1, StateL1, state_L1
-     *          - DIRECTION: state_left, state_right, State_Left
-     *          - COMBINED:  state_left_l1, State_Right_L1
-     *      - MQTT:    Validiert MQTT-Payload (state, state_l1)
-     *      - SYMCON:  Validiert Symcon-Variablen (state, State, statel1, state_l1, State_Left, state_right_l1)
+     * Namensschema und reguläre Ausdrücke für Status-Identifikatoren.
+     *
+     * `BASE` bezeichnet den Stamm `state`. Die Suffixe bilden nummerierte,
+     * richtungsbezogene und kombinierte Kanäle ab. `MQTT` validiert Property-Namen
+     * aus Payloads, `SYMCON` zusätzlich historische Schreibweisen vorhandener
+     * Symcon-Variablen.
+     *
+     * @var array{
+     *     PREFIX:string,
+     *     BASE:string,
+     *     SUFFIX:array{NUMERIC:string,DIRECTION:string,COMBINED:string},
+     *     MQTT:string,
+     *     SYMCON:string
+     * }
+     * @see \Zigbee2MQTT\DeviceActionHelper Statusaktionen in `libs/ModulHelper/DeviceActionHelper.php`.
+     * @see self::convertToSnakeCase()
      */
     private const STATE_PATTERN = [
         'PREFIX' => '',
@@ -99,8 +120,10 @@ abstract class ModulBase extends \IPSModuleStrict
     ];
 
     /**
-     * @var string[] FLOAT_UNITS
-     * Entscheidet über Float- oder Integer-Variablen.
+     * Einheiten, deren numerische Exposes standardmäßig als Float-Variable angelegt werden.
+     *
+     * @var string[]
+     * @see \Zigbee2MQTT\ExposeVariableRegistrationHelper Typbestimmung in `libs/ModulHelper/ExposeVariableRegistrationHelper.php`.
      */
     private const FLOAT_UNITS = [
         '%',
@@ -234,13 +257,13 @@ abstract class ModulBase extends \IPSModuleStrict
     ];
 
     /**
-     * Liste bekannter Abkürzungen, die bei der Konvertierung von Identifikatoren
-     * in snake_case beibehalten werden sollen.
+     * Bekannte Abkürzungen für die Migration historischer Identifikatoren.
      *
-     * Diese Konstante wird im convertToSnakeCase() verwendet, um sicherzustellen,
-     * dass gängige Abkürzungen (z.B. CO2, LED) korrekt formatiert werden.
+     * Die Einträge verhindern, dass zusammengehörige Kürzel wie `CO2`, `LED`
+     * oder `RGB` bei der Umwandlung in `lower_snake_case` falsch zerlegt werden.
      *
      * @var string[]
+     * @see self::convertToSnakeCase()
      */
     private const KNOWN_ABBREVIATIONS = [
         'VOC',
@@ -278,11 +301,15 @@ abstract class ModulBase extends \IPSModuleStrict
     ];
 
     /**
+     * Historische Z2M-Identifikatoren, die bei der Migration unverändert bleiben.
+     *
+     * Diese Sonderfälle können wegen eines abweichenden Variablentyps oder einer
+     * nicht eindeutig ableitbaren Zielbezeichnung nicht automatisch konvertiert
+     * werden. Beispielsweise entspricht `Z2M_ActionTransTime` fachlich
+     * `action_transition_time`.
+     *
      * @var string[]
-     * Liste von alten Z2M Idents, welche bei der Konvertierung übersprungen werden müssen
-     * damit sie erhalten bleiben.
-     * Weil sich entweder der VariablenTyp ändert, oder der alte Name nicht konvertiert werden kann.
-     * z.B. Z2M_ActionTransTime, was eigentlich action_transition_time ist.
+     * @see self::Migrate()
      */
     private const SKIP_IDENTS = [
         'Z2M_ActionTransaction',
@@ -293,9 +320,13 @@ abstract class ModulBase extends \IPSModuleStrict
     ];
 
     /**
+     * Composite-Properties, die nicht in einzelne Variablen aufgelöst werden.
+     *
+     * Die Einträge enthalten Metadatenstrukturen und keine eigenständigen
+     * Gerätezustände.
+     *
      * @var string[]
-     * Liste von Composite-Keys, die beim Flattening übersprungen werden sollen.
-     * Diese Composites werden nicht in einzelne Variablen aufgelöst.
+     * @see \Zigbee2MQTT\PayloadStructureHelper Payload-Strukturierung in `libs/ModulHelper/PayloadStructureHelper.php`.
      */
     private const SKIP_COMPOSITES = [
         'device',       // Geräteinformationen nicht als Einzelvariablen anlegen
@@ -304,22 +335,28 @@ abstract class ModulBase extends \IPSModuleStrict
     ];
 
     /**
-     * @var string $ExtensionTopic
-     * Muss überschrieben werden.
-     * - für den ReceiveFilter
-     * - für LoadDeviceInfo
-     * - überall wo das Topic der Extension genutzt wird
+     * Erweiterung des Symcon-Extension-Topics für Geräte oder Gruppen.
      *
+     * Die abgeleiteten Klassen müssen den jeweiligen Teilpfad bereitstellen,
+     * beispielsweise `getDeviceInfo/` oder `getGroupInfo/`. Er wird beim Aufbau
+     * des Empfangsfilters und beim Laden der Geräte- beziehungsweise
+     * Gruppeninformationen verwendet.
+     *
+     * @var string
+     * @see self::ApplyChanges()
+     * @see self::LoadDeviceInfo()
      */
     protected static $ExtensionTopic = '';
 
     /**
-     * Ein Array, das bekannte Features auf Symcon-Variablentypen abbildet.
+     * Ordnet ausgewählte Expose-Features einem festen Symcon-Variablentyp zu.
      *
-     * Die Liste erzwingt nur den Symcon-Variablentyp fuer bekannte Exposes. Es
-     * werden hier keine Symcon-Profile definiert oder gesetzt.
+     * Die Zuordnung entscheidet ausschließlich über den Datentyp. Profile und
+     * native Darstellungen werden davon unabhängig ermittelt.
      *
      * @var array<int, array{group_type:string, feature:string, variableType:int}>
+     * @see \Zigbee2MQTT\ExposeVariableRegistrationHelper Variablenregistrierung in `libs/ModulHelper/ExposeVariableRegistrationHelper.php`.
+     * @see \Zigbee2MQTT\VariableValueProcessingHelper Typprüfung eingehender Werte in `libs/ModulHelper/VariableValueProcessingHelper.php`.
      */
     protected static $VariableTypeMappings = [
         ['group_type' => 'cover', 'feature' => 'position', 'variableType' => VARIABLETYPE_INTEGER],
@@ -354,10 +391,11 @@ abstract class ModulBase extends \IPSModuleStrict
     ];
 
     /**
-     * Definitionen fuer bekannte Sondervariablen, die ohne vollstaendige
-     * Expose-Metadaten registriert werden.
+     * Definitionen bekannter Sondervariablen ohne vollständige Expose-Metadaten.
      *
      * @var array<string,array{type:int,name?:string,ident?:string}>
+     * @see \Zigbee2MQTT\ExposeVariableRegistrationHelper Registrierung in `libs/ModulHelper/ExposeVariableRegistrationHelper.php`.
+     * @see \Zigbee2MQTT\VariableValueProcessingHelper Verarbeitung eingehender Sonderwerte in `libs/ModulHelper/VariableValueProcessingHelper.php`.
      */
     protected static $specialVariables = [
         'last_seen'                  => ['type' => VARIABLETYPE_INTEGER, 'name' => 'Last Seen'],
@@ -381,7 +419,7 @@ abstract class ModulBase extends \IPSModuleStrict
     ];
 
     /**
-     * Definitionen fuer bekannte State-Features mit festen Werten.
+     * Definitionen bekannter Status-Features mit festen Werten.
      *
      * @var array<string,array{
      *     type:string,
@@ -390,6 +428,8 @@ abstract class ModulBase extends \IPSModuleStrict
      *     ident:string,
      *     enableAction?:bool
      * }>
+     * @see \Zigbee2MQTT\DeviceActionHelper Aktionsverarbeitung in `libs/ModulHelper/DeviceActionHelper.php`.
+     * @see \Zigbee2MQTT\ExposeVariableRegistrationHelper Aktionssynchronisierung in `libs/ModulHelper/ExposeVariableRegistrationHelper.php`.
      */
     protected static $stateDefinitions = [
         'auto_lock'   => ['type' => 'automode', 'dataType' => VARIABLETYPE_STRING, 'values' => ['AUTO', 'MANUAL'], 'ident' => 'auto_lock', 'enableAction' => true],
@@ -397,36 +437,28 @@ abstract class ModulBase extends \IPSModuleStrict
     ];
 
     /**
-     *  @var array $stringVariablesNoResponse
+     * String-Properties ohne zuverlässige Zustandsrückmeldung von Zigbee2MQTT.
      *
-     * Erkennt String-Variablen ohne Rückmeldung seitens Z2M
-     * Aktualisiert die in Symcon angelegte Variable direkt nach dem Senden des Set-Befehls
-     * Zur einfacheren Wartung als table angelegt. Somit muss der Code bei späteren Ergänzungen nicht angepasst werden.
+     * Nach einem erfolgreichen Set-Befehl wird die zugehörige Symcon-Variable
+     * unmittelbar auf den gesendeten Wert gesetzt. Dies betrifft derzeit
+     * insbesondere Effektmodi von Leuchtmitteln.
      *
-     * Typische Anwendungsfälle:
-     * - Effekt-Modi bei Leuchtmitteln (z.B. "EFFECT"), bei denen der zuletzt verwendete Effekt
-     *   angezeigt werden soll.
-     *
-     * Beispiel:
-     * - 'effect': Aktualisiert den zuletzt gesetzten Effekt.
+     * @var string[]
+     * @see \Zigbee2MQTT\DeviceActionHelper Behandlung optimistischer Stringwerte in `libs/ModulHelper/DeviceActionHelper.php`.
      */
     protected static $stringVariablesNoResponse = [
         'effect',
     ];
 
     /**
-     * @var array<string,array{values: array<int,string>}> $presetDefinitions
+     * Modulweit bekannte Presets mit festen Wertzuordnungen.
      *
-     * Definiert vordefinierte Presets mit festen Wertzuordnungen
+     * `values` ordnet numerische Werte ihren Bezeichnungen zu. Mit `redirect`
+     * kann eine Presetvariable auf die fachlich zugehörige Zielvariable
+     * umgeleitet werden.
      *
-     * Struktur:
-     * [
-     *   'PresetName' => [
-     *     'values' => [
-     *       Wert => 'Bezeichnung'
-     *     ]
-     *   ]
-     * ]
+     * @var array<string,array{values:array<int,string>,redirect?:bool}>
+     * @see \Zigbee2MQTT\DeviceActionHelper Presetaktionen in `libs/ModulHelper/DeviceActionHelper.php`.
      */
     protected static $presetDefinitions = [
         'level_config__current_level_startup' => [
@@ -441,21 +473,17 @@ abstract class ModulBase extends \IPSModuleStrict
     // Kernfunktionen
 
     /**
-     * Create
+     * Initialisiert die gemeinsamen Eigenschaften und Laufzeitdaten einer Instanz.
      *
-     * Wird einmalig beim Erstellen einer Instanz aufgerufen
+     * Symcon ruft diese Methode beim Erzeugen der Instanz und nach dem Laden des
+     * Moduls auf. Registriert werden MQTT-Topics, Visualisierungsoptionen,
+     * Geräte- und Variablenattribute, Wartungsdaten, Nachrichtenabonnements sowie
+     * die benötigten Puffer. Die konkrete Geräte- oder Gruppenklasse ergänzt
+     * anschließend ihre eigenen Definitionen.
      *
-     * Führt folgende Aktionen aus:
-     * - Verbindet mit der erstbesten MQTT-Server-Instanz
-     * - Registriert Properties für MQTT-Basis-Topic und MQTT-Topic
-     * - Initialisiert TransactionData Array
-     * - Registriert Properties, Attribute und Buffer
-     *
-     * @return void
-     *
-     * @see \IPSModule::RegisterPropertyString()
-     * @see \IPSModule::RegisterAttributeFloat()
-     * @see \IPSModule::RegisterAttributeArray()
+     * @see \Zigbee2MQTT\Maintenance\VariableMaintenanceHelper Variablenwartung in `libs/Maintenance/VariableMaintenanceHelper.php`.
+     * @see \Zigbee2MQTT\BufferHelper Pufferzugriffe in `libs/BufferHelper.php`.
+     * @see \Zigbee2MQTT\SendData Transaktionspuffer in `libs/MQTTHelper.php`.
      */
     public function Create(): void
     {
@@ -503,31 +531,19 @@ abstract class ModulBase extends \IPSModuleStrict
     }
 
     /**
-     * ApplyChanges
+     * Übernimmt die gemeinsame Instanzkonfiguration.
      *
-     * Wird aufgerufen bei übernehmen der Modulkonfiguration
+     * Die Methode leert ausstehende Transaktionen, validiert Basis- und
+     * Instanztopic und baut daraus den Empfangsfilter für Zustand,
+     * Verfügbarkeit und Symcon-Extension-Antworten auf. Ohne vollständige
+     * Topic-Konfiguration bleibt die Instanz inaktiv und empfängt keine Daten.
+     * Bei gültiger Konfiguration werden Variablenkatalog, vorhandene
+     * Expose-Variablen und der benötigte Visualisierungstyp aktualisiert.
      *
-     * Führt folgende Aktionen aus:
-     * - Verbindet mit MQTT-Parent
-     * - Liest MQTT Basis- und Geräte-Topic
-     * - Setzt Filter für eingehende MQTT-Nachrichten
-     * - Aktualisiert Instanz-Status (aktiv/inaktiv)
-     * - Prüft und aktualisiert Geräteinformationen (expose attribute)
-     *
-     * Bedingungen für Aktivierung:
-     * - Basis-Topic und MQTT-Topic müssen gesetzt sein
-     * - Parent muss aktiv sein
-     * - System muss bereit sein (KR_READY)
-     *
-     * @return void
-     *
-     * @see \IPSModule::ApplyChanges()
-     * @see \IPSModule::ReadPropertyString()
-     * @see \IPSModule::SetReceiveDataFilter()
-     * @see \IPSModule::HasActiveParent()
-     * @see \IPSModule::GetStatus()
-     * @see \IPSModule::SetStatus()
-     * @see IPS_GetKernelRunlevel()
+     * @see \Zigbee2MQTT\VariableCatalogHelper Katalogpflege in `libs/Configuration/VariableCatalogHelper.php`.
+     * @see \Zigbee2MQTT\ExposeVariableRegistrationHelper Expose-Registrierung in `libs/ModulHelper/ExposeVariableRegistrationHelper.php`.
+     * @see self::UpdateCustomTileVisualizationType()
+     * @see \Zigbee2MQTT\SendData Transaktionsverwaltung in `libs/MQTTHelper.php`.
      */
     public function ApplyChanges(): void
     {
@@ -557,13 +573,19 @@ abstract class ModulBase extends \IPSModuleStrict
     }
 
     /**
-     * MessageSink
+     * Verarbeitet Status- und Verbindungsereignisse der eigenen Instanz.
      *
-     * @param  mixed $Time
-     * @param  mixed $SenderID
-     * @param  mixed $Message
-     * @param  mixed $Data
-     * @return void
+     * Nach einer wiederhergestellten Verbindung beziehungsweise Aktivierung
+     * wird die MQTT-Verarbeitung freigegeben. Sobald Parent und Kernel bereit
+     * sind, prüft der Expose-Helper die gespeicherten Geräteinformationen und
+     * registriert bei Bedarf die daraus abgeleiteten Variablen.
+     *
+     * @param int   $Time     Unix-Zeitstempel des Ereignisses.
+     * @param int   $SenderID ID der sendenden Instanz.
+     * @param int   $Message  Symcon-Nachrichtenkennung.
+     * @param array $Data     Nachrichtenspezifische Zusatzdaten.
+     *
+     * @see \Zigbee2MQTT\ExposeVariableRegistrationHelper Expose-Prüfung und Variablenzuordnung in `libs/ModulHelper/ExposeVariableRegistrationHelper.php`.
      */
     public function MessageSink(int $Time, int $SenderID, int $Message, array $Data): void
     {
@@ -596,36 +618,19 @@ abstract class ModulBase extends \IPSModuleStrict
     }
 
     /**
-     * RequestAction
+     * Leitet eine Symcon-Aktionsanforderung an den Geräteaktions-Helper weiter.
      *
-     * Verarbeitet Aktionsanforderungen für Variablen
+     * Unterstützt werden unter anderem die Aktualisierung der Geräteinformation,
+     * Presets, Status-, Farb- und Standardvariablen sowie Stringwerte ohne
+     * Zustandsrückmeldung. Die Methode protokolliert Aufruf und Ergebnis; Auswahl,
+     * Validierung, Konvertierung und Versand der Aktion erfolgen im Helper.
      *
-     * Diese Methode wird automatisch aufgerufen, wenn eine Aktion einer Variable
-     * oder IPS_RequestAction ausgeführt wird.
+     * @param string $Ident Identifikator der Aktion oder Variable, beispielsweise `state` oder `UpdateInfo`.
+     * @param mixed  $Value Zu verarbeitender Zielwert.
      *
-     * Sie verarbeitet verschiedene Arten von Aktionstypen:
-     *
-     * - UpdateInfo: Aktualisiert Geräteinformationen
-     * - presets: Verarbeitet vordefinierte Einstellungen
-     * - String-Variablen ohne Rückmeldung: Direkte Aktualisierung
-     * - Farbvariablen: Spezielle Behandlung von RGB/HSV/etc.
-     * - Status-Variablen: ON/OFF und andere Zustände
-     * - Standard-Variablen: Allgemeine Werteänderungen
-     *
-     * @param string $Ident Identifikator der Variable (z.B. 'state', 'UpdateInfo')
-     * @param mixed $Value Neuer Wert für die Variable
-     *
-     * @return void
-     *
-     * @see \IPSModule::RequestAction()
-     * @see \IPSModule::SendDebug()
-     * @see \Zigbee2MQTT\ModulBase::UpdateDeviceInfo()
-     * @see \Zigbee2MQTT\ModulBase::handlePresetVariable()
-     * @see \Zigbee2MQTT\ModulBase::handleStringVariableNoResponse()
-     * @see \Zigbee2MQTT\ModulBase::handleColorVariable()
-     * @see \Zigbee2MQTT\ModulBase::handleStateVariable()
-     * @see \Zigbee2MQTT\ModulBase::handleStandardVariable()
-     * @see json_encode()
+     * @see \Zigbee2MQTT\DeviceActionHelper Vollständige Aktionsverarbeitung in `libs/ModulHelper/DeviceActionHelper.php`.
+     * @see \Zigbee2MQTT\DeviceCommandHelper Versand der Gerätebefehle in `libs/ModulHelper/DeviceCommandHelper.php`.
+     * @see self::UpdateDeviceInfo()
      */
     public function RequestAction(string $Ident, mixed $Value): void
     {
@@ -643,31 +648,22 @@ abstract class ModulBase extends \IPSModuleStrict
     }
 
     /**
-     * ReceiveData
+     * Nimmt eine MQTT-Nachricht vom übergeordneten Symcon-Splitter entgegen.
      *
-     * Verarbeitet eingehende MQTT-Nachrichten
+     * Während Initialisierung oder Migration sowie im Erstellungsstatus wird die
+     * Nachricht verworfen. Andernfalls übernimmt der Payload-Helper Dekodierung
+     * und Topic-Prüfung, behandelt Verfügbarkeits- und Symcon-Extension-Antworten
+     * und verarbeitet reguläre Gerätezustände. Leere Payloads sind ausschließlich
+     * für Verfügbarkeitsnachrichten zulässig.
      *
-     * Diese Methode wird automatisch aufgerufen, wenn eine MQTT-Nachricht empfangen wird.
-     * Der Verarbeitungsablauf ist wie folgt:
-     * 1. Prüft ob die Instanz noch bei der Migration ist
-     * 2. Prüft ob Instanz im CREATE-Status ist
-     * 3. Lässt den JSONString prüfen und zerlegen
-     * 4. Verarbeitet spezielle Nachrichtentypen:
-     *    - Verfügbarkeitsstatus (availability)
-     *    - Symcon Extension Antworten
-     * 5. Wenn keine spezielle Nachricht, dann Payload verarbeiten lassen
+     * @param string $JSONString Vom Parent übergebener JSON-Datenrahmen.
      *
-     * @param string $JSONString Die empfangene MQTT-Nachricht im JSON-Format
+     * @return string Für die Symcon-Schnittstelle wird immer ein leerer String zurückgegeben.
      *
-     * @return string Leerer String als Rückgabewert
-     *
-     * @see \IPSModule::ReceiveData()
-     * @see \IPSModule::GetBuffer()
-     * @see \IPSModule::GetStatus()
-     * @see \Zigbee2MQTT\ModulBase::validateAndParseMessage()
-     * @see \Zigbee2MQTT\ModulBase::handleAvailability()
-     * @see \Zigbee2MQTT\ModulBase::handleSymconExtensionResponses()
-     * @see \Zigbee2MQTT\ModulBase::processPayload()
+     * @see \Zigbee2MQTT\PayloadProcessingHelper Ablauf der Nachrichtenverarbeitung in `libs/ModulHelper/PayloadProcessingHelper.php`.
+     * @see \Zigbee2MQTT\PayloadStructureHelper Aufbereitung verschachtelter Daten in `libs/ModulHelper/PayloadStructureHelper.php`.
+     * @see \Zigbee2MQTT\PayloadVariableHelper Aktualisierung der Variablen in `libs/ModulHelper/PayloadVariableHelper.php`.
+     * @see \Zigbee2MQTT\VariableValueProcessingHelper Wertkonvertierung in `libs/ModulHelper/VariableValueProcessingHelper.php`.
      */
     public function ReceiveData(string $JSONString): string
     {
@@ -703,28 +699,24 @@ abstract class ModulBase extends \IPSModuleStrict
     }
 
     /**
-     * Migrate
+     * Migriert gespeicherte Instanzdaten auf den Mindeststand des Moduls.
      *
-     * Prüft über ein Attribute ob die Modul-Instanz ein Update benötigt.
+     * Bereits migrierte Instanzen werden unverändert zurückgegeben. Für ältere
+     * Bestände wird die MQTT-Verarbeitung vorübergehend gesperrt, eine historische
+     * Expose-Datei in das Instanzattribut übernommen und anschließend entfernt.
+     * Variablen-Identifikatoren mit dem Präfix `Z2M_` werden – ausgenommen die
+     * definierten Sonderfälle – nach `lower_snake_case` konvertiert. Abschließend
+     * werden Darstellung und Aktionszustand einer vorhandenen
+     * Helligkeitsvariable synchronisiert.
      *
-     * Führt anschließend eine Migration von Objekt-Idents durch, indem es Kinder-Objekte dieser Instanz durchsucht,
-     * auf definierte Kriterien überprüft und bei Bedarf umbenennt.
+     * @param string $JSONData Serialisierte Symcon-Konfiguration mit Properties und Attributen.
      *
-     * - Überprüfung, ob der Ident mit "Z2M_" beginnt
-     * - Konvertierung des Ident ins snake_case
-     * - Loggt sowohl Fehler als auch erfolgreiche Änderungen
+     * @return string Migrierte oder unveränderte Symcon-Konfiguration.
      *
-     * @param string $JSONData JSON-Daten mit allen Properties und Attributen
-     * @return string JSON-Daten mit allen Properties und Attributen
-     *
-     * @see \IPSModule::Migrate()
-     * @see \IPSModule::SetBuffer()
-     * @see \IPSModule::LogMessage()
-     * @see IPS_GetChildrenIDs()
-     * @see IPS_GetObject()
-     * @see IPS_SetIdent()
-     * @see json_decode()
-     * @see json_encode()
+     * @see self::convertToSnakeCase()
+     * @see \Zigbee2MQTT\DeviceActionHelper Ermittlung des Helligkeits-Exposes in `libs/ModulHelper/DeviceActionHelper.php`.
+     * @see \Zigbee2MQTT\ExposeVariableRegistrationHelper Synchronisierung der Variablenaktion in `libs/ModulHelper/ExposeVariableRegistrationHelper.php`.
+     * @see \Zigbee2MQTT\VariablePresentationHelper Helligkeitsdarstellung in `libs/Visualization/VariablePresentationHelper.php`.
      */
     public function Migrate(string $JSONData): string
     {
@@ -819,9 +811,18 @@ abstract class ModulBase extends \IPSModuleStrict
     }
 
     /**
-     * UIExportDebugData
+     * Erstellt einen herunterladbaren Diagnoseexport der aktuellen Instanz.
      *
-     * @return string
+     * Der Export enthält Objekt- und Instanzdaten, Konfiguration, Exposes,
+     * zusammengeführtes und letztes Payload, OTA-Fähigkeit, untergeordnete
+     * Variablen, verwendete Profile und erkannte fehlende Übersetzungen. Bei
+     * Geräteinstanzen wird zusätzlich der Link zur Zigbee2MQTT-Gerätedokumentation
+     * erzeugt.
+     *
+     * @return string Base64-kodierte JSON-Datei als Data-URL.
+     *
+     * @see \Zigbee2MQTT\VariableCatalogHelper OTA-Erkennung in `libs/Configuration/VariableCatalogHelper.php`.
+     * @see \Zigbee2MQTT\BufferHelper Payload- und Übersetzungspuffer in `libs/BufferHelper.php`.
      */
     public function UIExportDebugData(): string
     {
@@ -859,7 +860,17 @@ abstract class ModulBase extends \IPSModuleStrict
     }
 
     /**
-     * Aktiviert die HTML-SDK-Kachel, wenn eine passende Spezialkachel verfuegbar ist.
+     * Aktiviert die HTML-SDK-Visualisierung, wenn mindestens eine passende Spezialkachel verwendet werden soll.
+     *
+     * Ohne verfügbare Tile-Schnittstelle oder ohne aktivierte passende Kachel wird
+     * auf die native Symcon-Darstellung zurückgeschaltet.
+     *
+     * @see \Zigbee2MQTT\MeteredSwitchTileHelper Kachel in `libs/Visualization/TileHelpers/MeteredSwitchTileHelper.php`.
+     * @see \Zigbee2MQTT\HeatingTileHelper Kachel in `libs/Visualization/TileHelpers/HeatingTileHelper.php`.
+     * @see \Zigbee2MQTT\SensorTileHelper Kachel in `libs/Visualization/TileHelpers/SensorTileHelper.php`.
+     * @see \Zigbee2MQTT\SecurityTileHelper Kachel in `libs/Visualization/TileHelpers/SecurityTileHelper.php`.
+     * @see \Zigbee2MQTT\WindowHandleTileHelper Kachel in `libs/Visualization/TileHelpers/WindowHandleTileHelper.php`.
+     * @see \Zigbee2MQTT\ActionTileHelper Kachel in `libs/Visualization/TileHelpers/ActionTileHelper.php`.
      */
     protected function UpdateCustomTileVisualizationType(): void
     {
@@ -872,7 +883,14 @@ abstract class ModulBase extends \IPSModuleStrict
     }
 
     /**
-     * Sendet HTML-SDK-Kachelwerte und ignoriert temporaere Symcon-Reload-Fenster.
+     * Überträgt einen Wert an die aktive HTML-SDK-Kachel.
+     *
+     * Vorübergehende Fehler während eines Symcon-Modul-Reloads werden abgefangen.
+     * Eine folgende reguläre Wertänderung aktualisiert die Kachel erneut.
+     *
+     * @param string $value Serialisierter Wert für die Visualisierung.
+     *
+     * @see self::UpdateCustomTileVisualizationType()
      */
     protected function UpdateCustomTileVisualizationValue(string $value): void
     {
@@ -890,15 +908,16 @@ abstract class ModulBase extends \IPSModuleStrict
     }
 
     /**
-     * LoadDeviceInfo
+     * Lädt Geräte- oder Gruppeninformationen über die Zigbee2MQTT-Symcon-Extension.
      *
-     * Lädt die Geräte oder Gruppen Infos über die SymconExtension von Zigbee2MQTT
+     * Ohne aktiven Parent oder konfiguriertes MQTT-Topic wird keine Anfrage
+     * gesendet. Die Antwort wird anhand der vom MQTT-Helper verwalteten
+     * Transaktions-ID erwartet; Zeitüberschreitungen werden protokolliert.
      *
-     * @return array|false Enthält die Antwort als Array, oder false im Fehlerfall.
+     * @return array|false Dekodierte Extension-Antwort oder `false`, wenn die Anfrage nicht möglich war beziehungsweise fehlschlug.
      *
-     * @see \Zigbee2MQTT\SendData::SendData()
-     * @see \IPSModule::ReadPropertyString()
-     * @see \IPSModule::LogMessage()
+     * @see \Zigbee2MQTT\SendData Transaktionsbasierter Versand in `libs/MQTTHelper.php`.
+     * @see static::$ExtensionTopic
      */
     protected function LoadDeviceInfo()
     {
@@ -923,17 +942,32 @@ abstract class ModulBase extends \IPSModuleStrict
     }
 
     /**
-     * UpdateDeviceInfo
+     * Aktualisiert die gespeicherten Informationen der konkreten Geräte- oder Gruppeninstanz.
      *
-     * Muss überschrieben werden
-     * Muss die Exposes per LoadDeviceInfo laden und verarbeiten.
+     * Die Implementierung der abgeleiteten Klasse lädt die Daten über
+     * `LoadDeviceInfo()`, übernimmt Exposes und instanzspezifische Metadaten und
+     * stößt die erforderliche Variablenaktualisierung an.
      *
-     * @return bool
+     * @return bool `true` bei erfolgreicher Aktualisierung, andernfalls `false`.
+     *
+     * @see self::LoadDeviceInfo()
+     * @see \Zigbee2MQTT\ExposeVariableRegistrationHelper Verarbeitung der Exposes in `libs/ModulHelper/ExposeVariableRegistrationHelper.php`.
      */
     abstract protected function UpdateDeviceInfo(): bool;
 
     /**
-     * Returns a human-readable name for a native Symcon presentation.
+     * Liefert eine übersetzte, lesbare Bezeichnung für eine native Symcon-Darstellung.
+     *
+     * Die Bezeichnung wird in den Migrationsprotokollen des Variablenkatalogs und
+     * der Expose-Registrierung verwendet. Unbekannte Darstellungen erhalten eine
+     * neutrale Sammelbezeichnung.
+     *
+     * @param array $presentation Konfiguration einer nativen Variablendarstellung.
+     *
+     * @return string Übersetzte Darstellungsbezeichnung.
+     *
+     * @see \Zigbee2MQTT\VariableCatalogHelper Migrationsprotokoll in `libs/Configuration/VariableCatalogHelper.php`.
+     * @see \Zigbee2MQTT\ExposeVariableRegistrationHelper Registrierungsprotokoll in `libs/ModulHelper/ExposeVariableRegistrationHelper.php`.
      */
     protected function DescribePresentationForMigrationLog(array $presentation): string
     {
@@ -961,20 +995,20 @@ abstract class ModulBase extends \IPSModuleStrict
     }
 
     /**
-     * convertToSnakeCase
+     * Konvertiert einen historischen Z2M-Identifikator nach `lower_snake_case`.
      *
-     * Diese Hilfsfunktion entfernt das Prefix "Z2M_" und
-     * wandelt CamelCase in lower_snake_case um.
+     * Das Präfix `Z2M_` wird entfernt. Statusvarianten und bekannte Abkürzungen
+     * werden vor der allgemeinen CamelCase-Konvertierung gesondert behandelt.
+     * Bereits korrekt formatierte Identifikatoren bleiben inhaltlich erhalten.
      *
-     * Beispiele:
-     * - "color_temp" -> "color_temp"
-     * - "brightnessABC" -> "brightness_a_b_c"
-     * @param  string $oldIdent
-     * @return string
+     * Beispiele: `color_temp` wird zu `color_temp`, `brightnessABC` zu
+     * `brightness_abc`.
      *
-     * @see preg_replace()
-     * @see ltrim()
-     * @see strtolower()
+     * @param string $oldIdent Zu konvertierender historischer Identifikator.
+     *
+     * @return string Normalisierter Identifikator.
+     *
+     * @see self::Migrate()
      */
     private static function convertToSnakeCase(string $oldIdent): string
     {
