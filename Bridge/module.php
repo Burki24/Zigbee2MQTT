@@ -22,14 +22,34 @@ require_once __DIR__ . '/Helper/BridgeDeviceCommandHelper.php';
 require_once __DIR__ . '/Helper/BridgeDiagnosticHelper.php';
 
 /**
- * Zigbee2MQTTBridge
+ * Repräsentiert und verwaltet die zentrale Zigbee2MQTT-Bridge in Symcon.
  *
- * @property float $actualExtensionVersion Enthält die benötigte Version der Extension passend zu Z2M in einem InstanzBuffer
- * @property float $installedZhVersion Enthält die installierte Version des zigbee-herdsman Moduls
- * @property string $ExtensionFilename Enthält den Dateinamen der Extension in einem InstanzBuffer
- * @property string $ConfigLastSeen Enthält die Z2M Konfiguration der LastSeen Option in einem InstanzBuffer
- * @property bool $ConfigPermitJoin Enthält die Z2M Konfiguration der PermitJoin Option in einem InstanzBuffer
- * @property string $PermitJoinTarget Enthält das zuletzt gewählte Pairing-Ziel in einem InstanzBuffer
+ * Die Klasse koordiniert den Symcon-Lebenszyklus, den Empfang der
+ * `bridge/*`-Topics, die Bridge-Statusvariablen und das Konfigurationsformular.
+ * Fachliche Funktionen sind in Traits unter `Bridge/Helper` ausgelagert. Die
+ * angegebenen Pseudoeigenschaften werden über den `BufferHelper` im
+ * Instanzpuffer gespeichert.
+ *
+ * @property float  $actualExtensionVersion Erwartete Version der zur installierten zigbee-herdsman-Version passenden Symcon-Extension.
+ * @property float  $installedZhVersion      Von Zigbee2MQTT gemeldete Version von zigbee-herdsman.
+ * @property string $ExtensionFilename       Dateiname der in Zigbee2MQTT gefundenen Symcon-Extension.
+ * @property string $ConfigLastSeen          Aktuelle Zigbee2MQTT-Einstellung für `advanced.last_seen`.
+ * @property bool   $ConfigPermitJoin        Aktuelle Zigbee2MQTT-Einstellung für dauerhaftes `permit_join`.
+ * @property string $PermitJoinTarget        Zuletzt ausgewähltes Ziel für den Pairing-Modus.
+ *
+ * @see \BridgeRequestHelper Request-/Response-Verarbeitung in `Bridge/Helper/BridgeRequestHelper.php`.
+ * @see \BridgeConfigurationCommandHelper Bridge-Konfiguration in `Bridge/Helper/BridgeConfigurationCommandHelper.php`.
+ * @see \BridgeDeviceCommandHelper Gerätebefehle in `Bridge/Helper/BridgeDeviceCommandHelper.php`.
+ * @see \BridgeGroupSceneCommandHelper Gruppen- und Szenenbefehle in `Bridge/Helper/BridgeGroupSceneCommandHelper.php`.
+ * @see \BridgeDiagnosticHelper Diagnosefunktionen in `Bridge/Helper/BridgeDiagnosticHelper.php`.
+ * @see \BridgeNetworkSecurityHelper Netzwerklisten in `Bridge/Helper/BridgeNetworkSecurityHelper.php`.
+ * @see \BridgeInstallCodeHelper Installcodes in `Bridge/Helper/BridgeInstallCodeHelper.php`.
+ * @see \BridgeBackupHelper Backups in `Bridge/Helper/BridgeBackupHelper.php`.
+ * @see \BridgePairingHelper Pairing in `Bridge/Helper/BridgePairingHelper.php`.
+ * @see \BridgeStaleVariableHelper Variablenwartung in `Bridge/Helper/BridgeStaleVariableHelper.php`.
+ * @see \BridgeTouchlinkHelper Touchlink in `Bridge/Helper/BridgeTouchlinkHelper.php`.
+ * @see \BridgeOTACommandHelper OTA-Befehle in `Bridge/Helper/BridgeOTACommandHelper.php`.
+ * @see \BridgeOTAFormHelper OTA-Formular und Liveaktualisierung in `Bridge/Helper/BridgeOTAFormHelper.php`.
  */
 class Zigbee2MQTTBridge extends IPSModuleStrict
 {
@@ -52,7 +72,12 @@ class Zigbee2MQTTBridge extends IPSModuleStrict
     use \Zigbee2MQTT\SendData;
     use \Zigbee2MQTT\AttributeArrayHelper;
 
-    /** @var array ZH Version zu Erweiterung  */
+    /**
+     * Ordnet unterstützten zigbee-herdsman-Hauptversionen die passende Extension-Datei zu.
+     *
+     * @var array<int,string>
+     * @see \BridgeConfigurationCommandHelper Installation der Extension in `Bridge/Helper/BridgeConfigurationCommandHelper.php`.
+     */
     private const EXTENSION_ZH_VERSION = [
         2  => 'IPSymconExtension.js',
         3  => 'IPSymconExtension2.js',
@@ -102,12 +127,16 @@ class Zigbee2MQTTBridge extends IPSModuleStrict
     private const TIMEOUT_BRIDGE_APPLY_OPTIONS_REQUEST = 5000;
 
     /**
-     * Create
+     * Initialisiert Properties, Puffer, Timer und persistente Bridge-Attribute.
      *
-     * @uses IPSModule::Create()
-     * @uses IPSModule::RegisterPropertyString()
+     * Registriert werden das MQTT-Basistopic, die Laufzeitinformationen der
+     * Symcon-Extension, Pairing-Zustände sowie Speicher für Diagnose, Netzwerk,
+     * Installcodes, OTA, Touchlink und die Variablenwartung. Ausstehende
+     * MQTT-Transaktionen werden beim Start verworfen.
      *
-     * @return void
+     * @see \BridgePairingHelper Pairing-Timer in `Bridge/Helper/BridgePairingHelper.php`.
+     * @see \Zigbee2MQTT\SendData Transaktionspuffer in `libs/MQTTHelper.php`.
+     * @see \Zigbee2MQTT\BufferHelper Instanzpuffer in `libs/BufferHelper.php`.
      */
     public function Create(): void
     {
@@ -149,28 +178,19 @@ class Zigbee2MQTTBridge extends IPSModuleStrict
     }
 
     /**
-     * ApplyChanges
+     * Übernimmt die Bridge-Konfiguration und synchronisiert ihren Laufzeitzustand.
      *
-     * @return void
+     * Die Methode leert die Transaktionswarteschlange, setzt Instanzstatus,
+     * Zusammenfassung und Empfangsfilter und registriert die Bridge-Variablen samt
+     * Aktionen und nativen Darstellungen. Bei erreichbarer Bridge werden Optionen
+     * und Extension-Stand geprüft; eine fehlende oder veraltete Extension wird
+     * automatisch installiert. Abschließend werden die OTA-Beobachtungen
+     * synchronisiert.
      *
-     * @uses IPSModule::ApplyChanges()
-     * @uses IPSModule::ReadPropertyString()
-     * @uses IPSModule::SetStatus()
-     * @uses IPSModule::SetReceiveDataFilter()
-     * @uses IPSModule::SetSummary()
-     * @uses IPSModule::UnregisterVariable()
-     * @uses IPSModule::RegisterVariableBoolean()
-     * @uses IPSModule::RegisterVariableString()
-     * @uses IPSModule::RegisterVariableInteger()
-     * @uses IPSModule::EnableAction()
-     * @uses IPSModule::HasActiveParent()
-     * @uses IPSModule::UpdateFormField()
-     * @uses IPSModule::GetValue()
-     * @uses IPSModule::SetValue()
-     * @uses IPSModule::Translate()
-     * @uses Zigbee2MQTTBridge::RequestOptions()
-     * @uses Zigbee2MQTTBridge::InstallSymconExtension()
-     * @uses IPS_GetKernelRunlevel()
+     * @see \BridgeConfigurationCommandHelper Optionsabfrage und Extension-Installation in `Bridge/Helper/BridgeConfigurationCommandHelper.php`.
+     * @see \BridgePairingHelper Pairing-Zustand in `Bridge/Helper/BridgePairingHelper.php`.
+     * @see \BridgeOTAFormHelper OTA-Beobachtungen in `Bridge/Helper/BridgeOTAFormHelper.php`.
+     * @see \Zigbee2MQTT\SendData Transaktionsverwaltung in `libs/MQTTHelper.php`.
      */
     public function ApplyChanges(): void
     {
@@ -248,7 +268,18 @@ class Zigbee2MQTTBridge extends IPSModuleStrict
     }
 
     /**
-     * Aktualisiert OTA-Beobachtungen bei Änderungen an beobachteten Device-Variablen.
+     * Verarbeitet Änderungen an den für OTA überwachten Geräteinstanzen und Variablen.
+     *
+     * Wertänderungen aktualisieren die sichtbaren OTA-Listen. Werden Variablen
+     * unter einer überwachten Geräteinstanz hinzugefügt oder entfernt, werden die
+     * Nachrichtenabonnements neu aufgebaut.
+     *
+     * @param int   $TimeStamp Zeitstempel der Symcon-Nachricht.
+     * @param int   $SenderID  ID des auslösenden Objekts.
+     * @param int   $Message   Symcon-Nachrichtenkennung.
+     * @param array $Data      Nachrichtenspezifische Zusatzdaten.
+     *
+     * @see \BridgeOTAFormHelper OTA-Beobachtung und Formularaktualisierung in `Bridge/Helper/BridgeOTAFormHelper.php`.
      */
     public function MessageSink(int $TimeStamp, int $SenderID, int $Message, array $Data): void
     {
@@ -266,31 +297,24 @@ class Zigbee2MQTTBridge extends IPSModuleStrict
     }
 
     /**
-     * ReceiveData
+     * Verarbeitet eingehende MQTT-Nachrichten unterhalb des Bridge-Topics.
      *
-     * @param  string $JSONString
+     * Der Symcon-Datenrahmen wird dekodiert und nach Bridge-Untertopic verteilt.
+     * Unterstützt werden Logs, Ereignisse, Geräte- und Health-Diagnosen,
+     * Request-Antworten, Netzwerkkarten, Bridge-Status und -Informationen sowie
+     * die Liste installierter Extensions. Transaktionsantworten werden zuerst
+     * dem gemeinsamen MQTT-Helper zugeordnet; OTA-Antworten und fachliche
+     * Statusaktualisierungen folgen anschließend.
      *
-     * @return string
+     * @param string $JSONString Vom MQTT-Parent übergebener JSON-Datenrahmen.
      *
-     * @uses IPSModule::GetStatus()
-     * @uses IPSModule::ReadPropertyString()
-     * @uses IPSModule::RegisterVariableString()
-     * @uses IPSModule::SendDebug()
-     * @uses IPSModule::SetValue()
-     * @uses IPSModule::Translate()
-     * @uses IPSModule::UpdateFormField()
-     * @uses IPSModule::LogMessage()
-     * @uses Zigbee2MQTTBridge::UpdateTransaction()
-     * @uses json_decode()
-     * @uses strpos()
-     * @uses substr()
-     * @uses strlen()
-     * @uses explode()
-     * @uses array_shift()
-     * @uses Zigbee2MQTTBridge::DecodePayload()
-     * @uses file_get_contents()
-     * @uses preg_match()
-     * @uses isset()
+     * @return string Für die Symcon-Schnittstelle wird immer ein leerer String zurückgegeben.
+     *
+     * @see \BridgeDiagnosticHelper Diagnoseverarbeitung in `Bridge/Helper/BridgeDiagnosticHelper.php`.
+     * @see \BridgePairingHelper Pairing-Status in `Bridge/Helper/BridgePairingHelper.php`.
+     * @see \BridgeNetworkSecurityHelper Block- und Passlisten in `Bridge/Helper/BridgeNetworkSecurityHelper.php`.
+     * @see \BridgeOTAFormHelper OTA-Antworten in `Bridge/Helper/BridgeOTAFormHelper.php`.
+     * @see \Zigbee2MQTT\SendData Transaktionszuordnung und Payload-Dekodierung in `libs/MQTTHelper.php`.
      */
     public function ReceiveData(string $JSONString): string
     {
@@ -473,15 +497,25 @@ class Zigbee2MQTTBridge extends IPSModuleStrict
     }
 
     /**
-     * RequestAction
+     * Verteilt Variablen- und Formularaktionen auf die zuständigen Bridge-Helper.
      *
-     * @param  string $ident
-     * @param  mixed $value
-     * @return void
+     * Dazu gehören Bridge-Konfiguration und Neustart, Pairing, Diagnose, Backup,
+     * Installcodes, Touchlink, Netzwerklisten, Variablenwartung und OTA. Die
+     * Methode selbst enthält nur die zentrale Zuordnung der Aktionskennung.
      *
-     * @uses Zigbee2MQTTBridge::SetPermitJoin()
-     * @uses Zigbee2MQTTBridge::SetLogLevel()
-     * @uses Zigbee2MQTTBridge::Restart()
+     * @param string $ident Kennung der Variable oder Formularaktion.
+     * @param mixed  $value Von Symcon übergebener Aktionswert oder Formular-Payload.
+     *
+     * @see \BridgeConfigurationCommandHelper Konfigurationsaktionen in `Bridge/Helper/BridgeConfigurationCommandHelper.php`.
+     * @see \BridgePairingHelper Pairing-Aktionen in `Bridge/Helper/BridgePairingHelper.php`.
+     * @see \BridgeDiagnosticHelper Diagnoseaktionen in `Bridge/Helper/BridgeDiagnosticHelper.php`.
+     * @see \BridgeBackupHelper Backup-Erstellung in `Bridge/Helper/BridgeBackupHelper.php`.
+     * @see \BridgeInstallCodeHelper Installcode-Verwaltung in `Bridge/Helper/BridgeInstallCodeHelper.php`.
+     * @see \BridgeTouchlinkHelper Touchlink-Aktionen in `Bridge/Helper/BridgeTouchlinkHelper.php`.
+     * @see \BridgeNetworkSecurityHelper Netzwerklisten in `Bridge/Helper/BridgeNetworkSecurityHelper.php`.
+     * @see \BridgeStaleVariableHelper Variablenwartung in `Bridge/Helper/BridgeStaleVariableHelper.php`.
+     * @see \BridgeOTACommandHelper OTA-Befehle in `Bridge/Helper/BridgeOTACommandHelper.php`.
+     * @see \BridgeOTAFormHelper OTA-Formularaktionen in `Bridge/Helper/BridgeOTAFormHelper.php`.
      */
     public function RequestAction(string $ident, mixed $value): void
     {
@@ -605,15 +639,18 @@ class Zigbee2MQTTBridge extends IPSModuleStrict
     }
 
     /**
-     * GetConfigurationForm
+     * Erstellt das dynamisch ergänzte Konfigurationsformular der Bridge.
      *
-     * @return string
+     * Die statische `form.json` wird um den aktuellen Extension-, `last_seen`-
+     * und Pairing-Zustand sowie um Diagnose-, Netzwerk-, Installcode-, Touchlink-,
+     * OTA- und Variablenwartungsdaten ergänzt.
      *
-     * @uses IPSModule::GetValue()
-     * @uses IPSModule::Translate()
-     * @uses json_decode()
-     * @uses json_encode()
-     * @uses file_get_contents()
+     * @return string JSON-kodiertes Symcon-Konfigurationsformular.
+     *
+     * @see self::BuildBridgeConfigurationForm()
+     * @see \BridgeOTAFormHelper OTA-Formulardaten in `Bridge/Helper/BridgeOTAFormHelper.php`.
+     * @see \BridgeDiagnosticHelper Diagnosedaten in `Bridge/Helper/BridgeDiagnosticHelper.php`.
+     * @see \BridgeNetworkSecurityHelper Netzwerkdaten in `Bridge/Helper/BridgeNetworkSecurityHelper.php`.
      */
     public function GetConfigurationForm(): string
     {
@@ -633,11 +670,11 @@ class Zigbee2MQTTBridge extends IPSModuleStrict
     }
 
     /**
-     * RequestNetworkmap
+     * Fordert eine Netzwerkkarte im Graphviz-Format einschließlich Routen an.
      *
-     * @return bool
+     * @return bool `true`, wenn Zigbee2MQTT den Befehl erfolgreich bestätigt hat.
      *
-     * @uses Zigbee2MQTTBridge::SendData()
+     * @see \BridgeRequestHelper Versand des Bridge-Befehls in `Bridge/Helper/BridgeRequestHelper.php`.
      */
     public function RequestNetworkmap(): bool
     {
@@ -647,14 +684,18 @@ class Zigbee2MQTTBridge extends IPSModuleStrict
     }
 
     /**
-     * SendBridgeAction
+     * Sendet eine generische Zigbee2MQTT-Aktion an `bridge/request/action`.
      *
-     * Sendet eine generische Zigbee2MQTT-Bridge-Aktion an bridge/request/action.
+     * Aktionsname und Parameter werden normalisiert. Vom Aufrufer übergebene
+     * Felder für `transaction` und `action` werden entfernt, damit die
+     * Transaktionsverwaltung und der angegebene Aktionsname verbindlich bleiben.
      *
      * @param string $Action Name der Zigbee2MQTT-Aktion.
-     * @param array  $Params Parameter fuer das params-Objekt ohne transaction/action.
+     * @param array  $Params Inhalt des `params`-Objekts ohne `transaction` und `action`.
      *
-     * @return bool
+     * @return bool `true`, wenn die Bridge die Aktion bestätigt hat.
+     *
+     * @see \BridgeRequestHelper Geschützter Request in `Bridge/Helper/BridgeRequestHelper.php`.
      */
     public function SendBridgeAction(string $Action, array $Params = []): bool
     {
@@ -674,7 +715,16 @@ class Zigbee2MQTTBridge extends IPSModuleStrict
     }
 
     /**
-     * Setzt einen Variablenwert module-strict-konform.
+     * Setzt einen Bridge-Variablenwert kompatibel mit `IPSModuleStrict` und der Testumgebung.
+     *
+     * Nicht vorhandene Variablen führen zu `false`. Innerhalb der PHPUnit-Stubs
+     * wird die globale Symcon-Funktion verwendet, im Produktivbetrieb die
+     * Implementierung der Basisklasse.
+     *
+     * @param string $Ident Identifikator der Bridge-Variable.
+     * @param mixed  $Value Zu speichernder Wert.
+     *
+     * @return bool `true`, wenn der Wert gesetzt werden konnte.
      */
     protected function SetValue(string $Ident, mixed $Value): bool
     {
@@ -692,7 +742,16 @@ class Zigbee2MQTTBridge extends IPSModuleStrict
     }
 
     /**
-     * Erstellt eine native Aufzaehlungsdarstellung fuer Bridge-Variablen.
+     * Erstellt eine native Symcon-Aufzählungsdarstellung für Bridge-Variablen.
+     *
+     * Auf Symcon-Versionen ohne entsprechende Darstellungskonstante wird als
+     * kompatibler Rückfall ein leerer Profilname geliefert.
+     *
+     * @param array  $options Aufzählungsoptionen im Format der nativen Symcon-Darstellung.
+     * @param string $icon    Name des anzuzeigenden Icons.
+     * @param int    $layout  Symcon-Layoutkennung der Aufzählung.
+     *
+     * @return string|array Leerer Profilname oder Konfiguration der nativen Darstellung.
      */
     private function BuildBridgeEnumerationPresentation(array $options, string $icon = 'list', int $layout = 0): string|array
     {
@@ -710,7 +769,13 @@ class Zigbee2MQTTBridge extends IPSModuleStrict
     }
 
     /**
-     * Erstellt eine Option fuer native Bridge-Aufzaehlungen.
+     * Erstellt eine einzelne Option für eine native Bridge-Aufzählung.
+     *
+     * @param mixed  $value   Zu übermittelnder Optionswert.
+     * @param string $caption Übersetzungsschlüssel der Beschriftung.
+     * @param int    $color   Symcon-Farbwert oder `-1` für die Standardfarbe.
+     *
+     * @return array{Value:mixed,Caption:string,IconActive:bool,IconValue:string,Color:int}
      */
     private function BuildBridgeEnumerationOption(mixed $value, string $caption, int $color = -1): array
     {
@@ -724,7 +789,19 @@ class Zigbee2MQTTBridge extends IPSModuleStrict
     }
 
     /**
-     * Baut den Payload fuer Binding- und Unbinding-Requests.
+     * Baut das gemeinsame Payload für Binding- und Unbinding-Anfragen auf.
+     *
+     * Cluster können als JSON-Liste oder kommaseparierter Text angegeben werden.
+     * `skip_disable_reporting` wird nur bei ausdrücklicher Auswahl übertragen.
+     *
+     * @param string $SourceDevice         Quellgerät oder Quellendpunkt.
+     * @param string $TargetDevice         Zielgerät, Zielendpunkt oder Gruppe.
+     * @param string $ClustersJSON         Optionale Clusterliste.
+     * @param bool   $SkipDisableReporting Reporting beim Unbinding nicht deaktivieren.
+     *
+     * @return array Für Zigbee2MQTT normalisiertes Request-Payload.
+     *
+     * @see \BridgeGroupSceneCommandHelper Binding-Befehle in `Bridge/Helper/BridgeGroupSceneCommandHelper.php`.
      */
     private function BuildBindingPayload(string $SourceDevice, string $TargetDevice, string $ClustersJSON, bool $SkipDisableReporting): array
     {
@@ -745,9 +822,16 @@ class Zigbee2MQTTBridge extends IPSModuleStrict
     }
 
     /**
-     * Liest ein JSON-Array oder eine kommaseparierte Liste.
+     * Normalisiert ein JSON-Array oder eine kommaseparierte Zeichenkette zu einer Liste.
      *
-     * @return string[]
+     * Leere Einträge werden entfernt und alle verbleibenden Werte beschnitten.
+     *
+     * @param string $Value Zu parsende Liste.
+     *
+     * @return string[] Normalisierte, möglicherweise leere Stringliste.
+     *
+     * @see \BridgeDeviceCommandHelper Attributlisten in `Bridge/Helper/BridgeDeviceCommandHelper.php`.
+     * @see self::BuildBindingPayload()
      */
     private function ParseStringList(string $Value): array
     {
@@ -768,7 +852,16 @@ class Zigbee2MQTTBridge extends IPSModuleStrict
     }
 
     /**
-     * Liest ein optionales JSON-Objekt.
+     * Dekodiert ein optionales JSON-Objekt aus einem Formularfeld.
+     *
+     * Eine leere Eingabe ergibt ein leeres Array. Andere gültige JSON-Typen
+     * werden mit einem Symcon-Hinweis abgewiesen.
+     *
+     * @param string $OptionsJSON JSON-Text oder leere Eingabe.
+     *
+     * @return array Dekodiertes Objekt als assoziatives Array.
+     *
+     * @see \BridgeDeviceCommandHelper Geräteoptionen in `Bridge/Helper/BridgeDeviceCommandHelper.php`.
      */
     private function ParseOptionalJsonObject(string $OptionsJSON): array
     {
@@ -787,7 +880,17 @@ class Zigbee2MQTTBridge extends IPSModuleStrict
     }
 
     /**
-     * Liest ein verpflichtendes JSON-Objekt.
+     * Dekodiert ein verpflichtendes JSON-Objekt aus einem Formularfeld.
+     *
+     * Ungültige Eingaben und andere JSON-Typen lösen den übergebenen
+     * übersetzbaren Symcon-Hinweis aus.
+     *
+     * @param string $JSON         Zu dekodierender JSON-Text.
+     * @param string $ErrorMessage Übersetzungsschlüssel der Fehlermeldung.
+     *
+     * @return array|null Dekodiertes Objekt oder `null` bei ungültiger Eingabe.
+     *
+     * @see \BridgeGroupSceneCommandHelper Gruppen- und Szenenoptionen in `Bridge/Helper/BridgeGroupSceneCommandHelper.php`.
      */
     private function ParseRequiredJsonObject(string $JSON, string $ErrorMessage): ?array
     {
@@ -802,7 +905,17 @@ class Zigbee2MQTTBridge extends IPSModuleStrict
     }
 
     /**
-     * Wandelt einfache Formularwerte in JSON-, Boolean-, Integer-, Float- oder Stringwerte.
+     * Wandelt einen einfachen Formularwert in den passenden skalaren PHP-Typ um.
+     *
+     * Gültige skalare JSON-Werte werden direkt übernommen. Zahlen mit deutschem
+     * Dezimalkomma werden als Integer oder Float interpretiert; alle übrigen
+     * Eingaben bleiben Strings.
+     *
+     * @param string $Value Zu konvertierender Formularwert.
+     *
+     * @return bool|int|float|string|null Konvertierter skalarer Wert.
+     *
+     * @see \BridgeDeviceCommandHelper Geräteparameter in `Bridge/Helper/BridgeDeviceCommandHelper.php`.
      */
     private function ParseBridgeScalarValue(string $Value): mixed
     {
@@ -821,7 +934,24 @@ class Zigbee2MQTTBridge extends IPSModuleStrict
     }
 
     /**
-     * Ergaenzt die statische Bridge-Form um aktuelle Diagnosewerte.
+     * Ergänzt das statische Bridge-Formular um sämtliche aktuellen Laufzeitdaten.
+     *
+     * Eingetragen werden Pairing-Ziele, Netzwerklisten, Diagnoseergebnisse,
+     * Installcodes, Touchlink-Geräte, OTA-Status und Ergebnisse der
+     * Variablenwartung. Gleichzeitig werden die benötigten OTA-Abonnements
+     * synchronisiert und Tabellenhöhen an ihren Inhalt angepasst.
+     *
+     * @param array $form Dekodierte statische `form.json`.
+     *
+     * @return array Vollständig aufgebautes Bridge-Formular.
+     *
+     * @see \BridgePairingHelper Pairing-Daten in `Bridge/Helper/BridgePairingHelper.php`.
+     * @see \BridgeNetworkSecurityHelper Netzwerklisten in `Bridge/Helper/BridgeNetworkSecurityHelper.php`.
+     * @see \BridgeDiagnosticHelper Diagnosedaten in `Bridge/Helper/BridgeDiagnosticHelper.php`.
+     * @see \BridgeInstallCodeHelper Installcode-Katalog in `Bridge/Helper/BridgeInstallCodeHelper.php`.
+     * @see \BridgeTouchlinkHelper Touchlink-Geräte in `Bridge/Helper/BridgeTouchlinkHelper.php`.
+     * @see \BridgeOTAFormHelper OTA-Daten in `Bridge/Helper/BridgeOTAFormHelper.php`.
+     * @see \BridgeStaleVariableHelper Variablenwartung in `Bridge/Helper/BridgeStaleVariableHelper.php`.
      */
     private function BuildBridgeConfigurationForm(array $form): array
     {
@@ -867,12 +997,21 @@ class Zigbee2MQTTBridge extends IPSModuleStrict
     }
 
     /**
-     * Aktualisiert ein Formularfeld, sofern die Symcon-Formularschnittstelle verfuegbar ist.
+     * Aktualisiert ein Formularfeld defensiv, sofern die Symcon-Schnittstelle verfügbar ist.
      *
-     * MessageSink kann waehrend eines Modul-Updates durch VM_UPDATE ausgeloest werden.
-     * In diesem Moment steht die InstanceInterface-Schnittstelle nicht immer bereit.
+     * Während eines Modul-Reloads kann `MessageSink()` durch `VM_UPDATE`
+     * aufgerufen werden, obwohl das Instanzinterface vorübergehend fehlt. Warnungen
+     * und Exceptions werden deshalb abgefangen und als Debugmeldung protokolliert.
      *
-     * @return bool True, wenn das Formularfeld aktualisiert wurde.
+     * @param string $name  Name des Formularelements.
+     * @param string $field Zu ändernde Feldeigenschaft.
+     * @param mixed  $value Neuer Feldwert.
+     *
+     * @return bool `true`, wenn Symcon das Formularfeld erfolgreich aktualisiert hat.
+     *
+     * @see \BridgeOTAFormHelper OTA-Liveaktualisierung in `Bridge/Helper/BridgeOTAFormHelper.php`.
+     * @see \BridgeDiagnosticHelper Diagnose-Liveaktualisierung in `Bridge/Helper/BridgeDiagnosticHelper.php`.
+     * @see \BridgeNetworkSecurityHelper Aktualisierung der Netzwerklisten in `Bridge/Helper/BridgeNetworkSecurityHelper.php`.
      */
     private function TryUpdateFormField(string $name, string $field, mixed $value): bool
     {
@@ -899,7 +1038,19 @@ class Zigbee2MQTTBridge extends IPSModuleStrict
     }
 
     /**
-     * Fuehrt eine generische Bridge-Expertenaktion aus dem Formular aus.
+     * Validiert und versendet eine generische Bridge-Expertenaktion aus dem Formular.
+     *
+     * Aktionsname und optionales Parameterobjekt werden geprüft. Der Parametertext
+     * muss ein JSON-Objekt sein; Arrays und skalare Werte sind nicht zulässig.
+     * Erfolg oder Fehler werden direkt im Formular angezeigt.
+     *
+     * @param mixed $value Formular-Payload mit `action` und optionalem `params`-Text.
+     *
+     * @return bool `true`, wenn Zigbee2MQTT die Expertenaktion bestätigt hat.
+     *
+     * @see self::SendBridgeAction()
+     * @see self::DecodeBridgeFormPayload()
+     * @see self::ShowBridgeExpertActionMessage()
      */
     private function ExecuteBridgeExpertActionFromForm(mixed $value): bool
     {
@@ -945,7 +1096,12 @@ class Zigbee2MQTTBridge extends IPSModuleStrict
     }
 
     /**
-     * Zeigt eine Rueckmeldung fuer Bridge-Expertenaktionen im Formular an.
+     * Zeigt eine übersetzte Rückmeldung zu einer Bridge-Expertenaktion im Formular an.
+     *
+     * @param string $title   Übersetzungsschlüssel der Überschrift.
+     * @param string $message Übersetzungsschlüssel des Meldungstextes.
+     *
+     * @see self::TryUpdateFormField()
      */
     private function ShowBridgeExpertActionMessage(string $title, string $message): void
     {
@@ -955,7 +1111,22 @@ class Zigbee2MQTTBridge extends IPSModuleStrict
     }
 
     /**
-     * Dekodiert JSON-Payloads aus Bridge-Formularaktionen.
+     * Normalisiert den Payload einer Bridge-Formularaktion zu einem Array.
+     *
+     * Bereits dekodierte Arrays werden unverändert übernommen. JSON-Strings
+     * werden dekodiert; andere Typen und ungültige JSON-Daten ergeben `null`.
+     * Diese zentrale Konvertierung wird von mehreren Bridge-Helpern verwendet.
+     *
+     * @param mixed $value Von Symcon übergebener Formularwert.
+     *
+     * @return array|null Dekodiertes Formular-Payload oder `null`.
+     *
+     * @see \BridgeInstallCodeHelper Formularaktionen in `Bridge/Helper/BridgeInstallCodeHelper.php`.
+     * @see \BridgeNetworkSecurityHelper Formularaktionen in `Bridge/Helper/BridgeNetworkSecurityHelper.php`.
+     * @see \BridgePairingHelper Formularaktionen in `Bridge/Helper/BridgePairingHelper.php`.
+     * @see \BridgeTouchlinkHelper Formularaktionen in `Bridge/Helper/BridgeTouchlinkHelper.php`.
+     * @see \BridgeOTAFormHelper Formularaktionen in `Bridge/Helper/BridgeOTAFormHelper.php`.
+     * @see \BridgeStaleVariableHelper Formularaktionen in `Bridge/Helper/BridgeStaleVariableHelper.php`.
      */
     private function DecodeBridgeFormPayload(mixed $value): ?array
     {
@@ -971,7 +1142,19 @@ class Zigbee2MQTTBridge extends IPSModuleStrict
     }
 
     /**
-     * Setzt ein Feld in der verschachtelten Form.
+     * Setzt rekursiv eine Eigenschaft eines benannten Elements im Formularbaum.
+     *
+     * Die Suche endet beim ersten passenden Element. Das Formular wird per
+     * Referenz verändert und muss nicht erneut zurückgegeben werden.
+     *
+     * @param array  $node  Aktueller Knoten des Formularbaums.
+     * @param string $name  Name des gesuchten Formularelements.
+     * @param string $field Zu setzende Eigenschaft.
+     * @param mixed  $value Neuer Eigenschaftswert.
+     *
+     * @return bool `true`, wenn das Element gefunden und geändert wurde.
+     *
+     * @see self::BuildBridgeConfigurationForm()
      */
     private function SetBridgeFormField(array &$node, string $name, string $field, mixed $value): bool
     {
