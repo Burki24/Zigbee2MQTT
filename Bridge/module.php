@@ -259,7 +259,7 @@ class Zigbee2MQTTBridge extends IPSModuleStrict
     public function MessageSink(int $TimeStamp, int $SenderID, int $Message, array $Data): void
     {
         if ($Message === VM_UPDATE && \in_array($SenderID, $this->ReadAttributeArray(self::ATTRIBUTE_OTA_MONITORED_VARIABLES), true)) {
-            $this->SendDebug(__FUNCTION__, 'OTA-Formularaktualisierung nach VM_UPDATE uebersprungen', 0);
+            $this->TryUpdateOTAFormLists();
             return;
         }
 
@@ -2955,7 +2955,9 @@ class Zigbee2MQTTBridge extends IPSModuleStrict
         $rows = $this->BuildOTADeviceRows();
         $availableRows = $this->FilterOTADeviceRowsByState($rows, ['available']);
         $activeRows = $this->FilterOTADeviceRowsByState($rows, ['requested', 'scheduled', 'updating']);
-        $this->TryUpdateFormField('OTAStatus', 'caption', $this->BuildOTAStatusCaption($rows));
+        if (!$this->TryUpdateFormField('OTAStatus', 'caption', $this->BuildOTAStatusCaption($rows))) {
+            return;
+        }
         $this->TryUpdateFormField('OTAKnownDevices', 'values', json_encode($this->BuildOTAKnownDeviceFormValues($rows)));
         $this->TryUpdateFormField('OTAKnownDevices', 'rowCount', min(10, max(3, \count($rows) + 1)));
         $this->TryUpdateFormField('OTAAvailableUpdates', 'values', json_encode($this->BuildOTAAvailableUpdateFormValues($availableRows)));
@@ -2966,24 +2968,36 @@ class Zigbee2MQTTBridge extends IPSModuleStrict
     }
 
     /**
+     * Aktualisiert die OTA-Formulardaten, ohne MessageSink bei temporaer
+     * nicht verfuegbaren Instanz- oder Formulardaten zu unterbrechen.
+     */
+    private function TryUpdateOTAFormLists(): void
+    {
+        try {
+            $this->UpdateOTAFormLists();
+        } catch (\Throwable $exception) {
+            $this->SendDebug(__FUNCTION__, 'OTA-Formularaktualisierung uebersprungen: ' . $exception->getMessage(), 0);
+        }
+    }
+
+    /**
      * Aktualisiert ein Formularfeld, sofern die Symcon-Formularschnittstelle verfuegbar ist.
      *
      * MessageSink kann waehrend eines Modul-Updates durch VM_UPDATE ausgeloest werden.
      * In diesem Moment steht die InstanceInterface-Schnittstelle nicht immer bereit.
+     *
+     * @return bool True, wenn das Formularfeld aktualisiert wurde.
      */
-    private function TryUpdateFormField(string $name, string $field, mixed $value): void
+    private function TryUpdateFormField(string $name, string $field, mixed $value): bool
     {
         $warning = null;
         set_error_handler(static function (int $severity, string $message) use (&$warning): bool {
-            if (str_contains($message, 'InstanceInterface is not available')) {
-                $warning = $message;
-                return true;
-            }
-
-            return false;
+            $warning = $message;
+            return true;
         });
+        $updated = false;
         try {
-            $this->UpdateFormField($name, $field, $value);
+            $updated = $this->UpdateFormField($name, $field, $value);
         } catch (\Throwable $exception) {
             $this->SendDebug(__FUNCTION__, 'Formularaktualisierung uebersprungen: ' . $exception->getMessage(), 0);
         } finally {
@@ -2993,6 +3007,8 @@ class Zigbee2MQTTBridge extends IPSModuleStrict
         if ($warning !== null) {
             $this->SendDebug(__FUNCTION__, 'Formularaktualisierung uebersprungen: ' . $warning, 0);
         }
+
+        return $updated && $warning === null;
     }
 
     /**
