@@ -792,6 +792,37 @@ class DevicesTest extends DumpInclude
         $this->assertFalse(@IPS_GetObjectIDByIdent('0', $iid));
     }
 
+    public function testLastPayloadTracksLatestValuesAndMergesPartialObjects(): void
+    {
+        [$iid, $debug] = $this->createTestInstance('RTCGQ01LM.json');
+        $interface = IPS\InstanceManager::getInstanceInterface($iid);
+        $topic = $debug['Config']['MQTTBaseTopic'] . '/' . $debug['Config']['MQTTTopic'];
+
+        $interface->ReceiveData(self::buildMqttRequest($topic, [
+            'temperature' => 21.5,
+            'nested_test' => ['left' => 1, 'right' => 2],
+            'list_test'   => [1, 2, 3]
+        ]));
+        $interface->ReceiveData(self::buildMqttRequest($topic, [
+            'temperature' => 23.25,
+            'nested_test' => ['left' => 9],
+            'list_test'   => [4]
+        ]));
+
+        $debugData = self::getExportDebugData($iid);
+        $this->assertSame(23.25, $debugData['LastPayload']['temperature']);
+        $this->assertSame(['left' => 9, 'right' => 2], $debugData['LastPayload']['nested_test']);
+        $this->assertSame([4], $debugData['LastPayload']['list_test']);
+        $this->assertSame([
+            'temperature' => 23.25,
+            'nested_test' => ['left' => 9],
+            'list_test'   => [4]
+        ], $debugData['LatestPayload']);
+
+        IPS_ApplyChanges($iid);
+        $this->assertSame(23.25, self::getExportDebugData($iid)['LastPayload']['temperature']);
+    }
+
     public function testVariableSelectionCreatesBinaryAndEnumVariablesWithIncompleteFeatureIdentity(): void
     {
         [$iid] = $this->createTestInstance('RTCGQ01LM.json');

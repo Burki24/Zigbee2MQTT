@@ -2183,7 +2183,7 @@ abstract class ModulBase extends \IPSModuleStrict
             return;
         }
 
-        $this->lastPayload = $this->lastPayload + $payload;
+        $this->lastPayload = $this->MergeLastPayload($this->lastPayload, $payload);
 
         // Verschachtelte Strukturen flach machen
         $flattenedPayload = $this->flattenPayload($payload);
@@ -2204,6 +2204,33 @@ abstract class ModulBase extends \IPSModuleStrict
             }
             $this->processPayloadEntry($key, $value);
         }
+    }
+
+    /**
+     * Fuehrt einen neuen Teil-Payload mit dem zuletzt bekannten Gesamtzustand zusammen.
+     *
+     * Neu empfangene Werte sind immer fuehrend. Assoziative Unterstrukturen werden
+     * rekursiv ergaenzt, damit bei partiellen MQTT-Updates nicht erneut gesendete
+     * Felder erhalten bleiben. Numerische Listen werden als atomarer Wert behandelt
+     * und vollstaendig ersetzt.
+     */
+    private function MergeLastPayload(array $currentPayload, array $newPayload): array
+    {
+        foreach ($newPayload as $key => $newValue) {
+            $currentValue = $currentPayload[$key] ?? null;
+            if (\is_array($currentValue)
+                && \is_array($newValue)
+                && !array_is_list($currentValue)
+                && !array_is_list($newValue)
+            ) {
+                $currentPayload[$key] = $this->MergeLastPayload($currentValue, $newValue);
+                continue;
+            }
+
+            $currentPayload[$key] = $newValue;
+        }
+
+        return $currentPayload;
     }
 
     /**
