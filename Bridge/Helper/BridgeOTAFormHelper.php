@@ -221,9 +221,9 @@ trait BridgeOTAFormHelper
     private function BuildOTAActiveUpdateActionCaption(string $state): string
     {
         return match ($state) {
-            'scheduled'            => $this->TranslateOTAFormText('Unschedule'),
+            'scheduled'             => $this->TranslateOTAFormText('Unschedule'),
             'requested', 'updating' => $this->TranslateOTAFormText('Abort'),
-            default                => ''
+            default                 => ''
         };
     }
 
@@ -233,9 +233,9 @@ trait BridgeOTAFormHelper
     private function BuildOTAActiveUpdateActionRequest(string $state): string
     {
         return match ($state) {
-            'scheduled'            => 'UnscheduleOTAUpdate',
+            'scheduled'             => 'UnscheduleOTAUpdate',
             'requested', 'updating' => 'AbortOTAUpdate',
-            default                => ''
+            default                 => ''
         };
     }
 
