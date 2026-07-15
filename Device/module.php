@@ -5,7 +5,7 @@ declare(strict_types=1);
 require_once dirname(__DIR__) . '/libs/ModulBase.php';
 
 /**
- * Device instance for a single Zigbee2MQTT device.
+ * Repräsentiert ein einzelnes Zigbee2MQTT-Gerät in Symcon.
  */
 class Zigbee2MQTTDevice extends \Zigbee2MQTT\ModulBase
 {
@@ -17,11 +17,11 @@ class Zigbee2MQTTDevice extends \Zigbee2MQTT\ModulBase
     /** @var mixed $ExtensionTopic Topic für den ReceiveFilter*/
     protected static $ExtensionTopic = 'getDeviceInfo/';
 
-    /** Detected IEEE address prepared only for the currently handled configuration form request. */
+    /** Temporär erkannte IEEE-Adresse für die aktuell verarbeitete Formularanfrage. */
     private string $detectedIEEEFormValue = '';
 
     /**
-     * Create
+     * Initialisiert Eigenschaften, Attribute und Status der Geräteinstanz.
      *
      * @return void
      */

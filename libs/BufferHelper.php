@@ -17,7 +17,7 @@ namespace Zigbee2MQTT;
  */
 
 /**
- * Trait welcher Objekt-Eigenschaften in den Instance-Buffer schreiben und lesen kann.
+ * Liest und schreibt serialisierte Werte im Symcon-Instanzpuffer.
  */
 trait BufferHelper
 {
@@ -25,8 +25,9 @@ trait BufferHelper
      * Wert einer Eigenschaft aus den InstanceBuffer lesen.
      *
      * @access public
-     * @param string $name PropertyName
-     * @return mixed Value of Name
+     * @param string $name Name der gepufferten Eigenschaft.
+     *
+     * @return mixed Gespeicherter Wert der Eigenschaft.
      */
     public function __get(string $name): mixed
     {
@@ -52,8 +53,8 @@ trait BufferHelper
      * Wert einer Eigenschaft in den InstanceBuffer schreiben.
      *
      * @access public
-     * @param string $name PropertyName
-     * @param mixed $value Value of Name
+     * @param string $name  Name der gepufferten Eigenschaft.
+     * @param mixed  $value Zu speichernder Wert.
      */
     public function __set(string $name, mixed $value): void
     {

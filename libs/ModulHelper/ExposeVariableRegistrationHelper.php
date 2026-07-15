@@ -201,10 +201,10 @@ trait ExposeVariableRegistrationHelper
      * @return string Der ermittelte Variablentyp ('bool', 'int', 'float', 'string')
      *
      * @note Für 'numeric' Typen gilt folgende Logik:
-     *       - Returns 'float' wenn:
+     *       - Liefert `float`, wenn:
      *         * Die Einheit in FLOAT_UNITS definiert ist (z.B. 'W', '°C', 'V')
      *         * value_step keine ganze Zahl ist (z.B. 0.5)
-     *       - Returns 'int' wenn:
+     *       - Liefert `int`, wenn:
      *         * Keine der float-Bedingungen zutrifft
      *
      * Beispiel:
@@ -799,13 +799,13 @@ trait ExposeVariableRegistrationHelper
     }
 
     /**
-     * Records that an existing variable changed from a legacy Z2M.* profile to a native presentation.
+     * Protokolliert den Wechsel einer vorhandenen Variable von einem alten Z2M-Profil zu einer nativen Darstellung.
      *
-     * The method only observes the module standard before RegisterVariable* applies the new
-     * presentation. It never touches custom user profile or presentation settings.
+     * Die Methode betrachtet nur den Modulstandard, bevor `RegisterVariable*` die neue Darstellung
+     * anwendet. Benutzerdefinierte Profile oder Darstellungseinstellungen werden nicht verändert.
      *
-     * @param string $ident Variable ident.
-     * @param string|array $profileOrPresentation New module standard presentation or empty string.
+     * @param string       $ident                 Ident der Variable.
+     * @param string|array $profileOrPresentation Neuer Darstellungsstandard des Moduls oder eine leere Zeichenkette.
      */
     private function RecordLegacyProfilePresentationReplacement(string $ident, string|array $profileOrPresentation): void
     {

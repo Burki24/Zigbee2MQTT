@@ -7,7 +7,7 @@ include_once __DIR__ . '/stubs/autoload.php';
 use PHPUnit\Framework\TestCase;
 
 /**
- * Shared test base for creating bridge, device and group instances from dumps.
+ * Gemeinsame Testbasis zum Erstellen von Bridge-, Geräte- und Gruppeninstanzen aus Dumps.
  */
 class DumpInclude extends TestCase
 {

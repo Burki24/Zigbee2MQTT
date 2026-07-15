@@ -8,7 +8,7 @@ require_once __DIR__ . '/../libs/MQTTHelper.php';
 use PHPUnit\Framework\TestCase;
 
 /**
- * Tests MQTT request transaction handling.
+ * Prüft die Transaktionsverwaltung von MQTT-Requests.
  */
 class MQTTHelperTest extends TestCase
 {

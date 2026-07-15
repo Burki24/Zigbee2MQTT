@@ -4,10 +4,15 @@ declare(strict_types=1);
 
 namespace Zigbee2MQTT\Tools\DeviceSimulator;
 
+/**
+ * Stellt virtuelle Zigbee2MQTT-Geräte mit repräsentativen Expose-Strukturen bereit.
+ */
 final class SimulatorDeviceCatalog
 {
     /**
-     * @return array<string,array<string,mixed>> Devices indexed by friendly name.
+     * Liefert alle virtuellen Geräte, indiziert nach ihrem Friendly Name.
+     *
+     * @return array<string,array<string,mixed>> Geräte, indiziert nach Friendly Name.
      */
     public static function devices(): array
     {
@@ -25,6 +30,8 @@ final class SimulatorDeviceCatalog
     }
 
     /**
+     * Erstellt ein virtuelles Tunable-White-Leuchtmittel mit fünf Farbtemperatur-Presets.
+     *
      * @return array<string,mixed>
      */
     private static function tunableWhiteDevice(): array
@@ -86,9 +93,9 @@ final class SimulatorDeviceCatalog
     }
 
     /**
-     * This device intentionally combines all expose shapes and the common Z2M
-     * groups/categories used by the module. It is a compatibility fixture, not
-     * a model of one realistic physical product.
+     * Dieses Gerät kombiniert bewusst alle Expose-Formen und die vom Modul
+     * verwendeten Zigbee2MQTT-Gruppen und -Kategorien. Es dient als
+     * Kompatibilitätsfixture und bildet kein konkretes physisches Produkt nach.
      *
      * @return array<string,mixed>
      */
@@ -128,6 +135,8 @@ final class SimulatorDeviceCatalog
     }
 
     /**
+     * Liefert sämtliche Expose-Gruppen des umfassenden Kompatibilitätsgeräts.
+     *
      * @return array<int,array<string,mixed>>
      */
     private static function allExposes(): array
@@ -274,6 +283,8 @@ final class SimulatorDeviceCatalog
     }
 
     /**
+     * Liefert den Anfangszustand zu sämtlichen Exposes des Kompatibilitätsgeräts.
+     *
      * @return array<string,mixed>
      */
     private static function allExposeState(): array
@@ -327,7 +338,11 @@ final class SimulatorDeviceCatalog
         ];
     }
 
-    /** @return array<string,mixed> */
+    /**
+     * Erstellt ein binäres Zigbee2MQTT-Expose-Feature.
+     *
+     * @return array<string,mixed>
+     */
     private static function binary(
         string $property,
         string $label,
@@ -355,7 +370,11 @@ final class SimulatorDeviceCatalog
         return $feature;
     }
 
-    /** @return array<string,mixed> */
+    /**
+     * Erstellt ein numerisches Zigbee2MQTT-Expose-Feature mit Wertebereich.
+     *
+     * @return array<string,mixed>
+     */
     private static function numeric(
         string $property,
         string $label,
@@ -385,7 +404,13 @@ final class SimulatorDeviceCatalog
         return $feature;
     }
 
-    /** @return array<string,mixed> */
+    /**
+     * Erstellt ein Zigbee2MQTT-Enum-Feature.
+     *
+     * @param array<int,string> $values Zulässige Enum-Werte.
+     *
+     * @return array<string,mixed>
+     */
     private static function enum(
         string $property,
         string $label,
@@ -407,7 +432,11 @@ final class SimulatorDeviceCatalog
         return $feature;
     }
 
-    /** @return array<string,mixed> */
+    /**
+     * Erstellt ein textuelles Zigbee2MQTT-Expose-Feature.
+     *
+     * @return array<string,mixed>
+     */
     private static function text(string $property, string $label, int $access, ?string $category = null): array
     {
         $feature = [
@@ -423,7 +452,11 @@ final class SimulatorDeviceCatalog
         return $feature;
     }
 
-    /** @return array<string,mixed> */
+    /**
+     * Erstellt das für Tunable-White-Tests verwendete Farbtemperatur-Feature.
+     *
+     * @return array<string,mixed>
+     */
     private static function colorTemperatureFeature(): array
     {
         return [
@@ -440,7 +473,11 @@ final class SimulatorDeviceCatalog
         ];
     }
 
-    /** @return array<int,array{name:string,value:int,description:string}> */
+    /**
+     * Liefert fünf eindeutige Farbtemperatur-Presets für den Simulator.
+     *
+     * @return array<int,array{name:string,value:int,description:string}>
+     */
     private static function colorTemperaturePresets(): array
     {
         return [
@@ -452,7 +489,11 @@ final class SimulatorDeviceCatalog
         ];
     }
 
-    /** @return array<int,array<string,mixed>> */
+    /**
+     * Liefert simulierte Zigbee2MQTT-Definitionsoptionen.
+     *
+     * @return array<int,array<string,mixed>>
+     */
     private static function definitionOptions(): array
     {
         return [
@@ -461,7 +502,13 @@ final class SimulatorDeviceCatalog
         ];
     }
 
-    /** @return array<string,array<string,mixed>> */
+    /**
+     * Erstellt die Endpunktinformationen eines simulierten Geräts.
+     *
+     * @param array<int,string> $inputClusters Eingangscluster des Endpunkts.
+     *
+     * @return array<string,array<string,mixed>>
+     */
     private static function endpoints(array $inputClusters): array
     {
         return [

@@ -9,6 +9,12 @@ namespace Zigbee2MQTT;
  */
 trait PayloadProcessingHelper
 {
+    /**
+     * Validiert eine von Symcon empfangene MQTT-Nachricht und dekodiert deren Payload.
+     *
+     * @return array{0:array<int,string>|false,1:array|null|false} Topic-Bestandteile und Payload
+     *         oder zweimal `false`, wenn die Nachricht nicht verarbeitet werden darf.
+     */
     private function validateAndParseMessage(string $JSONString): array
     {
         $baseTopic = $this->ReadPropertyString(self::MQTT_BASE_TOPIC);
@@ -41,6 +47,9 @@ trait PayloadProcessingHelper
         return [explode('/', $topic), $payloadData];
     }
 
+    /**
+     * Prüft, ob ein vollständiges MQTT-Topic zu dieser Geräte- oder Gruppeninstanz gehört.
+     */
     private function IsExpectedReceiveTopic(string $receivedTopic, string $baseTopic, string $mqttTopic): bool
     {
         $deviceTopic = $baseTopic . '/' . $mqttTopic;
@@ -59,6 +68,14 @@ trait PayloadProcessingHelper
         return str_starts_with($receivedTopic, $baseTopic . self::SYMCON_EXTENSION_LIST_RESPONSE);
     }
 
+    /**
+     * Verarbeitet eine Availability-Nachricht und aktualisiert die Statusvariable.
+     *
+     * @param array<int,string> $topics  Bestandteile des relativen MQTT-Topics.
+     * @param array|null        $payload Dekodierte Availability-Payload.
+     *
+     * @return bool `true`, wenn es sich um eine vollständig behandelte Availability-Nachricht handelte.
+     */
     private function handleAvailability(array $topics, ?array $payload): bool
     {
         if (end($topics) !== self::AVAILABILITY_TOPIC) {
@@ -80,6 +97,14 @@ trait PayloadProcessingHelper
         return true;
     }
 
+    /**
+     * Ordnet Antworten der Symcon-Erweiterung einer offenen MQTT-Transaktion zu.
+     *
+     * @param array<int,string> $topics  Bestandteile des relativen Antwort-Topics.
+     * @param array             $payload Dekodierte Antwortdaten.
+     *
+     * @return bool `true`, wenn das Topic zur Symcon-Erweiterung gehört.
+     */
     private function handleSymconExtensionResponses(array $topics, array $payload): bool
     {
         $mqttTopic = $this->ReadPropertyString(self::MQTT_TOPIC);
@@ -105,6 +130,9 @@ trait PayloadProcessingHelper
         return false;
     }
 
+    /**
+     * Verarbeitet eine Geräte-Payload innerhalb einer gemeinsamen Katalogtransaktion.
+     */
     private function processPayload(array $payload): void
     {
         $this->TraceHelperCall(
@@ -125,6 +153,9 @@ trait PayloadProcessingHelper
         }
     }
 
+    /**
+     * Übernimmt Exposes, führt Payload-Zustände zusammen und aktualisiert die Variablen.
+     */
     private function processPayloadBatch(array $payload): void
     {
         if (isset($payload['exposes'])) {
@@ -170,6 +201,11 @@ trait PayloadProcessingHelper
         }
     }
 
+    /**
+     * Führt neue Payload-Daten rekursiv mit dem zuletzt bekannten Zustand zusammen.
+     *
+     * Assoziative Teilstrukturen werden zusammengeführt, Listen und skalare Werte ersetzt.
+     */
     private function MergeLastPayload(array $currentPayload, array $newPayload): array
     {
         foreach ($newPayload as $key => $newValue) {
@@ -189,6 +225,9 @@ trait PayloadProcessingHelper
         return $currentPayload;
     }
 
+    /**
+     * Entfernt Einträge ohne String-Schlüssel aus der obersten Payload-Ebene.
+     */
     private function filterPayloadRootIdentEntries(array $payload): array
     {
         $filteredPayload = [];
@@ -212,6 +251,9 @@ trait PayloadProcessingHelper
         return $filteredPayload;
     }
 
+    /**
+     * Leitet einen einzelnen Payload-Wert an die Sonder- oder Standardverarbeitung weiter.
+     */
     private function processPayloadEntry(string $key, mixed $value): void
     {
         if ($value === null) {
@@ -235,6 +277,9 @@ trait PayloadProcessingHelper
         }
     }
 
+    /**
+     * Formatiert einen Payload-Wert für eine lesbare Debugausgabe.
+     */
     private function formatPayloadDebugValue(mixed $value): string
     {
         if (\is_array($value)) {

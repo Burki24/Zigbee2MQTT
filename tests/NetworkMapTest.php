@@ -7,7 +7,7 @@ include_once __DIR__ . '/stubs/autoload.php';
 use PHPUnit\Framework\TestCase;
 
 /**
- * Tests asynchronous network-map requests, normalization and exports.
+ * Prüft asynchrone Netzwerkkarten-Requests, Normalisierung und Exporte.
  */
 class NetworkMapTest extends TestCase
 {

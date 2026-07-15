@@ -7,7 +7,7 @@ include_once __DIR__ . '/stubs/autoload.php';
 use PHPUnit\Framework\TestCase;
 
 /**
- * Tests bridge requests, diagnostics and Zigbee2MQTT management actions.
+ * Prüft Bridge-Requests, Diagnosefunktionen und Zigbee2MQTT-Verwaltungsaktionen.
  */
 class BridgeTest extends TestCase
 {

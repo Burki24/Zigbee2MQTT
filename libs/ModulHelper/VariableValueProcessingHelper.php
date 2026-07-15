@@ -507,13 +507,13 @@ trait VariableValueProcessingHelper
      * Beispiel:
      * ```php
      * // LastSeen konvertieren
-     * $this->adjustSpecialValue("last_seen", 1600000000000); // Returns: 1600000000
+     * $this->adjustSpecialValue("last_seen", 1600000000000); // Ergebnis: 1600000000
      *
      * // ColorMode konvertieren
-     * $this->adjustSpecialValue("color_mode", "hs"); // Returns: "HS"
+     * $this->adjustSpecialValue("color_mode", "hs"); // Ergebnis: "HS"
      *
      * // Kelvin zu Mired
-     * $this->adjustSpecialValue("color_temp_kelvin", 4000); // Returns: "250"
+     * $this->adjustSpecialValue("color_temp_kelvin", 4000); // Ergebnis: "250"
      * ```
      *
      * @see \Zigbee2MQTT\ModulBase::convertKelvinToMired()

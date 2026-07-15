@@ -5,18 +5,20 @@ declare(strict_types=1);
 namespace Zigbee2MQTT;
 
 /**
+ * Konvertiert Farbmodelle, Farbtemperaturen und gerätespezifische Helligkeitsbereiche.
  *
- * @property array $brightnessConfig Zugriff auf den Buffer für Config der Helligkeit
+ * @property array $brightnessConfig Gepufferte Konfiguration des Helligkeitsbereichs.
  */
 trait ColorHelper
 {
     /**
-     * RGBToHSL
+     * Konvertiert einen RGB-Farbwert in Farbton, Sättigung und Helligkeit.
      *
-     * @param  int $r red
-     * @param  int $g green
-     * @param  int $b blue
-     * @return array index mit keys hue, saturation, lightness
+     * @param int $r Rotanteil von 0 bis 255.
+     * @param int $g Grünanteil von 0 bis 255.
+     * @param int $b Blauanteil von 0 bis 255.
+     *
+     * @return array{hue:float,saturation:float,lightness:float}
      */
     protected function RGBToHSL(int $r, int $g, int $b): array
     {
@@ -56,9 +58,11 @@ trait ColorHelper
     }
 
     /**
-     * IntToRGB
-     * @param  int $value 32Bit Farbwert 0xRRGGBB,
-     * @return array index 0 int red, index 1 int green, index 2 int blue
+     * Zerlegt einen Symcon-Farbwert in seine RGB-Bestandteile.
+     *
+     * @param int $value Farbwert im Format `0xRRGGBB`.
+     *
+     * @return array{0:int,1:int,2:int} Rot-, Grün- und Blauanteil.
      */
     protected function IntToRGB(int $value): array
     {
@@ -71,12 +75,11 @@ trait ColorHelper
     }
 
     /**
-     * HSVToInt
+     * Konvertiert Farbton, Sättigung und Helligkeit in einen Symcon-Farbwert.
      *
-     * @param  int $hue
-     * @param  int $saturation
-     * @param  int $bri oder value
-     * @return int Integer-Wert der Farbe
+     * @param int|float $hue        Farbton in Grad.
+     * @param int|float $saturation Sättigung in Prozent.
+     * @param int       $bri        Helligkeit im Gerätebereich von 0 bis 254.
      */
     protected function HSVToInt($hue, $saturation, int $bri = 254): int
     {
@@ -138,12 +141,13 @@ trait ColorHelper
     }
 
     /**
-     * RGBToHSV
+     * Konvertiert einen RGB-Farbwert in HSV.
      *
-     * @param  int $R red
-     * @param  int $G green
-     * @param  int $B blue
-     * @return array index mit keys hue, saturation, value (brightness)
+     * @param int $R Rotanteil von 0 bis 255.
+     * @param int $G Grünanteil von 0 bis 255.
+     * @param int $B Blauanteil von 0 bis 255.
+     *
+     * @return array{hue:int|float,saturation:int|float,value:int|float}
      */
     protected function RGBToHSV(int $R, int $G, int $B): array
     {
@@ -177,12 +181,13 @@ trait ColorHelper
     }
 
     /**
-     * RGBToHSB
+     * Konvertiert einen RGB-Farbwert in HSB.
      *
-     * @param  int $R red
-     * @param  int $G green
-     * @param  int $B blue
-     * @return array index mit keys hue, saturation, brightness
+     * @param int $R Rotanteil von 0 bis 255.
+     * @param int $G Grünanteil von 0 bis 255.
+     * @param int $B Blauanteil von 0 bis 255.
+     *
+     * @return array{hue:int|float,saturation:int|float,brightness:int|float}
      */
     protected function RGBToHSB(int $R, int $G, int $B): array
     {
@@ -212,12 +217,11 @@ trait ColorHelper
     }
 
     /**
-     * xyToInt
+     * Konvertiert CIE-xy-Koordinaten und Helligkeit in einen Symcon-Farbwert.
      *
-     * @param  float $x
-     * @param  float $y
-     * @param  int $bri brightness
-     * @return int Integer-Wert der Farbe
+     * @param float $x   X-Koordinate des CIE-Farbraums.
+     * @param float $y   Y-Koordinate des CIE-Farbraums.
+     * @param int   $bri Helligkeit von 0 bis 254.
      */
     protected function xyToInt(float $x, float $y, int $bri = 254): int
     {
@@ -261,10 +265,11 @@ trait ColorHelper
     }
 
     /**
-     * RGBToXy
+     * Konvertiert RGB-Bestandteile in CIE-xy-Koordinaten und Helligkeit.
      *
-     * @param  array $RGB mit index 0 int red, index 1 int green, index 2 int blue
-     * @return array mit index x, y, bri
+     * @param array{0:int,1:int,2:int} $RGB Rot-, Grün- und Blauanteil.
+     *
+     * @return array{x:int|float,y:int|float,bri:int|float}
      */
     protected function RGBToXy(array $RGB): array
     {
@@ -362,8 +367,6 @@ trait ColorHelper
     }
 
     /**
-     * normalizeValueToRange
-     *
      * Rechnet die Helligkeit zwischen dem absoluten Gerätewert und relativem Prozentwert um.
      *
      * @param  int $value Helligkeit
@@ -407,9 +410,7 @@ trait ColorHelper
     }
 
     /**
-     * getColorMode
-     *
-     * Für Geräte welche verschiedene Modi in der Variable color_mode speichern und nur eine color Variable haben.
+     * Ermittelt den aktiven Farbmodus bei Geräten mit einer gemeinsamen Farbvariable.
      *
      * @return string Liefert den Typ für die Funktion setColor
      *
@@ -434,8 +435,6 @@ trait ColorHelper
     }
 
     /**
-     * getBrightnessValue
-     *
      * Gibt den maximalen und minimalen Helligkeitswert aus der Konfiguration zurück.
      *
      * Diese Methode liest die gespeicherte Helligkeitskonfiguration aus dem Buffer und

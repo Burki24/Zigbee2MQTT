@@ -4,6 +4,9 @@ declare(strict_types=1);
 
 include_once __DIR__ . '/stubs/Validator.php';
 
+/**
+ * Prüft Metadaten, Moduldefinitionen und Aktionsformulare der Bibliothek.
+ */
 class LibraryTest extends TestCaseSymconValidation
 {
     public function testValidateLibrary(): void

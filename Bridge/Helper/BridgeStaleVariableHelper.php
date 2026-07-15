@@ -8,7 +8,7 @@ declare(strict_types=1);
 trait BridgeStaleVariableHelper
 {
     /**
-     * Scans for stale Zigbee2MQTT variables and refreshes the bridge form lists.
+     * Sucht veraltete Zigbee2MQTT-Variablen und aktualisiert die Listen des Bridge-Formulars.
      */
     private function ScanStaleVariablesFromForm(): void
     {
@@ -18,7 +18,7 @@ trait BridgeStaleVariableHelper
     }
 
     /**
-     * Selects an owning instance from the central overview.
+     * Wählt eine Besitzerinstanz aus der zentralen Übersicht aus.
      */
     private function SelectStaleVariableMaintenanceInstanceFromForm(mixed $value): bool
     {
@@ -45,7 +45,7 @@ trait BridgeStaleVariableHelper
     }
 
     /**
-     * Returns cleanup options used by the bridge UI.
+     * Liefert die von der Bridge-Oberfläche verwendeten Bereinigungsoptionen.
      */
     private function GetStaleVariableCleanupOptions(): array
     {
@@ -59,7 +59,7 @@ trait BridgeStaleVariableHelper
     }
 
     /**
-     * Returns Device and Group instances owned by this bridge's MQTT system.
+     * Liefert die Geräte- und Gruppeninstanzen, die zum MQTT-System dieser Bridge gehören.
      */
     private function GetStaleVariableMaintenanceInstanceIDs(): array
     {
@@ -93,7 +93,7 @@ trait BridgeStaleVariableHelper
     }
 
     /**
-     * Returns the last stored stale variable scan result.
+     * Liefert das zuletzt gespeicherte Ergebnis der Variablenprüfung.
      */
     private function ReadStaleVariableScan(): array
     {
@@ -108,7 +108,7 @@ trait BridgeStaleVariableHelper
     }
 
     /**
-     * Builds the status caption for the stale variable maintenance area.
+     * Erstellt den Statustext für den Bereich der Variablenwartung.
      */
     private function BuildStaleVariableStatusCaption(): string
     {
@@ -130,7 +130,7 @@ trait BridgeStaleVariableHelper
     }
 
     /**
-     * Builds the compact read-only bridge overview grouped by owning instance.
+     * Erstellt die kompakte, nach Besitzerinstanz gruppierte Bridge-Übersicht.
      */
     private function BuildStaleVariableInstanceSummaryFormValues(?array $scan = null): array
     {
@@ -185,7 +185,7 @@ trait BridgeStaleVariableHelper
     }
 
     /**
-     * Refreshes all stale variable maintenance form fields.
+     * Aktualisiert alle Formularfelder der Wartung veralteter Variablen.
      */
     private function UpdateStaleVariableFormLists(array $scan): void
     {

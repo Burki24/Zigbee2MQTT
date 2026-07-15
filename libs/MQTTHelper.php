@@ -7,6 +7,8 @@ namespace Zigbee2MQTT;
 require_once __DIR__ . '/ModuleConstants.php';
 
 /**
+ * Sendet MQTT-Nachrichten und verwaltet die zugehörigen Request-/Response-Transaktionen.
+ *
  * @property array $TransactionData Legacy-Buffer fuer aktuelle Anfragen und Antworten von/zur Z2M Bridge
  * @property array $Multi_TransactionData Chunked Buffer fuer aktuelle Anfragen und Antworten von/zur Z2M Bridge
  */

@@ -6,6 +6,9 @@ namespace Zigbee2MQTT\Tools\DeviceSimulator;
 
 require_once __DIR__ . '/SimulatorDeviceCatalog.php';
 
+/**
+ * Simuliert ausgewählte Zigbee2MQTT-Topics und Geräteantworten über einen injizierten Publisher.
+ */
 final class Zigbee2MQTTDeviceSimulator
 {
     /** @var array<string,array<string,mixed>> */
@@ -14,12 +17,19 @@ final class Zigbee2MQTTDeviceSimulator
     /** @var \Closure(string,string,bool):void */
     private \Closure $publisher;
 
+    /**
+     * @param string   $baseTopic MQTT-Basistopic des simulierten Zigbee2MQTT-Systems.
+     * @param callable $publisher Callback zum Veröffentlichen von Topic, JSON-Payload und Retain-Status.
+     */
     public function __construct(private readonly string $baseTopic, callable $publisher)
     {
         $this->devices = SimulatorDeviceCatalog::devices();
         $this->publisher = \Closure::fromCallable($publisher);
     }
 
+    /**
+     * Veröffentlicht Bridge-, Availability- und Gerätezustände als initiale Retained Messages.
+     */
     public function publishInitialState(): void
     {
         $this->publish($this->baseTopic . '/bridge/state', ['state' => 'online'], true);
@@ -30,6 +40,11 @@ final class Zigbee2MQTTDeviceSimulator
         }
     }
 
+    /**
+     * Verarbeitet einen MQTT-Request an die simulierte Extension oder ein virtuelles Gerät.
+     *
+     * @return bool `true`, wenn der Simulator das Topic verarbeitet hat.
+     */
     public function handleMessage(string $topic, string $payloadJson): bool
     {
         if (!str_starts_with($topic, $this->baseTopic . '/')) {
@@ -65,13 +80,21 @@ final class Zigbee2MQTTDeviceSimulator
         return false;
     }
 
-    /** @return array<string,array<string,mixed>> */
+    /**
+     * Liefert den aktuellen Zustand des virtuellen Gerätekatalogs.
+     *
+     * @return array<string,array<string,mixed>>
+     */
     public function devices(): array
     {
         return $this->devices;
     }
 
-    /** @param array<string,mixed> $payload */
+    /**
+     * Beantwortet Listen- und Geräteinformations-Requests der Symcon-Extension.
+     *
+     * @param array<string,mixed> $payload Dekodierte Request-Payload.
+     */
     private function handleExtensionRequest(string $topic, array $payload): bool
     {
         $prefix = $this->baseTopic . '/SymconExtension/';
@@ -112,7 +135,13 @@ final class Zigbee2MQTTDeviceSimulator
         return true;
     }
 
-    /** @param array<string,mixed> $device */
+    /**
+     * Reduziert einen Geräteeintrag auf die Felder der kompakten Geräteliste.
+     *
+     * @param array<string,mixed> $device Vollständiger Geräteeintrag.
+     *
+     * @return array<string,mixed>
+     */
     private function lightweightDevice(array $device): array
     {
         return array_intersect_key($device, array_flip([
@@ -129,7 +158,14 @@ final class Zigbee2MQTTDeviceSimulator
         ]));
     }
 
-    /** @param array<string,mixed> $device */
+    /**
+     * Erstellt die Antwortdaten für einen Geräteinformations-Request.
+     *
+     * @param array<string,mixed> $device         Vollständiger Geräteeintrag.
+     * @param bool                $includeExposes Gibt an, ob Exposes enthalten sein sollen.
+     *
+     * @return array<string,mixed>
+     */
     private function deviceInformation(array $device, bool $includeExposes): array
     {
         $information = $device;
@@ -140,7 +176,11 @@ final class Zigbee2MQTTDeviceSimulator
         return $information;
     }
 
-    /** @return array<string,mixed>|null */
+    /**
+     * Sucht ein Gerät anhand seines Friendly Names oder seiner IEEE-Adresse.
+     *
+     * @return array<string,mixed>|null
+     */
     private function findDevice(string $identifier): ?array
     {
         if (isset($this->devices[$identifier])) {
@@ -154,7 +194,11 @@ final class Zigbee2MQTTDeviceSimulator
         return null;
     }
 
-    /** @param array<string,mixed> $requested */
+    /**
+     * Veröffentlicht die von einem `/get`-Request angeforderten Zustandsfelder.
+     *
+     * @param array<string,mixed> $requested Angeforderte Propertynamen.
+     */
     private function publishRequestedState(string $friendlyName, array $requested): void
     {
         $state = (array) ($this->devices[$friendlyName]['state'] ?? []);
@@ -173,6 +217,9 @@ final class Zigbee2MQTTDeviceSimulator
         $this->publish($this->baseTopic . '/' . $friendlyName, $response);
     }
 
+    /**
+     * Veröffentlicht den vollständigen Zustand eines simulierten Geräts.
+     */
     private function publishDeviceState(string $friendlyName, bool $retain = false): void
     {
         $state = (array) ($this->devices[$friendlyName]['state'] ?? []);
@@ -182,9 +229,12 @@ final class Zigbee2MQTTDeviceSimulator
     }
 
     /**
-     * @param array<string,mixed> $current
-     * @param array<string,mixed> $changes
-     * @return array<string,mixed>
+     * Führt verschachtelte Zustandsänderungen rekursiv mit dem aktuellen Zustand zusammen.
+     *
+     * @param array<string,mixed> $current Aktueller Zustand.
+     * @param array<string,mixed> $changes Zu übernehmende Änderungen.
+     *
+     * @return array<string,mixed> Zusammengeführter Zustand.
      */
     private function mergeState(array $current, array $changes): array
     {
@@ -198,7 +248,11 @@ final class Zigbee2MQTTDeviceSimulator
         return $current;
     }
 
-    /** @param array<string,mixed> $payload */
+    /**
+     * Serialisiert und veröffentlicht eine Simulator-Payload.
+     *
+     * @param array<string,mixed> $payload Zu serialisierende Daten.
+     */
     private function publish(string $topic, array $payload, bool $retain = false): void
     {
         ($this->publisher)(

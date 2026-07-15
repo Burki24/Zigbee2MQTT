@@ -17,7 +17,7 @@ namespace Zigbee2MQTT;
  */
 
 /**
- * Trait welcher Array in eine String Attribute schreiben und lesen kann.
+ * Liest und schreibt Arrays über JSON-kodierte Symcon-Stringattribute.
  */
 trait AttributeArrayHelper
 {

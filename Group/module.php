@@ -5,7 +5,7 @@ declare(strict_types=1);
 require_once dirname(__DIR__) . '/libs/ModulBase.php';
 
 /**
- * Group instance for a Zigbee2MQTT group including members, options and scenes.
+ * Repräsentiert eine Zigbee2MQTT-Gruppe einschließlich Mitgliedern, Optionen und Szenen.
  */
 class Zigbee2MQTTGroup extends \Zigbee2MQTT\ModulBase
 {
@@ -62,7 +62,7 @@ class Zigbee2MQTTGroup extends \Zigbee2MQTT\ModulBase
     protected static $ExtensionTopic = 'getGroupInfo/';
 
     /**
-     * Create
+     * Initialisiert Eigenschaften, Attribute und Status der Gruppeninstanz.
      *
      * @return void
      */

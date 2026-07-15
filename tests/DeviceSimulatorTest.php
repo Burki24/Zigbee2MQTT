@@ -9,6 +9,9 @@ use Zigbee2MQTT\Tools\DeviceSimulator\Zigbee2MQTTDeviceSimulator;
 require_once __DIR__ . '/DeviceSimulator/SimulatorDeviceCatalog.php';
 require_once __DIR__ . '/DeviceSimulator/Zigbee2MQTTDeviceSimulator.php';
 
+/**
+ * Prüft Gerätekatalog, Extension-Antworten und Zustandsrückmeldungen des Simulators.
+ */
 final class DeviceSimulatorTest extends TestCase
 {
     public function testCatalogContainsTunableWhiteAndAllExposeDevices(): void

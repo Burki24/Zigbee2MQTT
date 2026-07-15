@@ -7,7 +7,7 @@ require_once __DIR__ . '/../libs/ColorHelper.php';
 use PHPUnit\Framework\TestCase;
 
 /**
- * Tests color conversion helper edge cases.
+ * Prüft Randfälle der Farbumrechnungen.
  */
 class ColorHelperTest extends TestCase
 {

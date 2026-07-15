@@ -7,6 +7,11 @@ declare(strict_types=1);
  */
 trait BridgeConfigurationCommandHelper
 {
+    /**
+     * Installiert die zur erkannten Zigbee-Herdsman-Version passende Symcon-Erweiterung.
+     *
+     * @return bool `true`, wenn die Erweiterung gespeichert wurde.
+     */
     public function InstallSymconExtension(): bool
     {
         if ($this->installedZhVersion == 0) {
@@ -23,6 +28,13 @@ trait BridgeConfigurationCommandHelper
         return $this->SendCheckedBridgeRequest($Topic, $Payload) !== false;
     }
 
+    /**
+     * Fragt die aktuelle Zigbee2MQTT-Konfiguration ab.
+     *
+     * @param int $Timeout Maximale Wartezeit auf die Bridge-Antwort in Millisekunden.
+     *
+     * @return bool `true`, wenn Zigbee2MQTT innerhalb des Timeouts geantwortet hat.
+     */
     public function RequestOptions(int $Timeout = self::TIMEOUT_ZIGBEE_OPTIONS_REQUEST): bool
     {
         $Topic = '/bridge/request/options';
@@ -32,6 +44,9 @@ trait BridgeConfigurationCommandHelper
         return $this->SendQuietCheckedBridgeRequest($Topic, $Payload, $Timeout) !== false;
     }
 
+    /**
+     * Aktiviert die Ausgabe von `last_seen` als Unix-Zeitstempel.
+     */
     public function SetLastSeen(): bool
     {
         $Topic = '/bridge/request/options';
@@ -45,6 +60,11 @@ trait BridgeConfigurationCommandHelper
         return $this->SendCheckedBridgeRequest($Topic, $Payload) !== false;
     }
 
+    /**
+     * Setzt die dauerhafte `permit_join`-Option in der Zigbee2MQTT-Konfiguration.
+     *
+     * @param bool $PermitJoin Neuer Zustand der Konfigurationsoption.
+     */
     public function SetPermitJoinOption(bool $PermitJoin): bool
     {
         $Topic = '/bridge/request/options';
@@ -52,11 +72,24 @@ trait BridgeConfigurationCommandHelper
         return $this->SendCheckedBridgeRequest($Topic, $Payload) !== false;
     }
 
+    /**
+     * Öffnet oder schließt das globale Anlernfenster mit der maximalen Laufzeit.
+     *
+     * @param bool $PermitJoin `true` zum Öffnen, `false` zum Schließen.
+     */
     public function SetPermitJoin(bool $PermitJoin): bool
     {
         return $this->SetPermitJoinTarget($PermitJoin ? self::MAX_PERMIT_JOIN_DURATION : 0);
     }
 
+    /**
+     * Setzt Dauer und optionales Ziel des Zigbee2MQTT-Anlernfensters.
+     *
+     * Die von der Bridge bestätigten Werte werden in den lokalen Pairing-Zustand übernommen.
+     *
+     * @param int    $Duration Dauer in Sekunden; Werte werden auf den zulässigen Bereich begrenzt.
+     * @param string $Device   Optionaler Friendly Name oder die IEEE-Adresse des Coordinators/Routers.
+     */
     public function SetPermitJoinTarget(int $Duration, string $Device = ''): bool
     {
         $Duration = max(0, min(self::MAX_PERMIT_JOIN_DURATION, $Duration));
@@ -77,16 +110,25 @@ trait BridgeConfigurationCommandHelper
         return true;
     }
 
+    /**
+     * Ersetzt die Zigbee2MQTT-Blockliste durch die übergebene JSON-Liste.
+     */
     public function SetBlocklist(string $DevicesJSON): bool
     {
         return $this->SetNetworkSecurityList('blocklist', $DevicesJSON);
     }
 
+    /**
+     * Ersetzt die Zigbee2MQTT-Passliste durch die übergebene JSON-Liste.
+     */
     public function SetPasslist(string $DevicesJSON): bool
     {
         return $this->SetNetworkSecurityList('passlist', $DevicesJSON);
     }
 
+    /**
+     * Ändert den Log-Level der Zigbee2MQTT-Bridge.
+     */
     public function SetLogLevel(string $LogLevel): bool
     {
         $Topic = '/bridge/request/options';
@@ -94,12 +136,20 @@ trait BridgeConfigurationCommandHelper
         return $this->SendCheckedBridgeRequest($Topic, $Payload) !== false;
     }
 
+    /**
+     * Fordert einen Neustart von Zigbee2MQTT an.
+     */
     public function Restart(): bool
     {
         $Topic = '/bridge/request/restart';
         return $this->SendCheckedBridgeRequest($Topic) !== false;
     }
 
+    /**
+     * Startet ein erneutes Interview des angegebenen Geräts.
+     *
+     * @param string $DeviceName Friendly Name oder IEEE-Adresse des Geräts.
+     */
     public function InterviewDevice(string $DeviceName): bool
     {
         return $this->SendQuietCheckedBridgeRequest(
@@ -109,6 +159,11 @@ trait BridgeConfigurationCommandHelper
         ) !== false;
     }
 
+    /**
+     * Startet die erneute Zigbee2MQTT-Konfiguration des angegebenen Geräts.
+     *
+     * @param string $DeviceName Friendly Name oder IEEE-Adresse des Geräts.
+     */
     public function ConfigureDevice(string $DeviceName): bool
     {
         return $this->SendQuietCheckedBridgeRequest(

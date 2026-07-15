@@ -9,24 +9,36 @@ namespace Zigbee2MQTT;
  */
 trait VariableRuntimeHelper
 {
+    /**
+     * Bereinigt bei Bedarf eine verwaiste Registrierung und registriert eine boolesche Variable.
+     */
     protected function RegisterVariableBoolean(string $Ident, string $Name, string|array $ProfileOrPresentation = '', int $Position = 0): bool
     {
         $this->PrepareVariableRegistration($Ident);
         return parent::RegisterVariableBoolean($Ident, $Name, $ProfileOrPresentation, $Position);
     }
 
+    /**
+     * Bereinigt bei Bedarf eine verwaiste Registrierung und registriert eine Integer-Variable.
+     */
     protected function RegisterVariableInteger(string $Ident, string $Name, string|array $ProfileOrPresentation = '', int $Position = 0): bool
     {
         $this->PrepareVariableRegistration($Ident);
         return parent::RegisterVariableInteger($Ident, $Name, $ProfileOrPresentation, $Position);
     }
 
+    /**
+     * Bereinigt bei Bedarf eine verwaiste Registrierung und registriert eine Float-Variable.
+     */
     protected function RegisterVariableFloat(string $Ident, string $Name, string|array $ProfileOrPresentation = '', int $Position = 0): bool
     {
         $this->PrepareVariableRegistration($Ident);
         return parent::RegisterVariableFloat($Ident, $Name, $ProfileOrPresentation, $Position);
     }
 
+    /**
+     * Bereinigt bei Bedarf eine verwaiste Registrierung und registriert eine String-Variable.
+     */
     protected function RegisterVariableString(string $Ident, string $Name, string|array $ProfileOrPresentation = '', int $Position = 0): bool
     {
         $this->PrepareVariableRegistration($Ident);

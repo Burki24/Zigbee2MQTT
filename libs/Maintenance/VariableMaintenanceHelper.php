@@ -7,7 +7,7 @@ namespace Zigbee2MQTT\Maintenance;
 require_once __DIR__ . '/StaleVariableCleanupHelper.php';
 
 /**
- * Adds owner-scoped stale-variable maintenance to Device and Group instances.
+ * Ergänzt Geräte- und Gruppeninstanzen um eine auf den jeweiligen Besitzer begrenzte Variablenwartung.
  */
 trait VariableMaintenanceHelper
 {
@@ -15,7 +15,7 @@ trait VariableMaintenanceHelper
     private const ATTRIBUTE_PENDING_LOCAL_STALE_VARIABLE_DELETE = 'PendingLocalStaleVariableDelete';
 
     /**
-     * Registers attributes used by the local maintenance workflow.
+     * Registriert die von der lokalen Variablenwartung verwendeten Attribute.
      */
     protected function InitializeLocalVariableMaintenance(): void
     {
@@ -24,7 +24,7 @@ trait VariableMaintenanceHelper
     }
 
     /**
-     * Adds and populates the local variable-maintenance controls.
+     * Ergänzt und befüllt die lokalen Bedienelemente der Variablenwartung.
      */
     protected function PrepareLocalVariableMaintenanceForm(array $form): array
     {
@@ -43,7 +43,7 @@ trait VariableMaintenanceHelper
     }
 
     /**
-     * Handles local maintenance actions and returns null for unrelated actions.
+     * Verarbeitet lokale Wartungsaktionen und liefert für andere Aktionen `null`.
      */
     protected function HandleLocalVariableMaintenanceAction(string $ident, mixed $value): ?bool
     {
@@ -56,7 +56,7 @@ trait VariableMaintenanceHelper
     }
 
     /**
-     * Scans only variables owned by this instance.
+     * Prüft ausschließlich Variablen, die zur aktuellen Instanz gehören.
      */
     private function ScanLocalStaleVariablesFromForm(): bool
     {
@@ -68,7 +68,7 @@ trait VariableMaintenanceHelper
     }
 
     /**
-     * Opens the confirmation popup for an owner-scoped deletion.
+     * Öffnet die Sicherheitsabfrage für das instanzbezogene Löschen.
      */
     private function RequestDeleteLocalStaleVariableFromForm(mixed $value): bool
     {
@@ -108,7 +108,7 @@ trait VariableMaintenanceHelper
     }
 
     /**
-     * Deletes the pending candidate after revalidating ownership and protection.
+     * Löscht den vorgemerkten Kandidaten nach erneuter Besitzer- und Schutzprüfung.
      */
     private function ConfirmPendingLocalStaleVariableDelete(): bool
     {
@@ -144,7 +144,7 @@ trait VariableMaintenanceHelper
     }
 
     /**
-     * Returns the protection options used by local maintenance.
+     * Liefert die von der lokalen Wartung verwendeten Schutzoptionen.
      */
     private function GetLocalStaleVariableCleanupOptions(): array
     {
@@ -157,7 +157,7 @@ trait VariableMaintenanceHelper
     }
 
     /**
-     * Returns the stored owner-scoped scan result.
+     * Liefert das gespeicherte, auf die aktuelle Instanz begrenzte Prüfergebnis.
      */
     private function ReadLocalStaleVariableScan(): array
     {
@@ -173,7 +173,7 @@ trait VariableMaintenanceHelper
     }
 
     /**
-     * Builds the local maintenance panel.
+     * Erstellt den lokalen Wartungsbereich für das Konfigurationsformular.
      */
     private function BuildLocalVariableMaintenancePanel(array $scan): array
     {
@@ -223,7 +223,7 @@ trait VariableMaintenanceHelper
     }
 
     /**
-     * Builds a read-only list of variables whose legacy Z2M profile was replaced by a native presentation.
+     * Erstellt eine schreibgeschützte Liste der durch native Darstellungen ersetzten Z2M-Profile.
      */
     private function BuildPresentationMigrationLogList(): array
     {
@@ -250,7 +250,7 @@ trait VariableMaintenanceHelper
     }
 
     /**
-     * Reads and sorts the presentation migration log for this instance.
+     * Liest und sortiert das Darstellungs-Migrationsprotokoll dieser Instanz.
      */
     private function ReadPresentationMigrationLogRows(): array
     {
@@ -268,7 +268,7 @@ trait VariableMaintenanceHelper
     }
 
     /**
-     * Builds form rows for the presentation migration log.
+     * Erstellt Formularzeilen für das Darstellungs-Migrationsprotokoll.
      */
     private function BuildPresentationMigrationLogFormValues(array $rows): array
     {
@@ -288,7 +288,7 @@ trait VariableMaintenanceHelper
     }
 
     /**
-     * Builds a local candidate list.
+     * Erstellt die lokale Liste möglicher veralteter Variablen.
      */
     private function BuildLocalStaleVariableCandidateList(string $name, string $caption, array $rows, bool $withAction): array
     {
@@ -324,7 +324,7 @@ trait VariableMaintenanceHelper
     }
 
     /**
-     * Builds rows for a local candidate list.
+     * Erstellt die Zeilen einer lokalen Kandidatenliste.
      */
     private function BuildLocalStaleVariableCandidateFormValues(array $rows, bool $withAction): array
     {
@@ -351,7 +351,7 @@ trait VariableMaintenanceHelper
     }
 
     /**
-     * Builds rows for local scan hints.
+     * Erstellt Hinweiszeilen für das lokale Prüfergebnis.
      */
     private function BuildLocalStaleVariableErrorFormValues(array $scan): array
     {
@@ -362,7 +362,7 @@ trait VariableMaintenanceHelper
     }
 
     /**
-     * Builds the local scan status caption.
+     * Erstellt den Statustext der lokalen Variablenprüfung.
      */
     private function BuildLocalStaleVariableStatusCaption(array $scan): string
     {
@@ -383,7 +383,7 @@ trait VariableMaintenanceHelper
     }
 
     /**
-     * Refreshes local maintenance form fields.
+     * Aktualisiert die lokalen Formularfelder der Variablenwartung.
      */
     private function UpdateLocalStaleVariableFormLists(array $scan): void
     {
@@ -397,7 +397,7 @@ trait VariableMaintenanceHelper
     }
 
     /**
-     * Refreshes local maintenance form fields without letting form renderer errors abort the action.
+     * Aktualisiert lokale Wartungsfelder, ohne die Aktion bei Fehlern des Formular-Renderers abzubrechen.
      */
     private function UpdateLocalStaleVariableFormListsSafely(array $scan): void
     {
@@ -409,7 +409,7 @@ trait VariableMaintenanceHelper
     }
 
     /**
-     * Checks whether a variable is part of the stored local scan.
+     * Prüft, ob eine Variable im gespeicherten lokalen Prüfergebnis enthalten ist.
      */
     private function LocalStaleVariableScanContains(array $scan, int $variableID): bool
     {
@@ -425,7 +425,7 @@ trait VariableMaintenanceHelper
     }
 
     /**
-     * Removes a successfully deleted variable from the cached scan result.
+     * Entfernt eine erfolgreich gelöschte Variable aus dem zwischengespeicherten Prüfergebnis.
      */
     private function RemoveLocalStaleVariableFromScan(array $scan, int $variableID): array
     {
@@ -456,7 +456,7 @@ trait VariableMaintenanceHelper
     }
 
     /**
-     * Shows a local maintenance result message.
+     * Zeigt eine lokale Ergebnismeldung der Variablenwartung an.
      */
     private function ShowLocalStaleVariableMessage(string $title, string $message): void
     {
@@ -466,7 +466,7 @@ trait VariableMaintenanceHelper
     }
 
     /**
-     * Builds the local delete confirmation popup.
+     * Erstellt die lokale Sicherheitsabfrage zum Löschen einer Variable.
      */
     private function BuildLocalStaleVariableDeleteWarning(): array
     {
@@ -493,7 +493,7 @@ trait VariableMaintenanceHelper
     }
 
     /**
-     * Builds the local result popup.
+     * Erstellt das lokale Meldungsfenster für Wartungsergebnisse.
      */
     private function BuildLocalStaleVariableMessage(): array
     {
@@ -512,10 +512,10 @@ trait VariableMaintenanceHelper
     }
 
     /**
-     * Inserts the local panel into the existing expert tools section.
+     * Fügt den lokalen Wartungsbereich in den vorhandenen Expertenbereich ein.
      *
      * Device instances place it directly after the advanced removal controls.
-     * Other instances append it to the expert tools section.
+     * Andere Instanzen hängen ihn an den Expertenbereich an.
      */
     private function AppendLocalVariableMaintenancePanel(array &$items, array $panel): bool
     {
@@ -554,7 +554,7 @@ trait VariableMaintenanceHelper
     }
 
     /**
-     * Formats a variable update timestamp.
+     * Formatiert den Aktualisierungszeitpunkt einer Variable.
      */
     private function FormatLocalStaleVariableTimestamp(int $timestamp): string
     {

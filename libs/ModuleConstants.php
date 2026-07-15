@@ -5,7 +5,7 @@ declare(strict_types=1);
 namespace Zigbee2MQTT;
 
 /**
- * Definition Konstanten
+ * Bündelt gemeinsam verwendete Propertynamen, Topics, GUIDs und Standardwerte.
  */
 trait Constants
 {

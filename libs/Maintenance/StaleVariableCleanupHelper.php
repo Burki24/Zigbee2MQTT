@@ -5,7 +5,7 @@ declare(strict_types=1);
 namespace Zigbee2MQTT\Maintenance;
 
 /**
- * Scans Zigbee2MQTT instances for variables that are no longer backed by exposes or payload data.
+ * Ermittelt Zigbee2MQTT-Variablen, die nicht mehr durch Exposes oder Payload-Daten belegt sind.
  */
 final class StaleVariableCleanupHelper
 {
@@ -33,11 +33,11 @@ final class StaleVariableCleanupHelper
     private static ?array $referenceIndex = null;
 
     /**
-     * Scans all Zigbee2MQTT device and optionally group instances.
+     * Prüft alle Zigbee2MQTT-Geräte- und optional auch Gruppeninstanzen.
      *
-     * @param array $options Scan options, merged with DEFAULT_OPTIONS.
+     * @param array $options Prüfoptionen, die mit `DEFAULT_OPTIONS` zusammengeführt werden.
      *
-     * @return array Scan result with clearCandidates, reviewCandidates, errors and counters.
+     * @return array Prüfergebnis mit Löschkandidaten, Review-Kandidaten, Fehlern und Zählern.
      */
     public static function Scan(array $options = []): array
     {
@@ -174,10 +174,10 @@ final class StaleVariableCleanupHelper
     }
 
     /**
-     * Scans a single Zigbee2MQTT device or group instance.
+     * Prüft eine einzelne Zigbee2MQTT-Geräte- oder Gruppeninstanz.
      *
-     * @param int   $instanceID Instance to scan.
-     * @param array $options    Scan options, merged with DEFAULT_OPTIONS.
+     * @param int   $instanceID Zu prüfende Instanz-ID.
+     * @param array $options    Prüfoptionen, die mit `DEFAULT_OPTIONS` zusammengeführt werden.
      */
     public static function ScanInstance(int $instanceID, array $options = []): array
     {
@@ -188,13 +188,13 @@ final class StaleVariableCleanupHelper
     }
 
     /**
-     * Deletes selected variables if they are candidates in the provided scan result.
+     * Löscht ausgewählte Variablen, wenn sie im übergebenen Prüfergebnis als Kandidaten enthalten sind.
      *
-     * @param array $scanResult Result from Scan().
-     * @param array $variableIDs Variable object IDs to delete.
-     * @param array $options Protection options, merged with DEFAULT_OPTIONS.
+     * @param array $scanResult  Ergebnis von `Scan()`.
+     * @param array $variableIDs IDs der zu löschenden Variablenobjekte.
+     * @param array $options     Schutzoptionen, die mit `DEFAULT_OPTIONS` zusammengeführt werden.
      *
-     * @return array Result with deleted and skipped entries.
+     * @return array Ergebnis mit gelöschten und übersprungenen Einträgen.
      */
     public static function DeleteSelected(array $scanResult, array $variableIDs, array $options = []): array
     {
@@ -264,12 +264,12 @@ final class StaleVariableCleanupHelper
     }
 
     /**
-     * Deletes selected candidates only when they are direct children of the owning instance.
+     * Löscht ausgewählte Kandidaten nur als direkte Kinder ihrer Besitzerinstanz.
      *
-     * @param int   $ownerInstanceID Owning Device or Group instance.
-     * @param array $scanResult      Result from ScanInstance().
-     * @param array $variableIDs     Variable object IDs to delete.
-     * @param array $options         Protection options, merged with DEFAULT_OPTIONS.
+     * @param int   $ownerInstanceID Besitzerinstanz vom Typ Gerät oder Gruppe.
+     * @param array $scanResult      Ergebnis von `ScanInstance()`.
+     * @param array $variableIDs     IDs der zu löschenden Variablenobjekte.
+     * @param array $options         Schutzoptionen, die mit `DEFAULT_OPTIONS` zusammengeführt werden.
      */
     public static function DeleteSelectedForInstance(
         int $ownerInstanceID,
@@ -283,7 +283,7 @@ final class StaleVariableCleanupHelper
     }
 
     /**
-     * Formats candidate protection details for UI or text output.
+     * Formatiert die Schutzdetails eines Kandidaten für Formular- oder Textausgaben.
      */
     public static function FormatProtection(array $row): string
     {
@@ -299,13 +299,18 @@ final class StaleVariableCleanupHelper
     }
 
     /**
-     * Returns true when the candidate is protected by archive or references.
+     * Prüft, ob ein Kandidat durch Archivierung oder Referenzen geschützt ist.
      */
     public static function IsProtected(array $row): bool
     {
         return (bool) ($row['archived'] ?? false) || !empty($row['references']);
     }
 
+    /**
+     * Liest und dekodiert den Debugexport einer Geräte- oder Gruppeninstanz.
+     *
+     * @return array Dekodierte Exportdaten oder ein Array mit dem Schlüssel `error`.
+     */
     private static function DecodeExportData(int $instanceID): array
     {
         try {
@@ -332,6 +337,9 @@ final class StaleVariableCleanupHelper
         return $data;
     }
 
+    /**
+     * Erstellt eine Wartungszeile mit Objekt-, Schutz- und Herkunftsinformationen.
+     */
     private static function BuildCandidateRow(int $instanceID, int $variableID, string $moduleType, string $ident, array $sources, int $archiveID): array
     {
         $object = IPS_GetObject($variableID);
@@ -356,6 +364,9 @@ final class StaleVariableCleanupHelper
         return $row;
     }
 
+    /**
+     * Ermittelt den letzten Änderungs- oder Aktualisierungszeitpunkt einer Variable.
+     */
     private static function GetVariableUpdatedTimestamp(int $variableID): int
     {
         if (!\function_exists('IPS_GetVariable')) {
@@ -375,6 +386,11 @@ final class StaleVariableCleanupHelper
         return (int) ($variable['VariableUpdated'] ?? ($variable['VariableChanged'] ?? 0));
     }
 
+    /**
+     * Leitet erwartete Variablen-Idents und Gerätefähigkeiten aus einem Debugexport ab.
+     *
+     * @return array{expected:array,capabilities:array{color_temp:bool,native_color:bool,supports_ota:bool}}
+     */
     private static function BuildExpected(array $debugData): array
     {
         $expected = [];
@@ -415,6 +431,14 @@ final class StaleVariableCleanupHelper
         return [$expected, $capabilities];
     }
 
+    /**
+     * Sammelt rekursiv die aus einem Expose-Feature erwarteten Variablen.
+     *
+     * @param array  $feature      Expose-Feature von Zigbee2MQTT.
+     * @param array  $expected     Referenz auf die gesammelten Idents und ihre Quellen.
+     * @param array  $capabilities Referenz auf die erkannten Gerätefähigkeiten.
+     * @param string $parentIdent  Ident des übergeordneten Composite-Features.
+     */
     private static function CollectExposeFeature(array $feature, array &$expected, array &$capabilities, string $parentIdent = ''): void
     {
         if (self::IsColorComposite($feature)) {
@@ -483,6 +507,11 @@ final class StaleVariableCleanupHelper
         }
     }
 
+    /**
+     * Reduziert eine verschachtelte Payload auf die vom Modul verwendeten Variablen-Idents.
+     *
+     * @param string $prefix Ident-Präfix der aktuellen Verschachtelungsebene.
+     */
     private static function FlattenPayload(array $payload, string $prefix = ''): array
     {
         $result = [];
@@ -514,6 +543,9 @@ final class StaleVariableCleanupHelper
         return $result;
     }
 
+    /**
+     * Fügt einen normalisierten Ident mit seiner Herkunft zur Erwartungsliste hinzu.
+     */
     private static function AddExpected(array &$expected, string $ident, string $source): void
     {
         $ident = self::NormalizeIdent($ident);
@@ -525,21 +557,33 @@ final class StaleVariableCleanupHelper
         $expected[$ident][$source] = true;
     }
 
+    /**
+     * Prüft, ob ein Ident unabhängig von Exposes und Payload immer erhalten bleiben muss.
+     */
     private static function IsAlwaysKeepIdent(string $ident): bool
     {
         return \in_array($ident, self::ALWAYS_KEEP_IDENTS, true);
     }
 
+    /**
+     * Prüft, ob ein Ident zum OTA-Variablenbaum gehört.
+     */
     private static function IsOTAIdent(string $ident): bool
     {
         return $ident === 'update' || str_starts_with($ident, 'update__');
     }
 
+    /**
+     * Prüft, ob eine OTA-Variable nur während eines laufenden Updates benötigt wird.
+     */
     private static function IsTransientOTAIdent(string $ident): bool
     {
         return \in_array($ident, ['update__progress', 'update__remaining'], true);
     }
 
+    /**
+     * Erkennt ein von Zigbee2MQTT geliefertes Farb-Composite.
+     */
     private static function IsColorComposite(array $feature): bool
     {
         $name = strtolower((string) ($feature['name'] ?? ''));
@@ -550,6 +594,9 @@ final class StaleVariableCleanupHelper
             || isset($feature['color_mode']);
     }
 
+    /**
+     * Erkennt einen gewöhnlichen Composite-Container, der rekursiv aufgelöst werden soll.
+     */
     private static function IsCompositeContainer(array $feature): bool
     {
         return ($feature['type'] ?? '') === 'composite'
@@ -558,11 +605,17 @@ final class StaleVariableCleanupHelper
             && !self::IsColorComposite($feature);
     }
 
+    /**
+     * Normalisiert einen Zigbee2MQTT-Propertynamen für die Verwendung als Symcon-Ident.
+     */
     private static function NormalizeIdent(string $ident): string
     {
         return str_replace('&', '_and_', $ident);
     }
 
+    /**
+     * Liefert den vollständigen Symcon-Pfad oder ersatzweise den Objektnamen.
+     */
     private static function GetObjectPath(int $objectID): string
     {
         if (\function_exists('IPS_GetLocation')) {
@@ -572,6 +625,9 @@ final class StaleVariableCleanupHelper
         return IPS_GetName($objectID);
     }
 
+    /**
+     * Liefert den relativen Kategoriepfad einer Variable innerhalb ihrer Modulinstanz.
+     */
     private static function GetVariableCategoryPath(int $variableID): string
     {
         $instanceObjectType = \defined('OBJECTTYPE_INSTANCE') ? OBJECTTYPE_INSTANCE : 1;
@@ -594,6 +650,11 @@ final class StaleVariableCleanupHelper
         return self::GetObjectPath($categoryID);
     }
 
+    /**
+     * Ermittelt die erste verfügbare Archiv-Control-Instanz.
+     *
+     * @return int Instanz-ID oder `0`, wenn kein Archiv verfügbar ist.
+     */
     private static function GetArchiveID(): int
     {
         if (!\function_exists('IPS_GetInstanceListByModuleID')) {
@@ -604,6 +665,9 @@ final class StaleVariableCleanupHelper
         return (int) ($archiveIDs[0] ?? 0);
     }
 
+    /**
+     * Prüft, ob die Protokollierung einer Variable im angegebenen Archiv aktiv ist.
+     */
     private static function IsArchived(int $variableID, int $archiveID): bool
     {
         if ($archiveID <= 0 || !\function_exists('AC_GetLoggingStatus')) {
@@ -613,6 +677,13 @@ final class StaleVariableCleanupHelper
         return (bool) @AC_GetLoggingStatus($archiveID, $variableID);
     }
 
+    /**
+     * Liefert alle Symcon-Objekte, die das angegebene Objekt referenzieren.
+     *
+     * Der hierfür benötigte Referenzindex wird einmalig aufgebaut und wiederverwendet.
+     *
+     * @return array<int,int> IDs der referenzierenden Objekte.
+     */
     private static function GetReferences(int $objectID): array
     {
         if (!\function_exists('IPS_GetObjectList') || !\function_exists('IPS_GetReferenceList')) {

@@ -5,7 +5,7 @@ declare(strict_types=1);
 include_once __DIR__ . '/DumpInclude.php';
 
 /**
- * Tests device expose mapping, variable handling and visualization behaviour.
+ * Prüft Expose-Zuordnung, Variablenverarbeitung und Darstellungsverhalten von Geräten.
  */
 class DevicesTest extends DumpInclude
 {

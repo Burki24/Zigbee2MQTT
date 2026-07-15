@@ -7,7 +7,7 @@ require_once dirname(__DIR__) . '/libs/SemaphoreHelper.php';
 require_once dirname(__DIR__) . '/libs/MQTTHelper.php';
 
 /**
- * Zigbee2MQTTConfigurator
+ * Erkennt Zigbee2MQTT-Geräte und -Gruppen und ordnet sie vorhandenen Symcon-Instanzen zu.
  */
 class Zigbee2MQTTConfigurator extends IPSModuleStrict
 {
@@ -52,7 +52,7 @@ class Zigbee2MQTTConfigurator extends IPSModuleStrict
     private const TIMEOUT_CONFIGURATOR_QUICK_REQUEST = 5000;
 
     /**
-     * Create
+     * Initialisiert Eigenschaften, Attribute und Timer der Configurator-Instanz.
      *
      * @return void
      *
@@ -529,7 +529,7 @@ class Zigbee2MQTTConfigurator extends IPSModuleStrict
     }
 
     /**
-     * Checks whether a received MQTT response can belong to a Configurator transaction.
+     * Prüft, ob eine empfangene MQTT-Antwort zu einer Configurator-Transaktion gehören kann.
      *
      * @param string $ReceiveTopic
      * @param string $BaseTopic
@@ -546,7 +546,7 @@ class Zigbee2MQTTConfigurator extends IPSModuleStrict
     }
 
     /**
-     * Builds the regular Symcon configurator descriptor for a missing Bridge instance.
+     * Erstellt den regulären Symcon-Erstellungsdeskriptor für eine fehlende Bridge-Instanz.
      *
      * @param string   $BaseTopic
      * @param string[] $Location

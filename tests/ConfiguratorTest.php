@@ -5,7 +5,7 @@ declare(strict_types=1);
 include_once __DIR__ . '/DumpInclude.php';
 
 /**
- * Tests splitter-safe configurator instance assignment.
+ * Prüft die splittergebundene Zuordnung von Configurator-Instanzen.
  */
 class ConfiguratorTest extends DumpInclude
 {

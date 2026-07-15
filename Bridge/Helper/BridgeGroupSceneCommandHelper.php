@@ -61,7 +61,7 @@ trait BridgeGroupSceneCommandHelper
      *
      * @param  string $GroupName
      * @param  string $DeviceName
-     * @param  string $Endpoint Optional Zigbee endpoint to add to the group.
+     * @param  string $Endpoint Optionaler Zigbee-Endpunkt für die Gruppenzuordnung.
      *
      * @return bool
      *
@@ -83,8 +83,8 @@ trait BridgeGroupSceneCommandHelper
      *
      * @param  string $GroupName
      * @param  string $DeviceName
-     * @param  string $Endpoint Optional Zigbee endpoint to remove from the group.
-     * @param  bool $SkipDisableReporting Whether Zigbee2MQTT should keep reporting while removing the member.
+     * @param  string $Endpoint             Optionaler Zigbee-Endpunkt, der aus der Gruppe entfernt wird.
+     * @param  bool   $SkipDisableReporting Gibt an, ob Reporting während des Entfernens aktiv bleiben soll.
      *
      * @return bool
      *

@@ -739,6 +739,9 @@ class Zigbee2MQTTNetworkMap extends IPSModuleStrict
         return false;
     }
 
+    /**
+     * Formatiert einen Zeitstempel in Sekunden oder Millisekunden für die Anzeige.
+     */
     private static function FormatTimestamp(mixed $timestamp): string
     {
         $timestamp = (int) $timestamp;
@@ -748,11 +751,17 @@ class Zigbee2MQTTNetworkMap extends IPSModuleStrict
         return $timestamp > 0 ? date('d.m.Y H:i:s', $timestamp) : '';
     }
 
+    /**
+     * Formatiert eine Dauer als Stunden, Minuten und Sekunden.
+     */
     private static function FormatDuration(int $seconds): string
     {
         return \sprintf('%02d:%02d:%02d', intdiv($seconds, 3600), intdiv($seconds % 3600, 60), $seconds % 60);
     }
 
+    /**
+     * Formatiert eine Zigbee-Netzwerkadresse als vierstelligen Hexadezimalwert.
+     */
     private static function FormatNetworkAddress(mixed $address): string
     {
         if ($address === '' || $address === null) {
@@ -761,6 +770,9 @@ class Zigbee2MQTTNetworkMap extends IPSModuleStrict
         return \sprintf('0x%04X', (int) $address);
     }
 
+    /**
+     * Übersetzt den numerischen Zigbee-Beziehungstyp für die Darstellung.
+     */
     private function FormatRelationship(mixed $relationship): string
     {
         $value = match ((int) $relationship) {
@@ -773,6 +785,9 @@ class Zigbee2MQTTNetworkMap extends IPSModuleStrict
         return $this->Translate($value);
     }
 
+    /**
+     * Übersetzt den numerischen Zigbee-Routenstatus für die Darstellung.
+     */
     private function FormatRouteStatus(mixed $status): string
     {
         $value = match ((int) $status) {
@@ -786,6 +801,9 @@ class Zigbee2MQTTNetworkMap extends IPSModuleStrict
         return $this->Translate($value);
     }
 
+    /**
+     * Maskiert einen Textwert für den sicheren Einsatz im Graphviz-DOT-Export.
+     */
     private static function EscapeGraphValue(string $value): string
     {
         return str_replace(['\\', '"', "\r", "\n"], ['\\\\', '\\"', ' ', ' '], $value);

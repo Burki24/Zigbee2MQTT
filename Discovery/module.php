@@ -7,7 +7,7 @@ require_once dirname(__DIR__) . '/libs/BufferHelper.php';
 require_once dirname(__DIR__) . '/libs/phpMQTT.php';
 
 /**
- * Zigbee2MQTTDiscovery
+ * Erkennt Zigbee2MQTT-Systeme anhand gespeicherter MQTT-Topics oder einer direkten Brokerabfrage.
  *
  * @property array $ManuelTopics
  * @property array $ManuelBrokerConfig
@@ -27,7 +27,7 @@ class Zigbee2MQTTDiscovery extends IPSModuleStrict
     private bool $lastBridgeSearchConnectionFailed = false;
 
     /**
-     * Create
+     * Initialisiert Eigenschaften, Attribute und Timer der Discovery-Instanz.
      *
      * @return void
      *

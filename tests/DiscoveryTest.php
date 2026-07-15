@@ -19,7 +19,7 @@ if (!\function_exists('MQTT_GetRetainedMessage')) {
 }
 
 /**
- * Tests discovery of retained Zigbee2MQTT bridge topics.
+ * Prüft die Erkennung von Zigbee2MQTT-Bridges anhand gespeicherter MQTT-Topics.
  */
 class DiscoveryTest extends DumpInclude
 {

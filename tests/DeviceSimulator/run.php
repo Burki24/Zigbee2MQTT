@@ -7,6 +7,14 @@ use Zigbee2MQTT\Tools\DeviceSimulator\Zigbee2MQTTDeviceSimulator;
 require_once dirname(__DIR__, 2) . '/libs/phpMQTT.php';
 require_once __DIR__ . '/Zigbee2MQTTDeviceSimulator.php';
 
+/**
+ * Liest eine Simulatoroption aus CLI-Argumenten, Umgebung oder Standardwert.
+ *
+ * @param array  $options     Von `getopt()` gelieferte Optionen.
+ * @param string $name        Name der CLI-Option.
+ * @param string $environment Name der alternativen Umgebungsvariable.
+ * @param mixed  $default     Rückgabewert, wenn beide Quellen fehlen.
+ */
 function simulatorOption(array $options, string $name, string $environment, mixed $default = null): mixed
 {
     if (array_key_exists($name, $options)) {
@@ -16,6 +24,9 @@ function simulatorOption(array $options, string $name, string $environment, mixe
     return $value === false ? $default : $value;
 }
 
+/**
+ * Gibt Aufrufsyntax und verfügbare Einstellungen des Gerätesimulators aus.
+ */
 function printSimulatorHelp(): void
 {
     echo <<<'HELP'

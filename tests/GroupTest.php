@@ -5,7 +5,7 @@ declare(strict_types=1);
 include_once __DIR__ . '/DumpInclude.php';
 
 /**
- * Tests group configuration, member handling, options and scenes.
+ * Prüft Gruppenkonfiguration, Mitgliederverwaltung, Optionen und Szenen.
  */
 class GroupTest extends DumpInclude
 {
