@@ -932,7 +932,7 @@ abstract class ModulBase extends \IPSModuleStrict
      * Sendet einen Get-Befehl an das Gerät über MQTT
      *
      * Diese Methode generiert das MQTT-Topic für den Get-Befehl basierend auf der Konfiguration
-     * und sendet ein Array mit allen Features/Propertys über SendData an das Gerät.
+     * und sendet ein Array mit allen per /get lesbaren Properties an das Gerät.
      *
      * @return bool True wenn die Daten versendet werden konnten, sonst false
      *
@@ -947,51 +947,25 @@ abstract class ModulBase extends \IPSModuleStrict
      */
     public function SendGetCommand(): bool
     {
+        // Geraetespezifische filtered_attributes aus Z2M laden
+        $aFiltered = $this->ReadAttributeArray(self::ATTRIBUTE_FILTERED);
+
+        // Payload rekursiv aus Features mit explizitem GET-Zugriff bauen.
+        $Payload = [];
+        foreach ($this->ReadAttributeArray(self::ATTRIBUTE_EXPOSES) as $expose) {
+            if (\is_array($expose)) {
+                $this->CollectGettableExposeProperties($expose, $aFiltered, $Payload);
+            }
+        }
+        if ($Payload === []) {
+            $this->SendDebug(__FUNCTION__, 'No properties with GET access available', 0);
+            return false;
+        }
+
         // MQTT-Topic für den Get-Befehl generieren
         $Topic = $this->BuildConfiguredMQTTTopic(self::MQTT_TOPIC, 'get');
         if ($Topic === null) {
             return false;
-        }
-
-        // Geraetespezifische filtered_attributes aus Z2M laden
-        $aFiltered = $this->ReadAttributeArray(self::ATTRIBUTE_FILTERED);
-
-        // Payload bauen
-        $Payload = [];
-        $exposes = $this->ReadAttributeArray(self::ATTRIBUTE_EXPOSES);
-        foreach ($exposes as $expose) {
-            // Config Features werden nur über den Namen des Config property abgefragt und nicht einzeln.
-            if (isset($expose['category']) && ($expose['category'] == 'config')) {
-                // Gefilterte Attribute gemaess Z2M-Konfiguration ueberspringen
-                $sProperty = $expose['property'] ?? '';
-                if ($sProperty !== '' && \in_array($sProperty, $aFiltered, true)) {
-                    $this->SendDebug(__FUNCTION__, 'Skipping filtered attribute: ' . $sProperty, 0);
-                    continue;
-                }
-                $Payload[$sProperty] = '';
-                continue;
-            }
-            // Einzelne Features durchgehen (z.B. Endpoints state_1 usw...)
-            if (isset($expose['features']) && \is_array($expose['features'])) {
-                foreach ($expose['features'] as $feature) {
-                    // Gefilterte Attribute gemaess Z2M-Konfiguration ueberspringen
-                    $sProperty = $feature['property'] ?? '';
-                    if ($sProperty !== '' && \in_array($sProperty, $aFiltered, true)) {
-                        $this->SendDebug(__FUNCTION__, 'Skipping filtered attribute: ' . $sProperty, 0);
-                        continue;
-                    }
-                    $Payload[$sProperty] = '';
-                }
-                continue;
-            }
-            // Rest
-            // Gefilterte Attribute gemaess Z2M-Konfiguration ueberspringen
-            $sProperty = $expose['property'] ?? '';
-            if ($sProperty !== '' && \in_array($sProperty, $aFiltered, true)) {
-                $this->SendDebug(__FUNCTION__, 'Skipping filtered attribute: ' . $sProperty, 0);
-                continue;
-            }
-            $Payload[$sProperty] = '';
         }
 
         // Debug-Ausgabe des zu sendenden Payloads
@@ -999,6 +973,46 @@ abstract class ModulBase extends \IPSModuleStrict
 
         // Sende die Daten an das Gerät
         return $this->SendData($Topic, $Payload, 0);
+    }
+
+    /**
+     * Sammelt MQTT-Properties, deren Expose das Zigbee2MQTT-GET-Bit besitzt.
+     *
+     * Container ohne eigene Property werden rekursiv durchlaufen. Composite-
+     * Properties werden dagegen als Ganzes abgefragt, weil ihre Unterfelder im
+     * MQTT-Payload unter der Parent-Property liegen.
+     */
+    private function CollectGettableExposeProperties(array $expose, array $filtered, array &$payload): void
+    {
+        $property = isset($expose['property']) && \is_string($expose['property'])
+            ? trim($expose['property'])
+            : '';
+        $isComposite = ($expose['type'] ?? '') === 'composite';
+
+        if ($property !== '') {
+            if ((((int) ($expose['access'] ?? 0)) & 0b100) !== 0) {
+                if (\in_array($property, $filtered, true)) {
+                    $this->SendDebug(__FUNCTION__, 'Skipping filtered attribute: ' . $property, 0);
+                } else {
+                    $payload[$property] = '';
+                }
+            }
+
+            // Composite-Unterfelder sind keine eigenstaendigen Root-Properties.
+            if ($isComposite) {
+                return;
+            }
+        }
+
+        if (!isset($expose['features']) || !\is_array($expose['features'])) {
+            return;
+        }
+
+        foreach ($expose['features'] as $feature) {
+            if (\is_array($feature)) {
+                $this->CollectGettableExposeProperties($feature, $filtered, $payload);
+            }
+        }
     }
 
     /**
@@ -4074,7 +4088,8 @@ abstract class ModulBase extends \IPSModuleStrict
      *                             - 'value_step': (float, optional) Schrittweite für numerische Werte
      *                             - 'features': (array, optional) Sub-Features für composite Variablen
      *                             - 'presets': (array, optional) Voreingestellte Werte
-     *                             - 'access': (int, optional) Zugriffsrechte (0b001=read, 0b010=write, 0b100=notify)
+     *                             - 'access': (int, optional) Zigbee2MQTT-Zugriffsrechte
+     *                               (0b001=STATE, 0b010=SET, 0b100=GET)
      *                             - 'color_mode': (bool, optional) Für Farbvariablen
      * @param string|null $exposeType Optional, überschreibt den Feature-Typ
      *

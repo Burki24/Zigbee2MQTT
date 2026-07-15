@@ -583,6 +583,72 @@ class DevicesTest extends DumpInclude
         $this->assertSame([], $device->sentPayload);
     }
 
+    public function testSendGetCommandIncludesOnlyPropertiesWithGetAccess(): void
+    {
+        $device = $this->createDeviceActionTestDouble();
+        $device->setExposesForTest([
+            [
+                'type'     => 'light',
+                'features' => [
+                    ['type' => 'binary', 'property' => 'state', 'access' => 7],
+                    ['type' => 'numeric', 'property' => 'brightness', 'access' => 3],
+                    ['type' => 'enum', 'property' => 'effect', 'access' => 2],
+                    ['type' => 'numeric', 'property' => 'power', 'access' => 5],
+                    ['type' => 'numeric', 'property' => 'linkquality', 'access' => 1],
+                    ['type' => 'numeric', 'property' => '', 'access' => 7]
+                ]
+            ],
+            [
+                'type'     => 'composite',
+                'property' => 'wifi_config',
+                'access'   => 7,
+                'category' => 'config',
+                'features' => [
+                    ['type' => 'text', 'property' => 'ssid', 'access' => 3],
+                    ['type' => 'text', 'property' => 'password', 'access' => 2]
+                ]
+            ],
+            [
+                'type'     => 'composite',
+                'property' => 'write_only_composite',
+                'access'   => 3,
+                'features' => [
+                    ['type' => 'text', 'property' => 'child_value', 'access' => 7]
+                ]
+            ],
+            ['type' => 'enum', 'property' => 'identify', 'access' => 2, 'category' => 'config']
+        ]);
+
+        $this->assertTrue($device->SendGetCommand());
+        $this->assertSame('/Wohnbereich/Beschattung/Terrassenfenster/get', $device->sentTopic);
+        $this->assertSame([
+            'state'       => '',
+            'power'       => '',
+            'wifi_config' => ''
+        ], $device->sentPayload);
+
+        $device->setFilteredAttributesForTest(['power']);
+        $this->assertTrue($device->SendGetCommand());
+        $this->assertSame([
+            'state'       => '',
+            'wifi_config' => ''
+        ], $device->sentPayload);
+    }
+
+    public function testSendGetCommandSkipsRequestWithoutGettableProperties(): void
+    {
+        $device = $this->createDeviceActionTestDouble();
+        $device->setExposesForTest([
+            ['type' => 'numeric', 'property' => 'temperature', 'access' => 1],
+            ['type' => 'enum', 'property' => 'identify', 'access' => 2],
+            ['type' => 'numeric', 'property' => 'configuration', 'access' => 3]
+        ]);
+
+        $this->assertFalse($device->SendGetCommand());
+        $this->assertSame('', $device->sentTopic);
+        $this->assertSame([], $device->sentPayload);
+    }
+
     public function testColorTransitionRequiresNativeColorExpose(): void
     {
         $device = $this->createDeviceActionTestDouble();
@@ -2731,6 +2797,11 @@ class DevicesTest extends DumpInclude
             public function setExposesForTest(array $exposes): void
             {
                 $this->WriteAttributeArray(self::ATTRIBUTE_EXPOSES, $exposes);
+            }
+
+            public function setFilteredAttributesForTest(array $filtered): void
+            {
+                $this->WriteAttributeArray(self::ATTRIBUTE_FILTERED, $filtered);
             }
 
             public function registerBooleanVariableForTest(string $ident): int
