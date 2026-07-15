@@ -1424,7 +1424,21 @@ abstract class ModulBase extends \IPSModuleStrict
      */
     protected function mapExposesToVariables(array $exposes): void
     {
-        $this->SendDebug(__FUNCTION__ . ' :: Line ' . __LINE__ . ' :: All Exposes', json_encode($exposes), 0);
+        $this->BeginVariableCatalogBatch();
+        try {
+            $this->mapExposesToVariablesBatch($exposes);
+        } finally {
+            $this->EndVariableCatalogBatch();
+        }
+    }
+
+    /**
+     * Mappt Exposes innerhalb eines bereits gestarteten Katalog-Batches.
+     */
+    protected function mapExposesToVariablesBatch(array $exposes): void
+    {
+        $debugFunction = 'mapExposesToVariables';
+        $this->SendDebug($debugFunction . ' :: Line ' . __LINE__ . ' :: All Exposes', json_encode($exposes), 0);
 
         // Geraetespezifische filtered_attributes aus Z2M laden
         $aFiltered = $this->ReadAttributeArray(self::ATTRIBUTE_FILTERED);
@@ -1433,7 +1447,7 @@ abstract class ModulBase extends \IPSModuleStrict
         foreach ($exposes as $expose) {
             // Prüfen, ob es sich um eine Gruppe handelt
             if (isset($expose['type']) && \in_array($expose['type'], ['light', 'switch', 'lock', 'cover', 'climate', 'fan', 'text'])) {
-                $this->SendDebug(__FUNCTION__ . ' :: Line ' . __LINE__ . ' :: Found group: ', $expose['type'], 0);
+                $this->SendDebug($debugFunction . ' :: Line ' . __LINE__ . ' :: Found group: ', $expose['type'], 0);
 
                 // Features in der Gruppe verarbeiten
                 if (isset($expose['features']) && \is_array($expose['features'])) {
@@ -1448,11 +1462,11 @@ abstract class ModulBase extends \IPSModuleStrict
                             $this->RememberVariableDefinition($sProperty, $feature, 'expose');
                         }
                         if ($sProperty !== '' && \in_array($sProperty, $aFiltered, true)) {
-                            $this->SendDebug(__FUNCTION__, 'Skipping filtered attribute: ' . $sProperty, 0);
+                            $this->SendDebug($debugFunction, 'Skipping filtered attribute: ' . $sProperty, 0);
                             continue;
                         }
 
-                        $this->SendDebug(__FUNCTION__ . ' :: Line ' . __LINE__ . ' :: Processing feature in group: ', json_encode($feature), 0);
+                        $this->SendDebug($debugFunction . ' :: Line ' . __LINE__ . ' :: Processing feature in group: ', json_encode($feature), 0);
                         // Variablen für die einzelnen Features registrieren
                         $this->registerVariable($feature);
 
@@ -1463,7 +1477,7 @@ abstract class ModulBase extends \IPSModuleStrict
                                 'max' => $feature['value_max'] ?? 255
                             ];
                             $this->brightnessConfig = $brightnessConfig;
-                            $this->SendDebug(__FUNCTION__, 'Brightness Config: ' . json_encode($brightnessConfig), 0);
+                            $this->SendDebug($debugFunction, 'Brightness Config: ' . json_encode($brightnessConfig), 0);
                         }
                     }
                 } else {
@@ -1476,7 +1490,7 @@ abstract class ModulBase extends \IPSModuleStrict
                     $this->RememberVariableDefinition($sProperty, $expose, 'expose');
                 }
                 if ($sProperty !== '' && \in_array($sProperty, $aFiltered, true)) {
-                    $this->SendDebug(__FUNCTION__, 'Skipping filtered attribute: ' . $sProperty, 0);
+                    $this->SendDebug($debugFunction, 'Skipping filtered attribute: ' . $sProperty, 0);
                     continue;
                 }
 
@@ -2180,6 +2194,19 @@ abstract class ModulBase extends \IPSModuleStrict
      * @see json_encode()
      */
     private function processPayload(array $payload): void
+    {
+        $this->BeginVariableCatalogBatch();
+        try {
+            $this->processPayloadBatch($payload);
+        } finally {
+            $this->EndVariableCatalogBatch();
+        }
+    }
+
+    /**
+     * Verarbeitet ein Payload innerhalb eines bereits gestarteten Katalog-Batches.
+     */
+    private function processPayloadBatch(array $payload): void
     {
         // Exposes verarbeiten wenn vorhanden
         if (isset($payload['exposes'])) {

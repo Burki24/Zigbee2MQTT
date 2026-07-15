@@ -734,6 +734,77 @@ class DevicesTest extends DumpInclude
         $this->assertNotFalse(@IPS_GetObjectIDByIdent('power', $iid), 'Re-enabled variable should be created again.');
     }
 
+    public function testPayloadCatalogUpdatesAreWrittenAsSingleBatch(): void
+    {
+        $iid = IPS_CreateInstance('{E5BB36C6-A70B-EB23-3716-9151A09AC8A2}');
+        $device = new class($iid) extends Zigbee2MQTTDevice {
+            public int $variableCatalogWriteCount = 0;
+
+            protected function WriteAttributeArray(string $name, array $value): void
+            {
+                if ($name === self::ATTRIBUTE_VARIABLE_CATALOG) {
+                    ++$this->variableCatalogWriteCount;
+                }
+
+                parent::WriteAttributeArray($name, $value);
+            }
+
+            protected function SendDebug(string $Message, string $Data, int $Format): bool
+            {
+                return true;
+            }
+
+            public function processPayloadForTest(array $payload): void
+            {
+                $method = new ReflectionMethod(Zigbee2MQTT\ModulBase::class, 'processPayload');
+                $method->invoke($this, $payload);
+            }
+
+            public function getVariableCatalogForTest(): array
+            {
+                return $this->ReadAttributeArray(self::ATTRIBUTE_VARIABLE_CATALOG);
+            }
+        };
+        $device->Create();
+        $device->variableCatalogWriteCount = 0;
+
+        $payload = [
+            'exposes' => [
+                [
+                    'type'     => 'numeric',
+                    'name'     => 'temperature',
+                    'label'    => 'Temperature',
+                    'property' => 'temperature',
+                    'access'   => 1,
+                    'unit'     => '°C'
+                ],
+                [
+                    'type'     => 'numeric',
+                    'name'     => 'humidity',
+                    'label'    => 'Humidity',
+                    'property' => 'humidity',
+                    'access'   => 1,
+                    'unit'     => '%'
+                ]
+            ],
+            'temperature' => 21.5,
+            'humidity'    => 48.0
+        ];
+
+        $device->processPayloadForTest($payload);
+
+        $this->assertSame(1, $device->variableCatalogWriteCount);
+        $catalog = $device->getVariableCatalogForTest();
+        $this->assertSame('temperature', $catalog['temperature']['property']);
+        $this->assertSame('humidity', $catalog['humidity']['property']);
+        $this->assertTrue($catalog['temperature']['created']);
+        $this->assertTrue($catalog['humidity']['created']);
+
+        $device->variableCatalogWriteCount = 0;
+        $device->processPayloadForTest($payload);
+        $this->assertSame(0, $device->variableCatalogWriteCount, 'An unchanged batch must not rewrite the catalog attribute.');
+    }
+
     public function testVariableSelectionCreatesNumericVariableWithoutExposeName(): void
     {
         [$iid] = $this->createTestInstance('RTCGQ01LM.json');
