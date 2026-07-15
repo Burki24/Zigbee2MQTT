@@ -103,7 +103,7 @@ trait MeteredSwitchTileHelper
             return;
         }
 
-        $this->UpdateMeteredSwitchTileVisualizationValue();
+        $this->UpdateMeteredSwitchTileValue();
     }
 
     /**

@@ -81,97 +81,138 @@ abstract class ModulBase extends \IPSModuleStrict
     ];
 
     /**
-     * @var array FLOAT_UNITS
+     * @var string[] FLOAT_UNITS
      * Entscheidet über Float- oder Integer-Variablen.
      */
     private const FLOAT_UNITS = [
-        '°C',
-        '°F',
-        'K',
-        'mg/L',
-        'g/m³',
-        'mV',
-        'V',
-        'kV',
-        'µV',
-        'A',
-        'mA',
-        'µA',
-        'W',
-        'kW',
-        'MW',
-        'GW',
-        'Wh',
-        'kWh',
-        'MWh',
-        'GWh',
-        'Hz',
-        'kHz',
-        'MHz',
-        'GHz',
-        'cd',
-        'pH',
-        'm',
-        'cm',
-        'mm',
-        'µm',
-        'nm',
-        'l',
-        'ml',
-        'dl',
-        'm³',
-        'cm³',
-        'mm³',
-        'g',
-        'kg',
-        'mg',
-        'µg',
-        'ton',
-        'lb',
-        's',
-        'ms',
-        'µs',
-        'ns',
-        'min',
-        'h',
-        'd',
-        'rad',
-        'sr',
-        'Bq',
-        'Gy',
-        'Sv',
-        'kat',
-        'mol',
-        'mol/l',
-        'N',
-        'Pa',
-        'kPa',
-        'MPa',
-        'GPa',
-        'bar',
-        'mbar',
-        'atm',
-        'torr',
-        'psi',
-        'ohm',
-        'kohm',
-        'mohm',
-        'S',
-        'mS',
-        'µS',
-        'F',
-        'mF',
-        'µF',
-        'nF',
-        'pF',
-        'H',
-        'mH',
-        'µH',
         '%',
+        'A',
+        'atm',
+        'bar',
+        'Bq',
+        'cd',
+        'cm',
+        'cm3',
+        'cm³',
+        'd',
         'dB',
+        'dB/m',
         'dBA',
         'dBC',
-        'dB/m'
+        'dl',
+        'F',
+        'g',
+        'g/m3',
+        'g/m³',
+        'GHz',
+        'GPa',
+        'GW',
+        'GWh',
+        'Gy',
+        'h',
+        'H',
+        'hPa',
+        'Hz',
+        'K',
+        'kat',
+        'kg',
+        'kg/m3',
+        'kg/m³',
+        'kHz',
+        'km/h',
+        'kohm',
+        'kPa',
+        'kV',
+        'kVA',
+        'kvar',
+        'kW',
+        'kWh',
+        'L',
+        'l',
+        'L/h',
+        'l/h',
+        'L/min',
+        'l/min',
+        'L/s',
+        'l/s',
+        'lb',
+        'Liter',
+        'liter',
+        'm',
+        'm/s',
+        'm3',
+        'm³',
+        'm3/h',
+        'm³/h',
+        'm3/min',
+        'm³/min',
+        'm3/s',
+        'm³/s',
+        'mA',
+        'mbar',
+        'mF',
+        'mg',
+        'mg/L',
+        'mg/m3',
+        'mg/m³',
+        'mH',
+        'MHz',
+        'min',
+        'ml',
+        'mm',
+        'mm3',
+        'mm³',
+        'mohm',
+        'mol',
+        'mol/L',
+        'mol/l',
+        'MPa',
+        'ms',
+        'mS',
+        'mV',
+        'MW',
+        'MWh',
+        'N',
+        'nF',
+        'nm',
+        'ns',
+        'ohm',
+        'Pa',
+        'pF',
+        'pH',
+        'ppb',
+        'ppm',
+        'psi',
+        'rad',
+        's',
+        'S',
+        'sr',
+        'Sv',
+        'ton',
+        'torr',
+        'ug',
+        'ug/m3',
+        'ug/m³',
+        'V',
+        'VA',
+        'var',
+        'W',
+        'W/m2',
+        'W/m²',
+        'Wh',
+        '°C',
+        '°F',
+        'µA',
+        'µF',
+        'µg',
+        'µg/m3',
+        'µg/m³',
+        'µH',
+        'µm',
+        'µmol/m²/s',
+        'µS',
+        'µs',
+        'µV'
     ];
 
     /**
@@ -736,15 +777,22 @@ abstract class ModulBase extends \IPSModuleStrict
         // Brightness-Variablenmigration
         $varID = $this->GetObjectIDByIdent('brightness');
         if ($varID !== false) {
+            $brightnessFeature = $this->findExposeFeatureByProperty('brightness') ?? [
+                'name'     => 'brightness',
+                'property' => 'brightness',
+                'type'     => 'numeric'
+            ];
+            $brightnessPresentation = $this->BuildBrightnessFeaturePresentation($brightnessFeature) ?? '';
+
             $this->RegisterVariableInteger(
                 'brightness',
                 $this->Translate('Brightness'),
-                '',
+                $brightnessPresentation,
                 10
             );
 
             // Zentrale EnableAction-Prüfung für brightness Migration
-            $this->checkAndEnableAction('brightness');
+            $this->checkAndEnableAction('brightness', $brightnessFeature);
         }
         // Flag für beendete Migration wieder setzen
         $this->BUFFER_MQTT_SUSPENDED = false;
@@ -1049,7 +1097,7 @@ abstract class ModulBase extends \IPSModuleStrict
      */
     protected function ReadAttributeBooleanSafe(string $name, bool $default): bool
     {
-        set_error_handler(static function (): bool
+        \set_error_handler(static function (): bool
         {
             return true;
         });
@@ -1058,7 +1106,7 @@ abstract class ModulBase extends \IPSModuleStrict
         } catch (\Throwable) {
             return $default;
         } finally {
-            restore_error_handler();
+            \restore_error_handler();
         }
     }
 
@@ -1067,6 +1115,11 @@ abstract class ModulBase extends \IPSModuleStrict
      */
     protected function UpdateCustomTileVisualizationType(): void
     {
+        if (!method_exists($this, 'GetVisualizationTile')) {
+            $this->SetVisualizationType(0);
+            return;
+        }
+
         $this->SetVisualizationType(($this->ShouldUseHeatingTile() || $this->ShouldUseMeteredSwitchTile() || $this->ShouldUseWindowHandleTile() || $this->ShouldUseSecurityTile() || $this->ShouldUseActionTile() || $this->ShouldUseSensorTile()) ? 1 : 0);
     }
 
@@ -1177,25 +1230,33 @@ abstract class ModulBase extends \IPSModuleStrict
                     if ($association['Name'] == $value) {
                         $adjustedValue = $association['Value'];
                         $this->SendDebug(__FUNCTION__, 'Profilwert gefunden: ' . $value . ' -> ' . $adjustedValue, 0);
-                        $result = $this->SetModuleValue($ident, $variableID, $adjustedValue);
-                        $this->UpdateCustomTileValuesIfRelevant($ident);
+                        $changed = false;
+                        $result = $this->SetModuleValue($ident, $variableID, $adjustedValue, $changed);
+                        if ($changed) {
+                            $this->UpdateCustomTileValuesIfRelevant($ident);
+                        }
                         return $result;
                     }
                 }
             }
         }
 
-        $this->SendDebug(__FUNCTION__, 'Setze Variable: ' . $ident . ' auf Wert: ' . json_encode($adjustedValue), 0);
-        $result = $this->SetModuleValue($ident, $variableID, $adjustedValue);
+        $changed = false;
+        $result = $this->SetModuleValue($ident, $variableID, $adjustedValue, $changed);
+        if ($changed) {
+            $this->SendDebug(__FUNCTION__, 'Setze Variable: ' . $ident . ' auf Wert: ' . json_encode($adjustedValue), 0);
+        }
 
         // Spezialbehandlung für ColorTemp
-        if ($ident === 'color_temp') {
+        if ($changed && $ident === 'color_temp') {
             $kelvinIdent = 'color_temp_kelvin';
             $kelvinValue = $this->convertMiredToKelvin($value);
             $this->SetValueDirect($kelvinIdent, $kelvinValue);
             $this->UpdateColorTemperatureWhiteColorVariable($kelvinValue);
         }
-        $this->UpdateCustomTileValuesIfRelevant($ident);
+        if ($changed) {
+            $this->UpdateCustomTileValuesIfRelevant($ident);
+        }
         return $result;
     }
 
@@ -1280,10 +1341,13 @@ abstract class ModulBase extends \IPSModuleStrict
                 break;
         }
 
-        $this->SendDebug(__FUNCTION__, \sprintf('Setze Variable: %s, Typ: %s, Wert: %s', $ident, $debugVarType, json_encode($value)), 0);
         // Setze den Wert der Variable
-        $this->SetModuleValue($ident, $variableID, $value);
-        $this->UpdateCustomTileValuesIfRelevant($ident);
+        $changed = false;
+        $this->SetModuleValue($ident, $variableID, $value, $changed);
+        if ($changed) {
+            $this->SendDebug(__FUNCTION__, \sprintf('Setze Variable: %s, Typ: %s, Wert: %s', $ident, $debugVarType, json_encode($value)), 0);
+            $this->UpdateCustomTileValuesIfRelevant($ident);
+        }
     }
 
     /**
@@ -1291,7 +1355,7 @@ abstract class ModulBase extends \IPSModuleStrict
      */
     protected function UpdateCustomTileVisualizationValue(string $value): void
     {
-        set_error_handler(static function (): bool
+        \set_error_handler(static function (): bool
         {
             return true;
         });
@@ -1300,7 +1364,7 @@ abstract class ModulBase extends \IPSModuleStrict
         } catch (\Throwable) {
             // Beim Modul-Reload kann das InstanceInterface kurz fehlen; der naechste Wert aktualisiert die Kachel erneut.
         } finally {
-            restore_error_handler();
+            \restore_error_handler();
         }
     }
 
@@ -1316,7 +1380,8 @@ abstract class ModulBase extends \IPSModuleStrict
             'latestPayload',
             'missingTranslations',
             'brightnessConfig',
-            'TransactionData'             => [],
+            'TransactionData',
+            'Multi_TransactionData'       => [],
             default                       => false
         };
     }
@@ -1401,11 +1466,8 @@ abstract class ModulBase extends \IPSModuleStrict
                     continue;
                 }
 
+                // registerVariable() verarbeitet vorhandene Presets bereits zentral.
                 $this->registerVariable($expose);
-                if (isset($expose['presets'])) {
-                    $variableType = $this->getVariableTypeFromFeature($expose['type'], $expose['property'], $expose['unit'] ?? '', $expose['value_step'] ?? 1.0, null);
-                    $this->registerPresetVariables($expose['presets'], $expose['property'], $variableType, $expose);
-                }
             }
         }
         $this->RefreshExposeVariableCatalog($exposes);
@@ -1550,11 +1612,39 @@ abstract class ModulBase extends \IPSModuleStrict
     }
 
     /**
+     * Returns a human-readable name for a native Symcon presentation.
+     */
+    protected function DescribePresentationForMigrationLog(array $presentation): string
+    {
+        $presentationKey = \defined('PRESENTATION') ? \constant('PRESENTATION') : 'PRESENTATION';
+        $presentationID = $presentation[$presentationKey] ?? $presentation['PRESENTATION'] ?? null;
+        $presentations = [
+            'VARIABLE_PRESENTATION_SLIDER'             => 'Slider',
+            'VARIABLE_PRESENTATION_ENUMERATION'        => 'Enumeration',
+            'VARIABLE_PRESENTATION_VALUE'              => 'Value display',
+            'VARIABLE_PRESENTATION_VALUE_PRESENTATION' => 'Value display',
+            'VARIABLE_PRESENTATION_SWITCH'             => 'Switch',
+            'VARIABLE_PRESENTATION_COLOR'              => 'Color',
+            'VARIABLE_PRESENTATION_SHUTTER'            => 'Shutter',
+            'VARIABLE_PRESENTATION_DURATION'           => 'Duration',
+            'VARIABLE_PRESENTATION_DATE_TIME'          => 'Date/time',
+        ];
+
+        foreach ($presentations as $constant => $caption) {
+            if (\defined($constant) && $presentationID === \constant($constant)) {
+                return $this->Translate($caption);
+            }
+        }
+
+        return $this->Translate('Native presentation');
+    }
+
+    /**
      * Fuehrt Property-Lesezugriffe aus, ohne fehlende neue Properties als Warning weiterzugeben.
      */
     private function ReadPropertySafe(\Closure $reader, bool|int|float|string $default): bool|int|float|string
     {
-        set_error_handler(static function (): bool
+        \set_error_handler(static function (): bool
         {
             return true;
         });
@@ -1563,7 +1653,7 @@ abstract class ModulBase extends \IPSModuleStrict
         } catch (\Throwable) {
             return $default;
         } finally {
-            restore_error_handler();
+            \restore_error_handler();
         }
     }
 
@@ -1582,24 +1672,23 @@ abstract class ModulBase extends \IPSModuleStrict
             return $tileResult;
         }
 
-        if ($ident == 'UpdateInfo') {
-            $this->SendDebug(__FUNCTION__, 'Verarbeite UpdateInfo', 0);
-            return $this->UpdateDeviceInfo();
-        }
+        switch ($ident) {
+            case 'UpdateInfo':
+                $this->SendDebug(__FUNCTION__, 'Verarbeite UpdateInfo', 0);
+                return $this->UpdateDeviceInfo();
 
-        if ($ident == 'ShowMissingTranslations') {
-            $this->SendDebug(__FUNCTION__, 'Verarbeite ShowMissingTranslations', 0);
-            return $this->ShowMissingTranslations();
-        }
+            case 'ShowMissingTranslations':
+                $this->SendDebug(__FUNCTION__, 'Verarbeite ShowMissingTranslations', 0);
+                return $this->ShowMissingTranslations();
 
-        if ($ident == 'ToggleVariableCreation') {
-            $this->SendDebug(__FUNCTION__, 'Verarbeite ToggleVariableCreation: ' . (string) $value, 0);
-            return $this->ToggleVariableCreation((string) $value);
-        }
-        if ($ident == 'RefreshVariableSelection') {
-            $this->SendDebug(__FUNCTION__, 'Aktualisiere Variablenkatalog aus aktuellen Gerätedaten', 0);
-            $this->RefreshVariableSelectionFromForm();
-            return true;
+            case 'ToggleVariableCreation':
+                $this->SendDebug(__FUNCTION__, 'Verarbeite ToggleVariableCreation: ' . (string) $value, 0);
+                return $this->ToggleVariableCreation((string) $value);
+
+            case 'RefreshVariableSelection':
+                $this->SendDebug(__FUNCTION__, 'Aktualisiere Variablenkatalog aus aktuellen Gerätedaten', 0);
+                $this->RefreshVariableSelectionFromForm();
+                return true;
         }
 
         return $this->handleVariableRequestAction($ident, $value);
@@ -1611,13 +1700,13 @@ abstract class ModulBase extends \IPSModuleStrict
     private function handleTileRequestAction(string $ident, mixed $value): ?bool
     {
         return match (true) {
-            str_starts_with($ident, 'HeatingTile.')       => $this->HandleHeatingTileAction($ident, $value),
-            str_starts_with($ident, 'SensorTile.')        => $this->HandleSensorTileAction($ident, $value),
-            str_starts_with($ident, 'SecurityTile.')      => $this->HandleSecurityTileAction($ident, $value),
-            str_starts_with($ident, 'WindowHandleTile.')  => $this->HandleWindowHandleTileAction($ident, $value),
-            str_starts_with($ident, 'ActionTile.')        => $this->HandleActionTileAction($ident, $value),
-            str_starts_with($ident, 'MeteredSwitchTile.') => $this->HandleMeteredSwitchTileAction($ident, $value),
-            default                                       => null
+            str_starts_with($ident, 'HeatingTile.')        => $this->HandleHeatingTileAction($ident, $value),
+            str_starts_with($ident, 'SensorTile.')         => $this->HandleSensorTileAction($ident, $value),
+            str_starts_with($ident, 'SecurityTile.')       => $this->HandleSecurityTileAction($ident, $value),
+            str_starts_with($ident, 'WindowHandleTile.')   => $this->HandleWindowHandleTileAction($ident, $value),
+            str_starts_with($ident, 'ActionTile.')         => $this->HandleActionTileAction($ident, $value),
+            str_starts_with($ident, 'MeteredSwitchTile.')  => $this->HandleMeteredSwitchTileAction($ident, $value),
+            default                                        => null
         };
     }
 
@@ -1664,23 +1753,55 @@ abstract class ModulBase extends \IPSModuleStrict
     }
 
     /**
-     * Aktualisiert alle eigenen HTML-SDK-Kacheln, die den geaenderten Ident verwenden.
+     * Aktualisiert ausschliesslich die aktuell ausgewaehlte HTML-SDK-Kachel.
+     *
+     * Die Reihenfolge muss der Auswahl in Device::GetVisualizationTileDefinition()
+     * entsprechen. Andernfalls kann eine weitere kompatible Kachel ihren anders
+     * aufgebauten Datensatz an dieselbe Visualisierung senden und deren Zustand
+     * ueberschreiben.
      */
     private function UpdateCustomTileValuesIfRelevant(string $ident): void
     {
-        $this->UpdateHeatingTileValueIfRelevant($ident);
-        $this->UpdateSensorTileValueIfRelevant($ident);
-        $this->UpdateSecurityTileValueIfRelevant($ident);
-        $this->UpdateWindowHandleTileValueIfRelevant($ident);
-        $this->UpdateActionTileValueIfRelevant($ident);
-        $this->UpdateMeteredSwitchTileValueIfRelevant($ident);
+        if ($this->ShouldForceSensorTile()) {
+            $this->UpdateSensorTileValueIfRelevant($ident);
+            return;
+        }
+        if ($this->ShouldUseHeatingTile()) {
+            $this->UpdateHeatingTileValueIfRelevant($ident);
+            return;
+        }
+        if ($this->ShouldUseMeteredSwitchTile()) {
+            $this->UpdateMeteredSwitchTileValueIfRelevant($ident);
+            return;
+        }
+        if ($this->ShouldUseWindowHandleTile()) {
+            $this->UpdateWindowHandleTileValueIfRelevant($ident);
+            return;
+        }
+        if ($this->ShouldUseSecurityTile()) {
+            $this->UpdateSecurityTileValueIfRelevant($ident);
+            return;
+        }
+        if ($this->ShouldUseActionTile()) {
+            $this->UpdateActionTileValueIfRelevant($ident);
+            return;
+        }
+        if ($this->ShouldUseSensorTile()) {
+            $this->UpdateSensorTileValueIfRelevant($ident);
+        }
     }
 
     /**
      * Setzt einen Variablenwert module-strict-konform.
      */
-    private function SetModuleValue(string $ident, int $variableID, mixed $value): bool
+    private function SetModuleValue(string $ident, int $variableID, mixed $value, ?bool &$changed = null): bool
     {
+        $changed = true;
+        if ($this->IsModuleValueUnchanged($variableID, $value)) {
+            $changed = false;
+            return true;
+        }
+
         if (\defined('PHPUNIT_TESTSUITE') && \constant('PHPUNIT_TESTSUITE')) {
             \SetValue($variableID, $value);
             return true;
@@ -1700,12 +1821,86 @@ abstract class ModulBase extends \IPSModuleStrict
     }
 
     /**
+     * Prüft, ob der gewünschte Wert bereits unveraendert in der Symcon-Variable steht.
+     */
+    private function IsModuleValueUnchanged(int $variableID, mixed $value): bool
+    {
+        \set_error_handler(static function (): bool
+        {
+            return true;
+        });
+        try {
+            $currentValue = \GetValue($variableID);
+        } catch (\Throwable) {
+            return false;
+        } finally {
+            \restore_error_handler();
+        }
+
+        if (\is_float($currentValue) || \is_float($value)) {
+            return \abs((float) $currentValue - (float) $value) < 0.000000001;
+        }
+
+        return $currentValue === $value;
+    }
+
+    /**
      * IPSModuleStrict deklariert GetIDForIdent() als int. Für Existenzprüfungen
      * nutzen wir die globale Funktion, weil sie bei fehlendem Ident false liefern darf.
      */
     private function GetObjectIDByIdent(string $ident): int|false
     {
         return @IPS_GetObjectIDByIdent($ident, $this->InstanceID);
+    }
+
+    /**
+     * Entfernt verwaiste interne Variablenregistrierungen vor einer Neuanlage.
+     *
+     * Bei Modul-Updates kann Symcon noch eine alte Maintained-Variable kennen,
+     * obwohl das Objekt bereits geloescht wurde. Ein RegisterVariable*-Aufruf
+     * wuerde dann mit "Variable #... existiert nicht" abbrechen.
+     */
+    private function PrepareVariableRegistration(string $ident): void
+    {
+        if ($this->GetObjectIDByIdent($ident) !== false) {
+            return;
+        }
+
+        set_error_handler(static function (): bool
+        {
+            return true;
+        });
+        try {
+            parent::UnregisterVariable($ident);
+        } catch (\Throwable $exception) {
+            $this->SendDebug(__FUNCTION__, 'Verwaiste Variablenregistrierung konnte nicht bereinigt werden: ' . $exception->getMessage(), 0);
+        } finally {
+            restore_error_handler();
+        }
+    }
+
+    protected function RegisterVariableBoolean(string $Ident, string $Name, string|array $ProfileOrPresentation = '', int $Position = 0): bool
+    {
+        $this->PrepareVariableRegistration($Ident);
+        return parent::RegisterVariableBoolean($Ident, $Name, $ProfileOrPresentation, $Position);
+    }
+
+    protected function RegisterVariableInteger(string $Ident, string $Name, string|array $ProfileOrPresentation = '', int $Position = 0): bool
+    {
+        $this->PrepareVariableRegistration($Ident);
+        return parent::RegisterVariableInteger($Ident, $Name, $ProfileOrPresentation, $Position);
+    }
+
+    protected function RegisterVariableFloat(string $Ident, string $Name, string|array $ProfileOrPresentation = '', int $Position = 0): bool
+    {
+        $this->PrepareVariableRegistration($Ident);
+        return parent::RegisterVariableFloat($Ident, $Name, $ProfileOrPresentation, $Position);
+    }
+
+    protected function RegisterVariableString(string $Ident, string $Name, string|array $ProfileOrPresentation = '', int $Position = 0): bool
+    {
+        $this->PrepareVariableRegistration($Ident);
+        return parent::RegisterVariableString($Ident, $Name, $ProfileOrPresentation, $Position);
     }
 
     /**
@@ -1945,9 +2140,10 @@ abstract class ModulBase extends \IPSModuleStrict
      *
      * Beispiele:
      * ```php
-     * // Array Payload
+     * // Payload mit einem unbrauchbaren numerischen Root-Eintrag
      * $payload = [0 => 'value', 'temperature' => 21.5];
      * $this->processPayload($payload);
+     * // Verarbeitet wird nur "temperature"; Root-Eintrag 0 hat keinen Variablen-Ident.
      *
      * // Object Payload mit Composite-Struktur
      * $payload = [
@@ -1980,7 +2176,13 @@ abstract class ModulBase extends \IPSModuleStrict
             unset($payload['exposes']);
         }
 
+        $payload = $this->filterPayloadRootIdentEntries($payload);
+
         $this->latestPayload = $payload;
+        if ($payload === []) {
+            return;
+        }
+
         $this->lastPayload = $this->lastPayload + $payload;
 
         // Verschachtelte Strukturen flach machen
@@ -1988,8 +2190,55 @@ abstract class ModulBase extends \IPSModuleStrict
 
         // Payload-Daten verarbeiten
         foreach ($flattenedPayload as $key => $value) {
+            if (!\is_string($key)) {
+                $this->SendDebug(
+                    'processPayload',
+                    \sprintf(
+                        'Ueberspringe Payload-Eintrag ohne Variablen-Ident: Key=%s, Value=%s',
+                        (string) $key,
+                        $this->formatPayloadDebugValue($value)
+                    ),
+                    0
+                );
+                continue;
+            }
             $this->processPayloadEntry($key, $value);
         }
+    }
+
+    /**
+     * Entfernt numerisch indizierte Root-Eintraege aus MQTT-Payloads.
+     *
+     * Zigbee2MQTT-Geraete-Payloads muessen Property-Namen enthalten, damit sie
+     * auf Symcon-Variablen abgebildet werden koennen. Ein reines JSON-Array wie
+     * [9] liefert nur den numerischen Key 0 und ist fuer die Variablenlogik nicht
+     * verarbeitbar.
+     *
+     * @param array<mixed,mixed> $payload
+     *
+     * @return array<string,mixed>
+     */
+    private function filterPayloadRootIdentEntries(array $payload): array
+    {
+        $filteredPayload = [];
+        foreach ($payload as $key => $value) {
+            if (!\is_string($key)) {
+                $this->SendDebug(
+                    'processPayload',
+                    \sprintf(
+                        'Ueberspringe Payload-Eintrag ohne Variablen-Ident: Key=%s, Value=%s',
+                        (string) $key,
+                        $this->formatPayloadDebugValue($value)
+                    ),
+                    0
+                );
+                continue;
+            }
+
+            $filteredPayload[$key] = $value;
+        }
+
+        return $filteredPayload;
     }
 
     /**
@@ -2410,7 +2659,7 @@ abstract class ModulBase extends \IPSModuleStrict
         if ($this->isCompositeKey($ident)) {
             $payload = $this->buildNestedPayload($ident, $value);
             $this->SendDebug(__FUNCTION__, 'Sende composite payload: ' . json_encode($payload), 0);
-            return $this->SendSetCommand($payload);
+            return $this->SendSetCommandAndUpdateLocalIfNoFeedback($ident, $value, $payload, __FUNCTION__);
         }
 
         if ($ident === 'brightness') {
@@ -2443,7 +2692,8 @@ abstract class ModulBase extends \IPSModuleStrict
         }
 
         if (($feature['type'] ?? '') === 'binary' && isset($feature['value_on'], $feature['value_off'])) {
-            return $this->SendSetCommand([$ident => $value ? $feature['value_on'] : $feature['value_off']]);
+            $payloadValue = $value ? $feature['value_on'] : $feature['value_off'];
+            return $this->SendSetCommandAndUpdateLocalIfNoFeedback($ident, $value, [$ident => $payloadValue], __FUNCTION__);
         }
 
         return null;
@@ -2470,6 +2720,54 @@ abstract class ModulBase extends \IPSModuleStrict
     private function HasExposeProperty(string $property): bool
     {
         return $this->findExposeFeatureByProperty($property) !== null;
+    }
+
+    /**
+     * Prueft, ob Zigbee2MQTT fuer eine Aktion voraussichtlich wieder einen Wert publiziert.
+     */
+    private function ShouldWaitForZigbee2MQTTFeedback(string $ident): bool
+    {
+        $feature = $this->findExposeFeatureByProperty($ident);
+        if ($feature === null && $this->isCompositeKey($ident)) {
+            $parts = explode('__', $ident);
+            $childIdent = end($parts);
+            if (\is_string($childIdent) && $childIdent !== '') {
+                $feature = $this->findExposeFeatureByProperty($childIdent);
+            }
+        }
+
+        if ($feature === null) {
+            return true;
+        }
+
+        return (((int) ($feature['access'] ?? 0)) & 0b001) !== 0;
+    }
+
+    /**
+     * Merkt nur reine Schreib- und Befehlswerte lokal, die keine Rueckmeldung liefern.
+     */
+    private function UpdateLocalValueAfterSetIfNoFeedback(string $ident, mixed $value, string $context): void
+    {
+        if ($this->ShouldWaitForZigbee2MQTTFeedback($ident)) {
+            $this->SendDebug($context, 'Set-Befehl gesendet; lokaler Wert wird erst nach Zigbee2MQTT-Rueckmeldung aktualisiert.', 0);
+            return;
+        }
+
+        $this->SendDebug($context, 'Set-Befehl ohne erwartete Rueckmeldung; lokaler Wert wird lokal gemerkt.', 0);
+        $this->SetValueDirect($ident, $value);
+    }
+
+    /**
+     * Sendet ein Set-Payload und merkt Werte ohne Zigbee2MQTT-Rueckmeldung lokal.
+     */
+    private function SendSetCommandAndUpdateLocalIfNoFeedback(string $ident, mixed $localValue, array $payload, string $context): bool
+    {
+        if (!$this->SendSetCommand($payload)) {
+            return false;
+        }
+
+        $this->UpdateLocalValueAfterSetIfNoFeedback($ident, $localValue, $context);
+        return true;
     }
 
     /**
@@ -2505,8 +2803,7 @@ abstract class ModulBase extends \IPSModuleStrict
     private function sendBrightnessAction(mixed $value): bool
     {
         $payload = ['brightness' => $this->normalizeValueToRange($value, true)];
-        $this->SendSetCommand($payload);
-        return true;
+        return $this->SendSetCommandAndUpdateLocalIfNoFeedback('brightness', $value, $payload, __FUNCTION__);
     }
 
     /**
@@ -2516,7 +2813,7 @@ abstract class ModulBase extends \IPSModuleStrict
     {
         $payload = [$ident => $value];
         $this->SendDebug('handleStandardVariable', 'Sende payload: ' . json_encode($payload), 0);
-        return $this->SendSetCommand($payload);
+        return $this->SendSetCommandAndUpdateLocalIfNoFeedback($ident, $value, $payload, 'handleStandardVariable');
     }
 
     /**
@@ -2558,25 +2855,15 @@ abstract class ModulBase extends \IPSModuleStrict
 
             $payload = [$ident => $enumStateValue];
             $this->SendDebug(__FUNCTION__, 'Enum-State-Payload wird gesendet: ' . json_encode($payload), 0);
-
-            if (!$this->SendSetCommand($payload)) {
-                return false;
-            }
-
-            $this->SetValueDirect($ident, $enumStateValue);
-            return true;
+            return $this->SendSetCommandAndUpdateLocalIfNoFeedback($ident, $enumStateValue, $payload, __FUNCTION__);
         }
 
         // State Pattern Prüfung
         if (preg_match(self::STATE_PATTERN['SYMCON'], $ident)) {
-            $payload = [$ident => $this->convertOnOffValue($value, false)];
+            $stateValue = $this->convertOnOffValue($value, false);
+            $payload = [$ident => $stateValue];
             $this->SendDebug(__FUNCTION__, 'State-Payload wird gesendet: ' . json_encode($payload), 0);
-
-            if (!$this->SendSetCommand($payload)) {
-                return false;
-            }
-            $this->SetValueDirect($ident, $this->convertOnOffValue($value, false));
-            return true;
+            return $this->SendSetCommandAndUpdateLocalIfNoFeedback($ident, $stateValue, $payload, __FUNCTION__);
         }
 
         // Prüfe auf vordefinierte States
@@ -2585,23 +2872,22 @@ abstract class ModulBase extends \IPSModuleStrict
             if (isset($stateInfo['values'])) {
                 $index = \is_bool($value) ? (int) $value : $value;
                 if (isset($stateInfo['values'][$index])) {
-                    $payload = [$ident => $stateInfo['values'][$index]];
+                    $stateValue = $stateInfo['values'][$index];
+                    $payload = [$ident => $stateValue];
                     $this->SendDebug(__FUNCTION__, 'Vordefinierter State-Payload wird gesendet: ' . json_encode($payload), 0);
-                    if (!$this->SendSetCommand($payload)) {
-                        return false;
-                    }
-                    $this->SetValueDirect($ident, $stateInfo['values'][$index]);
-                    return true;
+                    return $this->SendSetCommandAndUpdateLocalIfNoFeedback($ident, $stateValue, $payload, __FUNCTION__);
                 }
             }
         }
 
         // Überprüfen, ob der Wert in STATE_PATTERN definiert ist
-        if (isset(self::STATE_PATTERN[strtoupper($value)])) {
-            $adjustedValue = self::STATE_PATTERN[strtoupper($value)];
-            $this->SendDebug(__FUNCTION__, 'State-Wert gefunden: ' . $value . ' -> ' . json_encode($adjustedValue), 0);
-            $this->SetValueDirect($ident, $adjustedValue);
-            return true;
+        $stringValue = (string) $value;
+        if (isset(self::STATE_PATTERN[strtoupper($stringValue)])) {
+            $adjustedValue = self::STATE_PATTERN[strtoupper($stringValue)];
+            $this->SendDebug(__FUNCTION__, 'State-Wert gefunden: ' . $stringValue . ' -> ' . json_encode($adjustedValue), 0);
+            $payload = [$ident => $adjustedValue];
+            $this->SendDebug(__FUNCTION__, 'State-Payload wird gesendet: ' . json_encode($payload), 0);
+            return $this->SendSetCommandAndUpdateLocalIfNoFeedback($ident, $adjustedValue, $payload, __FUNCTION__);
         }
 
         $this->SendDebug(__FUNCTION__, 'Kein passender State-Handler gefunden', 0);
@@ -2772,9 +3058,7 @@ abstract class ModulBase extends \IPSModuleStrict
             return false;
         }
 
-        $this->SetValueDirect('color_temp', $convertedValue);
-        $this->SetValueDirect('color_temp_kelvin', $kelvinValue);
-        $this->UpdateColorTemperatureWhiteColorVariable($kelvinValue);
+        $this->UpdateColorTemperatureLocallyIfNoFeedback($convertedValue, $kelvinValue);
         return true;
     }
 
@@ -2796,11 +3080,24 @@ abstract class ModulBase extends \IPSModuleStrict
         }
 
         $kelvinValue = $this->convertMiredToKelvin($convertedValue);
-        $this->SetValueDirect('color_temp', $convertedValue);
-        $this->SetValueDirect('color_temp_kelvin', $kelvinValue);
-        $this->UpdateColorTemperatureWhiteColorVariable($kelvinValue);
+        $this->UpdateColorTemperatureLocallyIfNoFeedback($convertedValue, $kelvinValue);
 
         return true;
+    }
+
+    /**
+     * Aktualisiert abgeleitete Farbtemperaturwerte nur bei Befehlen ohne Zigbee2MQTT-Rueckmeldung.
+     */
+    private function UpdateColorTemperatureLocallyIfNoFeedback(int $miredValue, int $kelvinValue): void
+    {
+        if ($this->ShouldWaitForZigbee2MQTTFeedback('color_temp')) {
+            $this->SendDebug('handleColorVariable', 'Farbtemperatur wird erst nach Zigbee2MQTT-Rueckmeldung aktualisiert.', 0);
+            return;
+        }
+
+        $this->SetValueDirect('color_temp', $miredValue);
+        $this->SetValueDirect('color_temp_kelvin', $kelvinValue);
+        $this->UpdateColorTemperatureWhiteColorVariable($kelvinValue);
     }
 
     /**
@@ -2861,7 +3158,7 @@ abstract class ModulBase extends \IPSModuleStrict
         }
 
         $this->SetValueDirect($presetIdent, $value);
-        $this->SetValueDirect($mainIdent, $value);
+        $this->UpdateLocalValueAfterSetIfNoFeedback($mainIdent, $value, __FUNCTION__);
         return true;
     }
 
@@ -3554,10 +3851,10 @@ abstract class ModulBase extends \IPSModuleStrict
             $this->SendDebug(__FUNCTION__, 'FLOAT_UNITS content: ' . json_encode(self::FLOAT_UNITS), 0);
 
             if (\in_array($unitTrimmed, self::FLOAT_UNITS, true)) {
-                // Wenn unit in FLOAT_UNITS und step eine Ganzzahl ist -> integer
+                // Wenn unit in FLOAT_UNITS und step eine Ganzzahl ist -> int
                 if ($value_step != 1.0 && fmod($value_step, 1) === 0.0) {
-                    $this->SendDebug(__FUNCTION__, 'Unit in FLOAT_UNITS but step is integer, returning integer', 0);
-                    return 'integer';
+                    $this->SendDebug(__FUNCTION__, 'Unit in FLOAT_UNITS but step is integer, returning int', 0);
+                    return 'int';
                 }
                 // Sonst float
                 return 'float';
@@ -4148,32 +4445,6 @@ abstract class ModulBase extends \IPSModuleStrict
     }
 
     /**
-     * Returns a human-readable name for a native Symcon presentation.
-     */
-    private function DescribePresentationForMigrationLog(array $presentation): string
-    {
-        $presentationKey = \defined('PRESENTATION') ? \constant('PRESENTATION') : 'PRESENTATION';
-        $presentationID = $presentation[$presentationKey] ?? $presentation['PRESENTATION'] ?? null;
-        $presentations = [
-            'VARIABLE_PRESENTATION_SLIDER'      => 'Slider',
-            'VARIABLE_PRESENTATION_ENUMERATION' => 'Enumeration',
-            'VARIABLE_PRESENTATION_VALUE'       => 'Value display',
-            'VARIABLE_PRESENTATION_SWITCH'      => 'Switch',
-            'VARIABLE_PRESENTATION_COLOR'       => 'Color',
-            'VARIABLE_PRESENTATION_SHUTTER'     => 'Shutter',
-            'VARIABLE_PRESENTATION_DURATION'    => 'Duration',
-        ];
-
-        foreach ($presentations as $constant => $caption) {
-            if (\defined($constant) && $presentationID === \constant($constant)) {
-                return $this->Translate($caption);
-            }
-        }
-
-        return $this->Translate('Native presentation');
-    }
-
-    /**
      * Registriert Composite-Features oder delegiert Farb-Composite-Features.
      *
      * @param array $feature Composite-Expose.
@@ -4386,12 +4657,6 @@ abstract class ModulBase extends \IPSModuleStrict
             return;
         }
 
-        $presetIdent = $property . '_presets';
-        $presetFeature = ['property' => $presetIdent, 'type' => $type, 'label' => $this->FormatVariableCatalogLabel($property) . ' Presets'];
-        if (!$this->CanCreateVariable($presetIdent, $presetFeature, 'expose')) {
-            return;
-        }
-
         $variableType = $this->getVariableTypeFromFeature($type, $property, $unit, $step, $groupType);
         $this->registerPresetVariables($feature['presets'], $feature['property'], $variableType, $feature);
         $this->SendDebug(__FUNCTION__, 'Registered presets for: ' . $feature['property'], 0);
@@ -4520,7 +4785,8 @@ abstract class ModulBase extends \IPSModuleStrict
 
         // Hole ident für Preset-Variable
         $presetIdent = $property . '_presets';
-        if (!$this->CanCreateVariable($presetIdent, ['property' => $presetIdent, 'type' => $feature['type'] ?? 'numeric'], 'expose')) {
+        $presetFeature = $this->BuildPresetCatalogFeature($feature, $property, $presets);
+        if (!$this->CanCreateVariable($presetIdent, $presetFeature, 'expose')) {
             return;
         }
 
@@ -4592,10 +4858,18 @@ abstract class ModulBase extends \IPSModuleStrict
         }
 
         $profileOrPresentation = '';
-        if ($ident === 'update__remaining') {
-            $profileOrPresentation = $this->BuildDurationPresentation() ?? $profileOrPresentation;
-        } elseif ($ident === 'last_seen') {
-            $profileOrPresentation = $this->BuildDateTimePresentation() ?? $profileOrPresentation;
+        switch ($ident) {
+            case 'brightness':
+                $profileOrPresentation = $this->BuildBrightnessFeaturePresentation($feature) ?? $profileOrPresentation;
+                break;
+
+            case 'update__remaining':
+                $profileOrPresentation = $this->BuildDurationPresentation() ?? $profileOrPresentation;
+                break;
+
+            case 'last_seen':
+                $profileOrPresentation = $this->BuildDateTimePresentation() ?? $profileOrPresentation;
+                break;
         }
         $this->RecordLegacyProfilePresentationReplacement($ident, $profileOrPresentation);
         switch ($varDef['type']) {

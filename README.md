@@ -3,9 +3,9 @@
 [![Symcon Version](https://img.shields.io/badge/Symcon%20Version-9.0%3E-green)](https://www.symcon.de/de/service/dokumentation/einfuehrung/systemvoraussetzungen/versionenuebersicht/#version-90)
 [![License](https://img.shields.io/badge/License-CC%20BY--NC--SA%204.0-green.svg)](https://creativecommons.org/licenses/by-nc-sa/4.0/)
 [![Check Style](https://github.com/Nall-chan/Zigbee2MQTT/workflows/Check%20Style/badge.svg)](https://github.com/Nall-chan/Zigbee2MQTT/actions)
-[![Run Tests](https://github.com/Nall-chan/Zigbee2MQTT/workflows/Run%20Tests/badge.svg)](https://github.com/Nall-chan/Zigbee2MQTT/actions)  
+[![Run Tests](https://github.com/Nall-chan/Zigbee2MQTT/workflows/Run%20Tests/badge.svg)](https://github.com/Nall-chan/Zigbee2MQTT/actions)
 
-# Zigbee2MQTT  <!-- omit in toc -->  
+# Zigbee2MQTT  <!-- omit in toc -->
 
 Anbindung von [zigbee2mqtt](https://www.zigbee2mqtt.io) an IP-Symcon.
 
@@ -23,6 +23,7 @@ Anbindung von [zigbee2mqtt](https://www.zigbee2mqtt.io) an IP-Symcon.
   - [4.2 Tile-Visualisierung](#42-tile-visualisierung)
   - [4.3 Variablenverwaltung](#43-variablenverwaltung)
   - [4.4 Wartung verwaister Variablen](#44-wartung-verwaister-variablen)
+  - [4.5 Symcon-Actions](#45-symcon-actions)
 - [5. Changelog](#5-changelog)
 - [6. Spenden](#6-spenden)
 - [7. Lizenz](#7-lizenz)
@@ -46,26 +47,26 @@ Anbindung von [zigbee2mqtt](https://www.zigbee2mqtt.io) an IP-Symcon.
 
 ## 3. Installation
 
-### 3.1 Neuinstallation  
+### 3.1 Neuinstallation
 
 Zuerst ist eine funktionierende Zigbee2MQTT Umgebung gemäß der [Installationsanleitung von Zigbee2MQTT (Link)](https://www.zigbee2mqtt.io/guide/getting-started/) einzurichten.
 
 Ein hierfür benötigter MQTT-Broker ist in Symcon verfügbar und muss entsprechend **vorher** [in Symcon als Instanz erstellt werden (Link)](https://www.symcon.de/de/service/dokumentation/modulreferenz/mqtt/mqtt-server/), sofern er nicht schon vorhanden ist.
-Ein MQTT-Konfigurator wird für Zigbee2MQTT nicht benötigt!  
+Ein MQTT-Konfigurator wird für Zigbee2MQTT nicht benötigt!
 
-Die Installation des Zigbee2MQTT Moduls erfolgt anschließend über den Module Store in der Symcon Konsole.  
-![Modul-Store](imgs/store.png)  
+Die Installation des Zigbee2MQTT Moduls erfolgt anschließend über den Module Store in der Symcon Konsole.
+![Modul-Store](imgs/store.png)
 
-Nach der Installation fragt die Konsole ob eine [Zigbee2MQTT-Discovery](Discovery/README.md)-Instanz erstellt werden soll.  
-![Module-Store](imgs/install.png)  
+Nach der Installation fragt die Konsole ob eine [Zigbee2MQTT-Discovery](Discovery/README.md)-Instanz erstellt werden soll.
+![Module-Store](imgs/install.png)
 
-Weitere Schritte zur Ersteinrichtung sind unter dem [Zigbee2MQTT-Discovery](Discovery/README.md)-Modul beschrieben.  
+Weitere Schritte zur Ersteinrichtung sind unter dem [Zigbee2MQTT-Discovery](Discovery/README.md)-Modul beschrieben.
 
 ---
 
 ### 3.2 Update von Modul Version 4.5 auf 5.x
 
-> [!IMPORTANT]  
+> [!IMPORTANT]
 > **Bitte diese Migrationsanleitung genau lesen und beachten, ein downgrade auf eine alte Modul Version ist nur mit einem Symcon-Backup möglich!**
 
 ### I. Vorbereitung <!-- omit in toc -->
@@ -74,66 +75,40 @@ Weitere Schritte zur Ersteinrichtung sind unter dem [Zigbee2MQTT-Discovery](Disc
 - Diese wird automatisch ab Version 4.5 durch die [Bridge-Instanz](Bridge/README.md)  installiert, sofern diese Instanz angelegt wurde.
 - Alternativ muss die benötigte [Extension in Zigbee2MQTT](#34-installation-der-ip-symcon-extension-in-zigbee2mqtt) manuell ein Update auf Version 4.6 erhalten.
 
-> [!CAUTION]  
+> [!CAUTION]
 > Ohne aktuelle Extension wird das Modul Update mit Fehlermeldungen durchgeführt, welche zu unerwarteten Fehlverhalten führen kann.
 
 ### II. Modul-Update <!-- omit in toc -->
 
-> [!TIP]  
-> **Meldungen kontrollieren**  
+> [!TIP]
+> **Meldungen kontrollieren**
 >
-> - Während des Updates wird empfohlen das Fenster [Meldungen](https://www.symcon.de/de/service/dokumentation/komponenten/verwaltungskonsole/meldungen/) geöffnet zu lassen um eventuelle Fehlermeldungen nachvollziehen zu können.  
-> - Das Update anschließend über den [Modul-Store](https://www.symcon.de/de/service/dokumentation/komponenten/verwaltungskonsole/module-store/) durchführen.  
+> - Während des Updates wird empfohlen das Fenster [Meldungen](https://www.symcon.de/de/service/dokumentation/komponenten/verwaltungskonsole/meldungen/) geöffnet zu lassen um eventuelle Fehlermeldungen nachvollziehen zu können.
+> - Das Update anschließend über den [Modul-Store](https://www.symcon.de/de/service/dokumentation/komponenten/verwaltungskonsole/module-store/) durchführen.
 
 ---
 
-> [!WARNING]  
-> **geänderte Variablen-Profile**  
+> [!WARNING]
+> **Umstellung auf Symcon-Darstellungen**
 >
-> - Die Variablen welche bei `Helligkeit` vorher einen Wertebereich von 0 - 254 hatten, werden auf das Profil `~Intensity.100` angepasst. Das Modul rechnet ab sofort automatisch den Wertebereich aus Z2M in Prozent um.  
-> - Entsprechende Aktion auf oder Auswertungen des Rohwertes der Variablen sind zu prüfen und gglfs. anzupassen.  
+> - Ab Version 6 werden neue und erneut registrierte Variablen nach Möglichkeit über native Symcon-Variablendarstellungen beschrieben. Das Modul legt dafür keine neuen dynamischen `Z2M.*`-Profile mehr an und gibt auch keine Symcon-Standardprofile mehr aktiv vor.
+> - Bereits vorhandene benutzerdefinierte Darstellungen oder benutzerdefinierte Profile haben Vorrang und werden vom Modul nicht überschrieben.
+> - Die Werte bleiben weiterhin in der von Zigbee2MQTT gelieferten Form gespeichert. Umrechnungen, z. B. Helligkeit auf Prozent, Mired/Kelvin oder Datum/Uhrzeit, erfolgen über die Darstellung beziehungsweise über die spezialisierten Kacheln.
+> - Alte Profilreste sollten nicht global per Script gelöscht werden. Verwenden Sie stattdessen die Variablen-Wartung der jeweiligen Geräte- oder Gruppeninstanz; die Bridge zeigt nur, welche Instanzen geprüft werden sollten.
 
 ---
 
-> [!TIP]  
-> **Alte Variablenprofile löschen**  
-> Folgendes Script kann in Symcon ausgeführt werden, um veraltete Variablenprofile zu löschen.
->
-> ```php
->$Z2M_Profile = array_filter(IPS_GetVariableProfileList(),function($Profil)
->{
->    return substr($Profil, 0, 4) === 'Z2M.';
->});
->
->foreach (IPS_GetVariableList() as $VariableId)
->{
->    $Variable = IPS_GetVariable($VariableId);
->    $Found = array_search($Variable['VariableProfile'],$Z2M_Profile);
->    if($Found !== false){
->        unset($Z2M_Profile[$Found]);
->    }
->}
->
->foreach ($Z2M_Profile as $Profile)
->{
->    IPS_DeleteVariableProfile($Profile);
->    echo 'Delete: '.$Profile.PHP_EOL;
->}
->```
-
----
-
-> [!WARNING]  
-> **geänderte Variablen-Idents**  
+> [!WARNING]
+> **geänderte Variablen-Idents**
 >
 > - Die Version 5.0 ändert beim Update alle Ident aller Variablen welche zu einer ZigbeeMQTT-Instanz gehören.
 > - Diese Änderung betrifft nur User welche mit Scripten auf Variablen per Ident (z.B. Z2M_Brightness) und nicht per ObjektID (z.B. 12345) zugreifen.
-> - Die Variablen selbst bleiben dabei erhalten, so dass sich hier keine ObjektIDs ändern, und entsprechend auch keine Änderungen an Ereignissen, Links, Automationen etc... ergeben.  
+> - Die Variablen selbst bleiben dabei erhalten, so dass sich hier keine ObjektIDs ändern, und entsprechend auch keine Änderungen an Ereignissen, Links, Automationen etc... ergeben.
 
 ---
 
-> [!CAUTION]  
-> **geänderte Variablentypen**  
+> [!CAUTION]
+> **geänderte Variablentypen**
 >
 > Folgende Liste enthält alle Variablen wo zuvor eine Variable vom falschen Typ genutzt wurde.
 > Diese werden nicht migriert, sondern bleiben erhalten.
@@ -149,7 +124,7 @@ Weitere Schritte zur Ersteinrichtung sind unter dem [Zigbee2MQTT-Discovery](Disc
 
 ### 3. Zigbee2MQTT Version <!-- omit in toc -->
 
-- Ein Update auf Zigbee2MQTT Version 2.0 oder neuer kann nach dem Update des Moduls durchgeführt werden.  
+- Ein Update auf Zigbee2MQTT Version 2.0 oder neuer kann nach dem Update des Moduls durchgeführt werden.
 - Hierzu sind die Anleitungen unter [zigbee2mqtt.io](https://www.zigbee2mqtt.io/guide/installation/) zu beachten.
 - In Symcon sollte eine [Bridge-Instanz](Bridge/README.md) eingerichtet sein, damit beim Update automatisch die korrekte [Extension in Zigbee2MQTT](#34-installation-der-ip-symcon-extension-in-zigbee2mqtt) installiert wird.
 
@@ -195,7 +170,7 @@ Während des Updates können vorübergehend Warnungen auftreten, wenn andere Sym
 
 #### III. Symcon-Extension prüfen <!-- omit in toc -->
 
-Nach dem Update ist die Bridge-Konfiguration zu öffnen. Dort muss **Symcon-Erweiterung ist aktuell** angezeigt werden. Version 6.0 benötigt die Symcon-Extension in Version `6.04`.
+Nach dem Update ist die Bridge-Konfiguration zu öffnen. Dort muss **Symcon-Erweiterung ist aktuell** angezeigt werden. Version 6.0 benötigt die Symcon-Extension in Version `6.05`.
 
 Die Bridge installiert beziehungsweise aktualisiert die Extension im Normalfall automatisch. Falls Zigbee2MQTT während des Modulupdates nicht erreichbar war oder keine Bridge-Instanz existiert, muss die Extension später über die Bridge oder anhand der [manuellen Anleitung](#34-installation-der-ip-symcon-extension-in-zigbee2mqtt) aktualisiert werden.
 
@@ -236,41 +211,41 @@ Die folgenden Funktionen werden durch das Update nur bereitgestellt und verände
 
 Für den fehlerfreien Betrieb des Moduls wird eine Erweiterung (Extension) in Zigbee2MQTT benötigt.
 
-**Folgende Varianten zum Einreichten der Erweiterung sind möglich:**  
+**Folgende Varianten zum Einreichten der Erweiterung sind möglich:**
 
-**1.** Über die [Bridge](Bridge/README.md)-Instanz in Symcon (empfohlen)  
+**1.** Über die [Bridge](Bridge/README.md)-Instanz in Symcon (empfohlen)
 
-**2.** Über das Z2M Frontend den Inhalt der passenden Datei unter dem Menüpunkt Erweiterungen hinzufügen.  
+**2.** Über das Z2M Frontend den Inhalt der passenden Datei unter dem Menüpunkt Erweiterungen hinzufügen.
 
 **3.** Die passende Datei in das der Z2M Version entsprechende Verzeichnis auf dem Rechner, wo Z2M installiert ist ablegen. (Expertenwissen zu Z2M erforderlich)
 
 Extension-Dateien und Pfade innerhalb Z2M:
 
-- **Z2M bis Version 1.42**  
+- **Z2M bis Version 1.42**
   - [IPSymconExtension.js](libs/IPSymconExtension.js)
   - Z2M Pfad: **`data/extension`**
-- **Z2M ab Version 2.0**  
+- **Z2M ab Version 2.0**
   - [IPSymconExtension2.js](libs/IPSymconExtension2.js)
-  - Z2M Pfad: **`data/external_extensions`**  
+  - Z2M Pfad: **`data/external_extensions`**
 
-**Anleitungen zum Einrichten der Erweiterung:**  
+**Anleitungen zum Einrichten der Erweiterung:**
 
-**zu 1.** Ist in der Dokumentation der [Bridge](Bridge/README.md)-Instanz beschrieben.  
+**zu 1.** Ist in der Dokumentation der [Bridge](Bridge/README.md)-Instanz beschrieben.
 
-**zu 2.** Das Frontend von Z2M im Browser öffnen und den Punkt "Entwicklerkonsole" wählen.  
-   Den Reiter "Externe Erweiterungen" auswählen.  
-   Eine neue Erweiterung erstellen und den Namen z.B. symcon.js vergeben.  
-   ![Erweiterungen](imgs/z2m_extension_anlegen.png)  
-   Den Inhalt (Code) aus  
-   [IPSymconExtension.js für Z2M bis Version 1.42](libs/IPSymconExtension.js)  
-   oder  
-   [IPSymconExtension.js für Z2M ab Version 2.0](libs/IPSymconExtension2.js)  
-   im Code Bereich einfügen und speichern.  
-   ![Code Eingabe](imgs/z2m_extension_code.png)  
-   Danach sollte Z2M neu gestartet werden:  
-   ![Code Eingabe](imgs/z2m_extension_restart.png)  
+**zu 2.** Das Frontend von Z2M im Browser öffnen und den Punkt "Entwicklerkonsole" wählen.
+   Den Reiter "Externe Erweiterungen" auswählen.
+   Eine neue Erweiterung erstellen und den Namen z.B. symcon.js vergeben.
+   ![Erweiterungen](imgs/z2m_extension_anlegen.png)
+   Den Inhalt (Code) aus
+   [IPSymconExtension.js für Z2M bis Version 1.42](libs/IPSymconExtension.js)
+   oder
+   [IPSymconExtension.js für Z2M ab Version 2.0](libs/IPSymconExtension2.js)
+   im Code Bereich einfügen und speichern.
+   ![Code Eingabe](imgs/z2m_extension_code.png)
+   Danach sollte Z2M neu gestartet werden:
+   ![Code Eingabe](imgs/z2m_extension_restart.png)
 
-**zu 3.** Sollte nur von versierten Usern gemacht werden, da es aufgrund der vielzahl an Systemen unter welchen Z2M laufen kann, keine global gültige Anleitung gibt.  
+**zu 3.** Sollte nur von versierten Usern gemacht werden, da es aufgrund der vielzahl an Systemen unter welchen Z2M laufen kann, keine global gültige Anleitung gibt.
 
 ## 4. Konfiguration in IP-Symcon
 
@@ -297,6 +272,8 @@ Geräte-Instanzen können automatisch eine moderne HTML-SDK-Kachel verwenden, we
 
 Unterstützt werden derzeit eigene Kacheln für:
 
+- RGB-, RGBW- und RGBWW-Leuchten mit nativer Symcon-Farbauswahl
+- Tunable-White-Leuchten mit Farbtemperatur und Presets
 - Heizungen und Heizventile
 - Schaltaktoren mit Leistungsmessung, auch mit mehreren Schaltausgängen
 - Sensoren wie Temperatur, Luftfeuchtigkeit, Bodenfeuchtigkeit, Helligkeit und Batterie
@@ -320,11 +297,17 @@ Geräte- und Gruppenoptionen aus Zigbee2MQTT können ebenfalls direkt in Symcon 
 
 ### 4.4 Wartung verwaister Variablen
 
-Die [Bridge-Funktionen](Bridge/README.md#56-variablen-wartung) enthalten eine kompakte Variablen-Wartungsübersicht. Sie sucht innerhalb des zugehörigen MQTT-Splitters und MQTT-Basistopics nach alten Zigbee2MQTT-Variablen, die nicht mehr durch aktuelle Exposes oder das zuletzt bekannte Payload abgedeckt sind, und fasst klare Löschkandidaten, Review-Kandidaten und Suchlauf-Hinweise pro betroffener Instanz zusammen.
+Die [Bridge-Funktionen](Bridge/README.md) enthalten eine kompakte Variablen-Wartungsübersicht. Sie sucht innerhalb des zugehörigen MQTT-Splitters und MQTT-Basistopics nach alten Zigbee2MQTT-Variablen, die nicht mehr durch aktuelle Exposes oder das zuletzt bekannte Payload abgedeckt sind, und fasst betroffene Geräte- und Gruppeninstanzen zusammen.
 
-Die eigentliche Prüfung und ein mögliches Löschen erfolgen unter **Expertenwerkzeuge → Variablen-Wartung** in der zuständigen Geräte- oder Gruppeninstanz. Diese darf ausschließlich ihre eigenen direkten Variablen verwalten. Archivierte oder referenzierte Variablen sind geschützt, Archivstatus und letzter Schreibzeitpunkt sind sichtbar, und jede Löschung betrifft genau eine Variable, die vorher erneut geprüft und per Popup bestätigt werden muss.
+Die Bridge löscht keine Variablen direkt, sondern öffnet die betroffene Instanz für die gezielte Prüfung. Die eigentliche Prüfung und ein mögliches Löschen erfolgen unter **Expertenwerkzeuge → Variablen-Wartung** in der zuständigen Geräte- oder Gruppeninstanz. Diese darf ausschließlich ihre eigenen direkten Variablen verwalten. Archivierte oder referenzierte Variablen sind geschützt, Archivstatus und letzter Schreibzeitpunkt sind sichtbar, und jede Löschung betrifft genau eine Variable, die vorher erneut geprüft und per Popup bestätigt werden muss.
 
-## 5. Changelog  
+### 4.5 Symcon-Actions
+
+Die mitgelieferten Symcon-Actions sind keine eigenen Module, sondern Aktionsvorlagen für passende Zigbee2MQTT-Geräte- und Gruppeninstanzen. Sie können beispielsweise in Ereignissen, Ablaufplänen oder Automatisierungen genutzt werden.
+
+Details stehen in der [Dokumentation der Zigbee2MQTT Actions](actions/README.md).
+
+## 5. Changelog
 
 **Version 6.00:**
 
@@ -334,7 +317,7 @@ Die Änderungen sind anhand der funktionalen Commits chronologisch gegliedert. A
 
 - Sämtliche Module wurden auf `IPSModuleStrict` migriert. Die Mindestversion wurde abschließend auf IP-Symcon 9.0 angehoben.
 - Numeric-, Enum-, Temperatur- und Farbtemperatur-Exposes erhalten passendere moderne Variablendarstellungen, soweit die Exposes die dafür notwendigen Werte liefern.
-- Die Kelvin-Farbtemperaturvariable `color_temp_kelvin` nutzt den aus dem Zigbee2MQTT-Mired-Bereich berechneten Kelvin-Bereich für die Symcon-Standardkachel Beleuchtung.
+- Die Kelvin-Farbtemperaturvariable `color_temp_kelvin` nutzt den aus dem Zigbee2MQTT-Mired-Bereich berechneten Kelvin-Bereich für die Symcon-Standardkachel Beleuchtung. Farbtemperatur-Presets bleiben als native Aufzählungsvariable verfügbar.
 - Moderne HTML-SDK-Kacheln wurden schrittweise für Heizungen, Schaltaktoren mit Messwerten, Sensoren, Sicherheitsgeräte, Fenstergriffe und Aktionsgeräte ergänzt.
 - Heizungs-Kacheln zeigen Ist- und Solltemperatur ohne Ringslider und bedienen die Solltemperatur per Plus-/Minus-Tasten. Später kamen breitere Preset-Tasten und pro Instanz konfigurierbare Solltemperaturen hinzu.
 - Schaltaktoren mit Messwerten zeigen Energie, Leistung, Spannung und Strom in einer eigenen Ansicht. Archivierte Werte können direkt aus der Kachel als Graphen geöffnet werden.
@@ -346,7 +329,7 @@ Die Änderungen sind anhand der funktionalen Commits chronologisch gegliedert. A
 ### 16. bis 18. Mai 2026: Struktur, Visualisierungsverwaltung und Variablenkatalog
 
 - Die Visualisierungslogik wurde in wiederverwendbare Helper und einen eigenen Verzeichnisbaum unter `libs/Visualization` aufgeteilt.
-- Die Verarbeitung in `ModulBase` wurde schrittweise für `RequestAction()`, Payloads, Standardvariablen, Sondervariablen, Farbaktionen, Wertkonvertierung, Presets, Profile und Variablenregistrierung refaktoriert.
+- Die Verarbeitung in `ModulBase` wurde schrittweise für `RequestAction()`, Payloads, Standardvariablen, Sondervariablen, Farbaktionen, Wertkonvertierung, Presets, Variablendarstellungen und Variablenregistrierung refaktoriert.
 - Die Geräte-Konfiguration erhielt einen Visualisierungsbereich, der nur die für die jeweilige Instanz fachlich passenden Kacheloptionen anbietet.
 - Temperatur-Visualisierungen können einen konfigurierbaren Fallback-Bereich verwenden, wenn Zigbee2MQTT keine Werte für `value_min` und `value_max` liefert.
 - Geräte-Instanzen erhielten einen lokalen Variablenkatalog. Anwender können steuern, welche bekannten Variablen automatisch angelegt werden dürfen. Gelöschte Variablen werden nicht ungefragt erneut erzeugt und können später gezielt wieder freigegeben werden.
@@ -386,7 +369,7 @@ Die Änderungen sind anhand der funktionalen Commits chronologisch gegliedert. A
 
 - Die Bridge erhielt eine Variablen-Wartung. Sie trennt verwaiste Variablen in klare Löschkandidaten und Review-Kandidaten und schützt archivierte oder referenzierte Variablen.
 - Das zwischenzeitlich vorhandene externe Bereinigungsscript wurde entfernt. Die integrierte Variablen-Wartung ist der unterstützte Weg zum Aufräumen verwaister Variablen.
-- Konfigurator und Geräteformulare laden schneller und nutzen bevorzugt den Bridge-Cache. Extension-Antworten ohne Transaction-ID werden bei Bedarf über das Response-Topic zugeordnet.
+- Konfigurator und Geräteformulare laden schneller und nutzen bevorzugt den Bridge-Cache. Extension-Antworten ohne oder mit nicht passender Transaction-ID werden bei Bedarf über das Response-Topic zugeordnet.
 - Die MQTT-Transaktionsverwaltung wurde deadline-basiert und stabiler aufgebaut. Lange Bridge-Antworten wie Zigbee2MQTT-Backups blockieren nicht mehr durch zu kurze Wartezeiten oder instabile Buffer.
 - Zigbee2MQTT-Backups werden wegen der Symcon-Ausgabegrenze chunkweise als ZIP-Datei unter `user/IPSZigbee2MQTT/backups` gespeichert. Eine öffentliche Base64-Rückgabe wird bewusst nicht angeboten.
 - Die Bridge erhielt eine zentrale OTA-Verwaltung. OTA-fähige Geräte können geprüft, verfügbare Updates gestartet oder geplant und laufende Updates mit Fortschritt, Restzeit und Ergebnisverlauf verfolgt werden. Zum Schutz des Zigbee-Netzes startet die Oberfläche nur ein aktives Update gleichzeitig.
@@ -425,7 +408,7 @@ Die Änderungen sind anhand der funktionalen Commits chronologisch gegliedert. A
 - Live-Aktualisierungen der Netzwerkkarten-Kachel werden als JSON-Zeichenkette an das HTML-SDK übertragen und dort sicher normalisiert, sodass Scanstart, Fortschritt und Ergebnisse ohne Typkonvertierungswarnung dargestellt werden.
 - Die grafische Netzwerkkarte filtert Verbindungen zu unbekannten oder nicht im Scan enthaltenen Knoten, lädt Cytoscape unabhängig von der HTML-SDK-Umgebung und verwendet für große Netzwerke ein schnelles konzentrisches Layout. Darstellungsfehler werden sichtbar in der Kachel ausgegeben.
 - Die HTML-SDK-Netzwerkkarte reagiert auf Größen- und Sichtbarkeitsänderungen, verwendet die verfügbare Viewport-Höhe und fordert beim Öffnen den aktuell gespeicherten Zustand an. Das initiale HTML-Grundgerüst bleibt unabhängig von der Netzwerkgröße klein; die Topologie wird erst nach dem Laden sicher übertragen. Weil das Symcon-PHP-SDK keine eigene HTML-Darstellung für die maximierte Instanzansicht anbietet, stellt die Karte für die große grafische Ansicht einen eigenen Vollbildmodus bereit.
-- Die Netzwerkkarten-Kachel bietet mehrere Layouts, eine Gerätesuche, fokussierte Umfeldansichten und optional ausblendbare Beschriftungen. Die allgemeine Cytoscape-Bedienlogik ist dabei von der Zigbee-spezifischen Darstellung getrennt und kann nach Stabilisierung der Schnittstelle als wiederverwendbarer Helfer ausgegliedert werden.
+- Die Netzwerkkarten-Kachel bietet mehrere Layouts, eine Gerätesuche, fokussierte Umfeldansichten und optional ausblendbare Beschriftungen.
 - Standardlayout und anfängliche Sichtbarkeit der Beschriftungen können im Abschnitt **Ansicht** der Netzwerkkarten-Instanz dauerhaft konfiguriert werden.
 - Der eigene Vollbildmodus der Netzwerkkarte leitet aus der aktuellen Symcon-Schriftfarbe automatisch eine kontrastierende Vollbildfläche ab, sodass Beschriftungen sowohl im hellen als auch im dunklen Profil lesbar bleiben.
 
@@ -458,11 +441,11 @@ Die Änderungen sind anhand der funktionalen Commits chronologisch gegliedert. A
 - Die Bridge-Erreichbarkeitsprüfung wartet bei ausgelasteten Zigbee2MQTT-Systemen bis zu 20 Sekunden auf den Options-Request und unterdrückt technische Zwischen-Notices. Die reine Konfigurator-Übersicht bleibt dagegen bewusst kurz wartend, damit frische Installationen und alte Extensions die Oberfläche nicht blockieren.
 - Die Discovery lässt den Anwender über `mqtt://` oder `mqtts://` ausdrücklich zwischen unverschlüsseltem MQTT und TLS wählen. Bei TLS werden Zertifikat und Hostname standardmäßig geprüft; für lokale Broker mit selbstsignierten Zertifikaten können beide Prüfungen bewusst deaktiviert werden. Ein automatischer Rückfall auf eine unverschlüsselte Verbindung findet nicht statt.
 - Bereits vorhandene Geräte- und Gruppeninstanzen werden im Konfigurator wieder korrekt als weiterhin von Zigbee2MQTT erkannte Einträge dargestellt. Die rote Symcon-Markierung bleibt damit ausschließlich tatsächlich nicht mehr gefundenen Instanzen vorbehalten.
-- Die Bridge erhielt eine rein lesende Variablenprofil-Diagnose. Sie listet konfliktbedingt erzeugte kompatible Profile mit ihren aktuellen Abweichungen, ihrer Verwendung und identischen Dubletten auf. Neue Profilkonflikte protokollieren zusätzlich die konkreten Unterschiede zur vorhandenen Definition.
-- Der Profilvergleich berücksichtigt nun, dass Symcon bei mehrfach definierten Assoziationen mit demselben Wert nur den zuletzt gesetzten Eintrag speichert. Dadurch werden beispielsweise bei Farbtemperatur-Presets keine fortlaufenden kompatiblen Ersatzprofile mehr erzeugt.
+- Die zwischenzeitliche Diagnose für alte Modulprofile wurde entfernt, weil das Modul keine neuen dynamischen Modulprofile mehr erzeugt oder repariert. Neue und erneut registrierte Variablen verwenden native Symcon-Darstellungen oder bleiben ohne Modulprofil.
+- Die Variablen-Wartung zeigt pro Instanz erkannte Darstellungswechsel mit vorherigem Profil und neuer Darstellung an, damit die Umstellung nachvollziehbar bleibt.
 - Die Testcenter von Bridge, Geräte- und Gruppeninstanzen befinden sich als eigenständige Bereiche auf der obersten Formularebene und sind nicht mehr in Erweiterungs- oder Expertenmenüs verschachtelt.
 - Das dadurch leere Bridge-Untermenü **Expertenwerkzeuge** wurde entfernt; Dokumentation und Regressionstests wurden an die einheitliche Formularstruktur angepasst.
-- Bestehende Variablenprofile werden bei abweichendem Typ, Wertebereich oder abweichenden Assoziationen weder verändert noch gelöscht. Vollständig passende Profile werden wiederverwendet; bei Namenskonflikten erstellt das Modul ein eindeutig benanntes kompatibles Profil und weist dieses der betreffenden Variable zu.
+- Bestehende Variablenprofile werden bei der Umstellung weder verändert noch gelöscht. Benutzerdefinierte Profile und Darstellungen bleiben unangetastet; das Modul setzt nur seine neue Standarddarstellung über die reguläre Variablenregistrierung.
 - Die öffentlichen Funktionsreferenzen für Geräte und Gruppen dokumentieren `Z2M_CommandExt()` und den Rückgabewert von `Z2M_ReadValue()` jetzt entsprechend den tatsächlich bereitgestellten Schnittstellen.
 - Gerätebilder werden mit geprüftem TLS, einem Timeout von fünf Sekunden und einer Größenbegrenzung von zwei MiB geladen. Nur technisch lesbare PNG-Dateien mit begrenzten Bildabmessungen werden gespeichert oder aus einem bestehenden Cache übernommen.
 
@@ -495,195 +478,236 @@ Die Änderungen sind anhand der funktionalen Commits chronologisch gegliedert. A
 - Die letzten dynamischen Profil-Fallbacks fuer generische numerische Werte, Binary-Exposes, State-Aufzaehlungen, Verfuegbarkeitsstatus sowie Bridge-Loglevel und Bridge-Neustart wurden auf native Symcon-Darstellungen umgestellt. Neue Variablen erzeugen dadurch keine Profile wie `Z2M.ac_frequency`, `Z2M.target_distance`, `Z2M.state.*`, `Z2M.DeviceStatus` oder `Z2M.bridge.*` mehr.
 - Bestehende Variablen mit alter Modulprofil-Zuweisung werden beim erneuten Registrieren nicht mehr auf dieses Profil zurueckgefuehrt. Wenn eine passende Darstellung verfuegbar ist, wird diese als Modul-Standarddarstellung gesetzt; andernfalls bleibt die Variable ohne Modulprofil. Benutzerdefinierte Profile und Darstellungen bleiben unangetastet.
 
-### 27. Juni 2026: Umstellung auf native Symcon-Darstellungen
+### 27. bis 29. Juni 2026: Umstellung auf native Symcon-Darstellungen
 
 - **Kompatibilitätsänderung gegenüber 5.42:** Die automatische Anlage und Pflege dynamischer `Z2M.*`-Variablenprofile ist entfernt. Neue und erneut registrierte Variablen verwenden nach Möglichkeit native Symcon-Variablendarstellungen oder bleiben ohne Modulprofil. Vorhandene Variablen, Objekt-IDs und bestehende Profile werden nicht automatisch gelöscht.
 - RGB-, HS- und XY-Farb-Exposes registrieren ihre Farbvariable ohne Modulprofil mit der nativen Symcon-Farbdarstellung für Hex/sRGB-Farbwerte. Die Symcon-Standardkachel für RGB-Leuchtmittel kann dadurch den ColorHex-Wert verwenden, ohne dass `~Color` oder ein dynamisches `Z2M.*`-Profil benötigt wird.
 - Reine Tunable-White-Leuchtmittel behalten ihre abgeleitete `color`-Variable ohne Modulprofil. Diese Variable nutzt nun ebenfalls die native Hex/sRGB-Farbdarstellung, damit der berechnete Weißton in der Tile-Visualisierung als Farbe nutzbar bleibt.
 - Composite-Farb-Exposes wie `color_xy`, `color_hs` und `color_rgb` werden weiterhin auf die passende Farbvariable zusammengeführt. Technische Untervariablen werden dabei nicht angelegt.
 - `last_seen` verwendet als Modul-Standard nun die native Symcon-Darstellung **Datum/Uhrzeit**. `update__remaining` bleibt eine Restdauer in Sekunden und verwendet die native Darstellung **Dauer**.
+- Text-Exposes wie Heiz- und Wochenpläne verwenden nun die native Symcon-Darstellung **Textbox**, damit lange String-Werte in der Tile-Visualisierung besser lesbar und bearbeitbar sind.
 - Bodenfeuchtewerte wie `soil_moisture` werden wie Luftfeuchtigkeit als Prozentwerte erkannt und in der Sensor-Kachel auch dann mit `%` dargestellt, wenn Zigbee2MQTT keine Einheit im Expose liefert.
+- Helligkeitswerte (`brightness`) nutzen die native Symcon-Schiebereglerdarstellung mit der Verwendung **Intensität** nur noch, wenn das Expose schreibbar ist. Dadurch kann die Symcon-Standardkachel für RGB- und RGBW-Leuchtmittel Helligkeit zusätzlich zu Farbe und Farbtemperatur anbieten. Reine Statuswerte bleiben eine einfache Wertdarstellung.
+- Die Heizungs-Kachel erkennt neben `occupied_heating_setpoint` nun auch `current_heating_setpoint` als Solltemperatur. Thermostate wie `TRV06`, die diesen Zigbee2MQTT-Ident verwenden, werden dadurch korrekt als Heizung dargestellt und geschaltet.
 - Spezialkacheln und der Debug-Export formatieren Variablenwerte nur noch über Symcon, wenn hinterlegte Altprofile noch existieren. Dadurch lösen gelöschte alte `Z2M.*`-Profile keine Laufzeitwarnungen mehr aus; die Kacheln fallen stattdessen auf eine einfache Wertdarstellung zurück.
+- Die lokale Variablen-Wartung löscht Kandidaten jetzt aus dem gespeicherten Suchlauf und aktualisiert die Tabellen fehlertolerant. Dadurch wird beim Löschen verwaister Variablen kein unmittelbarer Neu-Scan der Instanz ausgelöst und Symcon-Formularfehler durch inzwischen entfernte oder unerwartete Darstellungen werden abgefangen.
 
-**Version 5.42:**  
+### 2. bis 6. Juli 2026: Bridge-Expertenaktionen
 
-- Bridge Instanz konnte den Namen der bereits installierten Erweiterung nicht korrekt erkennen und übernehmen.  
-- Diverse Übersetzungen ergänzt.  
-- Neue Funktion Z2M_ReadValue und Z2M_SendGetCommand.  
-- Diverse spezielle Funktionen im globalen Namensraum aufrufen, um Compiler-Optimierung zu ermöglichen.  
+- Die Bridge-Wartung bietet eine gewarnte Expertenfunktion für dokumentierte Zigbee2MQTT-`bridge/request/action`-Actions.
+- Der Payload wird als `action` plus `params` gesendet; die `transaction` wird weiterhin vom Modul verwaltet.
+- Action-Name und JSON-Parameter werden geprüft und mit lokalisierten Rückmeldungen im Formular quittiert.
+- Eine eigene Dokumentation für die mitgelieferten Symcon-Actions ergänzt. Sie beschreibt Verfügbarkeit, Voraussetzungen, Parameter, Anwendung in Symcon und passende PHP-Skriptbeispiele.
+- Readme-Dateien der einzelnen Module überarbeitet.
+- Transaktionsdaten werden intern in einem chunked Buffer gespeichert. Große Zigbee2MQTT-Antworten, zum Beispiel `getDeviceInfo` bei Installationen mit vielen Geräten, überschreiten dadurch nicht mehr die Symcon-Buffergrenze und erzeugen keine falschen Timeout-Meldungen mehr.
+- OTA-Formularlisten werden während eines Modul-Updates nur noch aktualisiert, wenn die Symcon-Formularschnittstelle verfügbar ist. Dadurch erzeugen OTA-Statusänderungen während `VM_UPDATE` keine `InstanceInterface is not available`-Warnungen mehr.
+- Verwaiste interne Variablenregistrierungen werden vor einer Neuanlage bereinigt. Dadurch führen bereits gelöschte Maintained-Variablen beim Update nicht mehr zu `Variable #... existiert nicht`-Warnungen.
 
-**Version 5.40:**  
+### 9. Juli 2026: Robuste Payload-Verarbeitung
 
-- Einheiten in Profilen wurden teilweise nicht als UTF8 String an Symcon übergeben.  
-- Explizites Token-Mapping für häufige Zeichenketten bei booleschen Werten. Verhindert false positives bei Erkennung von Strings, wie z.B. `OFF` welches zu true umgewandelt wurde.  
-- Fehlerhafte Typisierung bei mehrdeutigen Features wie der Position (z.B. `position` numerischer vs. Enum-/String-Geräte) wird verhindert.  
-- Gefilterte Attribute aus Z2M werden in Symcon nicht mehr als Variablen angelegt. (Danke an JosVanHaag für den PR)  
-- Fehlende Übersetzungen vom Gerät S8 ergänzt.  
+- Numerisch indizierte Root-Payloads ohne Zigbee2MQTT-Property werden beim Payload-Import jetzt ignoriert. Dadurch lösen Geräte, die einzelne Werte oder Listenfragmente ohne Variablen-Ident senden, keinen `TypeError` in der Variablenverarbeitung mehr aus.
 
-**Version 5.39:**  
+### 13. Juli 2026: Rueckmeldebasierte Aktionsverarbeitung
 
-- Fehlende Übersetzungen vom Gerät Senoro.Win v2 ergänzt.  
-  
-**Version 5.38:**  
+- Lesbare Set-Aktionen wie Schalter, Helligkeit, Farbtemperatur und andere Statuswerte aktualisieren lokale Symcon-Werte erst nach einer Rueckmeldung von Zigbee2MQTT.
+- Reine Schreib- und Befehlswerte ohne eigene Rueckmeldung, zum Beispiel Szenen, Presets, Effekte oder andere `access: 2`-Funktionen, merken nach erfolgreichem Senden weiterhin den zuletzt gewaehlten Wert lokal.
+- Helligkeitsaktionen nutzen dieselbe Rueckmeldepruefung wie andere Standardaktionen und geben Sendefehler wieder korrekt an die Aktion zurueck.
+- Unveraenderte Payload-Werte werden nicht mehr erneut in Symcon-Variablen geschrieben. Dadurch sinken FlowHandler-, Ereignis-, Archiv- und Kachel-Aktualisierungen bei haeufig sendenden Geraeten deutlich.
 
-- Fehlende Übersetzungen von den Geräten 501.40, BMCT-SLZ, S4SW-001P8EU und WT-A03E ergänzt  
-- Discovery Instanz liefert die ganze Kette für Symcon 9.x  
-  
-**Version 5.37:**  
+### 14. Juli 2026: Standardkacheln fuer Beleuchtung
 
-- Bridge Instanz erkannte aktuelle Z2M Versionen falsch.  
-  
-**Version 5.36:**  
+- RGB-, RGBW-, RGBWW- und Tunable-White-Leuchten sowie entsprechende Gruppen verwenden wieder die responsive Symcon-Standarddarstellung.
+- Die experimentellen RGB- und Tunable-White-HTML-Kacheln sowie ihre Konfigurationsschalter wurden entfernt.
+- Native Farb-, Helligkeits- und Kelvin-Darstellungen, normalisierte Farbtemperatur-Presets sowie geraete- und gruppenspezifische Min-/Max-Bereiche bleiben erhalten.
 
-- phpMQTT Bibliothek aktualisiert um Verbindungsprobleme der Discovery-Instanz zu beheben.  
-  
-**Version 5.35:**  
+**Version 5.42:**
 
-- Fehlende Übersetzungen von den Geräten PS-S04D und MTD285-ZB ergänzt.  
-- interne Modul Tests erweitert um fehlende Übersetzungen zu erkennen.  
-  
-**Version 5.34:**  
+- Bridge Instanz konnte den Namen der bereits installierten Erweiterung nicht korrekt erkennen und übernehmen.
+- Diverse Übersetzungen ergänzt.
+- Neue Funktion Z2M_ReadValue und Z2M_SendGetCommand.
+- Diverse spezielle Funktionen im globalen Namensraum aufrufen, um Compiler-Optimierung zu ermöglichen.
+
+**Version 5.40:**
+
+- Einheiten in Profilen wurden teilweise nicht als UTF8 String an Symcon übergeben.
+- Explizites Token-Mapping für häufige Zeichenketten bei booleschen Werten. Verhindert false positives bei Erkennung von Strings, wie z.B. `OFF` welches zu true umgewandelt wurde.
+- Fehlerhafte Typisierung bei mehrdeutigen Features wie der Position (z.B. `position` numerischer vs. Enum-/String-Geräte) wird verhindert.
+- Gefilterte Attribute aus Z2M werden in Symcon nicht mehr als Variablen angelegt. (Danke an JosVanHaag für den PR)
+- Fehlende Übersetzungen vom Gerät S8 ergänzt.
+
+**Version 5.39:**
+
+- Fehlende Übersetzungen vom Gerät Senoro.Win v2 ergänzt.
+
+**Version 5.38:**
+
+- Fehlende Übersetzungen von den Geräten 501.40, BMCT-SLZ, S4SW-001P8EU und WT-A03E ergänzt
+- Discovery Instanz liefert die ganze Kette für Symcon 9.x
+
+**Version 5.37:**
+
+- Bridge Instanz erkannte aktuelle Z2M Versionen falsch.
+
+**Version 5.36:**
+
+- phpMQTT Bibliothek aktualisiert um Verbindungsprobleme der Discovery-Instanz zu beheben.
+
+**Version 5.35:**
+
+- Fehlende Übersetzungen von den Geräten PS-S04D und MTD285-ZB ergänzt.
+- interne Modul Tests erweitert um fehlende Übersetzungen zu erkennen.
+
+**Version 5.34:**
 
 - Das `&` Zeichen wird bei feature / Property zu `_and_` ersetzt.
 
-**Version 5.33:**  
+**Version 5.33:**
 
-- Bei composite wurde versucht für eine nicht vorhandene Hauptvariable eine Aktion zu setzen.  
+- Bei composite wurde versucht für eine nicht vorhandene Hauptvariable eine Aktion zu setzen.
 - Das `&` Zeichen wird bei Profilen gefiltert.
-- Readme aktualisiert.  
-  
-**Version 5.31:**  
+- Readme aktualisiert.
 
-- Fehlermeldung Profil Z2M.AutoLock existiert nicht behoben  
-- Bridge Instanz erkennt ZH Version 6.X  
-- Alle Instanzen mit einer "Occupancy"/"Bewegung" Variable unterstützen, sofern in Z2M eingerichtet, auch die "No Occupancy Since"/"Keine Bewegung seit" Variable  
-- interne Modul Tests erweitert  
-  
-**Version 5.26:**  
+**Version 5.31:**
 
-- Diverse Fixes betreffend der Fehlermeldungen Undefined array key  
-- Die Aktion "Helligkeit mit Übergang" war defekt  
-- Geändertes Verhalten beim schalten der Farbe, basierend auf dem aktiven Farbmodus  
-- Color Datenempfang um Hue / Saturation ergänzt  
-- Bridge Instanz erkennt ZH Version 5.X  
+- Fehlermeldung Profil Z2M.AutoLock existiert nicht behoben
+- Bridge Instanz erkennt ZH Version 6.X
+- Alle Instanzen mit einer "Occupancy"/"Bewegung" Variable unterstützen, sofern in Z2M eingerichtet, auch die "No Occupancy Since"/"Keine Bewegung seit" Variable
+- interne Modul Tests erweitert
+
+**Version 5.26:**
+
+- Diverse Fixes betreffend der Fehlermeldungen Undefined array key
+- Die Aktion "Helligkeit mit Übergang" war defekt
+- Geändertes Verhalten beim schalten der Farbe, basierend auf dem aktiven Farbmodus
+- Color Datenempfang um Hue / Saturation ergänzt
+- Bridge Instanz erkennt ZH Version 5.X
 
 **Version 5.25:**
 
-- Erste Version als stable im Store erhältlich  
-- Letzte Änderung war nun das Entfernen von Debug Meldungen aus dem Logfile  
+- Erste Version als stable im Store erhältlich
+- Letzte Änderung war nun das Entfernen von Debug Meldungen aus dem Logfile
 
-**Version 5.22:**  
+**Version 5.22:**
 
-- Durch das aktiveren von Include device information in Z2M werden keine Variablen mehr in Symcon angelegt  
+- Durch das aktiveren von Include device information in Z2M werden keine Variablen mehr in Symcon angelegt
 
-**Version 5.20:**  
+**Version 5.20:**
 
-- Diverse Übersetzungen ergänzt (Nachträglich werden diese bei Variablen nicht angepasst!)  
-- Fix für Smoke Profile (~Alert)  
-- Fix für Boolean Profile, wo Variablen als Boolean und Profile als String angelegt wurden  
-- Dateiname des Debug Download enthält den Modelnamen  
+- Diverse Übersetzungen ergänzt (Nachträglich werden diese bei Variablen nicht angepasst!)
+- Fix für Smoke Profile (~Alert)
+- Fix für Boolean Profile, wo Variablen als Boolean und Profile als String angelegt wurden
+- Dateiname des Debug Download enthält den Modelnamen
 
 **Version 5.19:**
 
-- Diverse Übersetzungen ergänzt (Nachträglich werden diese bei Variablen nicht angepasst!)  
-- contact, tamper Variablen erhalten korrekte Standard-Profile (~Window.Reserved bzw ~Alert)  
-- Fix für color_temp_kelvin Variable  
+- Diverse Übersetzungen ergänzt (Nachträglich werden diese bei Variablen nicht angepasst!)
+- contact, tamper Variablen erhalten korrekte Standard-Profile (~Window.Reserved bzw ~Alert)
+- Fix für color_temp_kelvin Variable
 
-**Version 5.18:**  
+**Version 5.18:**
 
-- Preset Variablen (Voreinstellungen) zeigen den zuletzt empfangenen / gesendeten Wert an  
-- Übersetzungen von Profil zu Voreinstellungen geändert. (Hat keinen Einfluss auf vorhandenen Variablen)  
+- Preset Variablen (Voreinstellungen) zeigen den zuletzt empfangenen / gesendeten Wert an
+- Übersetzungen von Profil zu Voreinstellungen geändert. (Hat keinen Einfluss auf vorhandenen Variablen)
 
-**Version 5.17:**  
+**Version 5.17:**
 
-- Das Debug Download war teilweise defekt  
-  
-**Version 5.16:**  
+- Das Debug Download war teilweise defekt
 
-- Instanzen welche als Topic einen Anfang von anderen Topics enthielten, haben falsche Daten empfangen und verarbeitet (z.B. Topic "Flur" hat auch Daten von Topics "Flur 01", "Flur 02", "Flur hinten" verarbeitet)  
-  
-**Version 5.15:**  
+**Version 5.16:**
 
-- Erweiterung bei Update Variablen  
-- Einführung der Instanz-Funktionen Z2M_WriteValueBoolean, Z2M_WriteValueInteger, Z2M_WriteValueFloat und Z2M_WriteValueString für PHP-Skripte  
+- Instanzen welche als Topic einen Anfang von anderen Topics enthielten, haben falsche Daten empfangen und verarbeitet (z.B. Topic "Flur" hat auch Daten von Topics "Flur 01", "Flur 02", "Flur hinten" verarbeitet)
 
-**Version 5.13:**  
+**Version 5.15:**
 
-- Erweiterung der Variablen-Erstellung auf die ‚list‘-Exposes, welche vorher nicht beachtet wurden  
-- fehlende Übersetzungen ergänzt  
-- Fehler bei Discovery Instanz sollte behoben sein  
+- Erweiterung bei Update Variablen
+- Einführung der Instanz-Funktionen Z2M_WriteValueBoolean, Z2M_WriteValueInteger, Z2M_WriteValueFloat und Z2M_WriteValueString für PHP-Skripte
 
-**Version 5.12:**  
+**Version 5.13:**
 
-- Array und Composite Variablen (z.b. Update, Level-Config usw.) sind Variablen verfügbar  
+- Erweiterung der Variablen-Erstellung auf die ‚list‘-Exposes, welche vorher nicht beachtet wurden
+- fehlende Übersetzungen ergänzt
+- Fehler bei Discovery Instanz sollte behoben sein
 
-**Version 5.11:**  
+**Version 5.12:**
 
-- Child Lock konnte nicht geschaltet werden  
-- einige Text Variablen wurden nicht angelegt (z.B. die Schedule Variablen)  
-- Fehlende Übersetzungen ergänzt (werden nur beim neu Anlegen von Variablen/Profilen berücksichtigt)  
-- Debug Download bei Gruppen war defekt  
-- JSON Datei für fehlende Übersetzungen konnte kaputt gehen  
-- Fehlende Übersetzungen werden im Debug Download einbezogen  
-- Fehlende Übersetzungen können in der Instanz-Konfig angezeigt werden (nur wenn es welche gibt)  
+- Array und Composite Variablen (z.b. Update, Level-Config usw.) sind Variablen verfügbar
 
-**Version 5.10:**  
+**Version 5.11:**
 
-- Fix für nicht vorhandene Profile bei Text Datentypen  
+- Child Lock konnte nicht geschaltet werden
+- einige Text Variablen wurden nicht angelegt (z.B. die Schedule Variablen)
+- Fehlende Übersetzungen ergänzt (werden nur beim neu Anlegen von Variablen/Profilen berücksichtigt)
+- Debug Download bei Gruppen war defekt
+- JSON Datei für fehlende Übersetzungen konnte kaputt gehen
+- Fehlende Übersetzungen werden im Debug Download einbezogen
+- Fehlende Übersetzungen können in der Instanz-Konfig angezeigt werden (nur wenn es welche gibt)
 
-**Version 5.09:**  
+**Version 5.10:**
 
-- Fix für 32-Bit Int zu Float Überlauf bei last_seen behoben  
+- Fix für nicht vorhandene Profile bei Text Datentypen
 
-**Version 5.08:**  
+**Version 5.09:**
 
-- diverse fixes für die Migration → einige Idents konnten nicht übertragen werden (z.B. Z2M_SmokeDensityDBM, Z2M_Window_OpenFeature, Z2M_PiHeatingDemand etc)  
-- Variablen welche aufgrund eines (früher) falschen Variablentyps nicht migriert werden können, werden übersprungen  
+- Fix für 32-Bit Int zu Float Überlauf bei last_seen behoben
+
+**Version 5.08:**
+
+- diverse fixes für die Migration → einige Idents konnten nicht übertragen werden (z.B. Z2M_SmokeDensityDBM, Z2M_Window_OpenFeature, Z2M_PiHeatingDemand etc)
+- Variablen welche aufgrund eines (früher) falschen Variablentyps nicht migriert werden können, werden übersprungen
 - last_seen wird immer als integer behandelt.
-- calibration_time wird immer auf float und countdown* immer auf int gemappt  
-- Debug JSON um unnötige Verschachtlungen reduziert  
-  
-**Version 5.05:**  
+- calibration_time wird immer auf float und countdown* immer auf int gemappt
+- Debug JSON um unnötige Verschachtlungen reduziert
 
-- Debug Download eingeführt  
+**Version 5.05:**
+
+- Debug Download eingeführt
 - Discovery Instanz verfügbar
-- Konfigurator erkennt falsch zugeordnete MQTT-Server/Clients  
+- Konfigurator erkennt falsch zugeordnete MQTT-Server/Clients
 
-**Version 5.01:**  
+**Version 5.01:**
 
-- diverse Profile von float zu int umgestellt  
-- Extension filtert Gruppen ohne Namen aus (vermutlich Reste aus alten Z2M Versionen)  
-- Migrate hat State Variablen nicht korrekt verarbeitet  
+- diverse Profile von float zu int umgestellt
+- Extension filtert Gruppen ohne Namen aus (vermutlich Reste aus alten Z2M Versionen)
+- Migrate hat State Variablen nicht korrekt verarbeitet
 
-**Version 5.00:**  
+**Version 5.00:**
 
-- Kompatibilität mit Zigbee2MQTT Version 2.0 hergestellt  
-- Geräte erkennen automatisch die Features und Exposes und erstellen die benötigten Variablen mit den entsprechenden Profilen eigenständig  
-  - Somit keine missing exposes Debugs mehr nötig!  
-- Nutzung von Standard-Symcon Profilen, soweit möglich  
-- Presets und Effekte als Variablen verfügbar  
+- Kompatibilität mit Zigbee2MQTT Version 2.0 hergestellt
+- Geräte erkennen automatisch die Features und Exposes und erstellen die benötigten Variablen mit den entsprechenden Profilen eigenständig
+  - Somit keine missing exposes Debugs mehr nötig!
+- Nutzung von Standard-Symcon Profilen, soweit möglich
+- Presets und Effekte als Variablen verfügbar
 - Array und Composite Variablen (z.b. Update, Level-Config usw.) sind Variablen verfügbar.
 - Geräte speichern die IEEE um umbenannte Geräte (= geändertes Topic) zu erkennen
-- Z2M Prefix bei VariablenIdents entfernt  
-- Konfigurator übernimmt die MQTT Topic-Struktur beim Anlegen von Geräten als Kategorien  
-- Konfigurator erkennt fehlende Bridge-Instanz  
-- Konfigurator erkennt falsche Topics (anhand der IEEE Adresse der Geräte)  
-- Bridge installiert die Extension nicht mehrfach  
-- Bridge installiert automatisch die benötigte Extension  
+- Z2M Prefix bei VariablenIdents entfernt
+- Konfigurator übernimmt die MQTT Topic-Struktur beim Anlegen von Geräten als Kategorien
+- Konfigurator erkennt fehlende Bridge-Instanz
+- Konfigurator erkennt falsche Topics (anhand der IEEE Adresse der Geräte)
+- Bridge installiert die Extension nicht mehrfach
+- Bridge installiert automatisch die benötigte Extension
 - Komplettes Code-Rework für Geräte und Gruppen von Bruki24
-- Diverse Aktionen für die Instanzen der Geräte und Gruppen:  
-  - Relatives Dimmen der Helligkeit  
-  - Schrittweises Dimmen der Helligkeit  
-  - Relatives Dimmen der Farbtemperatur  
-  - Schrittweises Dimmen der Farbtemperatur  
-  - Ein-/Ausschaltverzögerung  
-  
+- Diverse Aktionen für die Instanzen der Geräte und Gruppen:
+  - Relatives Dimmen der Helligkeit
+  - Schrittweises Dimmen der Helligkeit
+  - Relatives Dimmen der Farbtemperatur
+  - Schrittweises Dimmen der Farbtemperatur
+  - Ein-/Ausschaltverzögerung
+
 ## 6. Spenden
 
 Dieses Modul ist für die nicht kommerzielle Nutzung kostenlos, Schenkungen als Unterstützung für den Autor werden hier akzeptiert:
 
 <a href="https://www.paypal.com/cgi-bin/webscr?cmd=_s-xclick&hosted_button_id=EK4JRP87XLSHW" target="_blank"><img src="https://www.paypalobjects.com/de_DE/DE/i/btn/btn_donate_LG.gif" border="0" /></a> <a href="https://www.amazon.de/hz/wishlist/ls/3JVWED9SZMDPK?ref_=wl_share" target="_blank">Amazon Wunschzettel</a>
 
-## 7. Lizenz
+## 7. Drittanbieter-Komponenten
+
+Dieses Modul enthält folgende Drittanbieter-Komponenten:
+
+- `libs/phpMQTT.php` basiert auf `phpMQTT` von Blue Rhinos Consulting / Andrew Milsted und steht unter MIT-Lizenz. Der vollständige Lizenztext ist direkt in der Datei enthalten.
+- `NetworkMap/assets/cytoscape.min.js` basiert auf [Cytoscape.js](https://js.cytoscape.org/) und steht unter MIT-Lizenz. Der vollständige Lizenztext liegt unter `NetworkMap/assets/CYTOSCAPE-LICENSE.txt`.
+
+Beide Komponenten werden lokal mit dem Modul ausgeliefert. Für die Netzwerkkarte werden keine externen Webressourcen nachgeladen.
+
+## 8. Lizenz
 
 [CC BY-NC-SA 4.0](https://creativecommons.org/licenses/by-nc-sa/4.0/)

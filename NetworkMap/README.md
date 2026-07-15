@@ -7,7 +7,10 @@ Das Modul analysiert die Zigbee-Netzwerktopologie und stellt Geräte, Verbindung
 1. Eine Instanz **Zigbee2MQTT Netzwerkkarte** anlegen.
 2. Den gleichen MQTT-Parent wie bei der zugehörigen Zigbee2MQTT-Bridge auswählen.
 3. Das MQTT-Basistopic der Zigbee2MQTT-Installation eintragen.
-4. Eine Netzwerkanalyse starten.
+4. Optional den LQI-Warnwert und die Standardansicht einstellen.
+5. Eine Netzwerkanalyse starten.
+
+Der LQI-Warnwert legt fest, ab welchem Wert eine Verbindung in der Kachel als schwach gilt. Die Standardansicht bestimmt nur die anfängliche Darstellung beim Öffnen der Kachel; sie kann später innerhalb der Kachel jederzeit temporär umgeschaltet werden.
 
 ## Netzwerkanalyse
 
@@ -66,6 +69,18 @@ Im Abschnitt **Ansicht** der Instanzkonfiguration werden das beim Öffnen verwen
 
 ![Ansicht der Netzwerkkarte konfigurieren](imgs/ansicht-konfiguration.png)
 
+Die verfügbaren Layouts sind:
+
+| Layout | Zweck |
+|---|---|
+| **Übersicht** | Ordnet Coordinator, Router und Endgeräte ringförmig an und ist für große Netze meist der beste Einstieg. |
+| **Hierarchie** | Stellt das Netz stärker als Ebenenstruktur dar. Das kann bei kleineren Netzen oder Routing-Analysen hilfreich sein. |
+| **Kreis** | Verteilt alle sichtbaren Geräte gleichmäßig auf einem Kreis. |
+| **Raster** | Legt die Geräte in einem gleichmäßigen Raster ab und ist vor allem für sehr dichte Ansichten nützlich. |
+| **Netzstruktur** | Lässt Cytoscape.js die Knoten anhand der Verbindungen frei anordnen. Das kann aussagekräftig sein, braucht bei großen Netzen aber mehr Platz. |
+
+Über **Gerät suchen** kann ein Gerät anhand von Name, Modell, Typ, IEEE-Adresse oder Netzwerkadresse gefunden werden. **Umfeld** blendet anschließend nur das ausgewählte Gerät und seine direkten Nachbarn ein. **Alle anzeigen** hebt die Einschränkung wieder auf.
+
 ### Warum gibt es einen eigenen Vollbildmodus?
 
 Der Button **Vollbild** ist aufgrund einer Einschränkung von IP-Symcon erforderlich. Der reguläre Vergrößerungspfeil einer individuellen HTML-SDK-Kachel öffnet lediglich die normale Detailansicht der Instanz. Das PHP-SDK von Symcon bietet derzeit keine Möglichkeit, für diese maximierte Detailansicht eine eigene HTML-Darstellung bereitzustellen.
@@ -101,7 +116,7 @@ Der Hinweis `Scanfehler: routingTable` bedeutet, dass Zigbee2MQTT die Routing-Ta
 
 Ein Klick auf eine freie Stelle der Netzwerkkarte schließt die Detailkarte wieder.
 
-Für die lokale Graphdarstellung wird [Cytoscape.js](https://js.cytoscape.org/) unter MIT-Lizenz mitgeliefert. Es werden keine externen Webressourcen nachgeladen.
+Für die lokale Graphdarstellung wird [Cytoscape.js](https://js.cytoscape.org/) unter MIT-Lizenz mitgeliefert. Der vollständige Lizenztext liegt unter `NetworkMap/assets/CYTOSCAPE-LICENSE.txt`. Es werden keine externen Webressourcen nachgeladen.
 
 ## Exporte
 
@@ -112,6 +127,8 @@ Aus der gespeicherten RAW-Analyse erzeugt Symcon lokal:
 - PlantUML
 
 Die Exporte starten keinen zusätzlichen Netzwerkscan. Wegen der Größe vollständiger Netzwerkanalysen werden die Dateien nicht über den begrenzten Symcon-Ausgabepuffer heruntergeladen, sondern unter `user/IPSZigbee2MQTT/networkmaps` auf dem Symcon-Server gespeichert.
+
+Die erzeugten Dateien enthalten einen Zeitstempel im Dateinamen. JSON eignet sich zur späteren technischen Analyse, Graphviz-DOT und PlantUML können in passenden externen Werkzeugen weiter visualisiert oder dokumentiert werden.
 
 ## Skriptfunktionen
 

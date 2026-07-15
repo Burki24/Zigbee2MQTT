@@ -62,7 +62,7 @@ trait VariableMaintenanceHelper
     {
         $scan = StaleVariableCleanupHelper::ScanInstance($this->InstanceID, $this->GetLocalStaleVariableCleanupOptions());
         $this->WriteAttributeArray(self::ATTRIBUTE_LOCAL_STALE_VARIABLE_SCAN, $scan);
-        $this->UpdateLocalStaleVariableFormLists($scan);
+        $this->UpdateLocalStaleVariableFormListsSafely($scan);
 
         return true;
     }
@@ -117,18 +117,22 @@ trait VariableMaintenanceHelper
         $this->WriteAttributeArray(self::ATTRIBUTE_PENDING_LOCAL_STALE_VARIABLE_DELETE, []);
         $this->UpdateFormField('LocalStaleVariableDeleteWarning', 'visible', false);
 
-        $scan = StaleVariableCleanupHelper::ScanInstance($this->InstanceID, $this->GetLocalStaleVariableCleanupOptions());
+        $scan = $this->ReadLocalStaleVariableScan();
+        if (!$this->LocalStaleVariableScanContains($scan, $variableID)) {
+            $scan = StaleVariableCleanupHelper::ScanInstance($this->InstanceID, $this->GetLocalStaleVariableCleanupOptions());
+        }
+
         $result = StaleVariableCleanupHelper::DeleteSelectedForInstance(
             $this->InstanceID,
             $scan,
             [$variableID],
             $this->GetLocalStaleVariableCleanupOptions()
         );
-        $updatedScan = StaleVariableCleanupHelper::ScanInstance($this->InstanceID, $this->GetLocalStaleVariableCleanupOptions());
-        $this->WriteAttributeArray(self::ATTRIBUTE_LOCAL_STALE_VARIABLE_SCAN, $updatedScan);
-        $this->UpdateLocalStaleVariableFormLists($updatedScan);
 
         if (($result['deleted'] ?? []) !== []) {
+            $updatedScan = $this->RemoveLocalStaleVariableFromScan($scan, $variableID);
+            $this->WriteAttributeArray(self::ATTRIBUTE_LOCAL_STALE_VARIABLE_SCAN, $updatedScan);
+            $this->UpdateLocalStaleVariableFormListsSafely($updatedScan);
             $this->ShowLocalStaleVariableMessage('Variable deleted.', 'The selected variable was deleted successfully.');
             return true;
         }
@@ -390,6 +394,49 @@ trait VariableMaintenanceHelper
         $this->UpdateFormField('LocalStaleVariableReviewCandidates', 'rowCount', min(10, max(3, \count($scan['reviewCandidates'] ?? []) + 1)));
         $this->UpdateFormField('LocalStaleVariableErrors', 'values', json_encode($this->BuildLocalStaleVariableErrorFormValues($scan)));
         $this->UpdateFormField('LocalStaleVariableErrors', 'rowCount', min(6, max(2, \count($scan['errors'] ?? []) + 1)));
+    }
+
+    /**
+     * Refreshes local maintenance form fields without letting form renderer errors abort the action.
+     */
+    private function UpdateLocalStaleVariableFormListsSafely(array $scan): void
+    {
+        try {
+            $this->UpdateLocalStaleVariableFormLists($scan);
+        } catch (\Throwable $exception) {
+            $this->SendDebug(__FUNCTION__, $exception->getMessage(), 0);
+        }
+    }
+
+    /**
+     * Checks whether a variable is part of the stored local scan.
+     */
+    private function LocalStaleVariableScanContains(array $scan, int $variableID): bool
+    {
+        foreach (['clearCandidates', 'reviewCandidates'] as $key) {
+            foreach ($scan[$key] ?? [] as $row) {
+                if (\is_array($row) && (int) ($row['variableID'] ?? 0) === $variableID) {
+                    return true;
+                }
+            }
+        }
+
+        return false;
+    }
+
+    /**
+     * Removes a successfully deleted variable from the cached scan result.
+     */
+    private function RemoveLocalStaleVariableFromScan(array $scan, int $variableID): array
+    {
+        foreach (['clearCandidates', 'reviewCandidates'] as $key) {
+            $scan[$key] = array_values(array_filter(
+                \is_array($scan[$key] ?? null) ? $scan[$key] : [],
+                static fn (mixed $row): bool => !\is_array($row) || (int) ($row['variableID'] ?? 0) !== $variableID
+            ));
+        }
+
+        return $scan;
     }
 
     /**

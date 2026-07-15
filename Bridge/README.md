@@ -3,7 +3,7 @@
 [![Symcon Version](https://img.shields.io/badge/Symcon%20Version-9.0%3E-green)](https://www.symcon.de/de/service/dokumentation/einfuehrung/systemvoraussetzungen/versionenuebersicht/#version-90)
 [![License](https://img.shields.io/badge/License-CC%20BY--NC--SA%204.0-green.svg)](https://creativecommons.org/licenses/by-nc-sa/4.0/)
 [![Check Style](https://github.com/Nall-chan/Zigbee2MQTT/workflows/Check%20Style/badge.svg)](https://github.com/Nall-chan/Zigbee2MQTT/actions)
-[![Run Tests](https://github.com/Nall-chan/Zigbee2MQTT/workflows/Run%20Tests/badge.svg)](https://github.com/Nall-chan/Zigbee2MQTT/actions)  
+[![Run Tests](https://github.com/Nall-chan/Zigbee2MQTT/workflows/Run%20Tests/badge.svg)](https://github.com/Nall-chan/Zigbee2MQTT/actions)
 
 # Zigbee2MQTT-Bridge  <!-- omit in toc -->
 
@@ -20,12 +20,12 @@
   - [5.2 Diagnose](#52-diagnose)
   - [5.3 Netzwerksicherheit](#53-netzwerksicherheit)
   - [5.4 OTA-Updates](#54-ota-updates)
-  - [5.5 Variablenprofil-Diagnose](#55-variablenprofil-diagnose)
-  - [5.6 Variablen-Wartung](#56-variablen-wartung)
-  - [5.7 Zigbee2MQTT-Wartung](#57-zigbee2mqtt-wartung)
-    - [5.7.1 Backup](#571-backup)
-    - [5.7.2 Install-Codes](#572-install-codes)
-    - [5.7.3 Touchlink](#573-touchlink)
+  - [5.5 Variablen-Wartung](#55-variablen-wartung)
+  - [5.6 Zigbee2MQTT-Wartung](#56-zigbee2mqtt-wartung)
+    - [5.6.1 Backup](#561-backup)
+    - [5.6.2 Install-Codes](#562-install-codes)
+    - [5.6.3 Touchlink](#563-touchlink)
+    - [5.6.4 Bridge-Expertenaktion](#564-bridge-expertenaktion)
 - [6. Statusvariablen](#6-statusvariablen)
 - [7. PHP-Funktionsreferenz](#7-php-funktionsreferenz)
 - [8. Aktionen](#8-aktionen)
@@ -43,20 +43,19 @@
 - Globale Zigbee2MQTT-Blocklist und -Passlist verwalten
 - Diagnosebereich für Health Check, Coordinator Check, Bridge-Events, Warnungen/Fehler und auffällige Geräte
 - Zentrale OTA-Verwaltung für Update-Prüfung, Planung, Start, Fortschritt und Abschlussmeldungen
-- Rein lesende Variablenprofil-Diagnose für konfliktbedingt erzeugte kompatible Profile
 - Kompakte Variablen-Wartungsübersicht zum Finden betroffener Geräte- und Gruppeninstanzen
-- Zigbee2MQTT-Wartung für Zigbee2MQTT-Backup, Install-Code und Touchlink-Scan/Identify/Factory-Reset
+- Zigbee2MQTT-Wartung für Zigbee2MQTT-Backup, Install-Code, Touchlink-Scan/Identify/Factory-Reset und gewarnte Bridge-Expertenaktionen
 - Viele PHP-Funktionen um interne Zigbee2MQTT Funktionen auszuführen (Gruppen verwalten, Geräte umbenennen usw...)
-  
+
 ## 2. Voraussetzungen
 
 - mindestens IP-Symcon Version 9.0
 - MQTT-Broker (interner MQTT-Server von Symcon oder externer z.B. Mosquitto)
-- installiertes und lauffähiges [zigbee2mqtt](https://www.zigbee2mqtt.io)  
-  
+- installiertes und lauffähiges [zigbee2mqtt](https://www.zigbee2mqtt.io)
+
 ## 3. Software-Installation
 
-- Dieses Modul ist Bestandteil der [Zigbee2MQTT-Library](../README.md#3-installation).  
+- Dieses Modul ist Bestandteil der [Zigbee2MQTT-Library](../README.md#3-installation).
 
 ## 4. Konfiguration
 
@@ -70,14 +69,14 @@
 | **4** | **Anlernen** | Öffnet den Netzwerkbeitritt für eine wählbare Dauer über das gesamte Netzwerk, den Coordinator oder einen bestimmten Router. |
 | **5** | **Diagnose** | Enthält Health Check, Coordinator Check, Bridge-Ereignisse, Warnungen sowie Übersichten auffälliger oder nicht vollständig interviewter Geräte. |
 | **6** | **OTA-Updates** | Verwaltet verfügbare, geplante und laufende Geräte-Firmwareupdates zentral. |
-| **7** | **Erweiterte Administration** | Enthält die seltener benötigten Bereiche Netzwerksicherheit, Variablenprofil-Diagnose, Variablen-Wartung und Zigbee2MQTT-Wartung. |
+| **7** | **Erweiterte Administration** | Enthält die seltener benötigten Bereiche Netzwerksicherheit, Variablen-Wartung und Zigbee2MQTT-Wartung. |
 | **8** | **Testcenter** | Direkte Prüfung und Bedienung der Bridge-Statusvariablen auf der obersten Formularebene. |
 
 ## 5. Bridge-Funktionen
 
 Zusätzlich zu den Grundeinstellungen enthält die Bridge folgende Funktionsbereiche:
 
-Die Oberfläche trennt häufig benötigte Funktionen von administrativen Werkzeugen. Die Schaltflächen für Erweiterungsstatus, `last_seen` und `permit_join` sind direkt sichtbar. **Diagnose** und **OTA-Updates** bilden die regulären Arbeitsbereiche. **Netzwerksicherheit**, **Variablenprofil-Diagnose**, **Variablen-Wartung** und **Zigbee2MQTT-Wartung** sind unter **Erweiterte Administration** zusammengefasst. Das Testcenter ist als eigener Bereich direkt auf der obersten Formularebene erreichbar.
+Die Oberfläche trennt häufig benötigte Funktionen von administrativen Werkzeugen. Die Schaltflächen für Erweiterungsstatus, `last_seen` und `permit_join` sind direkt sichtbar. **Diagnose** und **OTA-Updates** bilden die regulären Arbeitsbereiche. **Netzwerksicherheit**, **Variablen-Wartung** und **Zigbee2MQTT-Wartung** sind unter **Erweiterte Administration** zusammengefasst. Das Testcenter ist als eigener Bereich direkt auf der obersten Formularebene erreichbar.
 
 | Bereich | Beschreibung |
 | ------- | ------------ |
@@ -85,9 +84,8 @@ Die Oberfläche trennt häufig benötigte Funktionen von administrativen Werkzeu
 | Diagnose | Führt Health Check und Coordinator Check aus, fordert die Netzwerkkarte an und zeigt fehlende Router, nicht unterstützte Geräte, Interview-Probleme, Bridge-Events sowie Warnungen und Fehler an. |
 | Netzwerksicherheit | Verwaltet `blocklist` und `passlist` direkt über bekannte Zigbee2MQTT-Geräte oder manuelle IEEE-Adressen. |
 | OTA-Updates | Listet bekannte OTA-fähige Geräte, prüft einzelne Geräte auf Updates, plant Aktualisierungen für die nächste Geräteanfrage und startet genau ein aktives Update gleichzeitig. Geplante Updates können aufgehoben, laufende Updates abgebrochen und Fortschritt, Restzeit sowie Abschlussmeldungen zentral angezeigt werden. |
-| Variablenprofil-Diagnose | Listet konfliktbedingt erzeugte kompatible Z2M-Profile mit ihren aktuellen Abweichungen, ihrer Verwendung und identischen Dubletten rein lesend auf. |
 | Variablen-Wartung | Sucht alte Zigbee2MQTT-Variablen, fasst den Prüfbedarf pro Geräte- oder Gruppeninstanz zusammen und öffnet die zuständige Instanz für die eigentliche Prüfung. |
-| Zigbee2MQTT-Wartung | Erstellt ein Zigbee2MQTT-Backup als ZIP-Datei auf dem Symcon-Server, sendet Zigbee-3.0-Install-Codes und bietet Touchlink-Scan, Identify und Factory-Reset an. |
+| Zigbee2MQTT-Wartung | Erstellt ein Zigbee2MQTT-Backup als ZIP-Datei auf dem Symcon-Server, sendet Zigbee-3.0-Install-Codes, bietet Touchlink-Scan, Identify und Factory-Reset an und kann dokumentierte Zigbee2MQTT-Expertenaktionen senden. |
 
 ### 5.1 Anlernen
 
@@ -163,18 +161,11 @@ Die OTA-Verwaltung bietet nur Geräte desselben MQTT-Splitters und MQTT-Basistop
 | **5** | Aktive und geplante OTA-Updates | Zeigt laufende und geplante Updates mit Status, Fortschritt und Restzeit. Geplante Updates können aufgehoben und angeforderte oder laufende Updates abgebrochen werden. |
 | **6** | Letzte OTA-Update-Ergebnisse | Zeigt den Ergebnisverlauf abgeschlossener, abgebrochener oder fehlgeschlagener OTA-Vorgänge. |
 
-### 5.5 Variablenprofil-Diagnose
-
-Bestehende Symcon-Variablenprofile werden vom Modul nicht automatisch verändert oder gelöscht. Wenn ein bereits vorhandenes kanonisches Profil nicht vollständig zur aktuell benötigten Definition passt, erzeugt das Modul deshalb ein eindeutig benanntes kompatibles Profil mit dem Zusatz `.Z2M.<Hash>`.
-
-Die rein lesende **Variablenprofil-Diagnose** listet diese kompatiblen Profile zentral auf. Sie zeigt das zugehörige kanonische Profil, die **aktuellen Abweichungen**, die Anzahl verwendender Variablen und wie viele kompatible Profile derzeit eine identische Definition besitzen. Damit lassen sich Profilkonflikte und bestehende Dubletten nachvollziehen, ohne Profile automatisch zu verändern oder zu löschen.
-
-> [!IMPORTANT]
-> Die angezeigten Abweichungen vergleichen den aktuellen Zustand beider Profile. Wurde eines der Profile nach seiner Erstellung manuell geändert, kann die Diagnose den ursprünglichen Erstellungsgrund nicht mehr zuverlässig rekonstruieren. Künftig protokolliert das Modul beim Erzeugen eines kompatiblen Profils zusätzlich die konkreten Abweichungen.
-
-### 5.6 Variablen-Wartung
+### 5.5 Variablen-Wartung
 
 Die Variablen-Wartung befindet sich unter **Erweiterte Administration** und dient als kompakte, zentrale Übersicht. Über **Verwaiste Variablen suchen** prüft die Bridge ausschließlich Zigbee2MQTT-Geräte- und Gruppeninstanzen, die mit demselben MQTT-Splitter verbunden sind und dasselbe MQTT-Basistopic verwenden. Das Ergebnis wird nach Instanzen zusammengefasst und zeigt je Instanz die Anzahl klarer Löschkandidaten, Review-Kandidaten und Suchlauf-Hinweise.
+
+![Variablen-Wartung](imgs/variable-maintenance.png)
 
 Nach Auswahl einer Zeile öffnet **Ausgewählte Instanz öffnen** direkt die zuständige Geräte- oder Gruppeninstanz. Die konkrete Prüfung und ein mögliches Löschen erfolgen dort unter **Expertenwerkzeuge → Variablen-Wartung**. Dadurch kann eine Instanz ausschließlich ihre eigenen direkten Variablen verwalten; die Bridge löscht keine Variablen fremder Instanzen.
 
@@ -182,15 +173,15 @@ In der lokalen Wartung bleiben archivierte oder von anderen Symcon-Objekten refe
 
 Bei OTA-fähigen Geräten bleiben stabile Update-Metadaten wie installierte Version, neueste Version und Status geschützt. Fortschritt und verbleibende Dauer sind hingegen temporäre Werte und werden nur berücksichtigt, solange Zigbee2MQTT sie im aktuellen Payload liefert. Dadurch bleiben bei Geräten ohne OTA-Fähigkeit keine historischen Update-Reste dauerhaft geschützt.
 
-### 5.7 Zigbee2MQTT-Wartung
+### 5.6 Zigbee2MQTT-Wartung
 
-Der unter **Erweiterte Administration** einsortierte Bereich **Zigbee2MQTT-Wartung** stellt Werkzeuge für administrative Aufgaben bereit. Backups werden als ZIP-Datei auf dem Symcon-Server gespeichert. Zusätzlich können Zigbee-3.0-Install-Codes gesendet und Touchlink-Scan, Identify sowie Factory-Reset ausgeführt werden.
+Der unter **Erweiterte Administration** einsortierte Bereich **Zigbee2MQTT-Wartung** stellt Werkzeuge für administrative Aufgaben bereit. Backups werden als ZIP-Datei auf dem Symcon-Server gespeichert. Zusätzlich können Zigbee-3.0-Install-Codes gesendet, Touchlink-Scan, Identify sowie Factory-Reset ausgeführt und dokumentierte Zigbee2MQTT-Expertenaktionen an `bridge/request/action` gesendet werden.
 
-#### 5.7.1 Backup
+#### 5.6.1 Backup
 
 Über **Backup-Datei erstellen** wird ein Backup des Zigbee2MQTT-Datenordners erstellt und als ZIP-Datei auf dem Symcon-Server gespeichert. Bei großen Datenordnern kann die Erstellung bis zu fünf Minuten dauern.
 
-#### 5.7.2 Install-Codes
+#### 5.6.2 Install-Codes
 
 Install-Codes können einmalig gesendet oder mit einer frei wählbaren Bezeichnung lokal in der Bridge-Instanz gespeichert und später erneut gesendet werden. An Zigbee2MQTT wird dabei ausschließlich der eigentliche Install-Code übertragen. Die Liste zeigt gespeicherte Codes nur maskiert an. Beim Bearbeiten kann das Code-Feld leer bleiben, wenn lediglich die Bezeichnung geändert werden soll.
 
@@ -199,7 +190,7 @@ Install-Codes können einmalig gesendet oder mit einer frei wählbaren Bezeichnu
 > [!WARNING]
 > Gespeicherte Install-Codes sind sensible Daten. Die Maskierung schützt nur vor einem versehentlichen Ablesen in der Bridge-Konfiguration. Die Codes werden nicht verschlüsselt in einem privaten Bridge-Attribut gespeichert und können deshalb auch Bestandteil von Symcon-Backups sein. Speichern Sie Codes nur auf entsprechend geschützten Symcon-Systemen.
 
-#### 5.7.3 Touchlink
+#### 5.6.3 Touchlink
 
 Touchlink-Scan und Touchlink-Factory-Reset können die Zigbee-Kommunikation kurzfristig stören. Ein Factory-Reset ohne ausgewähltes Ziel kann das nächste per Touchlink erreichbare Gerät zurücksetzen und sollte daher nur bewusst genutzt werden.
 
@@ -217,25 +208,42 @@ Touchlink-Scan und Touchlink-Factory-Reset können die Zigbee-Kommunikation kurz
 > [!WARNING]
 > Verwenden Sie den Factory-Reset möglichst nur mit einer zuvor per Scan ausgewählten und identifizierten IEEE-Adresse. Ein Reset ohne eindeutiges Ziel kann unbeabsichtigt ein anderes, nahe gelegenes Touchlink-Gerät zurücksetzen.
 
+#### 5.6.4 Bridge-Expertenaktion
+
+Die Bridge-Wartung enthält eine bewusst einfache Expertenfunktion für `bridge/request/action`. Zigbee2MQTT veröffentlicht mögliche Actions über `bridge/definitions`; je nach Zigbee2MQTT-Version, Adapter und Gerät können diese Actions Bridge- oder Gerätezustände direkt verändern.
+
+Das Formular erwartet den Action-Namen und optional ein JSON-Objekt für `params`. Die `transaction` wird vom Modul selbst verwaltet und darf nicht mit angegeben werden.
+
+Beispiel für das Parameterfeld:
+
+```json
+{
+  "option": "value"
+}
+```
+
+> [!WARNING]
+> Verwenden Sie diese Funktion nur für Actions, die von Ihrer Zigbee2MQTT-Installation unter bridge/definitions veröffentlicht werden und deren Parameter und Auswirkungen vollständig bekannt sind. Die Action raw ermöglicht Low-Level-Zigbee-Befehle und kann bei fehlerhafter Verwendung das Zigbee-Netzwerk beeinträchtigen. Für reguläre Bedien- und Verwaltungsaufgaben sollten die spezialisierten Bridge-, Device- und Group-Funktionen verwendet werden. [Zigbee2MQTT-Doku](https://www.zigbee2mqtt.io/guide/usage/mqtt_topics_and_messages.html#action)
+
 ## 6. Statusvariablen
 
 | Name                               | Typ     | Darstellung                 | Beschreibung                                 |
 | ---------------------------------- | ------- | --------------------------- | -------------------------------------------- |
-| Anlernmodus endet                  | integer | keine feste Profilvorgabe   | Zeitpunkt, zu dem der Netzwerkbeitritt endet |
-| Anlernziel                         | string  | keine feste Profilvorgabe   | Gewähltes Ziel für den Netzwerkbeitritt      |
-| Beitritt zum Netzwerk zulassen     | bool    | keine feste Profilvorgabe   | Status und Steuern des Netzwerkbeitritt      |
-| Erweiterung geladen                | bool    | keine feste Profilvorgabe   | true wenn die Erweiterung geladen wurde      |
-| Erweiterung ist aktuell            | bool    | keine feste Profilvorgabe   | true wenn die Erweiterung aktuell ist        |
-| Erweiterung Version                | string  | keine feste Profilvorgabe   | Version der Erweiterung                      |
-| Netzwerkkanal                      | integer | keine feste Profilvorgabe   | Netzwerkkanal des Zigbee-Netzwerks           |
+| Anlernmodus endet                  | integer | keine feste Darstellungsvorgabe | Zeitpunkt, zu dem der Netzwerkbeitritt endet |
+| Anlernziel                         | string  | keine feste Darstellungsvorgabe | Gewähltes Ziel für den Netzwerkbeitritt      |
+| Beitritt zum Netzwerk zulassen     | bool    | keine feste Darstellungsvorgabe | Status und Steuern des Netzwerkbeitritt      |
+| Erweiterung geladen                | bool    | keine feste Darstellungsvorgabe | true wenn die Erweiterung geladen wurde      |
+| Erweiterung ist aktuell            | bool    | keine feste Darstellungsvorgabe | true wenn die Erweiterung aktuell ist        |
+| Erweiterung Version                | string  | keine feste Darstellungsvorgabe | Version der Erweiterung                      |
+| Netzwerkkanal                      | integer | keine feste Darstellungsvorgabe | Netzwerkkanal des Zigbee-Netzwerks           |
 | Neustart durchführen               | integer | native Aufzählung           | Action Variable um einen Neustart auszulösen |
-| Neustart erforderlich              | bool    | keine feste Profilvorgabe   | true wenn eine Neustart von Z2M nötig ist    |
+| Neustart erforderlich              | bool    | keine feste Darstellungsvorgabe | true wenn eine Neustart von Z2M nötig ist    |
 | Protokollierung                    | string  | native Aufzählung           | Log-Level von Zigbee2MQTT                    |
-| Status                             | bool    | keine feste Profilvorgabe   | Online Status von Zigbee2MQTT                |
-| Verbleibende Anlernzeit            | integer | keine feste Profilvorgabe   | Restzeit des geöffneten Netzwerkbeitritts    |
-| Version                            | string  | keine feste Profilvorgabe   | Version von Zigbee2MQTT                      |
-| Zigbee Herdsman Converters Version | string  | keine feste Profilvorgabe   | Version des Zigbee Herdsman Converters       |
-| Zigbee Herdsman Version            | string  | keine feste Profilvorgabe   | Version vom Zigbee Herdsman-Modul            |
+| Status                             | bool    | keine feste Darstellungsvorgabe | Online Status von Zigbee2MQTT                |
+| Verbleibende Anlernzeit            | integer | keine feste Darstellungsvorgabe | Restzeit des geöffneten Netzwerkbeitritts    |
+| Version                            | string  | keine feste Darstellungsvorgabe | Version von Zigbee2MQTT                      |
+| Zigbee Herdsman Converters Version | string  | keine feste Darstellungsvorgabe | Version des Zigbee Herdsman Converters       |
+| Zigbee Herdsman Version            | string  | keine feste Darstellungsvorgabe | Version vom Zigbee Herdsman-Modul            |
 
 ## 7. PHP-Funktionsreferenz
 
@@ -254,7 +262,7 @@ OTA-Aktualisierungen können zentral über den Bereich **OTA-Updates** in der Br
 bool Z2M_InstallSymconExtension(int $InstanzID);
 ```
 
-Die aktuelle Symcon Erweiterung wird in Z2M installiert.  
+Die aktuelle Symcon Erweiterung wird in Z2M installiert.
 
 ---
 
@@ -274,7 +282,7 @@ Fordert die aktuellen Bridge-Optionen von Zigbee2MQTT an und aktualisiert die Br
 bool Z2M_SetLastSeen(int $InstanzID);
 ```
 
-Die Konfiguration der `last_seen` Einstellung in Z2M wird auf `epoch` verändert, damit die Instanzen in Symcon den Wert korrekt darstellen können.  
+Die Konfiguration der `last_seen` Einstellung in Z2M wird auf `epoch` verändert, damit die Instanzen in Symcon den Wert korrekt darstellen können.
 
 ---
 
@@ -680,6 +688,22 @@ bool Z2M_TouchlinkFactoryReset(int $InstanzID, string $IeeeAddress = '', int $Ch
 ```
 
 Startet einen Touchlink-Factory-Reset. Mit IEEE-Adresse und Kanal wird ein konkretes Scan-Ergebnis adressiert. Ohne Ziel setzt Zigbee2MQTT das nächstgelegene gefundene Touchlink-Gerät zurück; diese Funktion sollte nur bewusst genutzt werden.
+
+---
+
+### Z2M_SendBridgeAction <!-- omit in toc -->
+
+```php
+bool Z2M_SendBridgeAction(int $InstanzID, string $Action, array $Params = []);
+```
+
+Sendet eine generische Zigbee2MQTT-Expertenaktion an `bridge/request/action`. Das Modul baut den Payload als `{"action":"...","params":{...}}` auf und verwaltet die `transaction` selbst. Die Funktion ist nur für dokumentierte Zigbee2MQTT-Actions gedacht.
+
+Beispiel:
+
+```php
+Z2M_SendBridgeAction($bridgeID, 'example/action', ['option' => 'value']);
+```
 
 ---
 

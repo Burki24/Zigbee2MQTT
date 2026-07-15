@@ -141,6 +141,24 @@ class DevicesTest extends DumpInclude
         $this->assertSame(count($Debug['Childs']) + $OffsetDebugChild, count(IPS_GetChildrenIDs($iid)), 'Anzahl Variablen aus dem Debug (' . count($Debug['Childs']) . ') und Erzeugte Variablen (' . count(IPS_GetChildrenIDs($iid)) . ') vom Test unterscheiden sich');
         $this->assertSame(self::count_recursive($Debug['LastPayload']) + $OffestLastPayload, count(IPS_GetChildrenIDs($iid)) + $OffsetChildrenIDs, 'Anzahl LastPayload (' . self::count_recursive($Debug['LastPayload']) + $OffestLastPayload . ') und Erzeugte Variablen (' . count(IPS_GetChildrenIDs($iid)) + $OffsetChildrenIDs . ') unterscheiden sich');
         $this->assertCount(0, self::getExportDebugData($iid)['missingTranslations'], 'Fehlende übersetzungen gefunden:' . var_export(self::getExportDebugData($iid)['missingTranslations'], true));
+
+        $scheduleTuesdayID = IPS_GetObjectIDByIdent('schedule_tuesday', $iid);
+        $this->assertNotFalse($scheduleTuesdayID);
+        $scheduleTuesdayVariable = IPS_GetVariable($scheduleTuesdayID);
+        $this->assertSame('', $scheduleTuesdayVariable['VariableProfile']);
+        $this->assertSame(VARIABLE_PRESENTATION_VALUE_INPUT, $scheduleTuesdayVariable['VariablePresentation']['PRESENTATION'] ?? null);
+        $this->assertTrue($scheduleTuesdayVariable['VariablePresentation']['MULTILINE'] ?? false);
+
+        $demandID = IPS_CreateVariable(VARIABLETYPE_FLOAT);
+        IPS_SetParent($demandID, $iid);
+        IPS_SetIdent($demandID, 'pi_heating_demand');
+        IPS_SetName($demandID, 'PI Heating demand');
+        SetValue($demandID, 0.0);
+
+        $html = IPS\InstanceManager::getInstanceInterface($iid)->GetVisualizationTile();
+        $this->assertStringContainsString('"type":"heating"', $html);
+        $this->assertStringContainsString('current_heating_setpoint', $html);
+        $this->assertStringContainsString('occupied_heating_setpoint', $html);
     }
 
     public function test701721()
@@ -224,6 +242,7 @@ class DevicesTest extends DumpInclude
     public function testCoverStateActionKeepsEnumValue(): void
     {
         $device = $this->createDeviceActionTestDouble();
+        $stateID = $device->registerStringVariableForTest('state');
         $device->setExposesForTest([
             [
                 'type'     => 'cover',
@@ -242,13 +261,16 @@ class DevicesTest extends DumpInclude
         $device->RequestAction('state', 'OPEN');
         $this->assertSame('/Wohnbereich/Beschattung/Terrassenfenster/set', $device->sentTopic);
         $this->assertSame(['state' => 'OPEN'], $device->sentPayload);
+        $this->assertSame('OPEN', GetValue($stateID));
 
         $device->RequestAction('state', 'STOP');
         $this->assertSame(['state' => 'STOP'], $device->sentPayload);
+        $this->assertSame('STOP', GetValue($stateID));
 
         $device->sentPayload = [];
         $device->RequestAction('state', 'UNKNOWN');
         $this->assertSame([], $device->sentPayload);
+        $this->assertSame('STOP', GetValue($stateID));
     }
 
     public function testLanguageNeutralNumericValuesAreNotReportedAsMissingTranslations(): void
@@ -472,7 +494,7 @@ class DevicesTest extends DumpInclude
         );
     }
 
-    public function testSwitchStateActionStillMapsBooleanToOnOff(): void
+    public function testSwitchStateActionMapsBooleanToOnOffAndWaitsForFeedback(): void
     {
         $device = $this->createDeviceActionTestDouble();
         $stateID = $device->registerBooleanVariableForTest('state');
@@ -494,11 +516,12 @@ class DevicesTest extends DumpInclude
 
         $device->RequestAction('state', true);
         $this->assertSame(['state' => 'ON'], $device->sentPayload);
-        $this->assertTrue(GetValue($stateID));
+        $this->assertFalse(GetValue($stateID));
 
+        SetValue($stateID, true);
         $device->RequestAction('state', false);
         $this->assertSame(['state' => 'OFF'], $device->sentPayload);
-        $this->assertFalse(GetValue($stateID));
+        $this->assertTrue(GetValue($stateID));
     }
 
     public function testCommandRejectsInvalidJsonPayloadWithoutTypeError(): void
@@ -753,6 +776,22 @@ class DevicesTest extends DumpInclude
         $this->assertArrayNotHasKey('countdown_l2', $latestPayload);
     }
 
+    public function testReceiveDataIgnoresNumericRootPayloadEntries(): void
+    {
+        [$iid, $debug] = $this->createTestInstance('RTCGQ01LM.json');
+        $interface = IPS\InstanceManager::getInstanceInterface($iid);
+        $topic = $debug['Config']['MQTTBaseTopic'] . '/' . $debug['Config']['MQTTTopic'];
+
+        $interface->ReceiveData(self::buildMqttRequest($topic, [
+            0             => 9,
+            'temperature' => 21.5
+        ]));
+
+        $latestPayload = self::getExportDebugData($iid)['LatestPayload'];
+        $this->assertSame(['temperature' => 21.5], $latestPayload);
+        $this->assertFalse(@IPS_GetObjectIDByIdent('0', $iid));
+    }
+
     public function testVariableSelectionCreatesBinaryAndEnumVariablesWithIncompleteFeatureIdentity(): void
     {
         [$iid] = $this->createTestInstance('RTCGQ01LM.json');
@@ -801,18 +840,52 @@ class DevicesTest extends DumpInclude
                 'values' => ['local', 'remote']
             ]
         ];
+        $catalog['generated_readonly_text'] = [
+            'ident'     => 'generated_readonly_text',
+            'property'  => 'generated_readonly_text',
+            'label'     => 'Generated Read-only Text',
+            'source'    => 'payload',
+            'type'      => 'text',
+            'created'   => false,
+            'lastValue' => 'sunny',
+            'feature'   => [
+                'name'   => 'generated_readonly_text',
+                'type'   => 'text',
+                'access' => 1
+            ]
+        ];
+        $catalog['generated_writable_text'] = [
+            'ident'     => 'generated_writable_text',
+            'property'  => 'generated_writable_text',
+            'label'     => 'Generated Writable Text',
+            'source'    => 'payload',
+            'type'      => 'text',
+            'created'   => false,
+            'lastValue' => 'value',
+            'feature'   => [
+                'name'   => 'generated_writable_text',
+                'type'   => 'text',
+                'access' => 7
+            ]
+        ];
         $this->writeStubAttributeArray($iid, 'VariableCatalog', $catalog);
 
         IPS_RequestAction($iid, 'ToggleVariableCreation', 'generated_binary');
         IPS_RequestAction($iid, 'ToggleVariableCreation', 'generated_enum');
         IPS_RequestAction($iid, 'ToggleVariableCreation', 'generated_writable_enum');
+        IPS_RequestAction($iid, 'ToggleVariableCreation', 'generated_readonly_text');
+        IPS_RequestAction($iid, 'ToggleVariableCreation', 'generated_writable_text');
 
         $binaryID = @IPS_GetObjectIDByIdent('generated_binary', $iid);
         $enumID = @IPS_GetObjectIDByIdent('generated_enum', $iid);
         $writableEnumID = @IPS_GetObjectIDByIdent('generated_writable_enum', $iid);
+        $readonlyTextID = @IPS_GetObjectIDByIdent('generated_readonly_text', $iid);
+        $writableTextID = @IPS_GetObjectIDByIdent('generated_writable_text', $iid);
         $this->assertNotFalse($binaryID);
         $this->assertNotFalse($enumID);
         $this->assertNotFalse($writableEnumID);
+        $this->assertNotFalse($readonlyTextID);
+        $this->assertNotFalse($writableTextID);
         $binaryVariable = IPS_GetVariable($binaryID);
         $this->assertSame('', $binaryVariable['VariableProfile']);
         $this->assertSame(VARIABLE_PRESENTATION_VALUE_PRESENTATION, $binaryVariable['VariablePresentation']['PRESENTATION'] ?? null);
@@ -824,6 +897,13 @@ class DevicesTest extends DumpInclude
         $this->assertSame('', $writableEnumVariable['VariableProfile']);
         $this->assertSame(VARIABLE_PRESENTATION_ENUMERATION, $writableEnumVariable['VariablePresentation']['PRESENTATION'] ?? null);
         $this->assertTrue(HasAction($writableEnumID));
+        $readonlyTextVariable = IPS_GetVariable($readonlyTextID);
+        $this->assertSame([], $readonlyTextVariable['VariablePresentation']);
+        $this->assertFalse(HasAction($readonlyTextID));
+        $writableTextVariable = IPS_GetVariable($writableTextID);
+        $this->assertSame(VARIABLE_PRESENTATION_VALUE_INPUT, $writableTextVariable['VariablePresentation']['PRESENTATION'] ?? null);
+        $this->assertTrue($writableTextVariable['VariablePresentation']['MULTILINE'] ?? false);
+        $this->assertTrue(HasAction($writableTextID));
     }
 
     public function testVariableSelectionRefreshRemovesHistoricalEntriesWithoutDeletingVariables(): void
@@ -1102,6 +1182,20 @@ class DevicesTest extends DumpInclude
         $this->assertSame(1, $variable['VariablePresentation']['COLOR_SPACE'] ?? null);
         $this->assertSame(0xFF9227, GetValue($colorID));
 
+        $brightnessID = IPS_GetObjectIDByIdent('brightness', $iid);
+        $this->assertNotFalse($brightnessID);
+        $brightnessVariable = IPS_GetVariable($brightnessID);
+        $this->assertSame('', $brightnessVariable['VariableProfile']);
+        $brightnessPresentation = $brightnessVariable['VariablePresentation'];
+        $this->assertSame(VARIABLE_PRESENTATION_SLIDER, $brightnessPresentation['PRESENTATION'] ?? null);
+        $this->assertSame(0, $brightnessPresentation['MIN'] ?? null);
+        $this->assertSame(100, $brightnessPresentation['MAX'] ?? null);
+        $this->assertSame(' %', $brightnessPresentation['SUFFIX'] ?? null);
+        $this->assertSame(2, $brightnessPresentation['USAGE_TYPE'] ?? null);
+        $this->assertTrue($brightnessPresentation['PERCENTAGE'] ?? false);
+        $this->assertSame('sun', $brightnessPresentation['ICON'] ?? null);
+        $this->assertSame(100, GetValue($brightnessID));
+
         $kelvinID = IPS_GetObjectIDByIdent('color_temp_kelvin', $iid);
         $this->assertNotFalse($kelvinID);
         $presentation = IPS_GetVariable($kelvinID)['VariablePresentation'];
@@ -1130,6 +1224,143 @@ class DevicesTest extends DumpInclude
 
         $interface->ReceiveData(self::buildMqttRequest($topic, ['color_temp' => 153]));
         $this->assertNotSame(0xFF9227, GetValue($colorID));
+    }
+
+    public function testTunableWhiteLightUsesStandardVisualization(): void
+    {
+        [$iid, $debug] = $this->createTestInstance('TunableWhiteLight.json');
+        $interface = IPS\InstanceManager::getInstanceInterface($iid);
+
+        $this->assertSame('', $interface->GetVisualizationTile());
+        $this->assertNotFalse(IPS_GetObjectIDByIdent('color_temp_kelvin', $iid));
+        $this->assertNotFalse(IPS_GetObjectIDByIdent('color_temp_presets', $iid));
+
+        $form = json_decode(IPS_GetConfigurationForm($iid), true);
+        $this->assertNull($this->findFormItemByName($form, 'DisableTunableWhiteTile'));
+        $this->assertFormItemHidden($form, 'VisualizationSettings');
+
+        $topic = $debug['Config']['MQTTBaseTopic'] . '/' . $debug['Config']['MQTTTopic'];
+        $messageCount = count($interface->getMessages());
+        $interface->ReceiveData(self::buildMqttRequest($topic, ['brightness' => 127]));
+        $visualizationMessages = array_filter(
+            array_slice($interface->getMessages(), $messageCount),
+            static fn (array $message): bool => ($message['Message'] ?? null) === 10541
+        );
+        $this->assertCount(0, $visualizationMessages);
+    }
+
+    public function testColorLightUsesStandardVisualizationWithNativeColorPresentation(): void
+    {
+        [$iid, $debug] = $this->createTestInstance('ColorLight.json');
+        $interface = IPS\InstanceManager::getInstanceInterface($iid);
+        $colorID = IPS_GetObjectIDByIdent('color', $iid);
+        $this->assertNotFalse($colorID);
+        $this->assertSame('', $interface->GetVisualizationTile());
+        $this->assertSame(VARIABLE_PRESENTATION_COLOR, IPS_GetVariable($colorID)['VariablePresentation']['PRESENTATION'] ?? null);
+
+        $form = json_decode(IPS_GetConfigurationForm($iid), true);
+        $this->assertNull($this->findFormItemByName($form, 'DisableColorLightTile'));
+        $this->assertFormItemHidden($form, 'VisualizationSettings');
+
+        $topic = $debug['Config']['MQTTBaseTopic'] . '/' . $debug['Config']['MQTTTopic'];
+        $messageCount = count($interface->getMessages());
+        $interface->ReceiveData(self::buildMqttRequest($topic, ['color' => ['x' => 0.3, 'y' => 0.6]]));
+
+        $visualizationMessages = array_values(array_filter(
+            array_slice($interface->getMessages(), $messageCount),
+            static fn (array $message): bool => ($message['Message'] ?? null) === 10541
+        ));
+        $this->assertCount(0, $visualizationMessages);
+    }
+
+    public function testPresetValuesAreDistributedUniquelyWithinExposeRange(): void
+    {
+        [$iid, $Debug] = $this->createTestInstance('TunableWhiteLight.json');
+        $exposes = $Debug['Exposes'];
+
+        foreach ($exposes as &$expose) {
+            if (!isset($expose['features']) || !\is_array($expose['features'])) {
+                continue;
+            }
+            foreach ($expose['features'] as &$feature) {
+                if (($feature['property'] ?? '') === 'color_temp') {
+                    // Z2M liefert fuer "warm" und "warmest" denselben Grenzwert.
+                    $feature['value_min'] = 200;
+                    $feature['value_max'] = 454;
+                    $feature['presets'][0]['value'] = 200;
+                    $feature['presets'][4]['value'] = 454;
+                    // Sonderwerte ausserhalb des Bereichs duerfen nicht veraendert werden.
+                    $feature['presets'][] = ['name' => 'previous', 'value' => 65535];
+                }
+            }
+            unset($feature);
+        }
+        unset($expose);
+
+        $presetID = IPS_GetObjectIDByIdent('color_temp_presets', $iid);
+        $this->assertNotFalse($presetID);
+        IPS_DeleteVariable($presetID);
+
+        $this->writeStubAttributeArray($iid, 'Exposes', $exposes);
+        IPS_RequestAction($iid, 'RefreshVariableSelection', true);
+        $catalog = $this->readStubAttributeArray($iid, 'VariableCatalog');
+        $this->assertSame(454, $catalog['color_temp_presets']['feature']['value_max'] ?? null);
+        IPS_RequestAction($iid, 'ToggleVariableCreation', 'color_temp_presets');
+
+        $presetID = IPS_GetObjectIDByIdent('color_temp_presets', $iid);
+        $this->assertNotFalse($presetID);
+        $presetVariable = IPS_GetVariable($presetID);
+        $presetOptions = json_decode($presetVariable['VariablePresentation']['OPTIONS'] ?? '[]', true);
+        $this->assertSame([200, 250, 370, 412, 454, 65535], array_column($presetOptions, 'Value'));
+        $this->assertSame(
+            ['Sehr kalt', 'Kalt', 'Neutral', 'Warm', 'Sehr warm'],
+            array_slice(array_column($presetOptions, 'Caption'), 0, 5)
+        );
+        $this->assertCount(6, array_unique(array_column($presetOptions, 'Value')));
+    }
+
+    public function testBrightnessPresentationRequiresWriteAccess(): void
+    {
+        [$iid] = $this->createTestInstance('ReadOnlyBrightness.json');
+
+        $brightnessID = IPS_GetObjectIDByIdent('brightness', $iid);
+        $this->assertNotFalse($brightnessID);
+
+        $variable = IPS_GetVariable($brightnessID);
+        $this->assertSame('', $variable['VariableProfile']);
+        $this->assertSame(VARIABLE_PRESENTATION_VALUE_PRESENTATION, $variable['VariablePresentation']['PRESENTATION'] ?? null);
+        $this->assertNotSame(VARIABLE_PRESENTATION_SLIDER, $variable['VariablePresentation']['PRESENTATION'] ?? null);
+        $this->assertSame(80, GetValue($brightnessID));
+    }
+
+    public function testDeletedPresetVariableIsImmediatelyRestoredFromCatalog(): void
+    {
+        [$iid] = $this->createTestInstance('TunableWhiteLight.json');
+
+        $catalog = $this->readStubAttributeArray($iid, 'VariableCatalog');
+        $this->assertSame('color_temp', $catalog['color_temp_presets']['feature']['preset_property'] ?? null);
+        $this->assertCount(5, $catalog['color_temp_presets']['feature']['presets'] ?? []);
+        $this->assertSame(7, $catalog['color_temp_presets']['feature']['access'] ?? null);
+
+        $presetID = IPS_GetObjectIDByIdent('color_temp_presets', $iid);
+        $this->assertNotFalse($presetID);
+        IPS_DeleteVariable($presetID);
+
+        // Die Formularabfrage erkennt die Benutzerloeschung, darf die Variable aber nicht anlegen.
+        IPS_GetConfigurationForm($iid);
+        $this->assertFalse(@IPS_GetObjectIDByIdent('color_temp_presets', $iid));
+
+        IPS_RequestAction($iid, 'ToggleVariableCreation', 'color_temp_presets');
+
+        $presetID = IPS_GetObjectIDByIdent('color_temp_presets', $iid);
+        $this->assertNotFalse($presetID);
+        $presetVariable = IPS_GetVariable($presetID);
+        $this->assertSame(VARIABLE_PRESENTATION_ENUMERATION, $presetVariable['VariablePresentation']['PRESENTATION'] ?? null);
+        $this->assertSame($iid, $presetVariable['VariableAction']);
+        $presetOptions = json_decode($presetVariable['VariablePresentation']['OPTIONS'] ?? '[]', true);
+        $this->assertSame([153, 250, 370, 454, 555], array_column($presetOptions, 'Value'));
+        $this->assertSame(['Sehr kalt', 'Kalt', 'Neutral', 'Warm', 'Sehr warm'], array_column($presetOptions, 'Caption'));
+        $this->assertSame(GetValue(IPS_GetObjectIDByIdent('color_temp', $iid)), GetValue($presetID));
     }
 
     public function testColorTemperatureVisualizationRequiresExposeSupport(): void
@@ -2436,6 +2667,12 @@ class DevicesTest extends DumpInclude
             public function registerBooleanVariableForTest(string $ident): int
             {
                 $this->RegisterVariableBoolean($ident, $ident);
+                return $this->GetIDForIdent($ident);
+            }
+
+            public function registerStringVariableForTest(string $ident): int
+            {
+                $this->RegisterVariableString($ident, $ident);
                 return $this->GetIDForIdent($ident);
             }
 

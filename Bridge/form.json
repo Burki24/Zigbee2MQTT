@@ -677,6 +677,27 @@
             }
         },
         {
+            "name": "BridgeExpertActionMessage",
+            "type": "PopupAlert",
+            "visible": false,
+            "popup": {
+                "closeCaption": "Close",
+                "items": [
+                    {
+                        "type": "Label",
+                        "name": "BridgeExpertActionMessageTitle",
+                        "bold": true,
+                        "caption": "Bridge action"
+                    },
+                    {
+                        "name": "BridgeExpertActionMessageText",
+                        "type": "Label",
+                        "caption": ""
+                    }
+                ]
+            }
+        },
+        {
             "type": "ExpansionPanel",
             "name": "AdvancedAdministration",
             "caption": "Advanced administration",
@@ -825,75 +846,6 @@
                                     "width": "100px",
                                     "align": "center",
                                     "onClick": "IPS_RequestAction($id, 'RequestPasslistChange', json_encode(['operation' => 'remove', 'ieee_address' => $NetworkSecurityPasslist['ieee_address']]));"
-                                }
-                            ],
-                            "values": []
-                        }
-                    ]
-                },
-                {
-                    "type": "ExpansionPanel",
-                    "name": "VariableProfileDiagnostics",
-                    "caption": "Variable profile diagnostics",
-                    "expanded": false,
-                    "items": [
-                        {
-                            "type": "Label",
-                            "caption": "Lists compatible profiles created because an existing canonical profile differed from the required definition. The deviations describe the current difference and may not represent the original creation state if profiles were changed later."
-                        },
-                        {
-                            "type": "RowLayout",
-                            "items": [
-                                {
-                                    "type": "Button",
-                                    "caption": "Refresh profile diagnostics",
-                                    "onClick": "IPS_RequestAction($id, 'RefreshVariableProfileDiagnostics', true);"
-                                },
-                                {
-                                    "type": "Label",
-                                    "name": "VariableProfileDiagnosticsStatus",
-                                    "caption": "Compatible profiles: 0, identical duplicate profiles: 0, used profiles: 0"
-                                }
-                            ]
-                        },
-                        {
-                            "type": "List",
-                            "name": "VariableProfileDiagnosticsList",
-                            "caption": "Compatible profiles created due to conflicts",
-                            "add": false,
-                            "delete": false,
-                            "rowCount": 4,
-                            "loadValuesFromConfiguration": false,
-                            "columns": [
-                                {
-                                    "caption": "Canonical profile",
-                                    "name": "canonical_profile",
-                                    "width": "260px",
-                                    "quickFilter": true
-                                },
-                                {
-                                    "caption": "Compatible profile",
-                                    "name": "compatible_profile",
-                                    "width": "300px",
-                                    "quickFilter": true
-                                },
-                                {
-                                    "caption": "Current deviations",
-                                    "name": "deviations",
-                                    "width": "auto",
-                                    "quickFilter": true
-                                },
-                                {
-                                    "caption": "Used by variables",
-                                    "name": "usage_count",
-                                    "width": "120px",
-                                    "align": "center"
-                                },
-                                {
-                                    "caption": "Identical profiles",
-                                    "name": "identical_count",
-                                    "width": "120px",
-                                    "align": "center"
                                 }
                             ],
                             "values": []
@@ -1154,6 +1106,39 @@
                                     "caption": "Channel",
                                     "minimum": 0,
                                     "maximum": 26
+                                }
+                            ]
+                        },
+                        {
+                            "type": "Label",
+                            "bold": true,
+                            "caption": "Expert bridge action"
+                        },
+                        {
+                            "type": "Label",
+                            "caption": "Expert bridge actions can directly change Zigbee2MQTT or device state. Use only with documented Zigbee2MQTT actions."
+                        },
+                        {
+                            "type": "Label",
+                            "caption": "The module sends action and params to bridge/request/action. Do not include a transaction; it is managed by the module."
+                        },
+                        {
+                            "type": "RowLayout",
+                            "items": [
+                                {
+                                    "type": "ValidationTextBox",
+                                    "name": "BridgeExpertActionName",
+                                    "caption": "Action name"
+                                },
+                                {
+                                    "type": "ValidationTextBox",
+                                    "name": "BridgeExpertActionParams",
+                                    "caption": "Params (JSON object)"
+                                },
+                                {
+                                    "type": "Button",
+                                    "caption": "Execute bridge action",
+                                    "onClick": "IPS_RequestAction($id, 'ExecuteBridgeExpertAction', json_encode(['action' => $BridgeExpertActionName, 'params' => $BridgeExpertActionParams]));"
                                 }
                             ]
                         }

@@ -26,8 +26,10 @@ trait SensorTileHelper
      */
     protected function HasSensorTileCapabilities(): bool
     {
-        if ($this->GetObjectIDByIdent('occupied_heating_setpoint') !== false) {
-            return false;
+        foreach (['occupied_heating_setpoint', 'current_heating_setpoint'] as $heatingSetpointIdent) {
+            if ($this->GetObjectIDByIdent($heatingSetpointIdent) !== false) {
+                return false;
+            }
         }
 
         foreach ($this->GetSensorTilePrimaryIdents() as $ident) {
