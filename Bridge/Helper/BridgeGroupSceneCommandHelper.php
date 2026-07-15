@@ -353,4 +353,3 @@ trait BridgeGroupSceneCommandHelper
     }
 
 }
-

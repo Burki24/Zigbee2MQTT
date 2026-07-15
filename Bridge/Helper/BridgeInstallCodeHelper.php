@@ -305,4 +305,3 @@ trait BridgeInstallCodeHelper
     }
 
 }
-

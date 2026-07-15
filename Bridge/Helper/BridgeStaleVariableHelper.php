@@ -197,4 +197,3 @@ trait BridgeStaleVariableHelper
     }
 
 }
-

@@ -107,4 +107,3 @@ trait BridgeRequestHelper
     }
 
 }
-

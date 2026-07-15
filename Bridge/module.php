@@ -7,19 +7,19 @@ require_once dirname(__DIR__) . '/libs/SemaphoreHelper.php';
 require_once dirname(__DIR__) . '/libs/MQTTHelper.php';
 require_once dirname(__DIR__) . '/libs/AttributeArrayHelper.php';
 require_once dirname(__DIR__) . '/libs/Maintenance/StaleVariableCleanupHelper.php';
-require_once __DIR__ . '/BridgeRequestHelper.php';
-require_once __DIR__ . '/BridgeNetworkSecurityHelper.php';
-require_once __DIR__ . '/BridgeInstallCodeHelper.php';
-require_once __DIR__ . '/BridgeBackupHelper.php';
-require_once __DIR__ . '/BridgePairingHelper.php';
-require_once __DIR__ . '/BridgeStaleVariableHelper.php';
-require_once __DIR__ . '/BridgeTouchlinkHelper.php';
-require_once __DIR__ . '/BridgeConfigurationCommandHelper.php';
-require_once __DIR__ . '/BridgeGroupSceneCommandHelper.php';
-require_once __DIR__ . '/BridgeOTACommandHelper.php';
-require_once __DIR__ . '/BridgeOTAFormHelper.php';
-require_once __DIR__ . '/BridgeDeviceCommandHelper.php';
-require_once __DIR__ . '/BridgeDiagnosticHelper.php';
+require_once __DIR__ . '/Helper/BridgeRequestHelper.php';
+require_once __DIR__ . '/Helper/BridgeNetworkSecurityHelper.php';
+require_once __DIR__ . '/Helper/BridgeInstallCodeHelper.php';
+require_once __DIR__ . '/Helper/BridgeBackupHelper.php';
+require_once __DIR__ . '/Helper/BridgePairingHelper.php';
+require_once __DIR__ . '/Helper/BridgeStaleVariableHelper.php';
+require_once __DIR__ . '/Helper/BridgeTouchlinkHelper.php';
+require_once __DIR__ . '/Helper/BridgeConfigurationCommandHelper.php';
+require_once __DIR__ . '/Helper/BridgeGroupSceneCommandHelper.php';
+require_once __DIR__ . '/Helper/BridgeOTACommandHelper.php';
+require_once __DIR__ . '/Helper/BridgeOTAFormHelper.php';
+require_once __DIR__ . '/Helper/BridgeDeviceCommandHelper.php';
+require_once __DIR__ . '/Helper/BridgeDiagnosticHelper.php';
 
 /**
  * Zigbee2MQTTBridge

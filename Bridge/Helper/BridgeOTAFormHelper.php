@@ -707,4 +707,3 @@ trait BridgeOTAFormHelper
     }
 
 }
-

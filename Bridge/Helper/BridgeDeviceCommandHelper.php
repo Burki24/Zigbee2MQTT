@@ -251,4 +251,3 @@ trait BridgeDeviceCommandHelper
         return $configs;
     }
 }
-

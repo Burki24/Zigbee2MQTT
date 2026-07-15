@@ -421,4 +421,3 @@ trait BridgeDiagnosticHelper
         return \strlen($text) > 240 ? \substr($text, 0, 237) . '...' : $text;
     }
 }
-

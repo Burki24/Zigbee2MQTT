@@ -193,4 +193,3 @@ trait BridgePairingHelper
     }
 
 }
-

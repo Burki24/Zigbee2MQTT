@@ -475,4 +475,3 @@ trait BridgeNetworkSecurityHelper
     }
 
 }
-

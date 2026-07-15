@@ -699,4 +699,3 @@ trait DeviceActionHelper
         return false;
     }
 }
-

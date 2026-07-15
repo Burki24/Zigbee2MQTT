@@ -233,4 +233,3 @@ trait BridgeBackupHelper
     }
 
 }
-

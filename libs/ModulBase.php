@@ -6,7 +6,7 @@ namespace Zigbee2MQTT;
 
 require_once __DIR__ . '/AttributeArrayHelper.php';
 require_once __DIR__ . '/BufferHelper.php';
-require_once __DIR__ . '/ModuleRuntimeSafetyHelper.php';
+require_once __DIR__ . '/ModulHelper/ModuleRuntimeSafetyHelper.php';
 require_once __DIR__ . '/InstanceConnectionHelper.php';
 require_once __DIR__ . '/SemaphoreHelper.php';
 require_once __DIR__ . '/Localization/TranslationHelper.php';
@@ -22,14 +22,14 @@ require_once __DIR__ . '/Visualization/TileHelpers/WindowHandleTileHelper.php';
 require_once __DIR__ . '/Visualization/TileHelpers/ActionTileHelper.php';
 require_once __DIR__ . '/MQTTHelper.php';
 require_once __DIR__ . '/ColorHelper.php';
-require_once __DIR__ . '/DeviceCommandHelper.php';
-require_once __DIR__ . '/PayloadStructureHelper.php';
-require_once __DIR__ . '/PayloadProcessingHelper.php';
-require_once __DIR__ . '/PayloadVariableHelper.php';
-require_once __DIR__ . '/VariableValueProcessingHelper.php';
-require_once __DIR__ . '/VariableRuntimeHelper.php';
-require_once __DIR__ . '/DeviceActionHelper.php';
-require_once __DIR__ . '/ExposeVariableRegistrationHelper.php';
+require_once __DIR__ . '/ModulHelper/DeviceCommandHelper.php';
+require_once __DIR__ . '/ModulHelper/PayloadStructureHelper.php';
+require_once __DIR__ . '/ModulHelper/PayloadProcessingHelper.php';
+require_once __DIR__ . '/ModulHelper/PayloadVariableHelper.php';
+require_once __DIR__ . '/ModulHelper/VariableValueProcessingHelper.php';
+require_once __DIR__ . '/ModulHelper/VariableRuntimeHelper.php';
+require_once __DIR__ . '/ModulHelper/DeviceActionHelper.php';
+require_once __DIR__ . '/ModulHelper/ExposeVariableRegistrationHelper.php';
 
 /**
  * ModulBase

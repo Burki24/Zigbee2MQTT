@@ -262,4 +262,3 @@ trait BridgeOTACommandHelper
     }
 
 }
-
