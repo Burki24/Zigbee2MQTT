@@ -25,7 +25,7 @@ class DiscoveryTest extends DumpInclude
 {
     protected function tearDown(): void
     {
-        unset($GLOBALS['MQTT_RETAINED_MESSAGES'][12345]);
+        unset($GLOBALS['MQTT_RETAINED_MESSAGES']);
     }
 
     public function testRetainedBridgeTopicDiscoveryKeepsAllOnlineBases(): void
@@ -46,6 +46,68 @@ class DiscoveryTest extends DumpInclude
             ['zigbee2mqtt', 'second-z2m'],
             $reflection->invoke($discovery, 12345)
         );
+    }
+
+    public function testConfigurationFormUsesCacheAndSchedulesDiscoveryRefresh(): void
+    {
+        $discovery = new class(990007) extends Zigbee2MQTTDiscovery {
+            public int $reloadCount = 0;
+            public int $scanCount = 0;
+
+            public function getRefreshTimerForTest(): int
+            {
+                return $this->GetTimerInterval('DiscoveryRefresh');
+            }
+
+            public function getDiscoveryCacheForTest(): string
+            {
+                return $this->ReadAttributeString('DiscoveryCache');
+            }
+
+            protected function ReloadForm(): bool
+            {
+                ++$this->reloadCount;
+                return true;
+            }
+
+            protected function ScanMqttServers(array $fallbackTopics = []): ?array
+            {
+                ++$this->scanCount;
+                return null;
+            }
+
+            protected function getTime(): int
+            {
+                return time();
+            }
+        };
+        $discovery->Create();
+
+        $form = json_decode($discovery->GetConfigurationForm(), true);
+
+        $this->assertIsArray($form);
+        $this->assertSame('', $discovery->getDiscoveryCacheForTest(), 'Opening the form must not run discovery synchronously.');
+        $this->assertSame(0, $discovery->scanCount);
+        $this->assertGreaterThan(0, $discovery->getRefreshTimerForTest());
+
+        $discovery->RequestAction('RefreshDiscoveryCache', true);
+
+        $cache = json_decode($discovery->getDiscoveryCacheForTest(), true);
+        $this->assertNull($cache['topics']);
+        $this->assertGreaterThan(0, $cache['timestamp']);
+        $this->assertLessThanOrEqual(0, $discovery->getRefreshTimerForTest());
+        $this->assertSame(1, $discovery->reloadCount);
+        $this->assertSame(1, $discovery->scanCount);
+
+        $discovery->GetConfigurationForm();
+        $this->assertLessThanOrEqual(0, $discovery->getRefreshTimerForTest(), 'A fresh cache must not schedule another discovery scan.');
+
+        $discovery->RequestAction('RefreshDiscovery', true);
+        $this->assertGreaterThan(0, $discovery->getRefreshTimerForTest());
+        $this->assertSame(1, $discovery->scanCount, 'The manual refresh button must only schedule the asynchronous scan.');
+
+        $discovery->RequestAction('RefreshDiscoveryCache', true);
+        $this->assertSame(2, $discovery->scanCount);
     }
 
     public function testManualBrokerDebugDoesNotContainCredentials(): void
