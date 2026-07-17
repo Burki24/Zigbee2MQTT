@@ -598,150 +598,140 @@ class Zigbee2MQTTBridge extends IPSModuleStrict
     public function RequestAction(string $ident, mixed $value): void
     {
         $helper = match ($ident) {
-            'permit_join', 'StopPairing', 'log_level', 'restart_request'
-                => 'BridgeConfigurationCommandHelper',
-            'StartPairing', 'UpdatePermitJoinStatus'
-                => 'BridgePairingHelper',
-            'ClearBridgeDiagnostics', 'RunHealthCheck', 'RunCoordinatorCheck'
-                => 'BridgeDiagnosticHelper',
-            'CreateBackupFile'
-                => 'BridgeBackupHelper',
+            'permit_join', 'StopPairing', 'log_level', 'restart_request' => 'BridgeConfigurationCommandHelper',
+            'StartPairing', 'UpdatePermitJoinStatus' => 'BridgePairingHelper',
+            'ClearBridgeDiagnostics', 'RunHealthCheck', 'RunCoordinatorCheck' => 'BridgeDiagnosticHelper',
+            'CreateBackupFile' => 'BridgeBackupHelper',
             'SendInstallCode', 'SaveInstallCode', 'SelectStoredInstallCode', 'SendStoredInstallCode',
-            'RequestDeleteStoredInstallCode', 'ConfirmDeleteStoredInstallCode'
-                => 'BridgeInstallCodeHelper',
-            'TouchlinkScan', 'SelectTouchlinkDevice', 'TouchlinkIdentify', 'TouchlinkFactoryReset'
-                => 'BridgeTouchlinkHelper',
-            'ExecuteBridgeExpertAction'
-                => 'BridgeRequestHelper',
+            'RequestDeleteStoredInstallCode', 'ConfirmDeleteStoredInstallCode' => 'BridgeInstallCodeHelper',
+            'TouchlinkScan', 'SelectTouchlinkDevice', 'TouchlinkIdentify', 'TouchlinkFactoryReset' => 'BridgeTouchlinkHelper',
+            'ExecuteBridgeExpertAction' => 'BridgeRequestHelper',
             'SelectNetworkSecurityDevice', 'RefreshNetworkSecurityAvailableDevices', 'AddBlocklistDevice',
-            'RemoveBlocklistDevice', 'RequestPasslistChange', 'ConfirmPendingPasslistChange'
-                => 'BridgeNetworkSecurityHelper',
-            'ScanStaleVariables', 'SelectStaleVariableMaintenanceInstance'
-                => 'BridgeStaleVariableHelper',
+            'RemoveBlocklistDevice', 'RequestPasslistChange', 'ConfirmPendingPasslistChange' => 'BridgeNetworkSecurityHelper',
+            'ScanStaleVariables', 'SelectStaleVariableMaintenanceInstance' => 'BridgeStaleVariableHelper',
             'RefreshOTAStatus', 'CheckOTAUpdate', 'RequestOTAUpdate', 'ConfirmOTAUpdate',
-            'ScheduleOTAUpdate', 'UnscheduleOTAUpdate', 'AbortOTAUpdate'
-                => 'BridgeOTAFormHelper',
+            'ScheduleOTAUpdate', 'UnscheduleOTAUpdate', 'AbortOTAUpdate' => 'BridgeOTAFormHelper',
             default => 'BridgeModule'
         };
 
         $this->TraceHelperCall($helper, $ident, function () use ($ident, $value): void
         {
             switch ($ident) {
-            case 'permit_join':
-                $this->SetPermitJoin((bool) $value);
-                break;
-            case 'StartPairing':
-                $this->StartPairingFromForm($value);
-                break;
-            case 'StopPairing':
-                $this->SetPermitJoinTarget(0);
-                break;
-            case 'UpdatePermitJoinStatus':
-                $this->UpdatePermitJoinStatus();
-                break;
-            case 'log_level':
-                $this->SetLogLevel((string) $value);
-                break;
-            case 'restart_request':
-                $this->Restart();
-                break;
-            case 'ClearBridgeDiagnostics':
-                $this->ClearBridgeDiagnostics();
-                break;
-            case 'RunHealthCheck':
-                $this->RunHealthCheckFromForm();
-                break;
-            case 'RunCoordinatorCheck':
-                $this->RunCoordinatorCheckFromForm();
-                break;
-            case 'CreateBackupFile':
-                $this->CreateBackupFileFromForm();
-                break;
-            case 'SendInstallCode':
-                $this->SendInstallCodeFromForm($value);
-                break;
-            case 'SaveInstallCode':
-                $this->SaveInstallCodeFromForm($value);
-                break;
-            case 'SelectStoredInstallCode':
-                $this->SelectStoredInstallCodeFromForm($value);
-                break;
-            case 'SendStoredInstallCode':
-                $this->SendStoredInstallCodeFromForm($value);
-                break;
-            case 'RequestDeleteStoredInstallCode':
-                $this->RequestDeleteStoredInstallCodeFromForm($value);
-                break;
-            case 'ConfirmDeleteStoredInstallCode':
-                $this->ConfirmPendingStoredInstallCodeDelete();
-                break;
-            case 'TouchlinkScan':
-                $this->TouchlinkScan();
-                $this->TryUpdateFormField('TouchlinkDeviceList', 'values', json_encode($this->BuildTouchlinkDeviceFormValues()));
-                break;
-            case 'SelectTouchlinkDevice':
-                $this->SelectTouchlinkDeviceFromForm($value);
-                break;
-            case 'TouchlinkIdentify':
-                $target = $this->DecodeBridgeFormPayload($value);
-                if ($target !== null) {
-                    $this->TouchlinkIdentify((string) ($target['ieee_address'] ?? ''), (int) ($target['channel'] ?? 0));
-                }
-                break;
-            case 'TouchlinkFactoryReset':
-                $target = $this->DecodeBridgeFormPayload($value);
-                if ($target !== null) {
-                    $this->TouchlinkFactoryReset((string) ($target['ieee_address'] ?? ''), (int) ($target['channel'] ?? 0));
-                }
-                break;
-            case 'ExecuteBridgeExpertAction':
-                $this->ExecuteBridgeExpertActionFromForm($value);
-                break;
-            case 'SelectNetworkSecurityDevice':
-                $this->SelectNetworkSecurityDeviceFromForm($value);
-                break;
-            case 'RefreshNetworkSecurityAvailableDevices':
-                $this->UpdateNetworkSecurityFormLists();
-                break;
-            case 'AddBlocklistDevice':
-                $this->AddNetworkSecurityDeviceFromForm('blocklist', $value);
-                break;
-            case 'RemoveBlocklistDevice':
-                $this->RemoveNetworkSecurityDeviceFromForm('blocklist', $value);
-                break;
-            case 'RequestPasslistChange':
-                $this->RequestPasslistChangeFromForm($value);
-                break;
-            case 'ConfirmPendingPasslistChange':
-                $this->ApplyPendingPasslistChange();
-                break;
-            case 'ScanStaleVariables':
-                $this->ScanStaleVariablesFromForm();
-                break;
-            case 'SelectStaleVariableMaintenanceInstance':
-                $this->SelectStaleVariableMaintenanceInstanceFromForm($value);
-                break;
-            case 'RefreshOTAStatus':
-                $this->UpdateOTAFormLists();
-                break;
-            case 'CheckOTAUpdate':
-                $this->CheckOTAUpdateFromForm($value);
-                break;
-            case 'RequestOTAUpdate':
-                $this->RequestOTAUpdateFromForm($value);
-                break;
-            case 'ConfirmOTAUpdate':
-                $this->ConfirmPendingOTAUpdate();
-                break;
-            case 'ScheduleOTAUpdate':
-                $this->ScheduleOTAUpdateFromForm($value);
-                break;
-            case 'UnscheduleOTAUpdate':
-                $this->UnscheduleOTAUpdateFromForm($value);
-                break;
-            case 'AbortOTAUpdate':
-                $this->AbortOTAUpdateFromForm($value);
-                break;
+                case 'permit_join':
+                    $this->SetPermitJoin((bool) $value);
+                    break;
+                case 'StartPairing':
+                    $this->StartPairingFromForm($value);
+                    break;
+                case 'StopPairing':
+                    $this->SetPermitJoinTarget(0);
+                    break;
+                case 'UpdatePermitJoinStatus':
+                    $this->UpdatePermitJoinStatus();
+                    break;
+                case 'log_level':
+                    $this->SetLogLevel((string) $value);
+                    break;
+                case 'restart_request':
+                    $this->Restart();
+                    break;
+                case 'ClearBridgeDiagnostics':
+                    $this->ClearBridgeDiagnostics();
+                    break;
+                case 'RunHealthCheck':
+                    $this->RunHealthCheckFromForm();
+                    break;
+                case 'RunCoordinatorCheck':
+                    $this->RunCoordinatorCheckFromForm();
+                    break;
+                case 'CreateBackupFile':
+                    $this->CreateBackupFileFromForm();
+                    break;
+                case 'SendInstallCode':
+                    $this->SendInstallCodeFromForm($value);
+                    break;
+                case 'SaveInstallCode':
+                    $this->SaveInstallCodeFromForm($value);
+                    break;
+                case 'SelectStoredInstallCode':
+                    $this->SelectStoredInstallCodeFromForm($value);
+                    break;
+                case 'SendStoredInstallCode':
+                    $this->SendStoredInstallCodeFromForm($value);
+                    break;
+                case 'RequestDeleteStoredInstallCode':
+                    $this->RequestDeleteStoredInstallCodeFromForm($value);
+                    break;
+                case 'ConfirmDeleteStoredInstallCode':
+                    $this->ConfirmPendingStoredInstallCodeDelete();
+                    break;
+                case 'TouchlinkScan':
+                    $this->TouchlinkScan();
+                    $this->TryUpdateFormField('TouchlinkDeviceList', 'values', json_encode($this->BuildTouchlinkDeviceFormValues()));
+                    break;
+                case 'SelectTouchlinkDevice':
+                    $this->SelectTouchlinkDeviceFromForm($value);
+                    break;
+                case 'TouchlinkIdentify':
+                    $target = $this->DecodeBridgeFormPayload($value);
+                    if ($target !== null) {
+                        $this->TouchlinkIdentify((string) ($target['ieee_address'] ?? ''), (int) ($target['channel'] ?? 0));
+                    }
+                    break;
+                case 'TouchlinkFactoryReset':
+                    $target = $this->DecodeBridgeFormPayload($value);
+                    if ($target !== null) {
+                        $this->TouchlinkFactoryReset((string) ($target['ieee_address'] ?? ''), (int) ($target['channel'] ?? 0));
+                    }
+                    break;
+                case 'ExecuteBridgeExpertAction':
+                    $this->ExecuteBridgeExpertActionFromForm($value);
+                    break;
+                case 'SelectNetworkSecurityDevice':
+                    $this->SelectNetworkSecurityDeviceFromForm($value);
+                    break;
+                case 'RefreshNetworkSecurityAvailableDevices':
+                    $this->UpdateNetworkSecurityFormLists();
+                    break;
+                case 'AddBlocklistDevice':
+                    $this->AddNetworkSecurityDeviceFromForm('blocklist', $value);
+                    break;
+                case 'RemoveBlocklistDevice':
+                    $this->RemoveNetworkSecurityDeviceFromForm('blocklist', $value);
+                    break;
+                case 'RequestPasslistChange':
+                    $this->RequestPasslistChangeFromForm($value);
+                    break;
+                case 'ConfirmPendingPasslistChange':
+                    $this->ApplyPendingPasslistChange();
+                    break;
+                case 'ScanStaleVariables':
+                    $this->ScanStaleVariablesFromForm();
+                    break;
+                case 'SelectStaleVariableMaintenanceInstance':
+                    $this->SelectStaleVariableMaintenanceInstanceFromForm($value);
+                    break;
+                case 'RefreshOTAStatus':
+                    $this->UpdateOTAFormLists();
+                    break;
+                case 'CheckOTAUpdate':
+                    $this->CheckOTAUpdateFromForm($value);
+                    break;
+                case 'RequestOTAUpdate':
+                    $this->RequestOTAUpdateFromForm($value);
+                    break;
+                case 'ConfirmOTAUpdate':
+                    $this->ConfirmPendingOTAUpdate();
+                    break;
+                case 'ScheduleOTAUpdate':
+                    $this->ScheduleOTAUpdateFromForm($value);
+                    break;
+                case 'UnscheduleOTAUpdate':
+                    $this->UnscheduleOTAUpdateFromForm($value);
+                    break;
+                case 'AbortOTAUpdate':
+                    $this->AbortOTAUpdateFromForm($value);
+                    break;
             }
         }, 'Ident=' . $ident);
     }

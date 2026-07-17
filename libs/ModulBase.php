@@ -934,42 +934,6 @@ abstract class ModulBase extends \IPSModuleStrict
     }
 
     /**
-     * Führt einen Helper-Aufruf mit einheitlichen Start-, Ende- und Fehler-Debugs aus.
-     *
-     * Der Kontext darf ausschließlich nicht sensible Kennungen enthalten. Payloads,
-     * Zugangsdaten und Installcodes werden bewusst nicht protokolliert.
-     */
-    private function TraceHelperCall(string $helper, string $operation, \Closure $callback, string $context = ''): mixed
-    {
-        $call = $helper . '::' . $operation;
-        $context = trim((string) preg_replace('/[\r\n]+/', ' ', $context));
-        if (strlen($context) > 160) {
-            $context = substr($context, 0, 157) . '...';
-        }
-        $suffix = $context === '' ? '' : ' | ' . $context;
-        $this->SendDebug('HelperTrace', $call . ' [START]' . $suffix, 0);
-
-        try {
-            $result = $callback();
-        } catch (\Throwable $exception) {
-            $this->SendDebug(
-                'HelperTrace',
-                $call . ' [ERROR] | Exception=' . $exception::class . ' | Code=' . $exception->getCode() . $suffix,
-                0
-            );
-            throw $exception;
-        }
-
-        $resultDescription = match (true) {
-            \is_bool($result) => $result ? 'true' : 'false',
-            $result === null  => 'null',
-            default           => get_debug_type($result)
-        };
-        $this->SendDebug('HelperTrace', $call . ' [END] | Result=' . $resultDescription . $suffix, 0);
-        return $result;
-    }
-
-    /**
      * Aktiviert die HTML-SDK-Visualisierung, wenn mindestens eine passende Spezialkachel verwendet werden soll.
      *
      * Ohne verfügbare Tile-Schnittstelle oder ohne aktivierte passende Kachel wird
@@ -1107,6 +1071,42 @@ abstract class ModulBase extends \IPSModuleStrict
         }
 
         return $this->Translate('Native presentation');
+    }
+
+    /**
+     * Führt einen Helper-Aufruf mit einheitlichen Start-, Ende- und Fehler-Debugs aus.
+     *
+     * Der Kontext darf ausschließlich nicht sensible Kennungen enthalten. Payloads,
+     * Zugangsdaten und Installcodes werden bewusst nicht protokolliert.
+     */
+    private function TraceHelperCall(string $helper, string $operation, \Closure $callback, string $context = ''): mixed
+    {
+        $call = $helper . '::' . $operation;
+        $context = trim((string) preg_replace('/[\r\n]+/', ' ', $context));
+        if (strlen($context) > 160) {
+            $context = substr($context, 0, 157) . '...';
+        }
+        $suffix = $context === '' ? '' : ' | ' . $context;
+        $this->SendDebug('HelperTrace', $call . ' [START]' . $suffix, 0);
+
+        try {
+            $result = $callback();
+        } catch (\Throwable $exception) {
+            $this->SendDebug(
+                'HelperTrace',
+                $call . ' [ERROR] | Exception=' . $exception::class . ' | Code=' . $exception->getCode() . $suffix,
+                0
+            );
+            throw $exception;
+        }
+
+        $resultDescription = match (true) {
+            \is_bool($result) => $result ? 'true' : 'false',
+            $result === null  => 'null',
+            default           => get_debug_type($result)
+        };
+        $this->SendDebug('HelperTrace', $call . ' [END] | Result=' . $resultDescription . $suffix, 0);
+        return $result;
     }
 
     /**

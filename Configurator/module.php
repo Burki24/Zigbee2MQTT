@@ -15,6 +15,16 @@ class Zigbee2MQTTConfigurator extends IPSModuleStrict
     use \Zigbee2MQTT\Semaphore;
     use \Zigbee2MQTT\SendData;
 
+    /**
+     * Kurzer Timeout fuer die reine Konfigurator-Uebersicht.
+     *
+     * Detail-, Backup- und Wartungsfunktionen verwenden weiterhin die laengeren
+     * fachlichen Timeouts aus den Modulkonstanten. Die Startansicht des
+     * Konfigurators darf dagegen nicht mehrere lange Listen-Timeouts sammeln,
+     * wenn die Symcon-Extension bei frischen Installationen noch nicht aktuell ist.
+     */
+    private const TIMEOUT_CONFIGURATOR_QUICK_REQUEST = 5000;
+
     /** @var array $DeviceValues */
     private static $DeviceValues = [
         'name'               => '',
@@ -40,16 +50,6 @@ class Zigbee2MQTTConfigurator extends IPSModuleStrict
         'topic'              => '',
         'DevicesCount'       => ''
     ];
-
-    /**
-     * Kurzer Timeout fuer die reine Konfigurator-Uebersicht.
-     *
-     * Detail-, Backup- und Wartungsfunktionen verwenden weiterhin die laengeren
-     * fachlichen Timeouts aus den Modulkonstanten. Die Startansicht des
-     * Konfigurators darf dagegen nicht mehrere lange Listen-Timeouts sammeln,
-     * wenn die Symcon-Extension bei frischen Installationen noch nicht aktuell ist.
-     */
-    private const TIMEOUT_CONFIGURATOR_QUICK_REQUEST = 5000;
 
     /**
      * Initialisiert Eigenschaften, Attribute und Timer der Configurator-Instanz.
