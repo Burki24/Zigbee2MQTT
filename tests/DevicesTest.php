@@ -293,6 +293,36 @@ class DevicesTest extends DumpInclude
         $this->assertFalse($method->invoke($device, 'Double Pulse', 'value'));
     }
 
+    public function testMissingEnumValueTranslationIsReportedAndOfferedInDeviceForm(): void
+    {
+        [$iid, $debug] = $this->createTestInstance('RTCGQ01LM.json');
+        $interface = IPS\InstanceManager::getInstanceInterface($iid);
+        $topic = $debug['Config']['MQTTBaseTopic'] . '/' . $debug['Config']['MQTTTopic'];
+        $interface->ReceiveData(self::buildMqttRequest($topic, [
+            'exposes' => [
+                [
+                    'name'     => 'mode',
+                    'label'    => 'Mode',
+                    'access'   => 7,
+                    'type'     => 'enum',
+                    'property' => 'mode',
+                    'values'   => ['missing_translation_probe']
+                ]
+            ],
+            'mode' => 'missing_translation_probe'
+        ]));
+
+        $missingTranslations = self::getExportDebugData($iid)['missingTranslations'];
+        $this->assertContains(
+            ['value' => 'Missing Translation Probe'],
+            $missingTranslations,
+            'Collected translations: ' . var_export($missingTranslations, true)
+        );
+
+        $form = json_decode(IPS_GetConfigurationForm($iid), true);
+        $this->assertFormItemVisible($form, 'ShowMissingTranslationsButton');
+    }
+
     public function testUpdateInfoShowsReadablePopupOnFailure(): void
     {
         $device = new class(990006) extends Zigbee2MQTTDevice {

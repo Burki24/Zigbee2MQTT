@@ -875,6 +875,8 @@ trait VariablePresentationHelper
      */
     private function BuildPresetPresentationOption(mixed $value, string $caption, string $variableType): array
     {
+        $this->isValueInLocaleJson($caption, 'value');
+
         return [
             'Value'      => $variableType === 'float' ? (float) $value : (int) $value,
             'Caption'    => $this->Translate($caption),
@@ -1233,11 +1235,17 @@ trait VariablePresentationHelper
     }
 
     /**
-     * Erstellt eine lesbare Beschriftung aus einem Expose-Wert.
+     * Erstellt und uebersetzt eine lesbare Beschriftung aus einem Expose-Wert.
+     *
+     * Fehlende Uebersetzungen werden wie bei den frueheren Enum-Profilen fuer
+     * die Diagnose in der Geraete- und Gruppenkonfiguration gesammelt.
      */
     private function CreatePresentationCaption(string $value): string
     {
-        return ucwords(str_replace('_', ' ', $value));
+        $caption = ucwords(str_replace('_', ' ', $value));
+        $this->isValueInLocaleJson($caption, 'value');
+
+        return $this->Translate($caption);
     }
 
     /**
