@@ -503,7 +503,7 @@ Die Änderungen sind anhand der funktionalen Commits chronologisch gegliedert. A
 - OTA-Formularlisten werden während eines Modul-Updates nur noch aktualisiert, wenn die Symcon-Formularschnittstelle verfügbar ist. Dadurch erzeugen OTA-Statusänderungen während `VM_UPDATE` keine `InstanceInterface is not available`-Warnungen mehr.
 - Verwaiste interne Variablenregistrierungen werden vor einer Neuanlage bereinigt. Dadurch führen bereits gelöschte Maintained-Variablen beim Update nicht mehr zu `Variable #... existiert nicht`-Warnungen.
 
-### 9. bis 15. Juli 2026: Robuste Payload-Verarbeitung, ueckmeldebasierte Aktionsverarbeitung, Textdarstellungen und Übersetzungen, Sicherheit, Stabilität und Performance
+### 9. bis 17. Juli 2026: Robuste Payload-Verarbeitung, ueckmeldebasierte Aktionsverarbeitung, Textdarstellungen und Übersetzungen, Sicherheit, Stabilität und Performance
 
 - Numerisch indizierte Root-Payloads ohne Zigbee2MQTT-Property werden beim Payload-Import jetzt ignoriert. Dadurch lösen Geräte, die einzelne Werte oder Listenfragmente ohne Variablen-Ident senden, keinen `TypeError` in der Variablenverarbeitung mehr aus.
 - Lesbare Set-Aktionen wie Schalter, Helligkeit, Farbtemperatur und andere Statuswerte aktualisieren lokale Symcon-Werte erst nach einer Rueckmeldung von Zigbee2MQTT.
