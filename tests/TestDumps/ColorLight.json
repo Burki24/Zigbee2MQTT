@@ -34,8 +34,20 @@
                     "type": "composite",
                     "property": "color",
                     "features": [
-                        {"name": "x", "label": "X", "access": 7, "type": "numeric", "property": "x"},
-                        {"name": "y", "label": "Y", "access": 7, "type": "numeric", "property": "y"}
+                        {
+                            "name": "x",
+                            "label": "X",
+                            "access": 7,
+                            "type": "numeric",
+                            "property": "x"
+                        },
+                        {
+                            "name": "y",
+                            "label": "Y",
+                            "access": 7,
+                            "type": "numeric",
+                            "property": "y"
+                        }
                     ]
                 },
                 {
@@ -48,11 +60,26 @@
                     "value_min": 200,
                     "value_max": 454,
                     "presets": [
-                        {"name": "coolest", "value": 200},
-                        {"name": "cool", "value": 250},
-                        {"name": "neutral", "value": 370},
-                        {"name": "warm", "value": 412},
-                        {"name": "warmest", "value": 454}
+                        {
+                            "name": "coolest",
+                            "value": 200
+                        },
+                        {
+                            "name": "cool",
+                            "value": 250
+                        },
+                        {
+                            "name": "neutral",
+                            "value": 370
+                        },
+                        {
+                            "name": "warm",
+                            "value": 412
+                        },
+                        {
+                            "name": "warmest",
+                            "value": 454
+                        }
                     ]
                 }
             ]
@@ -61,7 +88,10 @@
     "LastPayload": {
         "state": "ON",
         "brightness": 200,
-        "color": {"x": 0.7, "y": 0.3},
+        "color": {
+            "x": 0.7,
+            "y": 0.3
+        },
         "color_temp": 370,
         "color_mode": "xy"
     },

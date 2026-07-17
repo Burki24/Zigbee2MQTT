@@ -598,20 +598,20 @@ class Zigbee2MQTTBridge extends IPSModuleStrict
     public function RequestAction(string $ident, mixed $value): void
     {
         $helper = match ($ident) {
-            'permit_join', 'StopPairing', 'log_level', 'restart_request' => 'BridgeConfigurationCommandHelper',
-            'StartPairing', 'UpdatePermitJoinStatus' => 'BridgePairingHelper',
+            'permit_join', 'StopPairing', 'log_level', 'restart_request'      => 'BridgeConfigurationCommandHelper',
+            'StartPairing', 'UpdatePermitJoinStatus'                          => 'BridgePairingHelper',
             'ClearBridgeDiagnostics', 'RunHealthCheck', 'RunCoordinatorCheck' => 'BridgeDiagnosticHelper',
-            'CreateBackupFile' => 'BridgeBackupHelper',
+            'CreateBackupFile'                                                => 'BridgeBackupHelper',
             'SendInstallCode', 'SaveInstallCode', 'SelectStoredInstallCode', 'SendStoredInstallCode',
-            'RequestDeleteStoredInstallCode', 'ConfirmDeleteStoredInstallCode' => 'BridgeInstallCodeHelper',
+            'RequestDeleteStoredInstallCode', 'ConfirmDeleteStoredInstallCode'                     => 'BridgeInstallCodeHelper',
             'TouchlinkScan', 'SelectTouchlinkDevice', 'TouchlinkIdentify', 'TouchlinkFactoryReset' => 'BridgeTouchlinkHelper',
-            'ExecuteBridgeExpertAction' => 'BridgeRequestHelper',
+            'ExecuteBridgeExpertAction'                                                            => 'BridgeRequestHelper',
             'SelectNetworkSecurityDevice', 'RefreshNetworkSecurityAvailableDevices', 'AddBlocklistDevice',
             'RemoveBlocklistDevice', 'RequestPasslistChange', 'ConfirmPendingPasslistChange' => 'BridgeNetworkSecurityHelper',
-            'ScanStaleVariables', 'SelectStaleVariableMaintenanceInstance' => 'BridgeStaleVariableHelper',
+            'ScanStaleVariables', 'SelectStaleVariableMaintenanceInstance'                   => 'BridgeStaleVariableHelper',
             'RefreshOTAStatus', 'CheckOTAUpdate', 'RequestOTAUpdate', 'ConfirmOTAUpdate',
             'ScheduleOTAUpdate', 'UnscheduleOTAUpdate', 'AbortOTAUpdate' => 'BridgeOTAFormHelper',
-            default => 'BridgeModule'
+            default                                                      => 'BridgeModule'
         };
 
         $this->TraceHelperCall($helper, $ident, function () use ($ident, $value): void
