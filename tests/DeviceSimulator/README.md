@@ -1,23 +1,25 @@
-# Zigbee2MQTT device simulator
+# Zigbee2MQTT-Gerätesimulator
 
-This development tool simulates Zigbee2MQTT devices entirely through MQTT. It
-does not require a physical Zigbee device and does not modify a running
-Zigbee2MQTT installation.
+Dieses Entwicklungswerkzeug simuliert Zigbee2MQTT-Geräte vollständig über MQTT.
+Es benötigt kein physisches Zigbee-Gerät und verändert keine laufende
+Zigbee2MQTT-Installation.
 
-The simulator uses the isolated base topic `Z2M-SIM` and provides:
+Der Simulator verwendet das isolierte Basistopic `Z2M-SIM` und stellt folgende
+virtuelle Geräte bereit:
 
-- `Test/VirtualTunableWhite`: a tunable-white light with brightness, color
-  temperature and presets.
-- `Test/AllExposes`: a synthetic compatibility device containing grouped and
-  standalone binary, numeric, enum, text, composite and list exposes as well as
-  config and diagnostic categories.
+- `Test/VirtualTunableWhite`: Eine abstimmbare Weißlichtleuchte mit Helligkeit,
+  Farbtemperatur und Voreinstellungen.
+- `Test/AllExposes`: Ein synthetisches Kompatibilitätsgerät mit gruppierten und
+  eigenständigen binären, numerischen, Aufzählungs-, Text-, Composite- und
+  Listen-Exposes sowie Konfigurations- und Diagnosekategorien.
 
-It answers the Symcon extension requests used by the configurator, preserves
-transaction IDs and echoes `/set` changes as device state updates.
+Der Simulator beantwortet die vom Konfigurator verwendeten
+Symcon-Erweiterungsanfragen, übernimmt Transaktions-IDs und gibt Änderungen über
+`/set` als aktualisierten Gerätestatus zurück.
 
-## Start
+## Simulator starten
 
-PowerShell example:
+Beispiel für PowerShell:
 
 ```powershell
 $env:Z2M_SIM_HOST = '192.168.178.6'
@@ -26,20 +28,22 @@ $env:Z2M_SIM_PASSWORD = 'mqtt-password'
 php E:\git\Zigbee2MQTT\tests\DeviceSimulator\run.php
 ```
 
-Alternatively, pass `--host`, `--port`, `--username`, `--password` and
-`--base-topic` as command-line options. Environment variables are recommended
-for the password because they keep it out of the shell history.
+Alternativ können `--host`, `--port`, `--username`, `--password` und
+`--base-topic` als Kommandozeilenoptionen übergeben werden. Für das Passwort
+werden Umgebungsvariablen empfohlen, damit es nicht im Verlauf der Shell
+gespeichert wird.
 
-Configure a separate Zigbee2MQTT configurator instance with `Z2M-SIM` as its
-base topic and connect it to the MQTT client that receives this topic. Refresh
-the configurator and create either virtual device from the returned list.
+Eine separate Zigbee2MQTT-Konfiguratorinstanz mit `Z2M-SIM` als Basistopic
+einrichten und mit dem MQTT Client verbinden, der dieses Topic empfängt. Danach
+den Konfigurator aktualisieren und eines der zurückgegebenen virtuellen Geräte
+erstellen.
 
-Stop the simulator with `Ctrl+C`.
+Der Simulator wird mit `Strg+C` beendet.
 
-## Inspect the payload without MQTT
+## Payload ohne MQTT anzeigen
 
 ```powershell
 php E:\git\Zigbee2MQTT\tests\DeviceSimulator\run.php --dump
 ```
 
-No credentials are required for this mode.
+Für diesen Modus werden keine Zugangsdaten benötigt.

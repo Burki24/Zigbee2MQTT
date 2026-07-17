@@ -30,19 +30,19 @@ function simulatorOption(array $options, string $name, string $environment, mixe
 function printSimulatorHelp(): void
 {
     echo <<<'HELP'
-Zigbee2MQTT virtual device simulator
+Zigbee2MQTT-Simulator für virtuelle Geräte
 
-Usage:
+Aufruf:
   php run.php --host=HOST [--port=1883] [--username=USER] [--password=PASS]
               [--base-topic=Z2M-SIM] [--client-id=CLIENT]
   php run.php --dump
 
-Environment variable alternatives:
+Alternativ verfügbare Umgebungsvariablen:
   Z2M_SIM_HOST, Z2M_SIM_PORT, Z2M_SIM_USERNAME, Z2M_SIM_PASSWORD,
   Z2M_SIM_BASE_TOPIC, Z2M_SIM_CLIENT_ID
 
-The password is never written to the repository or printed by the simulator.
-Stop the simulator with Ctrl+C.
+Das Passwort wird weder in das Repository geschrieben noch vom Simulator ausgegeben.
+Der Simulator wird mit Strg+C beendet.
 
 HELP;
 }
@@ -83,7 +83,7 @@ if (isset($options['dump'])) {
 
 $host = (string) simulatorOption($options, 'host', 'Z2M_SIM_HOST', '');
 if ($host === '') {
-    fwrite(STDERR, "Missing MQTT host. Use --host or Z2M_SIM_HOST.\n\n");
+    fwrite(STDERR, "MQTT-Host fehlt. Bitte --host oder Z2M_SIM_HOST verwenden.\n\n");
     printSimulatorHelp();
     exit(2);
 }
@@ -107,7 +107,7 @@ $will = [
 ];
 
 if (!$mqtt->connect(true, $will, $username !== '' ? $username : null, $password !== '' ? $password : null)) {
-    fwrite(STDERR, "Unable to connect to the MQTT broker.\n");
+    fwrite(STDERR, "Verbindung zum MQTT-Broker konnte nicht hergestellt werden.\n");
     exit(3);
 }
 
@@ -124,7 +124,7 @@ $mqtt->subscribe([$baseTopic . '/#' => 0]);
 $simulator->publishInitialState();
 
 echo sprintf(
-    "Simulator connected to %s:%d using base topic %s. Devices: %s\n",
+    "Simulator ist mit %s:%d verbunden und verwendet das Basistopic %s. Geräte: %s\n",
     $host,
     $port,
     $baseTopic,
