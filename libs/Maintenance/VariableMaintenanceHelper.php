@@ -133,7 +133,6 @@ trait VariableMaintenanceHelper
             $updatedScan = $this->RemoveLocalStaleVariableFromScan($scan, $variableID);
             $this->WriteAttributeArray(self::ATTRIBUTE_LOCAL_STALE_VARIABLE_SCAN, $updatedScan);
             $this->UpdateLocalStaleVariableFormListsSafely($updatedScan);
-            $this->ShowLocalStaleVariableMessage('Variable deleted.', 'The selected variable was deleted successfully.');
             return true;
         }
 

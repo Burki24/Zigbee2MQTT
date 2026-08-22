@@ -9,6 +9,30 @@ include_once __DIR__ . '/DumpInclude.php';
  */
 class DevicesTest extends DumpInclude
 {
+    public function testSuccessfulLocalStaleVariableDeletionDoesNotShowMessage(): void
+    {
+        $instanceID = IPS_CreateInstance('{E5BB36C6-A70B-EB23-3716-9151A09AC8A2}');
+        $variableID = IPS_CreateVariable(VARIABLETYPE_STRING);
+        IPS_SetParent($variableID, $instanceID);
+        IPS_SetIdent($variableID, 'stale_test_variable');
+        $device = $this->createVariableMaintenanceTestDouble($instanceID, $variableID);
+
+        $device->RequestAction('ConfirmDeleteLocalStaleVariable', true);
+        $this->assertFalse(IPS_VariableExists($variableID), json_encode($device->updatedFields));
+        $this->assertArrayNotHasKey('LocalStaleVariableMessage', $device->updatedFields);
+    }
+
+    public function testFailedLocalStaleVariableDeletionStillShowsMessage(): void
+    {
+        $instanceID = IPS_CreateInstance('{E5BB36C6-A70B-EB23-3716-9151A09AC8A2}');
+        $missingVariableID = 999999;
+        $device = $this->createVariableMaintenanceTestDouble($instanceID, $missingVariableID);
+
+        $device->RequestAction('ConfirmDeleteLocalStaleVariable', true);
+        $this->assertTrue($device->updatedFields['LocalStaleVariableMessage']['visible']);
+        $this->assertSame('Variable wurde nicht gelöscht.', $device->updatedFields['LocalStaleVariableMessageTitle']['caption']);
+    }
+
     public function testDynamicVariableMaintenanceValuesUseGlobalTranslations(): void
     {
         $iid = IPS_CreateInstance('{E5BB36C6-A70B-EB23-3716-9151A09AC8A2}');
@@ -2911,6 +2935,41 @@ class DevicesTest extends DumpInclude
             }
         };
         $device->Create();
+
+        return $device;
+    }
+
+    private function createVariableMaintenanceTestDouble(int $instanceID, int $variableID): Zigbee2MQTTDevice
+    {
+        $device = new class($instanceID) extends Zigbee2MQTTDevice {
+            public array $updatedFields = [];
+
+            protected function UpdateFormField(string $Field, string $Parameter, mixed $Value): bool
+            {
+                $this->updatedFields[$Field][$Parameter] = $Value;
+                return true;
+            }
+
+            public function prepareDeletion(array $candidate): void
+            {
+                $this->WriteAttributeArray('LocalStaleVariableScan', [
+                    'instanceCount'    => 1,
+                    'keptCount'        => 0,
+                    'clearCandidates'  => [$candidate],
+                    'reviewCandidates' => [],
+                    'errors'           => [],
+                ]);
+                $this->WriteAttributeArray('PendingLocalStaleVariableDelete', $candidate);
+            }
+        };
+        $device->Create();
+        $device->prepareDeletion([
+            'variableID' => $variableID,
+            'instanceID' => $instanceID,
+            'ident'      => 'stale_test_variable',
+            'archived'   => false,
+            'references' => [],
+        ]);
 
         return $device;
     }
