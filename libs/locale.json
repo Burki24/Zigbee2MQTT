@@ -63,6 +63,8 @@
             "derived": "Abgeleitet",
             "existing": "Bestehend",
             "numeric": "Numerisch",
+            "Integer": "Integer",
+            "Float": "Float",
             "enum": "Aufzählung",
             "binary": "Schalter",
             "text": "Text",

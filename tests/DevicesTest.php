@@ -763,6 +763,21 @@ class DevicesTest extends DumpInclude
         $this->assertStringContainsString('"values":[]', $html);
     }
 
+    public function testVariableSelectionShowsConcreteSymconNumericTypes(): void
+    {
+        [$instanceID] = $this->createTestInstance('BMCT-SLZ.json');
+        $form = json_decode(IPS_GetConfigurationForm($instanceID), true);
+        $list = $this->findFormItemByName($form, 'VariableSelectionList');
+
+        $power = $this->findVariableSelectionRow($list['values'], 'power');
+        $linkquality = $this->findVariableSelectionRow($list['values'], 'linkquality');
+
+        $this->assertSame(VARIABLETYPE_FLOAT, IPS_GetVariable(IPS_GetObjectIDByIdent('power', $instanceID))['VariableType']);
+        $this->assertSame('Float', $power['type']);
+        $this->assertSame(VARIABLETYPE_INTEGER, IPS_GetVariable(IPS_GetObjectIDByIdent('linkquality', $instanceID))['VariableType']);
+        $this->assertSame('Integer', $linkquality['type']);
+    }
+
     public function testDeletedVariableIsNotRecreatedAndCanBeRestored()
     {
         [$iid,$Debug] = $this->createTestInstance('BMCT-SLZ.json');
@@ -781,6 +796,7 @@ class DevicesTest extends DumpInclude
         $this->assertNotNull($list);
         $row = $this->findVariableSelectionRow($list['values'], 'power');
         $this->assertNotNull($row);
+        $this->assertSame('Float', $row['type']);
         $this->assertSame('Gelöscht', $row['state']);
         $this->assertSame('Anlegen', $row['action']);
 

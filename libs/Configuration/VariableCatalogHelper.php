@@ -1053,13 +1053,56 @@ trait VariableCatalogHelper
             'ident'            => $ident,
             'label'            => (string) ($entry['label'] ?? $this->FormatVariableCatalogLabel($ident)),
             'source'           => $this->Translate((string) ($entry['source'] ?? 'payload')),
-            'type'             => $this->Translate((string) ($entry['type'] ?? '')),
+            'type'             => $this->ResolveVariableSelectionType($ident, $entry),
             'old_profile'      => (string) ($presentationMigration['oldProfile'] ?? ''),
             'new_presentation' => $this->ResolveVariableSelectionPresentation($ident, $entry, $presentationMigration),
             'state'            => $this->Translate($state),
             'action'           => $action === '' ? '' : $this->Translate($action),
             'rowColor'         => $rowColor
         ];
+    }
+
+    /**
+     * Liefert für numerische Katalogeinträge den konkreten Symcon-Variablentyp.
+     *
+     * Bei vorhandenen Variablen ist der tatsächlich registrierte Typ maßgeblich.
+     * Noch nicht angelegte Expose-Variablen verwenden dieselbe Typableitung wie
+     * die spätere Registrierung.
+     */
+    private function ResolveVariableSelectionType(string $ident, array $entry): string
+    {
+        $sourceType = (string) ($entry['type'] ?? '');
+        if (!\in_array($sourceType, ['numeric', 'integer'], true)) {
+            return $this->Translate($sourceType);
+        }
+
+        $variableID = $this->GetObjectIDByIdent($ident);
+        if ($variableID !== false) {
+            $variableType = IPS_GetVariable($variableID)['VariableType'] ?? null;
+            return match ($variableType) {
+                VARIABLETYPE_INTEGER => $this->Translate('Integer'),
+                VARIABLETYPE_FLOAT   => $this->Translate('Float'),
+                default              => $this->Translate($sourceType),
+            };
+        }
+
+        if ($sourceType === 'integer') {
+            return $this->Translate('Integer');
+        }
+
+        $feature = \is_array($entry['feature'] ?? null) ? $entry['feature'] : $entry;
+        $property = (string) ($feature['property'] ?? $entry['property'] ?? $ident);
+        $unit = (string) ($feature['unit'] ?? $entry['unit'] ?? '');
+        $step = isset($feature['value_step']) ? (float) $feature['value_step'] : 1.0;
+        $groupType = isset($feature['group_type']) && \is_string($feature['group_type'])
+            ? $feature['group_type']
+            : null;
+
+        return match ($this->getVariableTypeFromFeature('numeric', $property, $unit, $step, $groupType)) {
+            'int'   => $this->Translate('Integer'),
+            'float' => $this->Translate('Float'),
+            default => $this->Translate($sourceType),
+        };
     }
 
     /**
