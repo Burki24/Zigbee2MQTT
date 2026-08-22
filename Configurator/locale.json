@@ -24,7 +24,11 @@
             "Zigbee2MQTT does not respond!": "Zigbee2MQTT antwortet nicht!",
             "Zigbee2MQTT did not response on Topic %s": "Zigbee2MQTT antwortet nicht auf Topic %s",
             "Transaction Data is locked": "Transaktionen Daten sind gesperrt",
-            "Action": "Aktion"
+            "Action": "Aktion",
+            "MQTT Base Topic": "MQTT-Basistopic",
+            "Topic": "Topic",
+            "Name": "Name",
+            "ID": "ID"
         }
     }
 }

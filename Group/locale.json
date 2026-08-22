@@ -118,7 +118,11 @@
             "Variable deleted.": "Variable gelöscht.",
             "The selected variable was deleted successfully.": "Die ausgewählte Variable wurde erfolgreich gelöscht.",
             "Variable was not deleted.": "Variable wurde nicht gelöscht.",
-            "The selected variable could not be deleted.": "Die ausgewählte Variable konnte nicht gelöscht werden."
+            "The selected variable could not be deleted.": "Die ausgewählte Variable konnte nicht gelöscht werden.",
+            "MQTT Base Topic": "MQTT-Basistopic",
+            "MQTT Topic": "MQTT-Topic",
+            "Download Debug Data": "Debug-Daten herunterladen",
+            "Testcenter": "Testcenter"
         }
     }
 }

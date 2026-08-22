@@ -66,7 +66,8 @@
             "Discovery failed": "Ermittlung fehlgeschlagen",
             "Inactive": "Inaktiv",
             "Validation underway": "Validierung läuft",
-            "OK": "OK"
+            "OK": "OK",
+            "LQI": "LQI"
         }
     }
 }

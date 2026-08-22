@@ -197,7 +197,11 @@
             "Zigbee2MQTT did not response on Topic %s": "Zigbee2MQTT antwortet nicht auf Topic %s",
             "MQTTTopic not configured.": "MQTT-Topic nicht konfiguriert",
             "Device not found. Check topic.": "Gerät nicht gefunden. Topic prüfen.",
-            "IEEE-Address missing.": "Keine IEEE-Adresse gefunden."
+            "IEEE-Address missing.": "Keine IEEE-Adresse gefunden.",
+            "MQTT Base Topic": "MQTT-Basistopic",
+            "MQTT Topic": "MQTT-Topic",
+            "No endpoint data is available yet. Update the device information and make sure the Symcon extension is current.": "Es sind noch keine Endpoint-Daten verfügbar. Aktualisieren Sie die Geräteinformationen und stellen Sie sicher, dass die Symcon-Extension aktuell ist.",
+            "Testcenter": "Testcenter"
         }
     }
 }
