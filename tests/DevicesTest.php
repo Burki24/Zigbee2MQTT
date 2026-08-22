@@ -963,6 +963,71 @@ class DevicesTest extends DumpInclude
         $this->assertSame(100.0, $soilMoistureVariable['VariablePresentation']['MAX'] ?? null);
     }
 
+    public function testSpecialNumericExposesKeepTheirEffectiveUnits(): void
+    {
+        [$iid, $debug] = $this->createTestInstance('RTCGQ01LM.json');
+
+        $voltageID = IPS_GetObjectIDByIdent('voltage', $iid);
+        $voltage = IPS_GetVariable($voltageID);
+        $this->assertSame(3.015, GetValue($voltageID));
+        $this->assertSame(VARIABLE_PRESENTATION_VALUE_PRESENTATION, $voltage['VariablePresentation']['PRESENTATION'] ?? null);
+        $this->assertSame(' V', $voltage['VariablePresentation']['SUFFIX'] ?? null);
+
+        $interface = IPS\InstanceManager::getInstanceInterface($iid);
+        $topic = $debug['Config']['MQTTBaseTopic'] . '/' . $debug['Config']['MQTTTopic'];
+        $interface->ReceiveData(self::buildMqttRequest($topic, [
+            'exposes' => [[
+                'name'     => 'device_temperature',
+                'label'    => 'Device temperature',
+                'access'   => 1,
+                'type'     => 'numeric',
+                'property' => 'device_temperature',
+                'unit'     => '°C'
+            ]],
+            'device_temperature' => 28
+        ]));
+
+        $deviceTemperatureID = IPS_GetObjectIDByIdent('device_temperature', $iid);
+        $deviceTemperature = IPS_GetVariable($deviceTemperatureID);
+        $this->assertSame(VARIABLE_PRESENTATION_VALUE_PRESENTATION, $deviceTemperature['VariablePresentation']['PRESENTATION'] ?? null);
+        $this->assertSame(' °C', $deviceTemperature['VariablePresentation']['SUFFIX'] ?? null);
+    }
+
+    public function testExistingPayloadOnlyTemperatureGetsFallbackUnitWithoutChangingCustomPresentation(): void
+    {
+        [$iid, $debug] = $this->createTestInstance('RTCGQ01LM.json');
+        $temperatureID = IPS_CreateVariable(VARIABLETYPE_FLOAT);
+        IPS_SetParent($temperatureID, $iid);
+        IPS_SetIdent($temperatureID, 'temperature');
+        IPS_SetName($temperatureID, 'Temperatur');
+        IPS_SetVariableCustomPresentation($temperatureID, [
+            'PRESENTATION' => VARIABLE_PRESENTATION_VALUE_PRESENTATION,
+            'SUFFIX'       => ' custom'
+        ]);
+
+        $catalog = $this->readStubAttributeArray($iid, 'VariableCatalog');
+        $catalog['temperature'] = [
+            'ident'     => 'temperature',
+            'property'  => 'temperature',
+            'label'     => 'Temperature',
+            'source'    => 'payload',
+            'type'      => 'numeric',
+            'created'   => true,
+            'lastValue' => 22.0
+        ];
+        $this->writeStubAttributeArray($iid, 'VariableCatalog', $catalog);
+
+        $interface = IPS\InstanceManager::getInstanceInterface($iid);
+        $topic = $debug['Config']['MQTTBaseTopic'] . '/' . $debug['Config']['MQTTTopic'];
+        $interface->ReceiveData(self::buildMqttRequest($topic, ['temperature' => 23.0]));
+
+        $temperature = IPS_GetVariable($temperatureID);
+        $this->assertSame(VARIABLE_PRESENTATION_VALUE_PRESENTATION, $temperature['VariablePresentation']['PRESENTATION'] ?? null);
+        $this->assertSame(' °C', $temperature['VariablePresentation']['SUFFIX'] ?? null);
+        $this->assertSame(' custom', $temperature['VariableCustomPresentation']['SUFFIX'] ?? null);
+        $this->assertSame(23.0, GetValue($temperatureID));
+    }
+
     public function testReceiveDataIgnoresPayloadFromDifferentDeviceTopic(): void
     {
         [$iid, $debug] = $this->createTestInstance('RTCGQ01LM.json');

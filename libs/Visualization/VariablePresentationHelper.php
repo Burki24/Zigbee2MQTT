@@ -46,6 +46,32 @@ trait VariablePresentationHelper
     }
 
     /**
+     * Erstellt die Darstellung fuer den tatsaechlich in Symcon gespeicherten Wert.
+     *
+     * Spannung wird intern von Millivolt nach Volt umgerechnet. Deshalb muessen
+     * Einheit und vorhandene Bereichsangaben vor dem Aufbau der Darstellung
+     * dieselbe Umrechnung durchlaufen.
+     */
+    protected function BuildStoredFeaturePresentation(array $feature, ?string $groupType = null, string $profileName = ''): ?array
+    {
+        $property = strtolower((string) ($feature['property'] ?? ''));
+        $unit = isset($feature['unit']) && \is_string($feature['unit'])
+            ? strtolower(str_replace(' ', '', trim($feature['unit'])))
+            : '';
+
+        if ($property === 'voltage' && $unit === 'mv') {
+            $feature['unit'] = 'V';
+            foreach (['value_min', 'value_max', 'value_step'] as $key) {
+                if (isset($feature[$key]) && \is_numeric($feature[$key])) {
+                    $feature[$key] = (float) $feature[$key] / 1000;
+                }
+            }
+        }
+
+        return $this->BuildFeaturePresentation($feature, $groupType, $profileName);
+    }
+
+    /**
      * Erstellt fuer schreibbare Textwerte die native Werteingabe.
      *
      * Die Werteingabe setzt in Symcon eine Variablenaktion voraus. Reine

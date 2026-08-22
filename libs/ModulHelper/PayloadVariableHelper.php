@@ -252,9 +252,56 @@ trait PayloadVariableHelper
         }
 
         $this->SendDebug('processVariable', 'Existierende Variable gefunden: ' . $ident, 0);
+        $this->EnsureExistingPayloadVariablePresentation($ident);
         $this->SetValue($ident, $value);
         $this->updatePresetVariable($ident, $value);
         return true;
+    }
+
+    /**
+     * Ergaenzt eine fehlende Modul-Standarddarstellung bei numerischen Variablen.
+     *
+     * Expose-Metadaten aus dem Variablenkatalog haben Vorrang. Fehlen sie, kann
+     * die Darstellungslogik bekannte Einheiten wie Temperatur anhand des Idents
+     * ableiten. Benutzerdefinierte Darstellungen werden von RegisterVariable*
+     * nicht veraendert.
+     */
+    private function EnsureExistingPayloadVariablePresentation(string $ident): void
+    {
+        $variableID = $this->GetObjectIDByIdent($ident);
+        if ($variableID === false) {
+            return;
+        }
+
+        $variable = IPS_GetVariable($variableID);
+        if (($variable['VariablePresentation'] ?? []) !== []) {
+            return;
+        }
+        if (!\in_array($variable['VariableType'] ?? null, [VARIABLETYPE_INTEGER, VARIABLETYPE_FLOAT], true)) {
+            return;
+        }
+
+        $catalog = $this->ReadVariableCatalog();
+        $entry = \is_array($catalog[$ident] ?? null) ? $catalog[$ident] : [];
+        $feature = $this->BuildPresentationFeatureFromCatalogEntry($ident, $entry);
+        if ($feature === null) {
+            $feature = [
+                'property' => $ident,
+                'type'     => 'numeric'
+            ];
+        }
+
+        $presentation = $this->BuildStoredFeaturePresentation($feature);
+        if ($presentation === null || (string) ($presentation['SUFFIX'] ?? '') === '') {
+            return;
+        }
+
+        $name = IPS_GetName($variableID);
+        if (($variable['VariableType'] ?? null) === VARIABLETYPE_FLOAT) {
+            $this->RegisterVariableFloat($ident, $name, $presentation);
+        } else {
+            $this->RegisterVariableInteger($ident, $name, $presentation);
+        }
     }
 
     /**

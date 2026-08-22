@@ -1279,7 +1279,9 @@ trait ExposeVariableRegistrationHelper
             $value = $this->adjustSpecialValue($ident, $feature['value']);
         }
 
-        $profileOrPresentation = '';
+        $profileOrPresentation = ($feature['type'] ?? '') === 'numeric'
+            ? ($this->BuildStoredFeaturePresentation($feature) ?? '')
+            : '';
         switch ($ident) {
             case 'brightness':
                 $profileOrPresentation = $this->BuildBrightnessFeaturePresentation($feature) ?? $profileOrPresentation;
