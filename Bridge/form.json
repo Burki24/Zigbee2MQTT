@@ -930,6 +930,69 @@
                             "caption": "Open selected instance",
                             "objectID": 0,
                             "visible": false
+                        },
+                        {
+                            "type": "Label",
+                            "caption": "Find variables with a custom profile or custom presentation in the device and group instances assigned to this bridge."
+                        },
+                        {
+                            "type": "RowLayout",
+                            "items": [
+                                {
+                                    "type": "Button",
+                                    "caption": "Scan custom profiles",
+                                    "onClick": "IPS_RequestAction($id, 'ScanCustomProfiles', true);"
+                                },
+                                {
+                                    "type": "Label",
+                                    "name": "CustomProfileStatus",
+                                    "caption": "No custom profile scan has been run yet."
+                                }
+                            ]
+                        },
+                        {
+                            "type": "List",
+                            "name": "CustomProfileList",
+                            "caption": "Variables with custom configuration",
+                            "add": false,
+                            "delete": false,
+                            "rowCount": 3,
+                            "loadValuesFromConfiguration": false,
+                            "columns": [
+                                {
+                                    "caption": "Instance",
+                                    "name": "instance",
+                                    "width": "auto",
+                                    "quickFilter": true
+                                },
+                                {
+                                    "caption": "Variable",
+                                    "name": "variable",
+                                    "width": "180px",
+                                    "quickFilter": true
+                                },
+                                {
+                                    "caption": "Ident",
+                                    "name": "ident",
+                                    "width": "160px"
+                                },
+                                {
+                                    "caption": "Standard profile",
+                                    "name": "standard_profile",
+                                    "width": "150px"
+                                },
+                                {
+                                    "caption": "Custom profile",
+                                    "name": "custom_profile",
+                                    "width": "150px"
+                                },
+                                {
+                                    "caption": "Custom presentation",
+                                    "name": "custom_presentation",
+                                    "width": "220px"
+                                }
+                            ],
+                            "values": []
                         }
                     ]
                 },

@@ -110,6 +110,7 @@ class Zigbee2MQTTBridge extends IPSModuleStrict
     private const ATTRIBUTE_CONFIG_PASSLIST = 'ConfigPasslist';
     private const ATTRIBUTE_PENDING_PASSLIST_CHANGE = 'PendingPasslistChange';
     private const ATTRIBUTE_STALE_VARIABLE_SCAN = 'StaleVariableScan';
+    private const ATTRIBUTE_CUSTOM_PROFILE_SCAN = 'CustomProfileScan';
     private const ATTRIBUTE_OTA_CHECK_RESULTS = 'OTACheckResults';
     private const ATTRIBUTE_OTA_UPDATE_RESULTS = 'OTAUpdateResults';
     private const ATTRIBUTE_PENDING_OTA_UPDATE = 'PendingOTAUpdate';
@@ -171,6 +172,7 @@ class Zigbee2MQTTBridge extends IPSModuleStrict
         $this->RegisterAttributeArray(self::ATTRIBUTE_CONFIG_PASSLIST, []);
         $this->RegisterAttributeArray(self::ATTRIBUTE_PENDING_PASSLIST_CHANGE, []);
         $this->RegisterAttributeArray(self::ATTRIBUTE_STALE_VARIABLE_SCAN, []);
+        $this->RegisterAttributeArray(self::ATTRIBUTE_CUSTOM_PROFILE_SCAN, []);
         $this->RegisterAttributeArray(self::ATTRIBUTE_OTA_CHECK_RESULTS, []);
         $this->RegisterAttributeArray(self::ATTRIBUTE_OTA_UPDATE_RESULTS, []);
         $this->RegisterAttributeArray(self::ATTRIBUTE_PENDING_OTA_UPDATE, []);
@@ -608,7 +610,8 @@ class Zigbee2MQTTBridge extends IPSModuleStrict
             'ExecuteBridgeExpertAction'                                                            => 'BridgeRequestHelper',
             'SelectNetworkSecurityDevice', 'RefreshNetworkSecurityAvailableDevices', 'AddBlocklistDevice',
             'RemoveBlocklistDevice', 'RequestPasslistChange', 'ConfirmPendingPasslistChange' => 'BridgeNetworkSecurityHelper',
-            'ScanStaleVariables', 'SelectStaleVariableMaintenanceInstance'                   => 'BridgeStaleVariableHelper',
+            'ScanStaleVariables', 'SelectStaleVariableMaintenanceInstance',
+            'ScanCustomProfiles' => 'BridgeStaleVariableHelper',
             'RefreshOTAStatus', 'CheckOTAUpdate', 'RequestOTAUpdate', 'ConfirmOTAUpdate',
             'ScheduleOTAUpdate', 'UnscheduleOTAUpdate', 'AbortOTAUpdate' => 'BridgeOTAFormHelper',
             default                                                      => 'BridgeModule'
@@ -710,6 +713,9 @@ class Zigbee2MQTTBridge extends IPSModuleStrict
                     break;
                 case 'SelectStaleVariableMaintenanceInstance':
                     $this->SelectStaleVariableMaintenanceInstanceFromForm($value);
+                    break;
+                case 'ScanCustomProfiles':
+                    $this->ScanCustomProfilesFromForm();
                     break;
                 case 'RefreshOTAStatus':
                     $this->UpdateOTAFormLists();
@@ -1231,6 +1237,10 @@ class Zigbee2MQTTBridge extends IPSModuleStrict
         );
         $this->SetBridgeFormField($form, 'StaleVariableInstanceSummary', 'values', $staleVariableSummary);
         $this->SetBridgeFormField($form, 'StaleVariableInstanceSummary', 'rowCount', min(12, max(3, \count($staleVariableSummary) + 1)));
+        $customProfileScan = $this->ReadCustomProfileScan();
+        $this->SetBridgeFormField($form, 'CustomProfileStatus', 'caption', $this->BuildCustomProfileStatusCaption($customProfileScan));
+        $this->SetBridgeFormField($form, 'CustomProfileList', 'values', $customProfileScan['rows']);
+        $this->SetBridgeFormField($form, 'CustomProfileList', 'rowCount', min(15, max(3, \count($customProfileScan['rows']) + 1)));
         return $form;
     }
 

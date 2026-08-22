@@ -79,8 +79,68 @@ class BridgeTest extends TestCase
 
         $this->assertNotNull($this->findFormField($form, 'StaleVariableInstanceSummary'));
         $this->assertNotNull($this->findFormField($form, 'StaleVariableOpenInstance'));
+        $this->assertNotNull($this->findFormField($form, 'CustomProfileList'));
+        $this->assertNotNull($this->findFormField($form, 'CustomProfileStatus'));
         $this->assertNull($this->findFormField($form, 'StaleVariableClearCandidates'));
         $this->assertNull($this->findFormField($form, 'StaleVariableDeleteWarning'));
+    }
+
+    public function testCustomProfileScanOnlyListsOverridesFromAssignedInstances(): void
+    {
+        $splitterID = IPS_CreateInstance(self::VIRTUAL_IO_MODULE_ID);
+        $otherSplitterID = IPS_CreateInstance(self::VIRTUAL_IO_MODULE_ID);
+        $bridgeID = IPS_CreateInstance(self::BRIDGE_MODULE_ID);
+        IPS_SetConfiguration($bridgeID, json_encode(['MQTTBaseTopic' => 'zigbee2mqtt']));
+        IPS_ApplyChanges($bridgeID);
+        IPS_ConnectInstance($bridgeID, $splitterID);
+
+        $ownedDeviceID = $this->createConfiguredVariableMaintenanceInstance(
+            self::DEVICE_MODULE_ID,
+            'zigbee2mqtt',
+            'Owned/Device',
+            $splitterID
+        );
+        $ownedGroupID = $this->createConfiguredVariableMaintenanceInstance(
+            self::GROUP_MODULE_ID,
+            'zigbee2mqtt',
+            'Owned/Group',
+            $splitterID
+        );
+        $foreignDeviceID = $this->createConfiguredVariableMaintenanceInstance(
+            self::DEVICE_MODULE_ID,
+            'zigbee2mqtt',
+            'Foreign/Device',
+            $otherSplitterID
+        );
+
+        $profileVariableID = $this->createCustomProfileTestVariable($ownedDeviceID, 'custom_profile', 'Custom profile');
+        IPS_SetVariableCustomProfile($profileVariableID, 'My.CustomProfile');
+        $presentationVariableID = $this->createCustomProfileTestVariable($ownedGroupID, 'custom_presentation', 'Custom presentation');
+        IPS_SetVariableCustomPresentation($presentationVariableID, ['PRESENTATION' => 'Test.Presentation', 'MIN' => 1]);
+        $plainVariableID = $this->createCustomProfileTestVariable($ownedDeviceID, 'plain', 'Plain variable');
+        $foreignVariableID = $this->createCustomProfileTestVariable($foreignDeviceID, 'foreign', 'Foreign variable');
+        IPS_SetVariableCustomProfile($foreignVariableID, 'Foreign.Profile');
+
+        $bridge = IPS\InstanceManager::getInstanceInterface($bridgeID);
+        $bridge->RequestAction('ScanCustomProfiles', true);
+        $form = json_decode($bridge->GetConfigurationForm(), true);
+        $list = $this->findFormField($form, 'CustomProfileList');
+        $rows = $list['values'];
+        $rowsByVariableID = array_column($rows, null, 'variable_id');
+
+        $this->assertCount(2, $rows);
+        $this->assertEqualsCanonicalizing([$profileVariableID, $presentationVariableID], array_column($rows, 'variable_id'));
+        $this->assertSame('My.CustomProfile', $rowsByVariableID[$profileVariableID]['custom_profile']);
+        $this->assertSame('My.CustomProfile', $rowsByVariableID[$profileVariableID]['custom_presentation']);
+        $this->assertSame(
+            'Test.Presentation',
+            json_decode($rowsByVariableID[$presentationVariableID]['custom_presentation'], true)['PRESENTATION']
+        );
+        $this->assertNotContains($plainVariableID, array_column($rows, 'variable_id'));
+        $this->assertNotContains($foreignVariableID, array_column($rows, 'variable_id'));
+
+        $status = $this->findFormField($form, 'CustomProfileStatus');
+        $this->assertSame('Variables with custom configuration: 2', $status['caption']);
     }
 
     public function testConfigurationFormOmitsObsoleteVariableProfileDiagnostics(): void
@@ -1740,6 +1800,16 @@ class BridgeTest extends TestCase
         }
 
         return $instanceID;
+    }
+
+    private function createCustomProfileTestVariable(int $instanceID, string $ident, string $name): int
+    {
+        $variableID = IPS_CreateVariable(VARIABLETYPE_STRING);
+        IPS_SetParent($variableID, $instanceID);
+        IPS_SetIdent($variableID, $ident);
+        IPS_SetName($variableID, $name);
+
+        return $variableID;
     }
 
     private function readOTADeviceState(Zigbee2MQTTBridge $bridge): string

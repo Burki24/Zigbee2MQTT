@@ -8,6 +8,111 @@ declare(strict_types=1);
 trait BridgeStaleVariableHelper
 {
     /**
+     * Sucht benutzerdefinierte Profile und Darstellungen in allen zugeordneten Instanzen.
+     */
+    private function ScanCustomProfilesFromForm(): void
+    {
+        $rows = [];
+        foreach ($this->GetStaleVariableMaintenanceInstanceIDs() as $instanceID) {
+            try {
+                $instanceName = (string) IPS_GetLocation($instanceID);
+                foreach (IPS_GetChildrenIDs($instanceID) as $variableID) {
+                    $object = IPS_GetObject($variableID);
+                    if (($object['ObjectType'] ?? -1) !== OBJECTTYPE_VARIABLE) {
+                        continue;
+                    }
+
+                    $variable = IPS_GetVariable($variableID);
+                    $customProfile = (string) ($variable['VariableCustomProfile'] ?? '');
+                    $customPresentation = \is_array($variable['VariableCustomPresentation'] ?? null)
+                        ? $variable['VariableCustomPresentation']
+                        : [];
+                    if ($customProfile === '' && $customPresentation === []) {
+                        continue;
+                    }
+
+                    $rows[] = [
+                        'instance'            => $instanceName,
+                        'instance_id'         => $instanceID,
+                        'variable'            => (string) ($object['ObjectName'] ?? ''),
+                        'variable_id'         => (int) $variableID,
+                        'ident'               => (string) ($object['ObjectIdent'] ?? ''),
+                        'standard_profile'    => (string) ($variable['VariableProfile'] ?? ''),
+                        'custom_profile'      => $customProfile,
+                        'custom_presentation' => $this->FormatCustomPresentation($customPresentation),
+                    ];
+                }
+            } catch (\Throwable $exception) {
+                $this->SendDebug(__FUNCTION__, sprintf('Instance #%d: %s', $instanceID, $exception->getMessage()), 0);
+            }
+        }
+
+        usort($rows, static function (array $left, array $right): int
+        {
+            return strnatcasecmp(
+                $left['instance'] . "\0" . $left['variable'],
+                $right['instance'] . "\0" . $right['variable']
+            );
+        });
+
+        $scan = ['scanned' => true, 'rows' => $rows];
+        $this->WriteAttributeArray(self::ATTRIBUTE_CUSTOM_PROFILE_SCAN, $scan);
+        $this->UpdateCustomProfileForm($scan);
+    }
+
+    /**
+     * Liefert das zuletzt gespeicherte Ergebnis der Custom-Profil-Suche.
+     */
+    private function ReadCustomProfileScan(): array
+    {
+        $scan = $this->ReadAttributeArray(self::ATTRIBUTE_CUSTOM_PROFILE_SCAN);
+
+        return [
+            'scanned' => (bool) ($scan['scanned'] ?? false),
+            'rows'    => \is_array($scan['rows'] ?? null) ? $scan['rows'] : [],
+        ];
+    }
+
+    /**
+     * Erstellt den Statustext der Custom-Profil-Suche.
+     */
+    private function BuildCustomProfileStatusCaption(?array $scan = null): string
+    {
+        $scan ??= $this->ReadCustomProfileScan();
+        if (!($scan['scanned'] ?? false)) {
+            return $this->Translate('No custom profile scan has been run yet.');
+        }
+
+        return sprintf($this->Translate('Variables with custom configuration: %d'), \count($scan['rows'] ?? []));
+    }
+
+    /**
+     * Aktualisiert die Custom-Profil-Liste im geöffneten Bridge-Formular.
+     */
+    private function UpdateCustomProfileForm(array $scan): void
+    {
+        $rows = \is_array($scan['rows'] ?? null) ? $scan['rows'] : [];
+        $this->TryUpdateFormField('CustomProfileStatus', 'caption', $this->BuildCustomProfileStatusCaption($scan));
+        $this->TryUpdateFormField('CustomProfileList', 'values', json_encode($rows));
+        $this->TryUpdateFormField('CustomProfileList', 'rowCount', min(15, max(3, \count($rows) + 1)));
+    }
+
+    /**
+     * Formatiert eine native Symcon-Darstellung kompakt für die Tabellenansicht.
+     */
+    private function FormatCustomPresentation(array $presentation): string
+    {
+        if ($presentation === []) {
+            return '';
+        }
+        if (isset($presentation['PROFILE']) && \is_string($presentation['PROFILE'])) {
+            return $presentation['PROFILE'];
+        }
+
+        return (string) json_encode($presentation, JSON_UNESCAPED_SLASHES | JSON_UNESCAPED_UNICODE);
+    }
+
+    /**
      * Sucht veraltete Zigbee2MQTT-Variablen und aktualisiert die Listen des Bridge-Formulars.
      */
     private function ScanStaleVariablesFromForm(): void
