@@ -1,9 +1,9 @@
 [![SDK](https://img.shields.io/badge/Symcon-PHPModul-red.svg)](https://www.symcon.de/service/dokumentation/entwicklerbereich/sdk-tools/sdk-php/)
-[![Module Version](https://img.shields.io/badge/dynamic/json?url=https%3A%2F%2Fraw.githubusercontent.com%2FNall-chan%2FZigbee2MQTT%2Frefs%2Fheads%2Fmain%2Flibrary.json&query=%24.version&label=Modul%20Version&color=blue)](https://community.symcon.de/t/modul-zigbee2mqtt-version-5-x/139819)
+[![Module Version](https://img.shields.io/badge/dynamic/json?url=https%3A%2F%2Fraw.githubusercontent.com%2FBurki24%2FZigbee2MQTT%2Frefs%2Fheads%2Fdev_V6%2Flibrary.json&query=%24.version&label=Modul%20Version&color=blue)](https://community.symcon.de/t/modul-zigbee2mqtt-version-5-x/139819)
 [![Symcon Version](https://img.shields.io/badge/Symcon%20Version-9.0%3E-green)](https://www.symcon.de/de/service/dokumentation/einfuehrung/systemvoraussetzungen/versionenuebersicht/#version-90)
 [![License](https://img.shields.io/badge/License-CC%20BY--NC--SA%204.0-green.svg)](https://creativecommons.org/licenses/by-nc-sa/4.0/)
-[![Check Style](https://github.com/Nall-chan/Zigbee2MQTT/workflows/Check%20Style/badge.svg)](https://github.com/Nall-chan/Zigbee2MQTT/actions)
-[![Run Tests](https://github.com/Nall-chan/Zigbee2MQTT/workflows/Run%20Tests/badge.svg)](https://github.com/Nall-chan/Zigbee2MQTT/actions)
+[![Check Style](https://github.com/Burki24/Zigbee2MQTT/actions/workflows/style.yml/badge.svg?branch=dev_V6)](https://github.com/Burki24/Zigbee2MQTT/actions/workflows/style.yml?query=branch%3Adev_V6)
+[![Run Tests](https://github.com/Burki24/Zigbee2MQTT/actions/workflows/tests.yml/badge.svg?branch=dev_V6)](https://github.com/Burki24/Zigbee2MQTT/actions/workflows/tests.yml?query=branch%3Adev_V6)
 
 # Zigbee2MQTT  <!-- omit in toc -->
 
