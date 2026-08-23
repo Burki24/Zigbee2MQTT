@@ -12,6 +12,29 @@ use PHPUnit\Framework\TestCase;
  */
 class MQTTHelperTest extends TestCase
 {
+    public function testDecodePayloadPreservesLegacyUtf8Payload(): void
+    {
+        $helper = new class() {
+            use \Zigbee2MQTT\SendData {
+                DecodePayload as public decodePayloadForTest;
+            }
+        };
+
+        $this->assertSame('{"friendly_name":"Küchentür"}', $helper->decodePayloadForTest('{"friendly_name":"Küchentür"}'));
+    }
+
+    public function testDecodePayloadDecodesStrictHexPayload(): void
+    {
+        $helper = new class() {
+            use \Zigbee2MQTT\SendData {
+                DecodePayload as public decodePayloadForTest;
+            }
+        };
+        $payload = '{"state":"ON"}';
+
+        $this->assertSame($payload, $helper->decodePayloadForTest(bin2hex($payload)));
+    }
+
     public function testAddTransactionUsesOnlyFreeIdsAndPreservesPendingEntries(): void
     {
         $helper = new class() {

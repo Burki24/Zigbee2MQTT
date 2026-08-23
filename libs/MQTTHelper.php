@@ -114,8 +114,8 @@ trait SendData
     }
 
     /**
-     * Dekodiert Payloads nach IPSModuleStrict-Regel (HEX) und bleibt tolerant
-     * gegen alte UTF-8 Test- oder Installationsdaten.
+     * Dekodiert Payloads nach IPSModuleStrict-Regel (HEX) und übernimmt alte,
+     * bereits als UTF-8 uebergebene Test- oder Installationsdaten unverändert.
      */
     protected static function DecodePayload(string $Payload): string
     {
@@ -125,7 +125,7 @@ trait SendData
                 return $decoded;
             }
         }
-        return utf8_decode($Payload);
+        return $Payload;
     }
 
     /**
