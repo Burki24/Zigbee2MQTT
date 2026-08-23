@@ -327,15 +327,21 @@ class Zigbee2MQTTDiscovery extends IPSModuleStrict
      */
     private function ScheduleDiscoveryRefresh(): void
     {
-        if ($this->DiscoveryRefreshRunning || $this->DiscoveryRefreshScheduled) {
-            return;
-        }
-
-        $this->DiscoveryRefreshScheduled = true;
         try {
-            $this->SetTimerInterval(self::TIMER_DISCOVERY_REFRESH, 100);
+            $this->ExecuteWithAvailableDiscoveryInterface(function (): void
+            {
+                if ($this->DiscoveryRefreshRunning || $this->DiscoveryRefreshScheduled) {
+                    return;
+                }
+
+                $this->DiscoveryRefreshScheduled = true;
+                $this->SetTimerInterval(self::TIMER_DISCOVERY_REFRESH, 100);
+            });
         } catch (\Throwable) {
-            $this->DiscoveryRefreshScheduled = false;
+            $this->ExecuteWithAvailableDiscoveryInterface(function (): void
+            {
+                $this->DiscoveryRefreshScheduled = false;
+            });
         }
     }
 
@@ -344,34 +350,73 @@ class Zigbee2MQTTDiscovery extends IPSModuleStrict
      */
     private function RefreshDiscoveryCache(): void
     {
-        $this->SetTimerInterval(self::TIMER_DISCOVERY_REFRESH, 0);
-        $this->DiscoveryRefreshScheduled = false;
-        if ($this->DiscoveryRefreshRunning) {
-            return;
-        }
+        $this->ExecuteWithAvailableDiscoveryInterface(function (): void
+        {
+            $this->SetTimerInterval(self::TIMER_DISCOVERY_REFRESH, 0);
+            $this->DiscoveryRefreshScheduled = false;
+            if ($this->DiscoveryRefreshRunning) {
+                return;
+            }
 
-        $this->DiscoveryRefreshRunning = true;
+            $this->DiscoveryRefreshRunning = true;
+            try {
+                $previousCache = $this->ReadDiscoveryCache();
+                $previousTopics = isset($previousCache['topics']) && \is_array($previousCache['topics'])
+                    ? $previousCache['topics']
+                    : [];
+                $topics = $this->ScanMqttServers($previousTopics);
+                $cache = json_encode([
+                    'timestamp' => time(),
+                    'topics'    => $topics
+                ]);
+                $this->WriteAttributeString(
+                    self::ATTRIBUTE_DISCOVERY_CACHE,
+                    \is_string($cache) ? $cache : ''
+                );
+            } catch (\Throwable $e) {
+                if (self::IsUnavailableDiscoveryInterfaceError($e->getMessage())) {
+                    throw $e;
+                }
+                $this->SendDebug('RefreshDiscoveryCache', $e->getMessage(), 0);
+            } finally {
+                $this->DiscoveryRefreshRunning = false;
+            }
+
+            $this->ReloadForm();
+        });
+    }
+
+    /**
+     * Fuehrt Timer-, Buffer-, Attribut- und Formularzugriffe nur bei verfuegbarer Instanzschnittstelle aus.
+     */
+    private function ExecuteWithAvailableDiscoveryInterface(\Closure $operation): bool
+    {
+        set_error_handler(static function (int $severity, string $message): bool
+        {
+            if (self::IsUnavailableDiscoveryInterfaceError($message)) {
+                throw new \RuntimeException($message);
+            }
+            return false;
+        });
         try {
-            $previousCache = $this->ReadDiscoveryCache();
-            $previousTopics = isset($previousCache['topics']) && \is_array($previousCache['topics'])
-                ? $previousCache['topics']
-                : [];
-            $topics = $this->ScanMqttServers($previousTopics);
-            $cache = json_encode([
-                'timestamp' => time(),
-                'topics'    => $topics
-            ]);
-            $this->WriteAttributeString(
-                self::ATTRIBUTE_DISCOVERY_CACHE,
-                \is_string($cache) ? $cache : ''
-            );
+            $operation();
+            return true;
         } catch (\Throwable $e) {
-            $this->SendDebug('RefreshDiscoveryCache', $e->getMessage(), 0);
+            if (self::IsUnavailableDiscoveryInterfaceError($e->getMessage())) {
+                return false;
+            }
+            throw $e;
         } finally {
-            $this->DiscoveryRefreshRunning = false;
+            restore_error_handler();
         }
+    }
 
-        $this->ReloadForm();
+    /**
+     * Erkennt das kurze Zeitfenster ohne InstanceInterface waehrend eines Modul-Reloads.
+     */
+    private static function IsUnavailableDiscoveryInterfaceError(string $message): bool
+    {
+        return str_contains($message, 'InstanceInterface is not available');
     }
 
     /**

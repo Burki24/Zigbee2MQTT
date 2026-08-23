@@ -110,6 +110,34 @@ class DiscoveryTest extends DumpInclude
         $this->assertSame(2, $discovery->scanCount);
     }
 
+    public function testDiscoveryRefreshIgnoresUnavailableInstanceInterfaceDuringModuleReload(): void
+    {
+        $discovery = new class(990008) extends Zigbee2MQTTDiscovery {
+            public int $scanCount = 0;
+
+            protected function SetTimerInterval(string $Ident, int $Milliseconds): bool
+            {
+                throw new \RuntimeException('InstanceInterface is not available');
+            }
+
+            protected function ScanMqttServers(array $fallbackTopics = []): ?array
+            {
+                ++$this->scanCount;
+                return [];
+            }
+
+            protected function getTime(): int
+            {
+                return time();
+            }
+        };
+        $discovery->Create();
+
+        $discovery->RequestAction('RefreshDiscoveryCache', true);
+
+        $this->assertSame(0, $discovery->scanCount, 'Discovery must not continue while its instance interface is unavailable.');
+    }
+
     public function testManualBrokerDebugDoesNotContainCredentials(): void
     {
         $instanceID = 990005;
