@@ -81,6 +81,7 @@ class BridgeTest extends TestCase
         $this->assertNotNull($this->findFormField($form, 'StaleVariableOpenInstance'));
         $this->assertNotNull($this->findFormField($form, 'CustomProfileList'));
         $this->assertNotNull($this->findFormField($form, 'CustomProfileStatus'));
+        $this->assertNotNull($this->findFormField($form, 'CustomProfileOpenInstance'));
         $this->assertNull($this->findFormField($form, 'StaleVariableClearCandidates'));
         $this->assertNull($this->findFormField($form, 'StaleVariableDeleteWarning'));
     }
@@ -132,6 +133,7 @@ class BridgeTest extends TestCase
         $this->assertEqualsCanonicalizing([$profileVariableID, $presentationVariableID], array_column($rows, 'variable_id'));
         $this->assertSame('My.CustomProfile', $rowsByVariableID[$profileVariableID]['custom_profile']);
         $this->assertSame('My.CustomProfile', $rowsByVariableID[$profileVariableID]['custom_presentation']);
+        $this->assertSame('Select', $rowsByVariableID[$profileVariableID]['action']);
         $this->assertSame(
             'Test.Presentation',
             json_decode($rowsByVariableID[$presentationVariableID]['custom_presentation'], true)['PRESENTATION']
@@ -141,6 +143,10 @@ class BridgeTest extends TestCase
 
         $status = $this->findFormField($form, 'CustomProfileStatus');
         $this->assertSame('Variables with custom configuration: 2', $status['caption']);
+
+        $selectionMethod = new ReflectionMethod($bridge, 'SelectCustomProfileInstanceFromForm');
+        $this->assertTrue($selectionMethod->invoke($bridge, json_encode(['instance_id' => $ownedDeviceID])));
+        $this->assertFalse($selectionMethod->invoke($bridge, json_encode(['instance_id' => $foreignDeviceID])));
     }
 
     public function testConfigurationFormOmitsObsoleteVariableProfileDiagnostics(): void

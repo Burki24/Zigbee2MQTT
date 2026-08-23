@@ -40,6 +40,7 @@ trait BridgeStaleVariableHelper
                         'standard_profile'    => (string) ($variable['VariableProfile'] ?? ''),
                         'custom_profile'      => $customProfile,
                         'custom_presentation' => $this->FormatCustomPresentation($customPresentation),
+                        'action'              => $this->Translate('Select'),
                     ];
                 }
             } catch (\Throwable $exception) {
@@ -67,9 +68,17 @@ trait BridgeStaleVariableHelper
     {
         $scan = $this->ReadAttributeArray(self::ATTRIBUTE_CUSTOM_PROFILE_SCAN);
 
+        $rows = \is_array($scan['rows'] ?? null) ? $scan['rows'] : [];
+        foreach ($rows as &$row) {
+            if (\is_array($row)) {
+                $row['action'] = $this->Translate('Select');
+            }
+        }
+        unset($row);
+
         return [
             'scanned' => (bool) ($scan['scanned'] ?? false),
-            'rows'    => \is_array($scan['rows'] ?? null) ? $scan['rows'] : [],
+            'rows'    => $rows,
         ];
     }
 
@@ -95,6 +104,7 @@ trait BridgeStaleVariableHelper
         $this->TryUpdateFormField('CustomProfileStatus', 'caption', $this->BuildCustomProfileStatusCaption($scan));
         $this->TryUpdateFormField('CustomProfileList', 'values', json_encode($rows));
         $this->TryUpdateFormField('CustomProfileList', 'rowCount', min(15, max(3, \count($rows) + 1)));
+        $this->TryUpdateFormField('CustomProfileOpenInstance', 'visible', false);
     }
 
     /**
@@ -127,6 +137,22 @@ trait BridgeStaleVariableHelper
      */
     private function SelectStaleVariableMaintenanceInstanceFromForm(mixed $value): bool
     {
+        return $this->SelectVariableMaintenanceInstanceFromForm($value, 'StaleVariableOpenInstance');
+    }
+
+    /**
+     * Wählt die Besitzerinstanz einer Custom-Profil-Zeile aus.
+     */
+    private function SelectCustomProfileInstanceFromForm(mixed $value): bool
+    {
+        return $this->SelectVariableMaintenanceInstanceFromForm($value, 'CustomProfileOpenInstance');
+    }
+
+    /**
+     * Prüft eine Instanzauswahl und blendet den zugehörigen Öffnen-Button ein.
+     */
+    private function SelectVariableMaintenanceInstanceFromForm(mixed $value, string $formField): bool
+    {
         $selection = $this->DecodeBridgeFormPayload($value);
         $instanceID = (int) ($selection['instance_id'] ?? 0);
         if ($instanceID <= 0 || !\in_array($instanceID, $this->GetStaleVariableMaintenanceInstanceIDs(), true)) {
@@ -143,8 +169,8 @@ trait BridgeStaleVariableHelper
             return false;
         }
 
-        $this->TryUpdateFormField('StaleVariableOpenInstance', 'objectID', $instanceID);
-        $this->TryUpdateFormField('StaleVariableOpenInstance', 'visible', true);
+        $this->TryUpdateFormField($formField, 'objectID', $instanceID);
+        $this->TryUpdateFormField($formField, 'visible', true);
 
         return true;
     }

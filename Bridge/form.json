@@ -990,9 +990,23 @@
                                     "caption": "Custom presentation",
                                     "name": "custom_presentation",
                                     "width": "220px"
+                                },
+                                {
+                                    "caption": "Action",
+                                    "name": "action",
+                                    "width": "100px",
+                                    "align": "center",
+                                    "onClick": "IPS_RequestAction($id, 'SelectCustomProfileInstance', json_encode(['instance_id' => $CustomProfileList['instance_id']]));"
                                 }
                             ],
                             "values": []
+                        },
+                        {
+                            "type": "OpenObjectButton",
+                            "name": "CustomProfileOpenInstance",
+                            "caption": "Open selected instance",
+                            "objectID": 0,
+                            "visible": false
                         }
                     ]
                 },
