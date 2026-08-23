@@ -255,6 +255,7 @@
             "Instances requiring attention": "Instanzen mit Prüfbedarf",
             "Clear candidates": "Klare Kandidaten",
             "Open selected instance": "Ausgewählte Instanz öffnen",
+            "Open selected variable": "Ausgewählte Variable öffnen",
             "Find variables with a custom profile or custom presentation in the device and group instances assigned to this bridge.": "Findet Variablen mit einem Custom-Profil oder einer Custom-Darstellung in den dieser Bridge zugeordneten Geräte- und Gruppeninstanzen.",
             "Scan custom profiles": "Custom-Profile suchen",
             "No custom profile scan has been run yet.": "Es wurde noch keine Custom-Profil-Suche ausgeführt.",

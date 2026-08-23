@@ -611,7 +611,7 @@ class Zigbee2MQTTBridge extends IPSModuleStrict
             'SelectNetworkSecurityDevice', 'RefreshNetworkSecurityAvailableDevices', 'AddBlocklistDevice',
             'RemoveBlocklistDevice', 'RequestPasslistChange', 'ConfirmPendingPasslistChange' => 'BridgeNetworkSecurityHelper',
             'ScanStaleVariables', 'SelectStaleVariableMaintenanceInstance',
-            'ScanCustomProfiles', 'SelectCustomProfileInstance' => 'BridgeStaleVariableHelper',
+            'ScanCustomProfiles', 'SelectCustomProfileVariable' => 'BridgeStaleVariableHelper',
             'RefreshOTAStatus', 'CheckOTAUpdate', 'RequestOTAUpdate', 'ConfirmOTAUpdate',
             'ScheduleOTAUpdate', 'UnscheduleOTAUpdate', 'AbortOTAUpdate' => 'BridgeOTAFormHelper',
             default                                                      => 'BridgeModule'
@@ -717,8 +717,8 @@ class Zigbee2MQTTBridge extends IPSModuleStrict
                 case 'ScanCustomProfiles':
                     $this->ScanCustomProfilesFromForm();
                     break;
-                case 'SelectCustomProfileInstance':
-                    $this->SelectCustomProfileInstanceFromForm($value);
+                case 'SelectCustomProfileVariable':
+                    $this->SelectCustomProfileVariableFromForm($value);
                     break;
                 case 'RefreshOTAStatus':
                     $this->UpdateOTAFormLists();

@@ -996,15 +996,15 @@
                                     "name": "action",
                                     "width": "100px",
                                     "align": "center",
-                                    "onClick": "IPS_RequestAction($id, 'SelectCustomProfileInstance', json_encode(['instance_id' => $CustomProfileList['instance_id']]));"
+                                    "onClick": "IPS_RequestAction($id, 'SelectCustomProfileVariable', json_encode(['variable_id' => $CustomProfileList['variable_id']]));"
                                 }
                             ],
                             "values": []
                         },
                         {
                             "type": "OpenObjectButton",
-                            "name": "CustomProfileOpenInstance",
-                            "caption": "Open selected instance",
+                            "name": "CustomProfileOpenVariable",
+                            "caption": "Open selected variable",
                             "objectID": 0,
                             "visible": false
                         }

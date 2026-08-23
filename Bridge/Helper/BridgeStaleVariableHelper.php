@@ -104,7 +104,7 @@ trait BridgeStaleVariableHelper
         $this->TryUpdateFormField('CustomProfileStatus', 'caption', $this->BuildCustomProfileStatusCaption($scan));
         $this->TryUpdateFormField('CustomProfileList', 'values', json_encode($rows));
         $this->TryUpdateFormField('CustomProfileList', 'rowCount', min(15, max(3, \count($rows) + 1)));
-        $this->TryUpdateFormField('CustomProfileOpenInstance', 'visible', false);
+        $this->TryUpdateFormField('CustomProfileOpenVariable', 'visible', false);
     }
 
     /**
@@ -141,11 +141,37 @@ trait BridgeStaleVariableHelper
     }
 
     /**
-     * Wählt die Besitzerinstanz einer Custom-Profil-Zeile aus.
+     * Wählt die Variable einer Custom-Profil-Zeile aus.
      */
-    private function SelectCustomProfileInstanceFromForm(mixed $value): bool
+    private function SelectCustomProfileVariableFromForm(mixed $value): bool
     {
-        return $this->SelectVariableMaintenanceInstanceFromForm($value, 'CustomProfileOpenInstance');
+        $selection = $this->DecodeBridgeFormPayload($value);
+        $variableID = (int) ($selection['variable_id'] ?? 0);
+        if ($variableID <= 0) {
+            return false;
+        }
+
+        $scanRows = $this->ReadCustomProfileScan()['rows'];
+        if (!\in_array($variableID, array_column($scanRows, 'variable_id'), true)) {
+            return false;
+        }
+
+        try {
+            $object = IPS_GetObject($variableID);
+        } catch (\Throwable) {
+            return false;
+        }
+
+        if (($object['ObjectType'] ?? -1) !== OBJECTTYPE_VARIABLE
+            || !\in_array((int) ($object['ParentID'] ?? 0), $this->GetStaleVariableMaintenanceInstanceIDs(), true)
+        ) {
+            return false;
+        }
+
+        $this->TryUpdateFormField('CustomProfileOpenVariable', 'objectID', $variableID);
+        $this->TryUpdateFormField('CustomProfileOpenVariable', 'visible', true);
+
+        return true;
     }
 
     /**
