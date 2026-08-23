@@ -1240,13 +1240,34 @@ class DevicesTest extends DumpInclude
         $binaryVariable = IPS_GetVariable($binaryID);
         $this->assertSame('', $binaryVariable['VariableProfile']);
         $this->assertSame(VARIABLE_PRESENTATION_VALUE_PRESENTATION, $binaryVariable['VariablePresentation']['PRESENTATION'] ?? null);
+        $binaryOptions = json_decode($binaryVariable['VariablePresentation']['OPTIONS'] ?? '[]', true);
+        $this->assertCount(2, $binaryOptions);
+        foreach ($binaryOptions as $option) {
+            $this->assertArrayHasKey('ColorActive', $option);
+            $this->assertFalse($option['ColorActive']);
+            $this->assertSame(-1, $option['ColorValue']);
+            $this->assertArrayNotHasKey('Color', $option);
+        }
         $enumVariable = IPS_GetVariable($enumID);
         $this->assertSame('', $enumVariable['VariableProfile']);
         $this->assertSame(VARIABLE_PRESENTATION_VALUE_PRESENTATION, $enumVariable['VariablePresentation']['PRESENTATION'] ?? null);
+        $enumOptions = json_decode($enumVariable['VariablePresentation']['OPTIONS'] ?? '[]', true);
+        $this->assertCount(2, $enumOptions);
+        foreach ($enumOptions as $option) {
+            $this->assertArrayHasKey('ColorActive', $option);
+            $this->assertFalse($option['ColorActive']);
+            $this->assertSame(-1, $option['ColorValue']);
+            $this->assertArrayNotHasKey('Color', $option);
+        }
         $this->assertFalse(HasAction($enumID));
         $writableEnumVariable = IPS_GetVariable($writableEnumID);
         $this->assertSame('', $writableEnumVariable['VariableProfile']);
         $this->assertSame(VARIABLE_PRESENTATION_ENUMERATION, $writableEnumVariable['VariablePresentation']['PRESENTATION'] ?? null);
+        $writableEnumOptions = json_decode($writableEnumVariable['VariablePresentation']['OPTIONS'] ?? '[]', true);
+        foreach ($writableEnumOptions as $option) {
+            $this->assertSame(-1, $option['Color']);
+            $this->assertArrayNotHasKey('ColorValue', $option);
+        }
         $this->assertTrue(HasAction($writableEnumID));
         $readonlyTextVariable = IPS_GetVariable($readonlyTextID);
         $this->assertSame([], $readonlyTextVariable['VariablePresentation']);

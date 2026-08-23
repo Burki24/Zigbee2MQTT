@@ -939,13 +939,22 @@ trait VariablePresentationHelper
             return null;
         }
 
+        $valueOptions = array_map(static fn (array $option): array => [
+            'Value'       => $option['Value'],
+            'Caption'     => $option['Caption'],
+            'IconActive'  => $option['IconActive'],
+            'IconValue'   => $option['IconValue'],
+            'ColorActive' => false,
+            'ColorValue'  => -1
+        ], $options);
+
         return [
             'PRESENTATION' => \constant('VARIABLE_PRESENTATION_VALUE_PRESENTATION'),
             'ICON'         => $this->GetEnumerationPresentationIcon($feature),
             'COLOR'        => -1,
             'PREFIX'       => '',
             'SUFFIX'       => '',
-            'OPTIONS'      => json_encode($options)
+            'OPTIONS'      => json_encode($valueOptions)
         ];
     }
 
@@ -998,18 +1007,20 @@ trait VariablePresentationHelper
     {
         return [
             [
-                'Value'      => false,
-                'Caption'    => $this->Translate($this->GetBinaryPresentationCaption($feature['value_off'] ?? false, 'Off')),
-                'IconActive' => false,
-                'IconValue'  => '',
-                'Color'      => -1
+                'Value'       => false,
+                'Caption'     => $this->Translate($this->GetBinaryPresentationCaption($feature['value_off'] ?? false, 'Off')),
+                'IconActive'  => false,
+                'IconValue'   => '',
+                'ColorActive' => false,
+                'ColorValue'  => -1
             ],
             [
-                'Value'      => true,
-                'Caption'    => $this->Translate($this->GetBinaryPresentationCaption($feature['value_on'] ?? true, 'On')),
-                'IconActive' => false,
-                'IconValue'  => '',
-                'Color'      => -1
+                'Value'       => true,
+                'Caption'     => $this->Translate($this->GetBinaryPresentationCaption($feature['value_on'] ?? true, 'On')),
+                'IconActive'  => false,
+                'IconValue'   => '',
+                'ColorActive' => false,
+                'ColorValue'  => -1
             ]
         ];
     }
