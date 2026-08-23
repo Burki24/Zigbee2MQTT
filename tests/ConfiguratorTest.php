@@ -13,6 +13,24 @@ class ConfiguratorTest extends DumpInclude
     private const DEVICE_MODULE_ID = '{E5BB36C6-A70B-EB23-3716-9151A09AC8A2}';
     private const VIRTUAL_IO_MODULE_ID = '{6179ED6A-FC31-413C-BB8E-1204150CF376}';
 
+    public function testReceiveDataIgnoresIncompleteMqttFrames(): void
+    {
+        $configuratorID = IPS_CreateInstance(self::CONFIGURATOR_MODULE_ID);
+        IPS_SetConfiguration($configuratorID, json_encode(['MQTTBaseTopic' => 'zigbee2mqtt']));
+        IPS_ApplyChanges($configuratorID);
+        $configurator = IPS\InstanceManager::getInstanceInterface($configuratorID);
+
+        $this->assertSame('', $configurator->ReceiveData(json_encode(['Topic' => 'zigbee2mqtt/bridge/response/options'])));
+        $this->assertSame('', $configurator->ReceiveData(json_encode([
+            'Topic'   => 'zigbee2mqtt/bridge/response/options',
+            'Payload' => []
+        ])));
+        $this->assertSame('', $configurator->ReceiveData(json_encode([
+            'Topic'   => [],
+            'Payload' => bin2hex('{}')
+        ])));
+    }
+
     public function testConfiguratorOnlyReturnsInstancesFromItsOwnSplitter(): void
     {
         $splitterID = IPS_CreateInstance(self::VIRTUAL_IO_MODULE_ID);

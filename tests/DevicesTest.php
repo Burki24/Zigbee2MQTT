@@ -9,6 +9,37 @@ include_once __DIR__ . '/DumpInclude.php';
  */
 class DevicesTest extends DumpInclude
 {
+    public function testReceiveDataIgnoresIncompleteMqttFrames(): void
+    {
+        $deviceID = IPS_CreateInstance('{E5BB36C6-A70B-EB23-3716-9151A09AC8A2}');
+        IPS_SetConfiguration($deviceID, json_encode([
+            'MQTTBaseTopic' => 'zigbee2mqtt',
+            'MQTTTopic'     => 'Kitchen/Sensor'
+        ]));
+        IPS_ApplyChanges($deviceID);
+        $device = IPS\InstanceManager::getInstanceInterface($deviceID);
+
+        $validationMethod = new ReflectionMethod($device, 'validateAndParseMessage');
+        $this->assertSame(
+            [false, false],
+            $validationMethod->invoke($device, json_encode(['Topic' => 'zigbee2mqtt/Kitchen/Sensor']))
+        );
+        $this->assertSame(
+            [false, false],
+            $validationMethod->invoke($device, json_encode([
+                'Topic'   => 'zigbee2mqtt/Kitchen/Sensor',
+                'Payload' => []
+            ]))
+        );
+        $this->assertSame(
+            [false, false],
+            $validationMethod->invoke($device, json_encode([
+                'Topic'   => [],
+                'Payload' => bin2hex('{}')
+            ]))
+        );
+    }
+
     public function testSuccessfulLocalStaleVariableDeletionDoesNotShowMessage(): void
     {
         $instanceID = IPS_CreateInstance('{E5BB36C6-A70B-EB23-3716-9151A09AC8A2}');

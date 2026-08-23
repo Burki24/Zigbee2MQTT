@@ -26,6 +26,24 @@ class BridgeTest extends TestCase
         parent::setUp();
     }
 
+    public function testReceiveDataIgnoresIncompleteMqttFrames(): void
+    {
+        $bridgeID = IPS_CreateInstance(self::BRIDGE_MODULE_ID);
+        IPS_SetConfiguration($bridgeID, json_encode(['MQTTBaseTopic' => 'zigbee2mqtt']));
+        IPS_ApplyChanges($bridgeID);
+        $bridge = IPS\InstanceManager::getInstanceInterface($bridgeID);
+
+        $this->assertSame('', $bridge->ReceiveData(json_encode(['Topic' => 'zigbee2mqtt/bridge/state'])));
+        $this->assertSame('', $bridge->ReceiveData(json_encode([
+            'Topic'   => 'zigbee2mqtt/bridge/state',
+            'Payload' => []
+        ])));
+        $this->assertSame('', $bridge->ReceiveData(json_encode([
+            'Topic'   => [],
+            'Payload' => bin2hex('{}')
+        ])));
+    }
+
     public function testCheckOTAUpdateUsesCurrentZigbee2MqttResponseField(): void
     {
         $bridge = $this->createBridgeTestDouble([

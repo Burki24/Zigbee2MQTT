@@ -359,7 +359,11 @@ class Zigbee2MQTTBridge extends IPSModuleStrict
         }
         $this->SendLimitedDebug('ReceiveData', $JSONString, 0);
         $Buffer = json_decode($JSONString, true);
-        if (!isset($Buffer['Topic'])) {
+        if (!\is_array($Buffer)
+            || !isset($Buffer['Topic'], $Buffer['Payload'])
+            || !\is_string($Buffer['Topic'])
+            || !\is_string($Buffer['Payload'])
+        ) {
             return '';
         }
         $ReceiveTopic = $Buffer['Topic'];

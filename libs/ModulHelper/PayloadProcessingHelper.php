@@ -31,8 +31,12 @@ trait PayloadProcessingHelper
             return [false, false];
         }
 
-        if (!isset($messageData['Topic'])) {
-            $this->SendDebug(__FUNCTION__, 'Topic nicht gefunden', 0);
+        if (!\is_array($messageData)
+            || !isset($messageData['Topic'], $messageData['Payload'])
+            || !\is_string($messageData['Topic'])
+            || !\is_string($messageData['Payload'])
+        ) {
+            $this->SendDebug(__FUNCTION__, 'Ungueltiger MQTT-Datenrahmen', 0);
             return [false, false];
         }
 
