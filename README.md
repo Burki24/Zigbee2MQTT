@@ -24,6 +24,7 @@ Anbindung von [zigbee2mqtt](https://www.zigbee2mqtt.io) an IP-Symcon.
   - [4.3 Variablenverwaltung](#43-variablenverwaltung)
   - [4.4 Wartung verwaister Variablen](#44-wartung-verwaister-variablen)
   - [4.5 Symcon-Actions](#45-symcon-actions)
+  - [4.6 Lokale Datenspeicherung und instanzübergreifende Prüfungen](#46-lokale-datenspeicherung-und-instanzübergreifende-prüfungen)
 - [5. Changelog](#5-changelog)
 - [6. Spenden](#6-spenden)
 - [7. Lizenz](#7-lizenz)
@@ -306,6 +307,19 @@ Die Bridge löscht keine Variablen direkt, sondern öffnet die betroffene Instan
 Die mitgelieferten Symcon-Actions sind keine eigenen Module, sondern Aktionsvorlagen für passende Zigbee2MQTT-Geräte- und Gruppeninstanzen. Sie können beispielsweise in Ereignissen, Ablaufplänen oder Automatisierungen genutzt werden.
 
 Details stehen in der [Dokumentation der Zigbee2MQTT Actions](actions/README.md).
+
+### 4.6 Lokale Datenspeicherung und instanzübergreifende Prüfungen
+
+Das Modul greift nur für die nachfolgend beschriebenen Funktionen auf lokale Dateien zu. Dauerhaft erzeugte Dateien werden ausschließlich innerhalb des Symcon-Verzeichnisses unter `user/IPSZigbee2MQTT` gespeichert:
+
+- Zigbee2MQTT-Backups werden nach einer ausdrücklich gestarteten Backup-Aktion unter `user/IPSZigbee2MQTT/backups` abgelegt.
+- Exportierte Netzwerkkarten werden nach einer ausdrücklich gestarteten Export-Aktion unter `user/IPSZigbee2MQTT/networkmaps` gespeichert.
+- Heruntergeladene Gerätebilder werden gemeinsam unter `user/IPSZigbee2MQTT/icons` zwischengespeichert. Downloads verwenden geprüftes TLS sowie feste Zeit-, Größen-, Format- und Abmessungsgrenzen.
+- Große Backup-Antworten werden während der Verarbeitung kurzfristig im System-Temp-Verzeichnis unter `IPSZigbee2MQTT` ausgelagert. Die zugehörige temporäre Datei wird nach der Übernahme in das Backup-Verzeichnis wieder entfernt.
+
+Die Bridge liest für Wartungs-, Diagnose- und OTA-Übersichten Informationen anderer Instanzen dieser Zigbee2MQTT-Bibliothek. Die Variablen-Wartung beschränkt ihre Suche zusätzlich auf Instanzen am selben MQTT-Splitter und mit demselben MQTT-Basistopic. Diese übergreifenden Prüfungen verändern weder fremde Instanzeigenschaften noch deren Variablen.
+
+Bei der Suche nach verwaisten Variablen werden Symcon-Referenzen und der Archivierungsstatus systemweit ausschließlich gelesen, damit referenzierte oder aufgezeichnete Variablen vor einer versehentlichen Löschung geschützt werden. Eine Löschung erfolgt niemals zentral durch die Bridge, sondern nur nach erneuter Prüfung und ausdrücklicher Bestätigung innerhalb der Instanz, der die Variable direkt untergeordnet ist.
 
 ## 5. Changelog
 
