@@ -350,6 +350,290 @@ class Zigbee2MQTTBridge extends IPSModuleStrict
      */
     public function ReceiveData(string $JSONString): string
     {
+        return \Zigbee2MQTT\ModuleUpdateGuard::Execute(
+            fn (): string => $this->ReceiveDataWithAvailableInstanceInterface($JSONString),
+            ''
+        );
+    }
+
+    /**
+     * Verteilt Variablen- und Formularaktionen auf die zuständigen Bridge-Helper.
+     *
+     * Dazu gehören Bridge-Konfiguration und Neustart, Pairing, Diagnose, Backup,
+     * Installcodes, Touchlink, Netzwerklisten, Variablenwartung und OTA. Die
+     * Methode selbst enthält nur die zentrale Zuordnung der Aktionskennung.
+     *
+     * @param string $ident Kennung der Variable oder Formularaktion.
+     * @param mixed  $value Von Symcon übergebener Aktionswert oder Formular-Payload.
+     *
+     * @see \BridgeConfigurationCommandHelper Konfigurationsaktionen in `Bridge/Helper/BridgeConfigurationCommandHelper.php`.
+     * @see \BridgePairingHelper Pairing-Aktionen in `Bridge/Helper/BridgePairingHelper.php`.
+     * @see \BridgeDiagnosticHelper Diagnoseaktionen in `Bridge/Helper/BridgeDiagnosticHelper.php`.
+     * @see \BridgeBackupHelper Backup-Erstellung in `Bridge/Helper/BridgeBackupHelper.php`.
+     * @see \BridgeInstallCodeHelper Installcode-Verwaltung in `Bridge/Helper/BridgeInstallCodeHelper.php`.
+     * @see \BridgeTouchlinkHelper Touchlink-Aktionen in `Bridge/Helper/BridgeTouchlinkHelper.php`.
+     * @see \BridgeNetworkSecurityHelper Netzwerklisten in `Bridge/Helper/BridgeNetworkSecurityHelper.php`.
+     * @see \BridgeStaleVariableHelper Variablenwartung in `Bridge/Helper/BridgeStaleVariableHelper.php`.
+     * @see \BridgeOTACommandHelper OTA-Befehle in `Bridge/Helper/BridgeOTACommandHelper.php`.
+     * @see \BridgeOTAFormHelper OTA-Formularaktionen in `Bridge/Helper/BridgeOTAFormHelper.php`.
+     */
+    public function RequestAction(string $ident, mixed $value): void
+    {
+        $helper = match ($ident) {
+            'permit_join', 'StopPairing', 'log_level', 'restart_request'      => 'BridgeConfigurationCommandHelper',
+            'StartPairing', 'UpdatePermitJoinStatus'                          => 'BridgePairingHelper',
+            'ClearBridgeDiagnostics', 'RunHealthCheck', 'RunCoordinatorCheck' => 'BridgeDiagnosticHelper',
+            'CreateBackupFile'                                                => 'BridgeBackupHelper',
+            'SendInstallCode', 'SaveInstallCode', 'SelectStoredInstallCode', 'SendStoredInstallCode',
+            'RequestDeleteStoredInstallCode', 'ConfirmDeleteStoredInstallCode'                     => 'BridgeInstallCodeHelper',
+            'TouchlinkScan', 'SelectTouchlinkDevice', 'TouchlinkIdentify', 'TouchlinkFactoryReset' => 'BridgeTouchlinkHelper',
+            'ExecuteBridgeExpertAction'                                                            => 'BridgeRequestHelper',
+            'SelectNetworkSecurityDevice', 'RefreshNetworkSecurityAvailableDevices', 'AddBlocklistDevice',
+            'RemoveBlocklistDevice', 'RequestPasslistChange', 'ConfirmPendingPasslistChange' => 'BridgeNetworkSecurityHelper',
+            'ScanStaleVariables', 'SelectStaleVariableMaintenanceInstance',
+            'ScanCustomProfiles', 'SelectCustomProfileVariable' => 'BridgeStaleVariableHelper',
+            'RefreshOTAStatus', 'CheckOTAUpdate', 'RequestOTAUpdate', 'ConfirmOTAUpdate',
+            'ScheduleOTAUpdate', 'UnscheduleOTAUpdate', 'AbortOTAUpdate' => 'BridgeOTAFormHelper',
+            default                                                      => 'BridgeModule'
+        };
+
+        $this->TraceHelperCall($helper, $ident, function () use ($ident, $value): void
+        {
+            switch ($ident) {
+                case 'permit_join':
+                    $this->SetPermitJoin((bool) $value);
+                    break;
+                case 'StartPairing':
+                    $this->StartPairingFromForm($value);
+                    break;
+                case 'StopPairing':
+                    $this->SetPermitJoinTarget(0);
+                    break;
+                case 'UpdatePermitJoinStatus':
+                    $this->UpdatePermitJoinStatus();
+                    break;
+                case 'log_level':
+                    $this->SetLogLevel((string) $value);
+                    break;
+                case 'restart_request':
+                    $this->Restart();
+                    break;
+                case 'ClearBridgeDiagnostics':
+                    $this->ClearBridgeDiagnostics();
+                    break;
+                case 'RunHealthCheck':
+                    $this->RunHealthCheckFromForm();
+                    break;
+                case 'RunCoordinatorCheck':
+                    $this->RunCoordinatorCheckFromForm();
+                    break;
+                case 'CreateBackupFile':
+                    $this->CreateBackupFileFromForm();
+                    break;
+                case 'SendInstallCode':
+                    $this->SendInstallCodeFromForm($value);
+                    break;
+                case 'SaveInstallCode':
+                    $this->SaveInstallCodeFromForm($value);
+                    break;
+                case 'SelectStoredInstallCode':
+                    $this->SelectStoredInstallCodeFromForm($value);
+                    break;
+                case 'SendStoredInstallCode':
+                    $this->SendStoredInstallCodeFromForm($value);
+                    break;
+                case 'RequestDeleteStoredInstallCode':
+                    $this->RequestDeleteStoredInstallCodeFromForm($value);
+                    break;
+                case 'ConfirmDeleteStoredInstallCode':
+                    $this->ConfirmPendingStoredInstallCodeDelete();
+                    break;
+                case 'TouchlinkScan':
+                    $this->TouchlinkScan();
+                    $this->TryUpdateFormField('TouchlinkDeviceList', 'values', json_encode($this->BuildTouchlinkDeviceFormValues()));
+                    break;
+                case 'SelectTouchlinkDevice':
+                    $this->SelectTouchlinkDeviceFromForm($value);
+                    break;
+                case 'TouchlinkIdentify':
+                    $target = $this->DecodeBridgeFormPayload($value);
+                    if ($target !== null) {
+                        $this->TouchlinkIdentify((string) ($target['ieee_address'] ?? ''), (int) ($target['channel'] ?? 0));
+                    }
+                    break;
+                case 'TouchlinkFactoryReset':
+                    $target = $this->DecodeBridgeFormPayload($value);
+                    if ($target !== null) {
+                        $this->TouchlinkFactoryReset((string) ($target['ieee_address'] ?? ''), (int) ($target['channel'] ?? 0));
+                    }
+                    break;
+                case 'ExecuteBridgeExpertAction':
+                    $this->ExecuteBridgeExpertActionFromForm($value);
+                    break;
+                case 'SelectNetworkSecurityDevice':
+                    $this->SelectNetworkSecurityDeviceFromForm($value);
+                    break;
+                case 'RefreshNetworkSecurityAvailableDevices':
+                    $this->UpdateNetworkSecurityFormLists();
+                    break;
+                case 'AddBlocklistDevice':
+                    $this->AddNetworkSecurityDeviceFromForm('blocklist', $value);
+                    break;
+                case 'RemoveBlocklistDevice':
+                    $this->RemoveNetworkSecurityDeviceFromForm('blocklist', $value);
+                    break;
+                case 'RequestPasslistChange':
+                    $this->RequestPasslistChangeFromForm($value);
+                    break;
+                case 'ConfirmPendingPasslistChange':
+                    $this->ApplyPendingPasslistChange();
+                    break;
+                case 'ScanStaleVariables':
+                    $this->ScanStaleVariablesFromForm();
+                    break;
+                case 'SelectStaleVariableMaintenanceInstance':
+                    $this->SelectStaleVariableMaintenanceInstanceFromForm($value);
+                    break;
+                case 'ScanCustomProfiles':
+                    $this->ScanCustomProfilesFromForm();
+                    break;
+                case 'SelectCustomProfileVariable':
+                    $this->SelectCustomProfileVariableFromForm($value);
+                    break;
+                case 'RefreshOTAStatus':
+                    $this->UpdateOTAFormLists();
+                    break;
+                case 'CheckOTAUpdate':
+                    $this->CheckOTAUpdateFromForm($value);
+                    break;
+                case 'RequestOTAUpdate':
+                    $this->RequestOTAUpdateFromForm($value);
+                    break;
+                case 'ConfirmOTAUpdate':
+                    $this->ConfirmPendingOTAUpdate();
+                    break;
+                case 'ScheduleOTAUpdate':
+                    $this->ScheduleOTAUpdateFromForm($value);
+                    break;
+                case 'UnscheduleOTAUpdate':
+                    $this->UnscheduleOTAUpdateFromForm($value);
+                    break;
+                case 'AbortOTAUpdate':
+                    $this->AbortOTAUpdateFromForm($value);
+                    break;
+            }
+        }, 'Ident=' . $ident);
+    }
+
+    /**
+     * Erstellt das dynamisch ergänzte Konfigurationsformular der Bridge.
+     *
+     * Die statische `form.json` wird um den aktuellen Extension-, `last_seen`-
+     * und Pairing-Zustand sowie um Diagnose-, Netzwerk-, Installcode-, Touchlink-,
+     * OTA- und Variablenwartungsdaten ergänzt.
+     *
+     * @return string JSON-kodiertes Symcon-Konfigurationsformular.
+     *
+     * @see self::BuildBridgeConfigurationForm()
+     * @see \BridgeOTAFormHelper OTA-Formulardaten in `Bridge/Helper/BridgeOTAFormHelper.php`.
+     * @see \BridgeDiagnosticHelper Diagnosedaten in `Bridge/Helper/BridgeDiagnosticHelper.php`.
+     * @see \BridgeNetworkSecurityHelper Netzwerkdaten in `Bridge/Helper/BridgeNetworkSecurityHelper.php`.
+     */
+    public function GetConfigurationForm(): string
+    {
+        return \Zigbee2MQTT\ModuleUpdateGuard::Execute(
+            fn (): string => $this->GetConfigurationFormWithAvailableInstanceInterface(),
+            '{}'
+        );
+    }
+
+    /**
+     * Fordert eine Netzwerkkarte im Graphviz-Format einschließlich Routen an.
+     *
+     * @return bool `true`, wenn Zigbee2MQTT den Befehl erfolgreich bestätigt hat.
+     *
+     * @see \BridgeRequestHelper Versand des Bridge-Befehls in `Bridge/Helper/BridgeRequestHelper.php`.
+     */
+    public function RequestNetworkmap(): bool
+    {
+        $Topic = '/bridge/request/networkmap';
+        $Payload = ['type' => 'graphviz', 'routes' => true];
+        return $this->TraceHelperCall(
+            'BridgeRequestHelper',
+            'SendBridgeCommand',
+            fn (): mixed => $this->SendBridgeCommand($Topic, $Payload),
+            'Request=networkmap'
+        );
+    }
+
+    /**
+     * Sendet eine generische Zigbee2MQTT-Aktion an `bridge/request/action`.
+     *
+     * Aktionsname und Parameter werden normalisiert. Vom Aufrufer übergebene
+     * Felder für `transaction` und `action` werden entfernt, damit die
+     * Transaktionsverwaltung und der angegebene Aktionsname verbindlich bleiben.
+     *
+     * @param string $Action Name der Zigbee2MQTT-Aktion.
+     * @param array  $Params Inhalt des `params`-Objekts ohne `transaction` und `action`.
+     *
+     * @return bool `true`, wenn die Bridge die Aktion bestätigt hat.
+     *
+     * @see \BridgeRequestHelper Geschützter Request in `Bridge/Helper/BridgeRequestHelper.php`.
+     */
+    public function SendBridgeAction(string $Action, array $Params = []): bool
+    {
+        $action = trim($Action);
+        if ($action === '') {
+            trigger_error($this->Translate('Action name is required.'), E_USER_NOTICE);
+            return false;
+        }
+
+        unset($Params['transaction'], $Params['action']);
+        $payload = [
+            'action' => $action,
+            'params' => (object) $Params
+        ];
+
+        return $this->TraceHelperCall(
+            'BridgeRequestHelper',
+            'SendCheckedSensitiveBridgeRequest',
+            fn (): mixed => $this->SendCheckedSensitiveBridgeRequest('/bridge/request/action', $payload, 30000),
+            'Request=action'
+        ) !== false;
+    }
+
+    /**
+     * Setzt einen Bridge-Variablenwert kompatibel mit `IPSModuleStrict` und der Testumgebung.
+     *
+     * Nicht vorhandene Variablen führen zu `false`. Innerhalb der PHPUnit-Stubs
+     * wird die globale Symcon-Funktion verwendet, im Produktivbetrieb die
+     * Implementierung der Basisklasse.
+     *
+     * @param string $Ident Identifikator der Bridge-Variable.
+     * @param mixed  $Value Zu speichernder Wert.
+     *
+     * @return bool `true`, wenn der Wert gesetzt werden konnte.
+     */
+    protected function SetValue(string $Ident, mixed $Value): bool
+    {
+        $variableID = @IPS_GetObjectIDByIdent($Ident, $this->InstanceID);
+        if ($variableID === false) {
+            return false;
+        }
+
+        if (\defined('PHPUNIT_TESTSUITE') && \constant('PHPUNIT_TESTSUITE')) {
+            \SetValue($variableID, $Value);
+            return true;
+        }
+
+        return parent::SetValue($Ident, $Value);
+    }
+
+    /**
+     * Verarbeitet Bridge-Nachrichten nach Aktivierung des Reload-Schutzes.
+     */
+    private function ReceiveDataWithAvailableInstanceInterface(string $JSONString): string
+    {
         if ($this->GetStatus() == IS_CREATING) {
             return '';
         }
@@ -581,189 +865,9 @@ class Zigbee2MQTTBridge extends IPSModuleStrict
     }
 
     /**
-     * Verteilt Variablen- und Formularaktionen auf die zuständigen Bridge-Helper.
-     *
-     * Dazu gehören Bridge-Konfiguration und Neustart, Pairing, Diagnose, Backup,
-     * Installcodes, Touchlink, Netzwerklisten, Variablenwartung und OTA. Die
-     * Methode selbst enthält nur die zentrale Zuordnung der Aktionskennung.
-     *
-     * @param string $ident Kennung der Variable oder Formularaktion.
-     * @param mixed  $value Von Symcon übergebener Aktionswert oder Formular-Payload.
-     *
-     * @see \BridgeConfigurationCommandHelper Konfigurationsaktionen in `Bridge/Helper/BridgeConfigurationCommandHelper.php`.
-     * @see \BridgePairingHelper Pairing-Aktionen in `Bridge/Helper/BridgePairingHelper.php`.
-     * @see \BridgeDiagnosticHelper Diagnoseaktionen in `Bridge/Helper/BridgeDiagnosticHelper.php`.
-     * @see \BridgeBackupHelper Backup-Erstellung in `Bridge/Helper/BridgeBackupHelper.php`.
-     * @see \BridgeInstallCodeHelper Installcode-Verwaltung in `Bridge/Helper/BridgeInstallCodeHelper.php`.
-     * @see \BridgeTouchlinkHelper Touchlink-Aktionen in `Bridge/Helper/BridgeTouchlinkHelper.php`.
-     * @see \BridgeNetworkSecurityHelper Netzwerklisten in `Bridge/Helper/BridgeNetworkSecurityHelper.php`.
-     * @see \BridgeStaleVariableHelper Variablenwartung in `Bridge/Helper/BridgeStaleVariableHelper.php`.
-     * @see \BridgeOTACommandHelper OTA-Befehle in `Bridge/Helper/BridgeOTACommandHelper.php`.
-     * @see \BridgeOTAFormHelper OTA-Formularaktionen in `Bridge/Helper/BridgeOTAFormHelper.php`.
+     * Baut das Bridge-Formular nach Aktivierung des Reload-Schutzes auf.
      */
-    public function RequestAction(string $ident, mixed $value): void
-    {
-        $helper = match ($ident) {
-            'permit_join', 'StopPairing', 'log_level', 'restart_request'      => 'BridgeConfigurationCommandHelper',
-            'StartPairing', 'UpdatePermitJoinStatus'                          => 'BridgePairingHelper',
-            'ClearBridgeDiagnostics', 'RunHealthCheck', 'RunCoordinatorCheck' => 'BridgeDiagnosticHelper',
-            'CreateBackupFile'                                                => 'BridgeBackupHelper',
-            'SendInstallCode', 'SaveInstallCode', 'SelectStoredInstallCode', 'SendStoredInstallCode',
-            'RequestDeleteStoredInstallCode', 'ConfirmDeleteStoredInstallCode'                     => 'BridgeInstallCodeHelper',
-            'TouchlinkScan', 'SelectTouchlinkDevice', 'TouchlinkIdentify', 'TouchlinkFactoryReset' => 'BridgeTouchlinkHelper',
-            'ExecuteBridgeExpertAction'                                                            => 'BridgeRequestHelper',
-            'SelectNetworkSecurityDevice', 'RefreshNetworkSecurityAvailableDevices', 'AddBlocklistDevice',
-            'RemoveBlocklistDevice', 'RequestPasslistChange', 'ConfirmPendingPasslistChange' => 'BridgeNetworkSecurityHelper',
-            'ScanStaleVariables', 'SelectStaleVariableMaintenanceInstance',
-            'ScanCustomProfiles', 'SelectCustomProfileVariable' => 'BridgeStaleVariableHelper',
-            'RefreshOTAStatus', 'CheckOTAUpdate', 'RequestOTAUpdate', 'ConfirmOTAUpdate',
-            'ScheduleOTAUpdate', 'UnscheduleOTAUpdate', 'AbortOTAUpdate' => 'BridgeOTAFormHelper',
-            default                                                      => 'BridgeModule'
-        };
-
-        $this->TraceHelperCall($helper, $ident, function () use ($ident, $value): void
-        {
-            switch ($ident) {
-                case 'permit_join':
-                    $this->SetPermitJoin((bool) $value);
-                    break;
-                case 'StartPairing':
-                    $this->StartPairingFromForm($value);
-                    break;
-                case 'StopPairing':
-                    $this->SetPermitJoinTarget(0);
-                    break;
-                case 'UpdatePermitJoinStatus':
-                    $this->UpdatePermitJoinStatus();
-                    break;
-                case 'log_level':
-                    $this->SetLogLevel((string) $value);
-                    break;
-                case 'restart_request':
-                    $this->Restart();
-                    break;
-                case 'ClearBridgeDiagnostics':
-                    $this->ClearBridgeDiagnostics();
-                    break;
-                case 'RunHealthCheck':
-                    $this->RunHealthCheckFromForm();
-                    break;
-                case 'RunCoordinatorCheck':
-                    $this->RunCoordinatorCheckFromForm();
-                    break;
-                case 'CreateBackupFile':
-                    $this->CreateBackupFileFromForm();
-                    break;
-                case 'SendInstallCode':
-                    $this->SendInstallCodeFromForm($value);
-                    break;
-                case 'SaveInstallCode':
-                    $this->SaveInstallCodeFromForm($value);
-                    break;
-                case 'SelectStoredInstallCode':
-                    $this->SelectStoredInstallCodeFromForm($value);
-                    break;
-                case 'SendStoredInstallCode':
-                    $this->SendStoredInstallCodeFromForm($value);
-                    break;
-                case 'RequestDeleteStoredInstallCode':
-                    $this->RequestDeleteStoredInstallCodeFromForm($value);
-                    break;
-                case 'ConfirmDeleteStoredInstallCode':
-                    $this->ConfirmPendingStoredInstallCodeDelete();
-                    break;
-                case 'TouchlinkScan':
-                    $this->TouchlinkScan();
-                    $this->TryUpdateFormField('TouchlinkDeviceList', 'values', json_encode($this->BuildTouchlinkDeviceFormValues()));
-                    break;
-                case 'SelectTouchlinkDevice':
-                    $this->SelectTouchlinkDeviceFromForm($value);
-                    break;
-                case 'TouchlinkIdentify':
-                    $target = $this->DecodeBridgeFormPayload($value);
-                    if ($target !== null) {
-                        $this->TouchlinkIdentify((string) ($target['ieee_address'] ?? ''), (int) ($target['channel'] ?? 0));
-                    }
-                    break;
-                case 'TouchlinkFactoryReset':
-                    $target = $this->DecodeBridgeFormPayload($value);
-                    if ($target !== null) {
-                        $this->TouchlinkFactoryReset((string) ($target['ieee_address'] ?? ''), (int) ($target['channel'] ?? 0));
-                    }
-                    break;
-                case 'ExecuteBridgeExpertAction':
-                    $this->ExecuteBridgeExpertActionFromForm($value);
-                    break;
-                case 'SelectNetworkSecurityDevice':
-                    $this->SelectNetworkSecurityDeviceFromForm($value);
-                    break;
-                case 'RefreshNetworkSecurityAvailableDevices':
-                    $this->UpdateNetworkSecurityFormLists();
-                    break;
-                case 'AddBlocklistDevice':
-                    $this->AddNetworkSecurityDeviceFromForm('blocklist', $value);
-                    break;
-                case 'RemoveBlocklistDevice':
-                    $this->RemoveNetworkSecurityDeviceFromForm('blocklist', $value);
-                    break;
-                case 'RequestPasslistChange':
-                    $this->RequestPasslistChangeFromForm($value);
-                    break;
-                case 'ConfirmPendingPasslistChange':
-                    $this->ApplyPendingPasslistChange();
-                    break;
-                case 'ScanStaleVariables':
-                    $this->ScanStaleVariablesFromForm();
-                    break;
-                case 'SelectStaleVariableMaintenanceInstance':
-                    $this->SelectStaleVariableMaintenanceInstanceFromForm($value);
-                    break;
-                case 'ScanCustomProfiles':
-                    $this->ScanCustomProfilesFromForm();
-                    break;
-                case 'SelectCustomProfileVariable':
-                    $this->SelectCustomProfileVariableFromForm($value);
-                    break;
-                case 'RefreshOTAStatus':
-                    $this->UpdateOTAFormLists();
-                    break;
-                case 'CheckOTAUpdate':
-                    $this->CheckOTAUpdateFromForm($value);
-                    break;
-                case 'RequestOTAUpdate':
-                    $this->RequestOTAUpdateFromForm($value);
-                    break;
-                case 'ConfirmOTAUpdate':
-                    $this->ConfirmPendingOTAUpdate();
-                    break;
-                case 'ScheduleOTAUpdate':
-                    $this->ScheduleOTAUpdateFromForm($value);
-                    break;
-                case 'UnscheduleOTAUpdate':
-                    $this->UnscheduleOTAUpdateFromForm($value);
-                    break;
-                case 'AbortOTAUpdate':
-                    $this->AbortOTAUpdateFromForm($value);
-                    break;
-            }
-        }, 'Ident=' . $ident);
-    }
-
-    /**
-     * Erstellt das dynamisch ergänzte Konfigurationsformular der Bridge.
-     *
-     * Die statische `form.json` wird um den aktuellen Extension-, `last_seen`-
-     * und Pairing-Zustand sowie um Diagnose-, Netzwerk-, Installcode-, Touchlink-,
-     * OTA- und Variablenwartungsdaten ergänzt.
-     *
-     * @return string JSON-kodiertes Symcon-Konfigurationsformular.
-     *
-     * @see self::BuildBridgeConfigurationForm()
-     * @see \BridgeOTAFormHelper OTA-Formulardaten in `Bridge/Helper/BridgeOTAFormHelper.php`.
-     * @see \BridgeDiagnosticHelper Diagnosedaten in `Bridge/Helper/BridgeDiagnosticHelper.php`.
-     * @see \BridgeNetworkSecurityHelper Netzwerkdaten in `Bridge/Helper/BridgeNetworkSecurityHelper.php`.
-     */
-    public function GetConfigurationForm(): string
+    private function GetConfigurationFormWithAvailableInstanceInterface(): string
     {
         $Form = json_decode(file_get_contents(__DIR__ . '/form.json'), true);
         if ($this->GetValue('extension_loaded') && $this->GetValue('extension_is_current')) {
@@ -782,88 +886,6 @@ class Zigbee2MQTTBridge extends IPSModuleStrict
             'BuildBridgeConfigurationForm',
             fn (): mixed => $this->BuildBridgeConfigurationForm($Form)
         ));
-    }
-
-    /**
-     * Fordert eine Netzwerkkarte im Graphviz-Format einschließlich Routen an.
-     *
-     * @return bool `true`, wenn Zigbee2MQTT den Befehl erfolgreich bestätigt hat.
-     *
-     * @see \BridgeRequestHelper Versand des Bridge-Befehls in `Bridge/Helper/BridgeRequestHelper.php`.
-     */
-    public function RequestNetworkmap(): bool
-    {
-        $Topic = '/bridge/request/networkmap';
-        $Payload = ['type' => 'graphviz', 'routes' => true];
-        return $this->TraceHelperCall(
-            'BridgeRequestHelper',
-            'SendBridgeCommand',
-            fn (): mixed => $this->SendBridgeCommand($Topic, $Payload),
-            'Request=networkmap'
-        );
-    }
-
-    /**
-     * Sendet eine generische Zigbee2MQTT-Aktion an `bridge/request/action`.
-     *
-     * Aktionsname und Parameter werden normalisiert. Vom Aufrufer übergebene
-     * Felder für `transaction` und `action` werden entfernt, damit die
-     * Transaktionsverwaltung und der angegebene Aktionsname verbindlich bleiben.
-     *
-     * @param string $Action Name der Zigbee2MQTT-Aktion.
-     * @param array  $Params Inhalt des `params`-Objekts ohne `transaction` und `action`.
-     *
-     * @return bool `true`, wenn die Bridge die Aktion bestätigt hat.
-     *
-     * @see \BridgeRequestHelper Geschützter Request in `Bridge/Helper/BridgeRequestHelper.php`.
-     */
-    public function SendBridgeAction(string $Action, array $Params = []): bool
-    {
-        $action = trim($Action);
-        if ($action === '') {
-            trigger_error($this->Translate('Action name is required.'), E_USER_NOTICE);
-            return false;
-        }
-
-        unset($Params['transaction'], $Params['action']);
-        $payload = [
-            'action' => $action,
-            'params' => (object) $Params
-        ];
-
-        return $this->TraceHelperCall(
-            'BridgeRequestHelper',
-            'SendCheckedSensitiveBridgeRequest',
-            fn (): mixed => $this->SendCheckedSensitiveBridgeRequest('/bridge/request/action', $payload, 30000),
-            'Request=action'
-        ) !== false;
-    }
-
-    /**
-     * Setzt einen Bridge-Variablenwert kompatibel mit `IPSModuleStrict` und der Testumgebung.
-     *
-     * Nicht vorhandene Variablen führen zu `false`. Innerhalb der PHPUnit-Stubs
-     * wird die globale Symcon-Funktion verwendet, im Produktivbetrieb die
-     * Implementierung der Basisklasse.
-     *
-     * @param string $Ident Identifikator der Bridge-Variable.
-     * @param mixed  $Value Zu speichernder Wert.
-     *
-     * @return bool `true`, wenn der Wert gesetzt werden konnte.
-     */
-    protected function SetValue(string $Ident, mixed $Value): bool
-    {
-        $variableID = @IPS_GetObjectIDByIdent($Ident, $this->InstanceID);
-        if ($variableID === false) {
-            return false;
-        }
-
-        if (\defined('PHPUNIT_TESTSUITE') && \constant('PHPUNIT_TESTSUITE')) {
-            \SetValue($variableID, $Value);
-            return true;
-        }
-
-        return parent::SetValue($Ident, $Value);
     }
 
     /**

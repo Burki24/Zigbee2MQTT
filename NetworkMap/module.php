@@ -62,14 +62,10 @@ class Zigbee2MQTTNetworkMap extends IPSModuleStrict
      */
     public function GetConfigurationForm(): string
     {
-        $form = json_decode(file_get_contents(__DIR__ . '/form.json'), true);
-        if (!\is_array($form)) {
-            return '{}';
-        }
-
-        $this->PopulateConfigurationForm($form);
-        $json = json_encode($form);
-        return \is_string($json) ? $json : '{}';
+        return \Zigbee2MQTT\ModuleUpdateGuard::Execute(
+            fn (): string => $this->GetConfigurationFormWithAvailableInstanceInterface(),
+            '{}'
+        );
     }
 
     /**
@@ -326,6 +322,32 @@ class Zigbee2MQTTNetworkMap extends IPSModuleStrict
      * Nimmt RAW-Netzwerkkartenantworten asynchron entgegen.
      */
     public function ReceiveData(string $JSONString): string
+    {
+        return \Zigbee2MQTT\ModuleUpdateGuard::Execute(
+            fn (): string => $this->ReceiveDataWithAvailableInstanceInterface($JSONString),
+            ''
+        );
+    }
+
+    /**
+     * Baut das Netzwerkkartenformular nach Aktivierung des Reload-Schutzes auf.
+     */
+    private function GetConfigurationFormWithAvailableInstanceInterface(): string
+    {
+        $form = json_decode(file_get_contents(__DIR__ . '/form.json'), true);
+        if (!\is_array($form)) {
+            return '{}';
+        }
+
+        $this->PopulateConfigurationForm($form);
+        $json = json_encode($form);
+        return \is_string($json) ? $json : '{}';
+    }
+
+    /**
+     * Verarbeitet Netzwerkkartenantworten nach Aktivierung des Reload-Schutzes.
+     */
+    private function ReceiveDataWithAvailableInstanceInterface(string $JSONString): string
     {
         $buffer = json_decode($JSONString, true);
         if (!\is_array($buffer) || !isset($buffer['Topic'], $buffer['Payload'])) {

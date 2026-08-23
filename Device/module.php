@@ -92,9 +92,10 @@ class Zigbee2MQTTDevice extends \Zigbee2MQTT\ModulBase
      */
     public function GetConfigurationForm(): string
     {
-        $form = json_decode(file_get_contents(__DIR__ . '/form.json'), true);
-
-        return json_encode($this->PrepareLocalVariableMaintenanceForm($this->BuildDeviceConfigurationForm($form)));
+        return \Zigbee2MQTT\ModuleUpdateGuard::Execute(
+            fn (): string => $this->GetConfigurationFormWithAvailableInstanceInterface(),
+            '{}'
+        );
     }
 
     /**
@@ -362,6 +363,16 @@ class Zigbee2MQTTDevice extends \Zigbee2MQTT\ModulBase
         return $imageRaw !== null
             ? 'data:image/png;base64,' . base64_encode($imageRaw)
             : '';
+    }
+
+    /**
+     * Baut das Geraeteformular nach Aktivierung des Reload-Schutzes auf.
+     */
+    private function GetConfigurationFormWithAvailableInstanceInterface(): string
+    {
+        $form = json_decode(file_get_contents(__DIR__ . '/form.json'), true);
+
+        return json_encode($this->PrepareLocalVariableMaintenanceForm($this->BuildDeviceConfigurationForm($form)));
     }
 
     /**

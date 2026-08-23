@@ -132,8 +132,10 @@ class Zigbee2MQTTGroup extends \Zigbee2MQTT\ModulBase
      */
     public function GetConfigurationForm(): string
     {
-        $Form = json_decode(file_get_contents(__DIR__ . '/form.json'), true);
-        return json_encode($this->PrepareLocalVariableMaintenanceForm($this->BuildGroupConfigurationForm($Form)));
+        return \Zigbee2MQTT\ModuleUpdateGuard::Execute(
+            fn (): string => $this->GetConfigurationFormWithAvailableInstanceInterface(),
+            '{}'
+        );
     }
 
     /**
@@ -259,6 +261,15 @@ class Zigbee2MQTTGroup extends \Zigbee2MQTT\ModulBase
         $this->WriteAttributeArray(self::ATTRIBUTE_EXPOSES, $Result);
         $this->mapExposesToVariables($Result);
         return true;
+    }
+
+    /**
+     * Baut das Gruppenformular nach Aktivierung des Reload-Schutzes auf.
+     */
+    private function GetConfigurationFormWithAvailableInstanceInterface(): string
+    {
+        $Form = json_decode(file_get_contents(__DIR__ . '/form.json'), true);
+        return json_encode($this->PrepareLocalVariableMaintenanceForm($this->BuildGroupConfigurationForm($Form)));
     }
 
     /**

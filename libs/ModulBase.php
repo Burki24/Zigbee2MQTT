@@ -703,54 +703,10 @@ abstract class ModulBase extends \IPSModuleStrict
      */
     public function ReceiveData(string $JSONString): string
     {
-        // Während Migration keine MQTT Nachrichten verarbeiten
-        if ($this->BUFFER_MQTT_SUSPENDED) {
-            return '';
-        }
-        // Instanz im CREATE-Status überspringen
-        if ($this->GetStatus() == IS_CREATING) {
-            return '';
-        }
-        // JSON-Nachricht dekodieren
-        [$topics, $payload] = $this->TraceHelperCall(
-            'PayloadProcessingHelper',
-            'validateAndParseMessage',
-            fn (): mixed => $this->validateAndParseMessage($JSONString)
+        return ModuleUpdateGuard::Execute(
+            fn (): string => $this->ReceiveDataWithAvailableInstanceInterface($JSONString),
+            ''
         );
-        if (!$topics) {
-            return '';
-        }
-        // Behandelt Verfügbarkeit-Status
-        if ($this->TraceHelperCall(
-            'PayloadProcessingHelper',
-            'handleAvailability',
-            fn (): mixed => $this->handleAvailability($topics, $payload),
-            'Topic=' . (string) ($topics[0] ?? '')
-        )) {
-            return '';
-        }
-        // Leere Payloads werden nur fuer handleAvailability benoetigt.
-        if (\is_null($payload)) {
-            return '';
-        }
-
-        // Behandelt Symcon Extension Antworten, auch wenn Instanz noch in IS_CREATING ist.
-        if ($this->TraceHelperCall(
-            'PayloadProcessingHelper',
-            'handleSymconExtensionResponses',
-            fn (): mixed => $this->handleSymconExtensionResponses($topics, $payload),
-            'Topic=' . (string) ($topics[0] ?? '')
-        )) {
-            return '';
-        }
-        // Verarbeitet Payload
-        $this->TraceHelperCall(
-            'PayloadProcessingHelper',
-            'processPayload',
-            fn (): mixed => $this->processPayload($payload),
-            'Properties=' . \count($payload)
-        );
-        return '';
     }
 
     /**
@@ -1071,6 +1027,61 @@ abstract class ModulBase extends \IPSModuleStrict
         }
 
         return $this->Translate('Native presentation');
+    }
+
+    /**
+     * Verarbeitet MQTT-Daten nach Aktivierung des Reload-Schutzes.
+     */
+    private function ReceiveDataWithAvailableInstanceInterface(string $JSONString): string
+    {
+        // Während Migration keine MQTT Nachrichten verarbeiten
+        if ($this->BUFFER_MQTT_SUSPENDED) {
+            return '';
+        }
+        // Instanz im CREATE-Status überspringen
+        if ($this->GetStatus() == IS_CREATING) {
+            return '';
+        }
+        // JSON-Nachricht dekodieren
+        [$topics, $payload] = $this->TraceHelperCall(
+            'PayloadProcessingHelper',
+            'validateAndParseMessage',
+            fn (): mixed => $this->validateAndParseMessage($JSONString)
+        );
+        if (!$topics) {
+            return '';
+        }
+        // Behandelt Verfügbarkeit-Status
+        if ($this->TraceHelperCall(
+            'PayloadProcessingHelper',
+            'handleAvailability',
+            fn (): mixed => $this->handleAvailability($topics, $payload),
+            'Topic=' . (string) ($topics[0] ?? '')
+        )) {
+            return '';
+        }
+        // Leere Payloads werden nur fuer handleAvailability benoetigt.
+        if (\is_null($payload)) {
+            return '';
+        }
+
+        // Behandelt Symcon Extension Antworten, auch wenn Instanz noch in IS_CREATING ist.
+        if ($this->TraceHelperCall(
+            'PayloadProcessingHelper',
+            'handleSymconExtensionResponses',
+            fn (): mixed => $this->handleSymconExtensionResponses($topics, $payload),
+            'Topic=' . (string) ($topics[0] ?? '')
+        )) {
+            return '';
+        }
+        // Verarbeitet Payload
+        $this->TraceHelperCall(
+            'PayloadProcessingHelper',
+            'processPayload',
+            fn (): mixed => $this->processPayload($payload),
+            'Properties=' . \count($payload)
+        );
+        return '';
     }
 
     /**

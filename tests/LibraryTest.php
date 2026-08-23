@@ -3,6 +3,7 @@
 declare(strict_types=1);
 
 include_once __DIR__ . '/stubs/Validator.php';
+include_once __DIR__ . '/../libs/ModuleUpdateGuard.php';
 
 /**
  * Prüft Metadaten, Moduldefinitionen und Aktionsformulare der Bibliothek.
@@ -69,6 +70,60 @@ class LibraryTest extends TestCaseSymconValidation
             $source = file_get_contents($file);
 
             $this->assertStringContainsString('@IPS_RequestAction(', $source, $file);
+        }
+    }
+
+    public function testModuleUpdateGuardStopsTransientInterfaceCallsWithoutWarning(): void
+    {
+        foreach ([
+            'InstanceInterface is not available',
+            'InstanceInterface is not a PHP module',
+        ] as $message) {
+            $continued = false;
+            $result = \Zigbee2MQTT\ModuleUpdateGuard::Execute(
+                static function () use ($message, &$continued): string
+                {
+                    trigger_error($message, E_USER_WARNING);
+                    $continued = true;
+                    return 'processed';
+                },
+                'skipped'
+            );
+
+            $this->assertSame('skipped', $result);
+            $this->assertFalse($continued, $message);
+        }
+    }
+
+    public function testModuleUpdateGuardDoesNotHideUnrelatedExceptions(): void
+    {
+        $this->expectException(RuntimeException::class);
+        $this->expectExceptionMessage('unrelated failure');
+
+        \Zigbee2MQTT\ModuleUpdateGuard::Execute(
+            static fn (): never => throw new RuntimeException('unrelated failure'),
+            null
+        );
+    }
+
+    public function testRuntimeEntryPointsUseModuleUpdateGuard(): void
+    {
+        foreach ([
+            __DIR__ . '/../libs/ModulBase.php'      => 1,
+            __DIR__ . '/../Bridge/module.php'       => 2,
+            __DIR__ . '/../Configurator/module.php' => 2,
+            __DIR__ . '/../Device/module.php'       => 1,
+            __DIR__ . '/../Discovery/module.php'    => 1,
+            __DIR__ . '/../Group/module.php'        => 1,
+            __DIR__ . '/../NetworkMap/module.php'   => 2,
+        ] as $file => $minimumGuardCalls) {
+            $source = file_get_contents($file);
+
+            $this->assertGreaterThanOrEqual(
+                $minimumGuardCalls,
+                substr_count($source, 'ModuleUpdateGuard::Execute('),
+                $file
+            );
         }
     }
 }

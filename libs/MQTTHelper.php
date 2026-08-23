@@ -4,6 +4,8 @@ declare(strict_types=1);
 
 namespace Zigbee2MQTT;
 
+require_once __DIR__ . '/ModuleUpdateGuard.php';
+
 require_once __DIR__ . '/ModuleConstants.php';
 
 /**
@@ -271,30 +273,7 @@ trait SendData
      */
     private function ExecuteWithAvailableInstanceInterface(\Closure $Operation, mixed $Fallback): mixed
     {
-        $interfaceUnavailable = false;
-        set_error_handler(
-            static function (int $severity, string $message) use (&$interfaceUnavailable): bool
-            {
-                if (str_contains($message, 'InstanceInterface is not available')) {
-                    $interfaceUnavailable = true;
-                    return true;
-                }
-                return false;
-            }
-        );
-
-        try {
-            $result = $Operation();
-        } catch (\Throwable $throwable) {
-            if (!$interfaceUnavailable) {
-                throw $throwable;
-            }
-            return $Fallback;
-        } finally {
-            restore_error_handler();
-        }
-
-        return $interfaceUnavailable ? $Fallback : $result;
+        return ModuleUpdateGuard::Execute($Operation, $Fallback);
     }
 
     /**

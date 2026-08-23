@@ -160,6 +160,42 @@ class Zigbee2MQTTConfigurator extends IPSModuleStrict
      */
     public function GetConfigurationForm(): string
     {
+        return \Zigbee2MQTT\ModuleUpdateGuard::Execute(
+            fn (): string => $this->GetConfigurationFormWithAvailableInstanceInterface(),
+            '{}'
+        );
+    }
+
+    /**
+     * ReceiveData
+     *
+     * @param  string $JSONString
+     *
+     * @return string
+     *
+     * @uses IPSModule::GetStatus()
+     * @uses IPSModule::SendDebug()
+     * @uses IPSModule::ReadPropertyString()
+     * @uses Zigbee2MQTTConfigurator::UpdateTransaction()
+     * @uses json_decode()
+     * @uses Zigbee2MQTTConfigurator::DecodePayload()
+     * @uses empty()
+     * @uses isset()
+     * @uses strpos()
+     */
+    public function ReceiveData(string $JSONString): string
+    {
+        return \Zigbee2MQTT\ModuleUpdateGuard::Execute(
+            fn (): string => $this->ReceiveDataWithAvailableInstanceInterface($JSONString),
+            ''
+        );
+    }
+
+    /**
+     * Baut das Configurator-Formular nach Aktivierung des Reload-Schutzes auf.
+     */
+    private function GetConfigurationFormWithAvailableInstanceInterface(): string
+    {
         $Form = json_decode(file_get_contents(__DIR__ . '/form.json'), true);
         if (($this->GetStatus() == IS_CREATING) || (IPS_GetKernelRunlevel() != KR_READY)) {
             return json_encode($Form);
@@ -480,23 +516,9 @@ class Zigbee2MQTTConfigurator extends IPSModuleStrict
     }
 
     /**
-     * ReceiveData
-     *
-     * @param  string $JSONString
-     *
-     * @return string
-     *
-     * @uses IPSModule::GetStatus()
-     * @uses IPSModule::SendDebug()
-     * @uses IPSModule::ReadPropertyString()
-     * @uses Zigbee2MQTTConfigurator::UpdateTransaction()
-     * @uses json_decode()
-     * @uses Zigbee2MQTTConfigurator::DecodePayload()
-     * @uses empty()
-     * @uses isset()
-     * @uses strpos()
+     * Verarbeitet Configurator-Nachrichten nach Aktivierung des Reload-Schutzes.
      */
-    public function ReceiveData(string $JSONString): string
+    private function ReceiveDataWithAvailableInstanceInterface(string $JSONString): string
     {
         if ($this->GetStatus() == IS_CREATING) {
             return '';

@@ -4,6 +4,7 @@ declare(strict_types=1);
 
 require_once dirname(__DIR__) . '/libs/ModuleConstants.php';
 require_once dirname(__DIR__) . '/libs/BufferHelper.php';
+require_once dirname(__DIR__) . '/libs/ModuleUpdateGuard.php';
 require_once dirname(__DIR__) . '/libs/phpMQTT.php';
 
 /**
@@ -196,6 +197,25 @@ class Zigbee2MQTTDiscovery extends IPSModuleStrict
      */
     public function GetConfigurationForm(): string
     {
+        return \Zigbee2MQTT\ModuleUpdateGuard::Execute(
+            fn (): string => $this->GetConfigurationFormWithAvailableInstanceInterface(),
+            '{}'
+        );
+    }
+
+    /**
+     * Fuehrt den eigentlichen Scan aus und stellt einen schmalen Test- und Erweiterungspunkt bereit.
+     */
+    protected function ScanMqttServers(array $fallbackTopics = []): ?array
+    {
+        return $this->checkAllMqttServers($fallbackTopics);
+    }
+
+    /**
+     * Baut das Discovery-Formular nach Aktivierung des Reload-Schutzes auf.
+     */
+    private function GetConfigurationFormWithAvailableInstanceInterface(): string
+    {
         $Form = json_decode(file_get_contents(__DIR__ . '/form.json'), true);
 
         if (!count($this->ManuelBrokerConfig)) {
@@ -312,14 +332,6 @@ class Zigbee2MQTTDiscovery extends IPSModuleStrict
         $Form['actions'][1]['values'] = $Values;
         $this->SendRedactedDebug('Form', $Form);
         return json_encode($Form);
-    }
-
-    /**
-     * Fuehrt den eigentlichen Scan aus und stellt einen schmalen Test- und Erweiterungspunkt bereit.
-     */
-    protected function ScanMqttServers(array $fallbackTopics = []): ?array
-    {
-        return $this->checkAllMqttServers($fallbackTopics);
     }
 
     /**
