@@ -692,7 +692,7 @@ class Zigbee2MQTTNetworkMap extends IPSModuleStrict
     private function RegisterScanStatusTimer(): void
     {
         try {
-            $this->RegisterTimer(self::TIMER_SCAN_STATUS, 0, 'IPS_RequestAction($_IPS["TARGET"], "UpdateScanStatus", true);');
+            $this->RegisterTimer(self::TIMER_SCAN_STATUS, 0, '@IPS_RequestAction($_IPS["TARGET"], "UpdateScanStatus", true);');
         } catch (\Throwable) {
             // Timer operations can be temporarily unavailable while the module is being updated.
         }

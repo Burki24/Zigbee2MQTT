@@ -58,4 +58,17 @@ class LibraryTest extends TestCaseSymconValidation
             $actionIDs[(string) $action['id']] = true;
         }
     }
+
+    public function testModuleTimersSuppressTransientUnavailableInterfaceWarnings(): void
+    {
+        foreach ([
+            __DIR__ . '/../Bridge/Helper/BridgePairingHelper.php',
+            __DIR__ . '/../Discovery/module.php',
+            __DIR__ . '/../NetworkMap/module.php',
+        ] as $file) {
+            $source = file_get_contents($file);
+
+            $this->assertStringContainsString('@IPS_RequestAction(', $source, $file);
+        }
+    }
 }

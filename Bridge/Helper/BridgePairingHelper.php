@@ -16,7 +16,7 @@ trait BridgePairingHelper
             $this->RegisterTimer(
                 self::TIMER_PERMIT_JOIN_STATUS,
                 0,
-                "IPS_RequestAction(\$_IPS['TARGET'], 'UpdatePermitJoinStatus', true);"
+                "@IPS_RequestAction(\$_IPS['TARGET'], 'UpdatePermitJoinStatus', true);"
             );
         } catch (\Throwable) {
             // Timer operations can be temporarily unavailable while the module is being updated.

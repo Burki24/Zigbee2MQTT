@@ -46,7 +46,7 @@ class Zigbee2MQTTDiscovery extends IPSModuleStrict
         $this->RegisterTimer(
             self::TIMER_DISCOVERY_REFRESH,
             0,
-            "IPS_RequestAction(\$_IPS['TARGET'], 'RefreshDiscoveryCache', true);"
+            "@IPS_RequestAction(\$_IPS['TARGET'], 'RefreshDiscoveryCache', true);"
         );
     }
 
