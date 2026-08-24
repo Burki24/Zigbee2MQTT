@@ -8,6 +8,47 @@ declare(strict_types=1);
 trait BridgeOTAFormHelper
 {
     /**
+     * Registriert den entprellten Timer fuer OTA-Formularaktualisierungen.
+     */
+    protected function RegisterOTAFormRefreshTimer(): void
+    {
+        try {
+            $this->RegisterTimer(
+                self::TIMER_OTA_FORM_REFRESH,
+                0,
+                "@IPS_RequestAction(\$_IPS['TARGET'], 'UpdateOTAFormFromMessages', true);"
+            );
+        } catch (\Throwable) {
+            // Timer operations can be temporarily unavailable while the module is being updated.
+        }
+    }
+
+    /**
+     * Buendelt schnell aufeinanderfolgende OTA-Variablenmeldungen.
+     */
+    protected function ScheduleOTAFormRefresh(): void
+    {
+        try {
+            $this->SetTimerInterval(self::TIMER_OTA_FORM_REFRESH, self::OTA_FORM_REFRESH_DELAY);
+        } catch (\Throwable) {
+            // Timer operations can be temporarily unavailable while the module is being updated.
+        }
+    }
+
+    /**
+     * Fuehrt eine gebuendelte OTA-Formularaktualisierung aus.
+     */
+    private function UpdateOTAFormFromMessages(): void
+    {
+        try {
+            $this->SetTimerInterval(self::TIMER_OTA_FORM_REFRESH, 0);
+        } catch (\Throwable) {
+            // Timer operations can be temporarily unavailable while the module is being updated.
+        }
+        $this->TryUpdateOTAFormLists(false);
+    }
+
+    /**
      * Baut die OTA-Statuszeilen aus den vorhandenen Device-Instanzen auf.
      */
     private function BuildOTADeviceRows(): array
@@ -283,9 +324,11 @@ trait BridgeOTAFormHelper
     /**
      * Aktualisiert alle OTA-Listen der Bridge-Konfiguration.
      */
-    private function UpdateOTAFormLists(): void
+    private function UpdateOTAFormLists(bool $synchronizeSubscriptions = true): void
     {
-        $this->SynchronizeOTAMessageSubscriptions();
+        if ($synchronizeSubscriptions) {
+            $this->SynchronizeOTAMessageSubscriptions();
+        }
         $rows = $this->BuildOTADeviceRows();
         $availableRows = $this->FilterOTADeviceRowsByState($rows, ['available']);
         $activeRows = $this->FilterOTADeviceRowsByState($rows, ['requested', 'scheduled', 'updating']);
@@ -305,10 +348,10 @@ trait BridgeOTAFormHelper
      * Aktualisiert die OTA-Formulardaten, ohne MessageSink bei temporaer
      * nicht verfuegbaren Instanz- oder Formulardaten zu unterbrechen.
      */
-    private function TryUpdateOTAFormLists(): void
+    private function TryUpdateOTAFormLists(bool $synchronizeSubscriptions = true): void
     {
         try {
-            $this->UpdateOTAFormLists();
+            $this->UpdateOTAFormLists($synchronizeSubscriptions);
         } catch (\Throwable $exception) {
             $this->SendDebug(__FUNCTION__, 'OTA-Formularaktualisierung uebersprungen: ' . $exception->getMessage(), 0);
         }

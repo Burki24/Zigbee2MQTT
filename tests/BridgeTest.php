@@ -748,9 +748,25 @@ class BridgeTest extends TestCase
         $bridge->updatedFields = [];
         SetValue($progressID, 12.5);
         $bridge->MessageSink(0, $progressID, VM_UPDATE, [12.5, true, 1.1, time()]);
+        $this->assertSame([], $bridge->updatedFields);
+        $this->assertSame(750, $bridge->readOTAFormRefreshTimerInterval());
+
+        $bridge->RequestAction('UpdateOTAFormFromMessages', true);
         $values = json_decode($bridge->updatedFields['OTAActiveUpdates']['values'], true);
 
         $this->assertSame('12,5 %', $values[0]['progress']);
+        $this->assertSame(0, $bridge->readOTAFormRefreshTimerInterval());
+    }
+
+    public function testBridgeOTAVariableUpdatesIgnoreUnchangedValues(): void
+    {
+        $bridge = $this->createBridgeTestDouble(true);
+        $bridge->writeDiagnosticAttribute('OTAMonitoredVariables', [12345]);
+
+        $bridge->MessageSink(0, 12345, VM_UPDATE, [12.5, false, 12.5, time()]);
+
+        $this->assertSame([], $bridge->updatedFields);
+        $this->assertSame(0, $bridge->readOTAFormRefreshTimerInterval());
     }
 
     public function testBridgeOTAVariableUpdatesTolerateUnavailableFormInterface(): void
@@ -760,6 +776,7 @@ class BridgeTest extends TestCase
         $bridge->failFormUpdates = true;
 
         $bridge->MessageSink(0, 12345, VM_UPDATE, [12.5, true, 1.1, time()]);
+        $bridge->RequestAction('UpdateOTAFormFromMessages', true);
 
         $this->assertSame([], $bridge->updatedFields);
         $this->assertCount(1, array_filter(
@@ -1699,6 +1716,11 @@ class BridgeTest extends TestCase
                 $this->testBaseTopic = $baseTopic;
             }
 
+            public function readOTAFormRefreshTimerInterval(): int
+            {
+                return $this->GetTimerInterval('UpdateOTAFormFromMessages');
+            }
+
             public function setCachedBridgeStatusForTest(bool $extensionLoaded, bool $extensionCurrent, string $lastSeen): void
             {
                 $this->testValues['extension_loaded'] = $extensionLoaded;
@@ -1760,6 +1782,11 @@ class BridgeTest extends TestCase
 
             protected function SetPermitJoinTimerInterval(int $milliseconds): void
             {
+            }
+
+            protected function getTime(): int
+            {
+                return time();
             }
 
             protected function SendDebug(string $Message, string $Data, int $Format): bool

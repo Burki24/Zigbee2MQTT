@@ -125,6 +125,8 @@ class Zigbee2MQTTBridge extends IPSModuleStrict
     private const OTA_PENDING_REQUEST_LIFETIME = 300;
     private const MAX_PERMIT_JOIN_DURATION = 254;
     private const TIMER_PERMIT_JOIN_STATUS = 'UpdatePermitJoinStatus';
+    private const TIMER_OTA_FORM_REFRESH = 'UpdateOTAFormFromMessages';
+    private const OTA_FORM_REFRESH_DELAY = 750;
     private const TIMEOUT_BRIDGE_APPLY_OPTIONS_REQUEST = 5000;
 
     /**
@@ -158,6 +160,11 @@ class Zigbee2MQTTBridge extends IPSModuleStrict
             'BridgePairingHelper',
             'RegisterPermitJoinTimer',
             fn (): mixed => $this->RegisterPermitJoinTimer()
+        );
+        $this->TraceHelperCall(
+            'BridgeOTAFormHelper',
+            'RegisterOTAFormRefreshTimer',
+            fn (): mixed => $this->RegisterOTAFormRefreshTimer()
         );
 
         $this->RegisterAttributeArray(self::ATTRIBUTE_DIAGNOSTIC_HEALTH, []);
@@ -306,10 +313,13 @@ class Zigbee2MQTTBridge extends IPSModuleStrict
     public function MessageSink(int $TimeStamp, int $SenderID, int $Message, array $Data): void
     {
         if ($Message === VM_UPDATE && \in_array($SenderID, $this->ReadAttributeArray(self::ATTRIBUTE_OTA_MONITORED_VARIABLES), true)) {
+            if (($Data[1] ?? false) !== true) {
+                return;
+            }
             $this->TraceHelperCall(
                 'BridgeOTAFormHelper',
-                'TryUpdateOTAFormLists',
-                fn (): mixed => $this->TryUpdateOTAFormLists(),
+                'ScheduleOTAFormRefresh',
+                fn (): mixed => $this->ScheduleOTAFormRefresh(),
                 'Message=VM_UPDATE'
             );
             return;
@@ -392,7 +402,7 @@ class Zigbee2MQTTBridge extends IPSModuleStrict
             'RemoveBlocklistDevice', 'RequestPasslistChange', 'ConfirmPendingPasslistChange' => 'BridgeNetworkSecurityHelper',
             'ScanStaleVariables', 'SelectStaleVariableMaintenanceInstance',
             'ScanCustomProfiles', 'SelectCustomProfileVariable' => 'BridgeStaleVariableHelper',
-            'RefreshOTAStatus', 'CheckOTAUpdate', 'RequestOTAUpdate', 'ConfirmOTAUpdate',
+            'RefreshOTAStatus', 'UpdateOTAFormFromMessages', 'CheckOTAUpdate', 'RequestOTAUpdate', 'ConfirmOTAUpdate',
             'ScheduleOTAUpdate', 'UnscheduleOTAUpdate', 'AbortOTAUpdate' => 'BridgeOTAFormHelper',
             default                                                      => 'BridgeModule'
         };
@@ -502,6 +512,9 @@ class Zigbee2MQTTBridge extends IPSModuleStrict
                     break;
                 case 'RefreshOTAStatus':
                     $this->UpdateOTAFormLists();
+                    break;
+                case 'UpdateOTAFormFromMessages':
+                    $this->UpdateOTAFormFromMessages();
                     break;
                 case 'CheckOTAUpdate':
                     $this->CheckOTAUpdateFromForm($value);
