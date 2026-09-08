@@ -4,6 +4,8 @@ declare(strict_types=1);
 
 namespace Zigbee2MQTT;
 
+require_once __DIR__ . '/DataCompressionHelper.php';
+
 /**
  * @addtogroup generic
  * @{
@@ -57,7 +59,19 @@ trait AttributeArrayHelper
             return [];
         }
 
+        $storedData = $data;
+        $data = DataCompressionHelper::Decode($storedData);
+        if ($data === null) {
+            return [];
+        }
+
         $decoded = json_decode($data, true);
+        if (\is_array($decoded)) {
+            $compressedData = DataCompressionHelper::Encode($data);
+            if ($compressedData !== $storedData) {
+                $this->WriteAttributeArrayData($name, $compressedData);
+            }
+        }
         return \is_array($decoded) ? $decoded : [];
     }
 
@@ -69,12 +83,23 @@ trait AttributeArrayHelper
     protected function WriteAttributeArray(string $name, array $value): void
     {
         $Data = json_encode($value);
+        $this->WriteAttributeArrayData(
+            $name,
+            \is_string($Data) ? DataCompressionHelper::Encode($Data) : '[]'
+        );
+    }
+
+    /**
+     * Schreibt den bereits kodierten Attributwert fehlertolerant.
+     */
+    private function WriteAttributeArrayData(string $name, string $data): void
+    {
         set_error_handler(static function (): bool
         {
             return true;
         });
         try {
-            $this->WriteAttributeString($name, \is_string($Data) ? $Data : '[]');
+            $this->WriteAttributeString($name, $data);
         } catch (\Throwable) {
             return;
         } finally {

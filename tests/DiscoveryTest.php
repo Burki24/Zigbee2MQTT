@@ -110,6 +110,42 @@ class DiscoveryTest extends DumpInclude
         $this->assertSame(2, $discovery->scanCount);
     }
 
+    public function testLargeDiscoveryCacheIsCompressedAndRemainsReadable(): void
+    {
+        $topics = array_map(
+            static fn (int $index): string => 'zigbee2mqtt-network-' . $index,
+            range(1, 100)
+        );
+        $discovery = new class(990009, $topics) extends Zigbee2MQTTDiscovery {
+            public function __construct(int $instanceID, private array $topics)
+            {
+                parent::__construct($instanceID);
+            }
+
+            public function getDiscoveryCacheForTest(): string
+            {
+                return $this->ReadAttributeString('DiscoveryCache');
+            }
+
+            protected function ScanMqttServers(array $fallbackTopics = []): ?array
+            {
+                return $this->topics;
+            }
+
+            protected function getTime(): int
+            {
+                return time();
+            }
+        };
+        $discovery->Create();
+
+        $discovery->RequestAction('RefreshDiscoveryCache', true);
+
+        $this->assertStringStartsWith('Z2MZ1:', $discovery->getDiscoveryCacheForTest());
+        $form = json_decode($discovery->GetConfigurationForm(), true);
+        $this->assertIsArray($form);
+    }
+
     public function testDiscoveryRefreshIgnoresUnavailableInstanceInterfaceDuringModuleReload(): void
     {
         $discovery = new class(990008) extends Zigbee2MQTTDiscovery {

@@ -2854,6 +2854,10 @@ class DevicesTest extends DumpInclude
     {
         $attributes = $this->readStubAttributes($iid);
         $value = (string) ($attributes[$name]['Current'] ?? '');
+        $value = \Zigbee2MQTT\DataCompressionHelper::Decode($value);
+        if ($value === null) {
+            return [];
+        }
         $decoded = json_decode($value, true);
         return \is_array($decoded) ? $decoded : [];
     }

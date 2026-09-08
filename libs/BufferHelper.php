@@ -4,6 +4,8 @@ declare(strict_types=1);
 
 namespace Zigbee2MQTT;
 
+require_once __DIR__ . '/DataCompressionHelper.php';
+
 /**
  * @addtogroup generic
  * @{
@@ -58,7 +60,7 @@ trait BufferHelper
      */
     public function __set(string $name, mixed $value): void
     {
-        $Data = serialize($value);
+        $Data = DataCompressionHelper::Encode(serialize($value));
         if (strpos($name, 'Multi_') === 0) {
             $OldBuffers = $this->{'BufferListe_' . $name};
             if ($OldBuffers == false) {
@@ -105,6 +107,11 @@ trait BufferHelper
     private function UnserializeBufferValue(string|false $Data, string $name): mixed
     {
         if ($Data === false || $Data === '') {
+            return $this->GetBufferFallbackValue($name);
+        }
+
+        $Data = DataCompressionHelper::Decode($Data);
+        if ($Data === null) {
             return $this->GetBufferFallbackValue($name);
         }
 

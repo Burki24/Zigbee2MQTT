@@ -383,7 +383,7 @@ class Zigbee2MQTTDiscovery extends IPSModuleStrict
                 ]);
                 $this->WriteAttributeString(
                     self::ATTRIBUTE_DISCOVERY_CACHE,
-                    \is_string($cache) ? $cache : ''
+                    \is_string($cache) ? Zigbee2MQTT\DataCompressionHelper::Encode($cache) : ''
                 );
             } catch (\Throwable $e) {
                 if (self::IsUnavailableDiscoveryInterfaceError($e->getMessage())) {
@@ -439,10 +439,15 @@ class Zigbee2MQTTDiscovery extends IPSModuleStrict
     private function ReadDiscoveryCache(): ?array
     {
         try {
-            $cache = json_decode($this->ReadAttributeString(self::ATTRIBUTE_DISCOVERY_CACHE), true);
+            $storedCache = $this->ReadAttributeString(self::ATTRIBUTE_DISCOVERY_CACHE);
         } catch (\Throwable) {
             return null;
         }
+        $cacheData = Zigbee2MQTT\DataCompressionHelper::Decode($storedCache);
+        if ($cacheData === null) {
+            return null;
+        }
+        $cache = json_decode($cacheData, true);
         if (!\is_array($cache)
             || !isset($cache['timestamp'])
             || !\is_int($cache['timestamp'])
@@ -450,6 +455,15 @@ class Zigbee2MQTTDiscovery extends IPSModuleStrict
             || ($cache['topics'] !== null && !\is_array($cache['topics']))
         ) {
             return null;
+        }
+
+        $compressedCache = Zigbee2MQTT\DataCompressionHelper::Encode($cacheData);
+        if ($compressedCache !== $storedCache) {
+            try {
+                $this->WriteAttributeString(self::ATTRIBUTE_DISCOVERY_CACHE, $compressedCache);
+            } catch (\Throwable) {
+                // Der gelesene Cache bleibt auch waehrend eines Modul-Updates nutzbar.
+            }
         }
 
         return $cache;
