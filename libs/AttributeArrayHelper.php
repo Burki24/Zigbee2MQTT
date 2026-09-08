@@ -66,7 +66,7 @@ trait AttributeArrayHelper
         }
 
         $decoded = json_decode($data, true);
-        if (\is_array($decoded)) {
+        if (\is_array($decoded) && !DataCompressionHelper::IsEncoded($storedData)) {
             $compressedData = DataCompressionHelper::Encode($data);
             if ($compressedData !== $storedData) {
                 $this->WriteAttributeArrayData($name, $compressedData);

@@ -457,10 +457,12 @@ class Zigbee2MQTTDiscovery extends IPSModuleStrict
             return null;
         }
 
-        $compressedCache = Zigbee2MQTT\DataCompressionHelper::Encode($cacheData);
-        if ($compressedCache !== $storedCache) {
+        if (!Zigbee2MQTT\DataCompressionHelper::IsEncoded($storedCache)) {
+            $compressedCache = Zigbee2MQTT\DataCompressionHelper::Encode($cacheData);
             try {
-                $this->WriteAttributeString(self::ATTRIBUTE_DISCOVERY_CACHE, $compressedCache);
+                if ($compressedCache !== $storedCache) {
+                    $this->WriteAttributeString(self::ATTRIBUTE_DISCOVERY_CACHE, $compressedCache);
+                }
             } catch (\Throwable) {
                 // Der gelesene Cache bleibt auch waehrend eines Modul-Updates nutzbar.
             }

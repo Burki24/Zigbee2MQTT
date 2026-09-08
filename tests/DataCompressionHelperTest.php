@@ -12,6 +12,15 @@ use PHPUnit\Framework\TestCase;
  */
 class DataCompressionHelperTest extends TestCase
 {
+    public function testEncodedMarkerIsDetectedWithoutRecompression(): void
+    {
+        $largeValue = str_repeat('repeated payload value', 100);
+        $encoded = \Zigbee2MQTT\DataCompressionHelper::Encode($largeValue);
+
+        $this->assertTrue(\Zigbee2MQTT\DataCompressionHelper::IsEncoded($encoded));
+        $this->assertFalse(\Zigbee2MQTT\DataCompressionHelper::IsEncoded($largeValue));
+    }
+
     public function testLargeBufferIsCompressedAndRoundTrips(): void
     {
         $helper = $this->CreateBufferHelper();

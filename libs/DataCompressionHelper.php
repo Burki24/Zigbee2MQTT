@@ -32,12 +32,20 @@ final class DataCompressionHelper
     }
 
     /**
+     * Erkennt Werte, die bereits in der aktuellen Kompressionshuelle vorliegen.
+     */
+    public static function IsEncoded(string $data): bool
+    {
+        return str_starts_with($data, self::PREFIX);
+    }
+
+    /**
      * Entpackt neue Werte und reicht unkomprimierte Bestandsdaten unveraendert durch.
      * Bei einer beschaedigten Komprimierung wird null geliefert.
      */
     public static function Decode(string $data): ?string
     {
-        if (!str_starts_with($data, self::PREFIX)) {
+        if (!self::IsEncoded($data)) {
             return $data;
         }
         if (!function_exists('gzinflate')) {
