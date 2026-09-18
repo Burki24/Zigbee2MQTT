@@ -588,6 +588,8 @@ Die Statusvariablen werden je nach Funktion und Fähigkeiten der Geräte dynamis
 
    Setzt eine Farbe mit Übergangszeit. `Color` ist ein Symcon-Farbwert als Integer, `TransitionTime` die Übergangszeit in Sekunden.
 
+   In den Modi XY, HS und HSV bleibt eine separat unterstützte Helligkeit unverändert. Schwarz (`0x000000`) hat keinen Farbton und wird in diesem Fall ohne MQTT-Befehl mit `true` beantwortet; Farbe und Helligkeit bleiben erhalten. Zum Ausschalten den Schaltzustand oder die Helligkeit verwenden. Dasselbe Farbverhalten gilt für Aktionen auf die Farbvariable. Ohne separate Helligkeitssteuerung wird die Helligkeit weiterhin aus dem Farbwert abgeleitet.
+
 ---
 
 ### Z2M_UIExportDebugData <!-- omit in toc -->
