@@ -777,6 +777,39 @@ class DevicesTest extends DumpInclude
         $this->assertSame(2, $device->sentPayload['transition']);
     }
 
+    public function testColorTransitionPreservesSeparateBrightness(): void
+    {
+        $device = $this->createDeviceActionTestDouble();
+        $device->setExposesForTest([
+            [
+                'type'     => 'light',
+                'features' => [
+                    [
+                        'name'      => 'brightness',
+                        'access'    => 7,
+                        'type'      => 'numeric',
+                        'property'  => 'brightness',
+                        'value_min' => 0,
+                        'value_max' => 254
+                    ],
+                    [
+                        'name'       => 'color_xy',
+                        'access'     => 7,
+                        'type'       => 'composite',
+                        'property'   => 'color',
+                        'color_mode' => 'xy'
+                    ]
+                ]
+            ]
+        ]);
+        $device->setColorModeForTest('XY');
+
+        $this->assertTrue($device->SetColorExt(0xC59F5A, 2));
+        $this->assertArrayHasKey('color', $device->sentPayload);
+        $this->assertSame(2, $device->sentPayload['transition']);
+        $this->assertArrayNotHasKey('brightness', $device->sentPayload);
+    }
+
     public function testWHD02()
     {
         [$iid,$Debug] = $this->createTestInstance('WHD02.json');

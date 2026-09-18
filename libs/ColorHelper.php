@@ -237,10 +237,23 @@ trait ColorHelper
             $Z = ($Y / $y) * (1 - $x - $y);
         }
 
-        // Präzisere XYZ zu RGB Matrix (sRGB D65)
-        $r = $X * 3.2406 - $Y * 1.5372 - $Z * 0.4986;
-        $g = -$X * 0.9689 + $Y * 1.8758 + $Z * 0.0415;
-        $b = $X * 0.0557 - $Y * 0.2040 + $Z * 1.0570;
+        // Inverse Wide-RGB-D65-Matrix passend zur Vorwaertskonvertierung in RGBToXy().
+        $r = $X * 1.656492 - $Y * 0.354851 - $Z * 0.255038;
+        $g = -$X * 0.707196 + $Y * 1.655397 + $Z * 0.036152;
+        $b = $X * 0.051713 - $Y * 0.121364 + $Z * 1.011530;
+
+        // Negative Anteile liegen ausserhalb des darstellbaren RGB-Farbraums.
+        $r = max(0.0, $r);
+        $g = max(0.0, $g);
+        $b = max(0.0, $b);
+
+        // Vor der Gamma-Korrektur gemeinsam skalieren, statt einzelne Kanaele abzuschneiden.
+        $maximum = max($r, $g, $b);
+        if ($maximum > 1.0) {
+            $r /= $maximum;
+            $g /= $maximum;
+            $b /= $maximum;
+        }
 
         // Korrekte Gamma-Korrektur für jeden Kanal
         $r = $r <= 0.0031308 ? 12.92 * $r : (1.0 + 0.055) * pow($r, (1.0 / 2.4)) - 0.055;

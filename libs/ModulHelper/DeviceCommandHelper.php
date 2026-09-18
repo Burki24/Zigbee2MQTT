@@ -168,10 +168,13 @@ trait DeviceCommandHelper
                 $cie = $this->RGBToXy($RGB);
 
                 if ($Z2MMode === 'color') {
-                    // Entferne 'bri' aus dem 'color'-Objekt und füge es separat als 'brightness' hinzu
                     $brightness = $cie['bri'];
                     unset($cie['bri']);
-                    return ['color' => $cie, 'brightness' => $brightness];
+                    $payload = ['color' => $cie];
+                    if (!$this->HasExposeProperty('brightness')) {
+                        $payload['brightness'] = $brightness;
+                    }
+                    return $payload;
                 } elseif ($Z2MMode === 'color_rgb') {
                     return ['color_rgb' => $cie];
                 }
@@ -186,13 +189,16 @@ trait DeviceCommandHelper
                 $this->SendDebug(__FUNCTION__ . ' :: ' . __LINE__ . ' :: setColor - RGB Values for HSB Conversion', 'R: ' . $RGB[0] . ', G: ' . $RGB[1] . ', B: ' . $RGB[2], 0);
 
                 if ($Z2MMode == 'color') {
-                    return [
+                    $payload = [
                         'color' => [
                             'hue'        => $HSB['hue'],
                             'saturation' => $HSB['saturation'],
-                        ],
-                        'brightness' => $HSB['brightness']
+                        ]
                     ];
+                    if (!$this->HasExposeProperty('brightness')) {
+                        $payload['brightness'] = $HSB['brightness'];
+                    }
+                    return $payload;
                 } else {
                     return null;
                 }
@@ -228,13 +234,16 @@ trait DeviceCommandHelper
                 $this->SendDebug(__FUNCTION__ . ' :: ' . __LINE__ . ' :: setColor - RGB Values for HSV Conversion', 'R: ' . $RGB[0] . ', G: ' . $RGB[1] . ', B: ' . $RGB[2], 0);
 
                 if ($Z2MMode == 'color') {
-                    return [
+                    $payload = [
                         'color' => [
                             'hue'        => $HSV['hue'],
                             'saturation' => $HSV['saturation'],
-                        ],
-                        'brightness' => $HSV['brightness']
+                        ]
                     ];
+                    if (!$this->HasExposeProperty('brightness')) {
+                        $payload['brightness'] = $HSV['brightness'];
+                    }
+                    return $payload;
                 } else {
                     return null;
                 }
