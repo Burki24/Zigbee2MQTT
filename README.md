@@ -520,6 +520,8 @@ Die Änderungen sind anhand der funktionalen Commits chronologisch gegliedert. A
 ### 18. September 2026: Unabhaengiger Farb- und Helligkeitsvertrag
 
 - Farbaktionen veraendern eine separat exponierte Helligkeit nicht mehr implizit. CIE-, HS- und HSV-Payloads enthalten nur dann weiterhin einen abgeleiteten `brightness`-Wert, wenn das Geraet keine eigenstaendige Helligkeits-Property anbietet.
+- Schwarz (`0x000000`) definiert keinen Farbton und wird bei separater Helligkeit in diesen Modi ohne MQTT-Befehl behandelt. Farbe und Helligkeit bleiben erhalten; zum Ausschalten dienen Schaltzustand oder Helligkeit. Das gilt auch fuer Gruppen und Farbaktionen mit Uebergangszeit.
+- Ohne separates Helligkeits-Expose werden HS- und HSV-Helligkeiten ueber die vorhandene Bereichsumrechnung in Geraetewerte umgerechnet. Der HSV-Fallback liest dabei den tatsaechlich gelieferten `value`-Wert.
 - Die XY-Rueckkonvertierung verwendet jetzt die inverse Matrix der vorhandenen RGB-zu-XY-Konvertierung und skaliert ausserhalb des RGB-Farbraums liegende Kanaele gemeinsam. Dadurch bleibt die gemeldete Chromatizitaet beim Roundtrip stabil, ohne sie mit der separaten Geraetehelligkeit zu vermischen.
 
 ### 9. bis 17. Juli 2026: Robuste Payload-Verarbeitung, ueckmeldebasierte Aktionsverarbeitung, Textdarstellungen und Übersetzungen, Sicherheit, Stabilität und Performance

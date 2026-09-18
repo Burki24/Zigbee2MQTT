@@ -41,14 +41,26 @@ class ColorHelperTest extends TestCase
     public function testCieFullBrightnessFeedbackPreservesChromaticity(): void
     {
         $helper = $this->CreateHelper();
-        $requested = 0xC59F5A;
-        $cie = $helper->RGBToXy($helper->IntToRGB($requested));
-        $feedback = $helper->xyToInt($cie['x'], $cie['y'], 254);
-        $requestedChromaticity = $this->RgbToHueAndSaturation($requested);
-        $feedbackChromaticity = $this->RgbToHueAndSaturation($feedback);
 
-        $this->assertEqualsWithDelta($requestedChromaticity['hue'], $feedbackChromaticity['hue'], 1.0);
-        $this->assertEqualsWithDelta($requestedChromaticity['saturation'], $feedbackChromaticity['saturation'], 1.5);
+        foreach ([0xFFFFFF, 0xFF0000, 0x00FF00, 0x0000FF, 0xFFFF00, 0x00FFFF, 0xFF00FF, 0xC59F5A, 0x102030, 0x010203, 0x010101] as $requested) {
+            $cie = $helper->RGBToXy($helper->IntToRGB($requested));
+            $feedback = $helper->xyToInt($cie['x'], $cie['y'], 254);
+            $feedbackCie = $helper->RGBToXy($helper->IntToRGB($feedback));
+
+            // Vier XY-Nachkommastellen und 8-Bit-RGB verursachen kleine Rundungsabweichungen.
+            foreach (['x', 'y'] as $coordinate) {
+                $this->assertEqualsWithDelta($cie[$coordinate], $feedbackCie[$coordinate], 0.001, sprintf('#%06X: %s', $requested, $coordinate));
+            }
+        }
+    }
+
+    public function testBlackHasZeroLuminance(): void
+    {
+        $helper = $this->CreateHelper();
+        $cie = $helper->RGBToXy([0, 0, 0]);
+
+        $this->assertEquals(0, $cie['bri']);
+        $this->assertSame(0x000000, $helper->xyToInt($cie['x'], $cie['y'], 0));
     }
 
     private function CreateHelper(): object
@@ -76,33 +88,4 @@ class ColorHelperTest extends TestCase
         }
     }
 
-    /** @return array{hue:float,saturation:float} */
-    private function RgbToHueAndSaturation(int $color): array
-    {
-        $red = (($color >> 16) & 0xFF) / 255;
-        $green = (($color >> 8) & 0xFF) / 255;
-        $blue = ($color & 0xFF) / 255;
-        $maximum = max($red, $green, $blue);
-        $minimum = min($red, $green, $blue);
-        $delta = $maximum - $minimum;
-        $hue = 0.0;
-
-        if ($delta !== 0.0) {
-            if ($maximum === $red) {
-                $hue = 60.0 * fmod(($green - $blue) / $delta, 6.0);
-            } elseif ($maximum === $green) {
-                $hue = 60.0 * ((($blue - $red) / $delta) + 2.0);
-            } else {
-                $hue = 60.0 * ((($red - $green) / $delta) + 4.0);
-            }
-        }
-        if ($hue < 0.0) {
-            $hue += 360.0;
-        }
-
-        return [
-            'hue'        => $hue,
-            'saturation' => $maximum === 0.0 ? 0.0 : ($delta / $maximum) * 100.0
-        ];
-    }
 }

@@ -102,6 +102,7 @@ trait DeviceCommandHelper
 
     /**
      * Setzt eine Farbe mit Transition, sofern ein natives Farb-Expose vorhanden ist.
+     * Bei separater Helligkeit bleibt Schwarz ohne Aktion, da es keinen Farbton definiert.
      */
     public function SetColorExt(int $color, int $TransitionTime): bool
     {
@@ -161,6 +162,12 @@ trait DeviceCommandHelper
      */
     private function setColor(int $color, string $mode, string $Z2MMode = 'color', ?int $TransitionTime = null): bool
     {
+        if ($color === 0 && $Z2MMode === 'color' && \in_array($mode, ['cie', 'hs', 'hsv'], true) && $this->HasExposeProperty('brightness')) {
+            // Schwarz hat keinen Farbton. Die separate Helligkeit und die letzte Farbe bleiben erhalten.
+            $this->SendDebug(__FUNCTION__, 'Skip black color action with separate brightness; use state or brightness to switch off', 0);
+            return true;
+        }
+
         $Payload = match ($mode) {
             'cie' => function () use ($color, $Z2MMode)
             {
@@ -196,7 +203,7 @@ trait DeviceCommandHelper
                         ]
                     ];
                     if (!$this->HasExposeProperty('brightness')) {
-                        $payload['brightness'] = $HSB['brightness'];
+                        $payload['brightness'] = $this->normalizeValueToRange($HSB['brightness']);
                     }
                     return $payload;
                 } else {
@@ -241,7 +248,7 @@ trait DeviceCommandHelper
                         ]
                     ];
                     if (!$this->HasExposeProperty('brightness')) {
-                        $payload['brightness'] = $HSV['brightness'];
+                        $payload['brightness'] = $this->normalizeValueToRange($HSV['value']);
                     }
                     return $payload;
                 } else {

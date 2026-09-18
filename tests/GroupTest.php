@@ -95,6 +95,71 @@ class GroupTest extends DumpInclude
         $this->assertSame(VARIABLE_PRESENTATION_COLOR, IPS_GetVariable($colorID)['VariablePresentation']['PRESENTATION'] ?? null);
     }
 
+    public function testGroupColorActionsPreserveSeparateBrightnessAndIgnoreBlack(): void
+    {
+        $groupID = $this->createConfiguredGroup('zigbee2mqtt', 'Test/ColorLightGroup');
+        $group = new class($groupID) extends Zigbee2MQTTGroup {
+            public array $sentPayloads = [];
+            public string $sentTopic = '';
+
+            protected function ReadPropertyString(string $Name): string
+            {
+                return match ($Name) {
+                    self::MQTT_BASE_TOPIC => 'zigbee2mqtt',
+                    self::MQTT_TOPIC      => 'Test/ColorLightGroup',
+                    default               => parent::ReadPropertyString($Name)
+                };
+            }
+
+            protected function SendData(string $Topic, array $Payload = [], int $Timeout = 5000): array|bool
+            {
+                $this->sentTopic = $Topic;
+                $this->sentPayloads[] = $Payload;
+                return true;
+            }
+
+            public function setColorModeForTest(string $mode): void
+            {
+                $this->RegisterVariableString('color_mode', 'Color Mode');
+                SetValue($this->GetIDForIdent('color_mode'), $mode);
+            }
+        };
+        $group->Create();
+        $group->BUFFER_MQTT_SUSPENDED = false;
+        $debug = json_decode(file_get_contents(__DIR__ . '/TestDumps/ColorLight.json'), true, 512, JSON_THROW_ON_ERROR);
+        $payload = $debug['LastPayload'];
+        $payload['exposes'] = $debug['Exposes'];
+        $group->ReceiveData(self::buildMqttRequest('zigbee2mqtt/Test/ColorLightGroup', $payload));
+        $colorID = IPS_GetObjectIDByIdent('color', $groupID);
+        $brightnessID = IPS_GetObjectIDByIdent('brightness', $groupID);
+        $previousColor = GetValue($colorID);
+        $previousBrightness = GetValue($brightnessID);
+
+        foreach (['XY', 'HS', 'HSV'] as $mode) {
+            $group->setColorModeForTest($mode);
+            $group->sentPayloads = [];
+            $group->RequestAction('color', 0xC59F5A);
+            $this->assertTrue($group->SetColorExt(0xC59F5A, 2));
+
+            $this->assertSame('/Test/ColorLightGroup/set', $group->sentTopic);
+            $this->assertCount(2, $group->sentPayloads);
+            foreach ($group->sentPayloads as $sentPayload) {
+                $this->assertArrayHasKey('color', $sentPayload);
+                $this->assertArrayNotHasKey('brightness', $sentPayload);
+            }
+            $this->assertSame(2, $group->sentPayloads[1]['transition']);
+            $this->assertSame($previousColor, GetValue($colorID));
+            $this->assertSame($previousBrightness, GetValue($brightnessID));
+
+            $group->sentPayloads = [];
+            $group->RequestAction('color', 0x000000);
+            $this->assertTrue($group->SetColorExt(0x000000, 2));
+            $this->assertSame([], $group->sentPayloads);
+            $this->assertSame($previousColor, GetValue($colorID));
+            $this->assertSame($previousBrightness, GetValue($brightnessID));
+        }
+    }
+
     public function testGroupAvailableDeviceListIsFilledFromExistingDeviceInstances(): void
     {
         $this->createConfiguredDevice('zigbee2mqtt', 'Flur/Beleuchtung/Deckenlicht');

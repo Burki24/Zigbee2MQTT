@@ -810,6 +810,35 @@ class DevicesTest extends DumpInclude
         $this->assertArrayNotHasKey('brightness', $device->sentPayload);
     }
 
+    public function testColorRequestsPreserveSeparateBrightnessAndIgnoreBlack(): void
+    {
+        $device = $this->createDeviceActionTestDouble();
+        $debug = json_decode(file_get_contents(__DIR__ . '/TestDumps/ColorLight.json'), true, 512, JSON_THROW_ON_ERROR);
+        $device->setExposesForTest($debug['Exposes']);
+        $colorID = $device->registerIntegerVariableForTest('color');
+        $brightnessID = $device->registerIntegerVariableForTest('brightness');
+        SetValue($colorID, 0xFF0000);
+        SetValue($brightnessID, 77);
+
+        foreach (['XY', 'HS', 'HSV'] as $mode) {
+            $device->setColorModeForTest($mode);
+            $device->RequestAction('color', 0xC59F5A);
+
+            $this->assertSame('/Wohnbereich/Beschattung/Terrassenfenster/set', $device->sentTopic);
+            $this->assertArrayHasKey('color', $device->sentPayload);
+            $this->assertArrayNotHasKey('brightness', $device->sentPayload);
+            $this->assertSame(0xFF0000, GetValue($colorID), 'Color must wait for device feedback');
+            $this->assertSame(77, GetValue($brightnessID));
+
+            $device->sentPayload = [];
+            $device->RequestAction('color', 0x000000);
+            $this->assertTrue($device->SetColorExt(0x000000, 2));
+            $this->assertSame([], $device->sentPayload);
+            $this->assertSame(0xFF0000, GetValue($colorID));
+            $this->assertSame(77, GetValue($brightnessID));
+        }
+    }
+
     public function testWHD02()
     {
         [$iid,$Debug] = $this->createTestInstance('WHD02.json');
@@ -3185,6 +3214,12 @@ class DevicesTest extends DumpInclude
             public function registerBooleanVariableForTest(string $ident): int
             {
                 $this->RegisterVariableBoolean($ident, $ident);
+                return $this->GetIDForIdent($ident);
+            }
+
+            public function registerIntegerVariableForTest(string $ident): int
+            {
+                $this->RegisterVariableInteger($ident, $ident);
                 return $this->GetIDForIdent($ident);
             }
 

@@ -50,6 +50,57 @@ class DeviceColorContractTest extends TestCase
         $this->assertArrayHasKey('brightness', $helper->sentPayloads[0]);
     }
 
+    public function testHsFallbackUsesDeviceBrightnessRange(): void
+    {
+        $helper = $this->CreateHelper(false);
+
+        foreach ([0xFFFFFF => 254, 0x808080 => 127, 0x000000 => 0] as $color => $expectedBrightness) {
+            $this->assertTrue($helper->SetColorForTest($color, 'hs'));
+            $this->assertSame($expectedBrightness, end($helper->sentPayloads)['brightness']);
+        }
+    }
+
+    public function testHsvFallbackUsesDeviceBrightnessRange(): void
+    {
+        $helper = $this->CreateHelper(false);
+
+        foreach ([0xFFFFFF => 254, 0x808080 => 127, 0x000000 => 0] as $color => $expectedBrightness) {
+            $this->assertTrue($helper->SetColorForTest($color, 'hsv'));
+            $this->assertSame($expectedBrightness, end($helper->sentPayloads)['brightness']);
+        }
+    }
+
+    public function testBlackPreservesSeparateBrightnessAndColor(): void
+    {
+        $helper = $this->CreateHelper(true);
+
+        foreach (['cie', 'hs', 'hsv'] as $mode) {
+            $this->assertTrue($helper->SetColorForTest(0x000000, $mode, 'color', 3));
+            $this->assertSame([], $helper->sentPayloads, $mode . ' must not send an undefined color for black');
+        }
+    }
+
+    public function testBlackRetainsCieBrightnessFallbackWithoutSeparateExpose(): void
+    {
+        $helper = $this->CreateHelper(false);
+
+        $this->assertTrue($helper->SetColorForTest(0x000000, 'cie'));
+        $this->assertEquals(0, $helper->sentPayloads[0]['brightness']);
+    }
+
+    public function testWhiteRemainsAColorActionWithSeparateBrightness(): void
+    {
+        $helper = $this->CreateHelper(true);
+
+        foreach (['cie', 'hs', 'hsv'] as $mode) {
+            $this->assertTrue($helper->SetColorForTest(0xFFFFFF, $mode));
+            $payload = end($helper->sentPayloads);
+            $this->assertArrayHasKey('color', $payload);
+            $this->assertArrayNotHasKey('brightness', $payload);
+        }
+        $this->assertCount(3, $helper->sentPayloads);
+    }
+
     public function testTransitionDoesNotReintroduceSeparateBrightness(): void
     {
         $helper = $this->CreateHelper(true);
@@ -69,6 +120,8 @@ class DeviceColorContractTest extends TestCase
 
             /** @var array<int, array<string, mixed>> */
             public array $sentPayloads = [];
+
+            public array $brightnessConfig = [];
 
             public function __construct(private readonly bool $hasBrightnessExpose)
             {
