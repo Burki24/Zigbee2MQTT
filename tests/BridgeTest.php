@@ -44,6 +44,68 @@ class BridgeTest extends TestCase
         ])));
     }
 
+    public function testInstallSymconExtensionLoadsBothVersionsFromRootLibs(): void
+    {
+        foreach ([2 => 'IPSymconExtension.js', 3 => 'IPSymconExtension2.js', 18 => 'IPSymconExtension2.js'] as $version => $filename) {
+            $bridge = $this->createBridgeTestDouble(['status' => 'ok', 'data' => []]);
+            $bridge->installedZhVersion = $version;
+
+            $this->assertTrue($bridge->InstallSymconExtension());
+            $this->assertSame('/bridge/request/extension/save', $bridge->lastTopic);
+            $this->assertSame('IPSymconExtension.js', $bridge->lastPayload['name']);
+            $this->assertIsString($bridge->lastPayload['code']);
+            $this->assertNotEmpty($bridge->lastPayload['code']);
+            $this->assertSame(file_get_contents(__DIR__ . '/../libs/' . $filename), $bridge->lastPayload['code']);
+        }
+    }
+
+    public function testInstallSymconExtensionPreservesExistingRemoteFilename(): void
+    {
+        $bridge = $this->createBridgeTestDouble(true);
+        $bridge->installedZhVersion = 3;
+        $bridge->ExtensionFilename = 'ExistingSymconExtension.js';
+
+        $this->assertTrue($bridge->InstallSymconExtension());
+        $this->assertSame('ExistingSymconExtension.js', $bridge->lastPayload['name']);
+        $this->assertIsString($bridge->lastPayload['code']);
+        $this->assertSame(file_get_contents(__DIR__ . '/../libs/IPSymconExtension2.js'), $bridge->lastPayload['code']);
+    }
+
+    public function testInstallSymconExtensionDoesNotSendUnreadableCode(): void
+    {
+        $bridge = new class() {
+            use BridgeConfigurationCommandHelper;
+
+            private const EXTENSION_ZH_VERSION = [3 => '__missing_extension_for_test__.js'];
+            public int $installedZhVersion = 3;
+            public string $ExtensionFilename = '';
+            public bool $requestSent = false;
+            public array $messages = [];
+
+            private function SendCheckedBridgeRequest(string $topic, array $payload): array|false
+            {
+                $this->requestSent = true;
+                return [];
+            }
+
+            public function Translate(string $text): string
+            {
+                return $text;
+            }
+
+            public function LogMessage(string $message, int $severity): void
+            {
+                $this->messages[] = ['message' => $message, 'severity' => $severity];
+            }
+        };
+
+        $this->assertFalse($bridge->InstallSymconExtension());
+        $this->assertFalse($bridge->requestSent);
+        $this->assertCount(1, $bridge->messages);
+        $this->assertSame(KL_ERROR, $bridge->messages[0]['severity']);
+        $this->assertStringContainsString('__missing_extension_for_test__.js', $bridge->messages[0]['message']);
+    }
+
     public function testCheckOTAUpdateUsesCurrentZigbee2MqttResponseField(): void
     {
         $bridge = $this->createBridgeTestDouble([

@@ -22,9 +22,16 @@ trait BridgeConfigurationCommandHelper
             return false;
         }
 
+        $ExtensionPath = dirname(__DIR__, 2) . '/libs/' . self::EXTENSION_ZH_VERSION[(int) $this->installedZhVersion];
+        $ExtensionCode = @file_get_contents($ExtensionPath);
+        if ($ExtensionCode === false) {
+            $this->LogMessage(sprintf($this->Translate('Cannot read Symcon extension file: %s. No extension installed.'), $ExtensionPath), KL_ERROR);
+            return false;
+        }
+
         $ExtensionFilename = $this->ExtensionFilename == '' ? 'IPSymconExtension.js' : $this->ExtensionFilename;
         $Topic = '/bridge/request/extension/save';
-        $Payload = ['name'=>$ExtensionFilename, 'code'=>file_get_contents(dirname(__DIR__) . '/libs/' . self::EXTENSION_ZH_VERSION[(int) $this->installedZhVersion])];
+        $Payload = ['name'=>$ExtensionFilename, 'code'=>$ExtensionCode];
         return $this->SendCheckedBridgeRequest($Topic, $Payload) !== false;
     }
 
