@@ -694,9 +694,10 @@ trait VariablePresentationHelper
             return null;
         }
 
+        // Symcon validiert auch JSON-Optionswerte: 20.0 muss fuer Float erhalten bleiben.
         return [
             'PRESENTATION' => \constant('VARIABLE_PRESENTATION_ENUMERATION'),
-            'OPTIONS'      => json_encode($options),
+            'OPTIONS'      => json_encode($options, JSON_PRESERVE_ZERO_FRACTION),
             'LAYOUT'       => count($options) <= 3 ? 1 : 0,
             'DISPLAY'      => 0,
             'ICON'         => $this->GetEnumerationPresentationIcon($feature)

@@ -273,8 +273,9 @@ class DevicesTest extends DumpInclude
         $variable = IPS_GetVariable($positionID);
         $this->assertSame('', $variable['VariableProfile']);
         $this->assertSame(VARIABLE_PRESENTATION_SHUTTER, $variable['VariablePresentation']['PRESENTATION'] ?? null);
-        $this->assertSame(100.0, $variable['VariablePresentation']['OPEN_OUTSIDE_VALUE'] ?? null);
-        $this->assertSame(0.0, $variable['VariablePresentation']['CLOSE_INSIDE_VALUE'] ?? null);
+        $this->assertSame(VARIABLETYPE_INTEGER, $variable['VariableType']);
+        $this->assertSame(100, $variable['VariablePresentation']['OPEN_OUTSIDE_VALUE'] ?? null);
+        $this->assertSame(0, $variable['VariablePresentation']['CLOSE_INSIDE_VALUE'] ?? null);
 
         IPS_SetVariableCustomPresentation($positionID, [
             'PRESENTATION' => VARIABLE_PRESENTATION_SLIDER,

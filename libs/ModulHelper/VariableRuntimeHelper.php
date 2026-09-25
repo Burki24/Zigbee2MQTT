@@ -24,6 +24,7 @@ trait VariableRuntimeHelper
     protected function RegisterVariableInteger(string $Ident, string $Name, string|array $ProfileOrPresentation = '', int $Position = 0): bool
     {
         $this->PrepareVariableRegistration($Ident);
+        $ProfileOrPresentation = $this->NormalizeNumericPresentationParameters($ProfileOrPresentation, VARIABLETYPE_INTEGER);
         return parent::RegisterVariableInteger($Ident, $Name, $ProfileOrPresentation, $Position);
     }
 
@@ -33,6 +34,7 @@ trait VariableRuntimeHelper
     protected function RegisterVariableFloat(string $Ident, string $Name, string|array $ProfileOrPresentation = '', int $Position = 0): bool
     {
         $this->PrepareVariableRegistration($Ident);
+        $ProfileOrPresentation = $this->NormalizeNumericPresentationParameters($ProfileOrPresentation, VARIABLETYPE_FLOAT);
         return parent::RegisterVariableFloat($Ident, $Name, $ProfileOrPresentation, $Position);
     }
 
@@ -43,6 +45,29 @@ trait VariableRuntimeHelper
     {
         $this->PrepareVariableRegistration($Ident);
         return parent::RegisterVariableString($Ident, $Name, $ProfileOrPresentation, $Position);
+    }
+
+    /**
+     * Symcon 9.1 validiert variableType-Parameter gegen den registrierten Typ.
+     * Erst hier steht dieser auch fuer Spezialzuordnungen und Payloadwerte fest.
+     * Nur Modul-Darstellungsgrenzen werden angepasst, keine Variablenwerte,
+     * Profilnamen oder benutzerdefinierten Darstellungen.
+     */
+    private function NormalizeNumericPresentationParameters(string|array $presentation, int $variableType): string|array
+    {
+        if (!\is_array($presentation)) {
+            return $presentation;
+        }
+
+        foreach (['MIN', 'MAX', 'STEP_SIZE', 'OPEN_OUTSIDE_VALUE', 'CLOSE_INSIDE_VALUE'] as $parameter) {
+            if (isset($presentation[$parameter]) && (\is_int($presentation[$parameter]) || \is_float($presentation[$parameter]))) {
+                $presentation[$parameter] = $variableType === VARIABLETYPE_INTEGER
+                    ? (int) $presentation[$parameter]
+                    : (float) $presentation[$parameter];
+            }
+        }
+
+        return $presentation;
     }
 
     /**
