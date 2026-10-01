@@ -75,6 +75,44 @@ class DevicesTest extends DumpInclude
         $this->assertSame('Löschen', $device->Translate('Delete'));
     }
 
+    public function testAvailabilityRegistersOnlineOfflineOptionsAcceptedByValuePresentation(): void
+    {
+        $instanceID = IPS_CreateInstance('{E5BB36C6-A70B-EB23-3716-9151A09AC8A2}');
+        IPS_SetConfiguration($instanceID, json_encode([
+            'MQTTBaseTopic' => 'zigbee2mqtt',
+            'MQTTTopic'     => 'Test/Availability'
+        ]));
+        IPS_ApplyChanges($instanceID);
+
+        $device = IPS\InstanceManager::getInstanceInterface($instanceID);
+        $device->BUFFER_MQTT_SUSPENDED = false;
+        $device->ReceiveData(self::buildMqttRequest('zigbee2mqtt/Test/Availability/availability', ['state' => 'online']));
+
+        $variableID = IPS_GetObjectIDByIdent('device_status', $instanceID);
+        $this->assertNotFalse($variableID);
+        $this->assertTrue(GetValue($variableID));
+        $presentation = IPS_GetVariable($variableID)['VariablePresentation'];
+        $options = json_decode($presentation['OPTIONS'], true, 512, JSON_THROW_ON_ERROR);
+        $this->assertSame([
+            [
+                'Value'       => false,
+                'Caption'     => 'Offline',
+                'IconActive'  => false,
+                'IconValue'   => '',
+                'ColorActive' => true,
+                'ColorValue'  => 0xFF0000
+            ],
+            [
+                'Value'       => true,
+                'Caption'     => 'Online',
+                'IconActive'  => false,
+                'IconValue'   => '',
+                'ColorActive' => true,
+                'ColorValue'  => 0x00FF00
+            ]
+        ], $options);
+    }
+
     public function testDeviceConfigurationFormContainsOwnerScopedVariableMaintenance(): void
     {
         $iid = IPS_CreateInstance('{E5BB36C6-A70B-EB23-3716-9151A09AC8A2}');

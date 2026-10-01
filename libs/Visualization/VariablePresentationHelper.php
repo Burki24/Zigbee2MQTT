@@ -1064,14 +1064,16 @@ trait VariablePresentationHelper
                     'Caption'    => $this->Translate('Offline'),
                     'IconActive' => false,
                     'IconValue'  => '',
-                    'Color'      => 0xFF0000
+                    'ColorActive' => true,
+                    'ColorValue'  => 0xFF0000
                 ],
                 [
                     'Value'      => true,
                     'Caption'    => $this->Translate('Online'),
                     'IconActive' => false,
                     'IconValue'  => '',
-                    'Color'      => 0x00FF00
+                    'ColorActive' => true,
+                    'ColorValue'  => 0x00FF00
                 ]
             ])
         ];
