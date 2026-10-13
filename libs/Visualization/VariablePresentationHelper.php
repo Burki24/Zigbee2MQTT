@@ -1236,7 +1236,7 @@ trait VariablePresentationHelper
         $property = (string) ($feature['property'] ?? '');
 
         if (strpos($property, 'mode') !== false) {
-            return 'Bars';
+            return 'bars';
         }
 
         if (strpos($property, 'orientation') !== false) {
