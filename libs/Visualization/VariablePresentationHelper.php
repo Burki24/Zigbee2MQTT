@@ -1054,7 +1054,7 @@ trait VariablePresentationHelper
 
         return [
             'PRESENTATION' => \constant('VARIABLE_PRESENTATION_VALUE_PRESENTATION'),
-            'ICON'         => 'network',
+            'ICON'         => 'chart-network',
             'COLOR'        => -1,
             'PREFIX'       => '',
             'SUFFIX'       => '',
@@ -1236,7 +1236,7 @@ trait VariablePresentationHelper
         $property = (string) ($feature['property'] ?? '');
 
         if (strpos($property, 'mode') !== false) {
-            return 'menu';
+            return 'Bars';
         }
 
         if (strpos($property, 'orientation') !== false) {
