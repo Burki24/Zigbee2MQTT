@@ -197,7 +197,7 @@ class Zigbee2MQTTBridge extends IPSModuleStrict
      * Zusammenfassung und Empfangsfilter und registriert die Bridge-Variablen samt
      * Aktionen und nativen Darstellungen. Bei erreichbarer Bridge werden Optionen
      * und Extension-Stand geprüft; eine fehlende oder veraltete Extension wird
-     * automatisch installiert. Abschließend werden die OTA-Beobachtungen
+     * zur manuellen Installation angeboten. Abschließend werden die OTA-Beobachtungen
      * synchronisiert.
      *
      * @see \BridgeConfigurationCommandHelper Optionsabfrage und Extension-Installation in `Bridge/Helper/BridgeConfigurationCommandHelper.php`.
@@ -271,24 +271,7 @@ class Zigbee2MQTTBridge extends IPSModuleStrict
             }
         }
         $this->SendDebug('Online', $online ? 'true' : 'false', 0);
-        $installedExtVersion = (empty($this->GetValue('extension_version')) ? -1 : (float) $this->GetValue('extension_version'));
-        $this->SetValue('extension_is_current', $this->actualExtensionVersion <= $installedExtVersion);
-        if ($this->actualExtensionVersion <= $installedExtVersion) {
-            $this->TryUpdateFormField('InstallExtension', 'caption', $this->Translate('Symcon-Extension is up-to-date'));
-            $this->TryUpdateFormField('InstallExtension', 'enabled', false);
-        } else {
-            $this->TryUpdateFormField('InstallExtension', 'caption', $this->Translate('Install or upgrade Symcon-Extension'));
-            $this->TryUpdateFormField('InstallExtension', 'enabled', true);
-            if (!empty($BaseTopic)) {
-                if ($online) {
-                    $this->TraceHelperCall(
-                        'BridgeConfigurationCommandHelper',
-                        'InstallSymconExtension',
-                        fn (): mixed => @$this->InstallSymconExtension()
-                    );
-                }
-            }
-        }
+        $this->RefreshExtensionVersionStatus();
         $this->TraceHelperCall(
             'BridgeOTAFormHelper',
             'SynchronizeOTAMessageSubscriptions',
@@ -751,6 +734,7 @@ class Zigbee2MQTTBridge extends IPSModuleStrict
                 break;
             case 'state':
                 $this->SetValue('state', $Payload['state'] == 'online');
+                $this->TryUpdateFormField('BridgeVersions', 'caption', $this->BuildBridgeVersionSummary());
                 break;
             case 'info':
                 if (isset($Payload['log_level'])) {
@@ -798,15 +782,6 @@ class Zigbee2MQTTBridge extends IPSModuleStrict
                 }
                 if (isset($Payload['zigbee_herdsman']['version'])) {
                     $this->installedZhVersion = $Payload['zigbee_herdsman']['version'];
-                    if (isset(self::EXTENSION_ZH_VERSION[(int) $this->installedZhVersion])) {
-                        $Extension = file_get_contents(dirname(__DIR__) . '/libs/' . self::EXTENSION_ZH_VERSION[(int) $this->installedZhVersion]);
-                        preg_match('/Version: (.*)/', $Extension, $matches);
-                        if (isset($matches[1])) {
-                            $this->actualExtensionVersion = (float) $matches[1];
-                        }
-                    } else {
-                        $this->actualExtensionVersion = 0;
-                    }
                     $this->SetValue('zigbee_herdsman', $Payload['zigbee_herdsman']['version']);
                 }
                 if (isset($Payload['config']['advanced']['last_seen'])) {
@@ -836,6 +811,7 @@ class Zigbee2MQTTBridge extends IPSModuleStrict
                 if (isset($Payload['network'])) {
                     $this->SetValue('network_channel', $Payload['network']['channel']);
                 }
+                $this->RefreshExtensionVersionStatus();
                 break;
             case 'extensions':
                 if (!is_array($Payload)) {
@@ -856,19 +832,14 @@ class Zigbee2MQTTBridge extends IPSModuleStrict
                         if (isset($matches[1])) {
                             $Version = $matches[1];
                         }
-                        if ($this->actualExtensionVersion <= (float) $Version) {
-                            $this->TryUpdateFormField('InstallExtension', 'caption', $this->Translate('Symcon-Extension is up-to-date'));
-                            $this->TryUpdateFormField('InstallExtension', 'enabled', false);
-                        } else {
-                            $this->TryUpdateFormField('InstallExtension', 'caption', $this->Translate('Install or upgrade Symcon-Extension'));
-                            $this->TryUpdateFormField('InstallExtension', 'enabled', true);
-                            $this->LogMessage($this->Translate('Symcon Extension in Zigbee2MQTT is outdated. Please update the extension.'), KL_ERROR);
-                        }
                     }
                 }
                 $this->SetValue('extension_loaded', $foundExtension);
                 $this->SetValue('extension_version', $Version);
-                $this->SetValue('extension_is_current', $this->actualExtensionVersion == (float) $Version);
+                $this->RefreshExtensionVersionStatus();
+                if ($foundExtension && $this->actualExtensionVersion > 0 && is_numeric(trim($Version)) && (float) $Version < $this->actualExtensionVersion) {
+                    $this->LogMessage($this->Translate('Symcon Extension in Zigbee2MQTT is outdated. Please update the extension.'), KL_ERROR);
+                }
                 if (!$foundExtension) {
                     $this->LogMessage($this->Translate('No Symcon Extension in Zigbee2MQTT installed. Please install the extension.'), KL_ERROR);
                 }
@@ -883,10 +854,10 @@ class Zigbee2MQTTBridge extends IPSModuleStrict
     private function GetConfigurationFormWithAvailableInstanceInterface(): string
     {
         $Form = json_decode(file_get_contents(__DIR__ . '/form.json'), true);
-        if ($this->GetValue('extension_loaded') && $this->GetValue('extension_is_current')) {
-            $this->SetBridgeFormField($Form, 'InstallExtension', 'enabled', false);
-            $this->SetBridgeFormField($Form, 'InstallExtension', 'caption', $this->Translate('Symcon-Extension is up-to-date'));
-        }
+        $current = $this->RefreshExtensionVersionStatus();
+        $this->SetBridgeFormField($Form, 'InstallExtension', 'enabled', !$current);
+        $this->SetBridgeFormField($Form, 'InstallExtension', 'caption', $this->Translate($current ? 'Symcon-Extension is up-to-date' : 'Install or upgrade Symcon-Extension'));
+        $this->SetBridgeFormField($Form, 'BridgeVersions', 'caption', $this->BuildBridgeVersionSummary());
         if ($this->ConfigLastSeen == 'epoch') {
             $this->SetBridgeFormField($Form, 'SetLastSeen', 'enabled', false);
             $this->SetBridgeFormField($Form, 'SetLastSeen', 'caption', $this->Translate('last_seen setting is correct'));

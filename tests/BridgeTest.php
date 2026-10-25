@@ -142,6 +142,7 @@ class BridgeTest extends TestCase
     {
         $bridge = $this->createBridgeTestDouble(true);
         $bridge->setCachedBridgeStatusForTest(true, true, 'epoch');
+        $bridge->setVersionValuesForTest('6.06', '11.1.0', '2.14.2', true);
 
         $form = json_decode($bridge->GetConfigurationForm(), true);
         $actions = array_column($form['actions'][0]['items'], null, 'name');
@@ -151,6 +152,66 @@ class BridgeTest extends TestCase
         $this->assertFalse($actions['SetLastSeen']['enabled']);
         $this->assertSame('last_seen setting is correct', $actions['SetLastSeen']['caption']);
         $this->assertTrue($actions['PermitJoinOption']['visible']);
+    }
+
+    public function testFormRefreshesStaleExpectedExtensionVersionWithoutInstalling(): void
+    {
+        $bridge = $this->createBridgeTestDouble(true);
+        $bridge->setCachedBridgeStatusForTest(true, true, 'epoch');
+        $bridge->setVersionValuesForTest('6.05', '11.1.0', '2.14.2', false);
+        $bridge->actualExtensionVersion = 6.05;
+        $form = json_decode($bridge->GetConfigurationForm(), true);
+        $button = $this->findFormField($form, 'InstallExtension');
+        $this->assertTrue($button['enabled']);
+        $this->assertFalse($bridge->readPairingValue('extension_is_current'));
+        $this->assertSame(6.06, $bridge->actualExtensionVersion);
+        $summary = $this->findFormField($form, 'BridgeVersions')['caption'];
+        $this->assertStringContainsString('Last reported: 2.14.2', $summary);
+        $this->assertStringContainsString('Installed extension: Last reported: 6.05', $summary);
+        $this->assertStringContainsString('Bundled extension: 6.06', $summary);
+        $this->assertSame('', $bridge->lastTopic);
+    }
+
+    public function testUnknownVersionsAreNotReportedAsCurrent(): void
+    {
+        $bridge = $this->createBridgeTestDouble(true);
+        $bridge->setCachedBridgeStatusForTest(true, true, 'epoch');
+        $bridge->setVersionValuesForTest('unknown', '', '', false);
+        $form = json_decode($bridge->GetConfigurationForm(), true);
+        $this->assertTrue($this->findFormField($form, 'InstallExtension')['enabled']);
+        $this->assertFalse($bridge->readPairingValue('extension_is_current'));
+        $this->assertStringContainsString('Bundled extension: Unknown', $this->findFormField($form, 'BridgeVersions')['caption']);
+    }
+
+    public function testApplyChangesDoesNotInstallOutdatedExtensionOnOnlineBridge(): void
+    {
+        $id = IPS_CreateInstance(self::BRIDGE_MODULE_ID);
+        IPS_SetProperty($id, 'MQTTBaseTopic', 'zigbee2mqtt');
+        $bridge = new class($id) extends Zigbee2MQTTBridge {
+            public int $installCalls = 0;
+            public function InstallSymconExtension(): bool
+            {
+                $this->installCalls++;
+                return true;
+            }
+            public function RequestOptions(int $Timeout = 5000): bool
+            {
+                return true;
+            }
+            protected function HasActiveParent(): bool
+            {
+                return true;
+            }
+        };
+        $bridge->Create();
+        $bridge->SetProperty('MQTTBaseTopic', 'zigbee2mqtt');
+        SetValue(IPS_GetObjectIDByIdent('zigbee_herdsman', $id), '11.1.0');
+        SetValue(IPS_GetObjectIDByIdent('extension_version', $id), '6.05');
+        SetValue(IPS_GetObjectIDByIdent('extension_loaded', $id), true);
+        $bridge->ApplyChanges();
+        $this->assertSame(0, $bridge->installCalls);
+        $this->assertSame(6.06, $bridge->actualExtensionVersion);
+        $this->assertFalse(GetValue(IPS_GetObjectIDByIdent('extension_is_current', $id)));
     }
 
     public function testConfigurationFormShowsCompactReadOnlyVariableMaintenanceOverview(): void
@@ -1791,6 +1852,14 @@ class BridgeTest extends TestCase
                 $this->ConfigPermitJoin = true;
             }
 
+            public function setVersionValuesForTest(string $extension, string $herdsman, string $version, bool $online): void
+            {
+                $this->testValues['extension_version'] = $extension;
+                $this->testValues['zigbee_herdsman'] = $herdsman;
+                $this->testValues['version'] = $version;
+                $this->testValues['state'] = $online;
+            }
+
             public function readPairingValue(string $ident): mixed
             {
                 return $this->testValues[$ident] ?? null;
@@ -1810,6 +1879,12 @@ class BridgeTest extends TestCase
                 if (\array_key_exists($Ident, $this->testValues)) {
                     return $this->testValues[$Ident];
                 }
+                if (in_array($Ident, ['version', 'extension_version', 'zigbee_herdsman'], true)) {
+                    return '';
+                }
+                if (in_array($Ident, ['state', 'extension_loaded', 'extension_is_current'], true)) {
+                    return false;
+                }
                 if ($Ident === 'permit_join') {
                     return false;
                 }
@@ -1825,7 +1900,7 @@ class BridgeTest extends TestCase
 
             protected function SetValue(string $Ident, mixed $Value): bool
             {
-                if (\in_array($Ident, ['permit_join', 'permit_join_end', 'permit_join_remaining', 'permit_join_target'], true)) {
+                if (\in_array($Ident, ['permit_join', 'permit_join_end', 'permit_join_remaining', 'permit_join_target', 'extension_is_current', 'extension_loaded', 'extension_version', 'zigbee_herdsman', 'version'], true)) {
                     $this->testValues[$Ident] = $Value;
                     return true;
                 }

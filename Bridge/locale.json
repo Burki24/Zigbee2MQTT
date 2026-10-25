@@ -1,6 +1,8 @@
 {
     "translations": {
         "de": {
+            "Last reported: ": "Zuletzt gemeldet: ",
+            "Zigbee2MQTT: %s | Installed extension: %s | Bundled extension: %s": "Zigbee2MQTT: %s | Installierte Extension: %s | Mitgelieferte Extension: %s",
             "Cannot read Symcon extension file: %s. No extension installed.": "Symcon-Erweiterungsdatei kann nicht gelesen werden: %s. Es wurde keine Erweiterung installiert.",
             "Install or upgrade Symcon-Extension": "Symcon Erweiterung installieren oder updaten",
             "Symcon-Extension is up-to-date": "Symcon Erweiterung ist aktuell",

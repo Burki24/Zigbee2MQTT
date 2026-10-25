@@ -179,4 +179,41 @@ trait BridgeConfigurationCommandHelper
             self::TIMEOUT_ZIGBEE_DEVICE_MAINTENANCE_REQUEST
         ) !== false;
     }
+    /** Reads the bundled version afresh; never installs an extension. */
+    private function RefreshExtensionVersionStatus(): bool
+    {
+        $this->actualExtensionVersion = 0;
+        $herdsman = (string) $this->GetValue('zigbee_herdsman');
+        $this->installedZhVersion = $herdsman;
+        $filename = self::EXTENSION_ZH_VERSION[(int) $herdsman] ?? null;
+        if ($filename !== null) {
+            $code = @file_get_contents(dirname(__DIR__, 2) . '/libs/' . $filename);
+            if ($code !== false && preg_match('/Version: ([0-9]+\.[0-9]+)/', $code, $matches)) {
+                $this->actualExtensionVersion = (float) $matches[1];
+            }
+        }
+        $installed = (string) $this->GetValue('extension_version');
+        $current = $this->GetValue('extension_loaded')
+            && $this->actualExtensionVersion > 0
+            && is_numeric(trim($installed))
+            && (float) $installed >= $this->actualExtensionVersion;
+        $this->SetValue('extension_is_current', $current);
+        $this->TryUpdateFormField('InstallExtension', 'enabled', !$current);
+        $this->TryUpdateFormField('InstallExtension', 'caption', $this->Translate($current ? 'Symcon-Extension is up-to-date' : 'Install or upgrade Symcon-Extension'));
+        $this->TryUpdateFormField('BridgeVersions', 'caption', $this->BuildBridgeVersionSummary());
+        return $current;
+    }
+
+    private function BuildBridgeVersionSummary(): string
+    {
+        $unknown = $this->Translate('Unknown');
+        $version = trim((string) $this->GetValue('version'));
+        $installed = trim((string) $this->GetValue('extension_version'));
+        return sprintf(
+            $this->Translate('Zigbee2MQTT: %s | Installed extension: %s | Bundled extension: %s'),
+            ($this->GetValue('state') ? '' : $this->Translate('Last reported: ')) . ($version !== '' ? $version : $unknown),
+            ($this->GetValue('state') ? '' : $this->Translate('Last reported: ')) . (is_numeric($installed) ? $installed : $unknown),
+            $this->actualExtensionVersion > 0 ? number_format($this->actualExtensionVersion, 2, '.', '') : $unknown
+        );
+    }
 }

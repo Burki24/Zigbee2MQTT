@@ -36,6 +36,11 @@
             ]
         },
         {
+            "type": "Label",
+            "name": "BridgeVersions",
+            "caption": ""
+        },
+        {
             "name": "PasslistWarning",
             "type": "PopupAlert",
             "visible": false,

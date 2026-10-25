@@ -73,7 +73,7 @@ Weitere Schritte zur Ersteinrichtung sind unter dem [Zigbee2MQTT-Discovery](Disc
 ### I. Vorbereitung <!-- omit in toc -->
 
 - Bevor das Update über den Modul-Store durchgeführt werden kann, ist sicherzustellen das zuvor mindestens die Version 4.6 der [Extension in Zigbee2MQTT](#34-installation-der-ip-symcon-extension-in-zigbee2mqtt) installiert ist.
-- Diese wird automatisch ab Version 4.5 durch die [Bridge-Instanz](Bridge/README.md)  installiert, sofern diese Instanz angelegt wurde.
+- Diese wird durch den Anwender über die [Bridge-Instanz](Bridge/README.md) installiert beziehungsweise aktualisiert.
 - Alternativ muss die benötigte [Extension in Zigbee2MQTT](#34-installation-der-ip-symcon-extension-in-zigbee2mqtt) manuell ein Update auf Version 4.6 erhalten.
 
 > [!CAUTION]
@@ -127,7 +127,7 @@ Weitere Schritte zur Ersteinrichtung sind unter dem [Zigbee2MQTT-Discovery](Disc
 
 - Ein Update auf Zigbee2MQTT Version 2.0 oder neuer kann nach dem Update des Moduls durchgeführt werden.
 - Hierzu sind die Anleitungen unter [zigbee2mqtt.io](https://www.zigbee2mqtt.io/guide/installation/) zu beachten.
-- In Symcon sollte eine [Bridge-Instanz](Bridge/README.md) eingerichtet sein, damit beim Update automatisch die korrekte [Extension in Zigbee2MQTT](#34-installation-der-ip-symcon-extension-in-zigbee2mqtt) installiert wird.
+- In Symcon sollte eine [Bridge-Instanz](Bridge/README.md) eingerichtet sein, damit die korrekte [Extension in Zigbee2MQTT](#34-installation-der-ip-symcon-extension-in-zigbee2mqtt) nach Bestätigung durch den Anwender installiert werden kann.
 
 ---
 
@@ -155,7 +155,7 @@ Skripte, Visualisierungen oder externe Werkzeuge, die gezielt auf Profilnamen wi
    Vor dem Update ist ein vollständiges Symcon-Backup anzulegen. Dies ist insbesondere erforderlich, falls auf Version 5.42 zurückgewechselt werden soll.
 
 3. **Bridge-Instanz kontrollieren**
-   Es sollte eine eingerichtete und erreichbare [Bridge-Instanz](Bridge/README.md) vorhanden sein. Das MQTT-Basistopic muss stimmen und Zigbee2MQTT muss laufen. Die Bridge aktualisiert die benötigte Symcon-Extension normalerweise automatisch.
+   Es sollte eine eingerichtete und erreichbare [Bridge-Instanz](Bridge/README.md) vorhanden sein. Das MQTT-Basistopic muss stimmen und Zigbee2MQTT muss laufen. Die Bridge bietet benötigte Extension-Updates zur manuellen Bestätigung an.
 
 4. **Meldungsfenster öffnen**
    Während des Updates sollte das Fenster [Meldungen](https://www.symcon.de/de/service/dokumentation/komponenten/verwaltungskonsole/meldungen/) geöffnet bleiben. So lassen sich eventuelle Hinweise während der Migration nachvollziehen.
@@ -171,9 +171,9 @@ Während des Updates können vorübergehend Warnungen auftreten, wenn andere Sym
 
 #### III. Symcon-Extension prüfen <!-- omit in toc -->
 
-Nach dem Update ist die Bridge-Konfiguration zu öffnen. Dort muss **Symcon-Erweiterung ist aktuell** angezeigt werden. Version 6.0 benötigt die Symcon-Extension in Version `6.05`.
+Nach dem Update ist die Bridge-Konfiguration zu öffnen und der Extension-Stand zu prüfen. Die aktuelle Modulversion liefert die Symcon-Extension in Version `6.06` mit.
 
-Die Bridge installiert beziehungsweise aktualisiert die Extension im Normalfall automatisch. Falls Zigbee2MQTT während des Modulupdates nicht erreichbar war oder keine Bridge-Instanz existiert, muss die Extension später über die Bridge oder anhand der [manuellen Anleitung](#34-installation-der-ip-symcon-extension-in-zigbee2mqtt) aktualisiert werden.
+Die Bridge zeigt die Zigbee2MQTT-Version sowie die installierte und die mitgelieferte Extension-Version an. Bei Offline-Status werden empfangene Versionen als zuletzt gemeldet gekennzeichnet. Installation und Update starten ausschließlich durch den Anwender über **Symcon Erweiterung installieren oder updaten** oder anhand der [manuellen Anleitung](#34-installation-der-ip-symcon-extension-in-zigbee2mqtt). Ein Modulupdate installiert die Extension nicht automatisch.
 
 > [!CAUTION]
 > Wenn mehrere alte Symcon-Extensions gleichzeitig in Zigbee2MQTT hinterlegt sind, müssen Dubletten manuell entfernt werden. Mehrere aktive Erweiterungen können zu doppelten Antworten und Fehlverhalten führen.
