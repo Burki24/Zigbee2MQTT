@@ -1,6 +1,6 @@
 /*
  IPSymconExtension
- Version: 6.05
+ Version: 6.06
 */
 
 class MyLogger {
@@ -52,8 +52,8 @@ class IPSymconExtension {
     }
 
     async start() {
-        this.mqtt.subscribe(`${this.baseTopic}/${this.symconExtensionTopic}/#`);
-
+        // Zigbee2MQTT already subscribes to <base_topic>/#, including SymconExtension requests.
+        // Extra subscriptions are combined on reconnect and can trigger invalid broker SUBACKs.
     }
 
     async onMQTTMessage(data) {

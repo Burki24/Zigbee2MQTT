@@ -10,5 +10,11 @@ jobs:
         uses: actions/checkout@master
         with:
           submodules: true
+      - name: Setup Node.js
+        uses: actions/setup-node@v4
+        with:
+          node-version: '22'
+      - name: Test extensions
+        run: node --test tests/ExtensionsTest.cjs
       - name: Run tests
         uses: symcon/action-tests@master
