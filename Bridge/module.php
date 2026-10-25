@@ -151,6 +151,7 @@ class Zigbee2MQTTBridge extends IPSModuleStrict
         $this->actualExtensionVersion = 0;
         $this->installedZhVersion = 0;
         $this->ExtensionFilename = '';
+        $this->BridgeVersionFormCaptions = [];
         $this->ConfigLastSeen = 'epoch';
         $this->TraceHelperCall('MQTTHelper', 'ClearTransactionData', fn (): mixed => $this->ClearTransactionData());
         $this->ConfigPermitJoin = false;
@@ -734,7 +735,7 @@ class Zigbee2MQTTBridge extends IPSModuleStrict
                 break;
             case 'state':
                 $this->SetValue('state', $Payload['state'] == 'online');
-                $this->TryUpdateFormField('BridgeVersions', 'caption', $this->BuildBridgeVersionSummary());
+                $this->UpdateBridgeVersionFormFields();
                 break;
             case 'info':
                 if (isset($Payload['log_level'])) {
@@ -858,6 +859,7 @@ class Zigbee2MQTTBridge extends IPSModuleStrict
         $this->SetBridgeFormField($Form, 'InstallExtension', 'enabled', !$current);
         $this->SetBridgeFormField($Form, 'InstallExtension', 'caption', $this->Translate($current ? 'Symcon-Extension is up-to-date' : 'Install or upgrade Symcon-Extension'));
         $this->SetBridgeFormField($Form, 'BridgeVersions', 'caption', $this->BuildBridgeVersionSummary());
+        $this->SetBridgeFormField($Form, 'BridgeConnectionStatus', 'caption', $this->BuildBridgeConnectionStatus());
         if ($this->ConfigLastSeen == 'epoch') {
             $this->SetBridgeFormField($Form, 'SetLastSeen', 'enabled', false);
             $this->SetBridgeFormField($Form, 'SetLastSeen', 'caption', $this->Translate('last_seen setting is correct'));

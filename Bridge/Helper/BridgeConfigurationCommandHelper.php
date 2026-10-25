@@ -200,7 +200,7 @@ trait BridgeConfigurationCommandHelper
         $this->SetValue('extension_is_current', $current);
         $this->TryUpdateFormField('InstallExtension', 'enabled', !$current);
         $this->TryUpdateFormField('InstallExtension', 'caption', $this->Translate($current ? 'Symcon-Extension is up-to-date' : 'Install or upgrade Symcon-Extension'));
-        $this->TryUpdateFormField('BridgeVersions', 'caption', $this->BuildBridgeVersionSummary());
+        $this->UpdateBridgeVersionFormFields();
         return $current;
     }
 
@@ -211,9 +211,32 @@ trait BridgeConfigurationCommandHelper
         $installed = trim((string) $this->GetValue('extension_version'));
         return sprintf(
             $this->Translate('Zigbee2MQTT: %s | Installed extension: %s | Bundled extension: %s'),
-            ($this->GetValue('state') ? '' : $this->Translate('Last reported: ')) . ($version !== '' ? $version : $unknown),
-            ($this->GetValue('state') ? '' : $this->Translate('Last reported: ')) . (is_numeric($installed) ? $installed : $unknown),
+            $version !== '' ? $version : $unknown,
+            is_numeric($installed) ? $installed : $unknown,
             $this->actualExtensionVersion > 0 ? number_format($this->actualExtensionVersion, 2, '.', '') : $unknown
         );
+    }
+
+    private function BuildBridgeConnectionStatus(): string
+    {
+        return $this->Translate($this->GetValue('state') ? 'Online' : 'Offline - version information was last reported');
+    }
+
+    /** Avoid repainting unchanged version and connection labels on repeated MQTT messages. */
+    private function UpdateBridgeVersionFormFields(): void
+    {
+        $captions = $this->BridgeVersionFormCaptions;
+        if (!is_array($captions)) {
+            $captions = [];
+        }
+        foreach ([
+            'BridgeVersions'         => $this->BuildBridgeVersionSummary(),
+            'BridgeConnectionStatus' => $this->BuildBridgeConnectionStatus()
+        ] as $name => $caption) {
+            if (($captions[$name] ?? null) !== $caption && $this->TryUpdateFormField($name, 'caption', $caption)) {
+                $captions[$name] = $caption;
+            }
+        }
+        $this->BridgeVersionFormCaptions = $captions;
     }
 }

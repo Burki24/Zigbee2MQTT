@@ -72,7 +72,7 @@
 | **7** | **Erweiterte Administration** | Enthält die seltener benötigten Bereiche Netzwerksicherheit, Variablen-Wartung und Zigbee2MQTT-Wartung. |
 | **8** | **Testcenter** | Direkte Prüfung und Bedienung der Bridge-Statusvariablen auf der obersten Formularebene. |
 
-Das Formular zeigt die Zigbee2MQTT-Version sowie die installierte und die mitgelieferte Symcon-Extension-Version. Bei Offline-Status sind empfangene Versionen als „Zuletzt gemeldet“ gekennzeichnet. Die Prüfung berücksichtigt die mitgelieferte Datei auch direkt nach einem Modulupdate. Installation und Update der Extension werden ausschließlich durch den Anwender über **Symcon Erweiterung installieren oder updaten** gestartet.
+Das Formular zeigt die Zigbee2MQTT-Version sowie die installierte und die mitgelieferte Symcon-Extension-Version. Eine separate Statuszeile zeigt „Online“ beziehungsweise „Offline“ und weist bei Offline-Status auf den zuletzt gemeldeten Versionsstand hin. Verbindungswechsel verändern die Versionszeile nicht. Die Prüfung berücksichtigt die mitgelieferte Datei auch direkt nach einem Modulupdate. Installation und Update der Extension werden ausschließlich durch den Anwender über **Symcon Erweiterung installieren oder updaten** gestartet.
 
 ## 5. Bridge-Funktionen
 

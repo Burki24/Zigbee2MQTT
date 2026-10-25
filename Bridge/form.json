@@ -41,6 +41,11 @@
             "caption": ""
         },
         {
+            "type": "Label",
+            "name": "BridgeConnectionStatus",
+            "caption": ""
+        },
+        {
             "name": "PasslistWarning",
             "type": "PopupAlert",
             "visible": false,

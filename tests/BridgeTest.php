@@ -166,8 +166,9 @@ class BridgeTest extends TestCase
         $this->assertFalse($bridge->readPairingValue('extension_is_current'));
         $this->assertSame(6.06, $bridge->actualExtensionVersion);
         $summary = $this->findFormField($form, 'BridgeVersions')['caption'];
-        $this->assertStringContainsString('Last reported: 2.14.2', $summary);
-        $this->assertStringContainsString('Installed extension: Last reported: 6.05', $summary);
+        $this->assertStringContainsString('Zigbee2MQTT: 2.14.2', $summary);
+        $this->assertStringContainsString('Installed extension: 6.05', $summary);
+        $this->assertSame('Offline - version information was last reported', $this->findFormField($form, 'BridgeConnectionStatus')['caption']);
         $this->assertStringContainsString('Bundled extension: 6.06', $summary);
         $this->assertSame('', $bridge->lastTopic);
     }
@@ -181,6 +182,68 @@ class BridgeTest extends TestCase
         $this->assertTrue($this->findFormField($form, 'InstallExtension')['enabled']);
         $this->assertFalse($bridge->readPairingValue('extension_is_current'));
         $this->assertStringContainsString('Bundled extension: Unknown', $this->findFormField($form, 'BridgeVersions')['caption']);
+    }
+
+    public function testConnectionChangesOnlyUpdateSeparateStatusField(): void
+    {
+        $bridge = $this->createBridgeTestDouble(true);
+        $bridge->setBaseTopicForTest('zigbee2mqtt');
+        $bridge->setCachedBridgeStatusForTest(true, false, 'epoch');
+        $bridge->setVersionValuesForTest('6.05', '11.1.0', '2.14.2', false);
+        $form = json_decode($bridge->GetConfigurationForm(), true);
+        $summary = $this->findFormField($form, 'BridgeVersions')['caption'];
+        $bridge->formFieldCalls = [];
+        foreach (['offline', 'online', 'online', 'offline', 'offline'] as $state) {
+            $bridge->ReceiveData(json_encode([
+                'Topic'   => 'zigbee2mqtt/bridge/state',
+                'Payload' => json_encode(['state' => $state])
+            ]));
+        }
+        $calls = array_values(array_filter($bridge->formFieldCalls, static fn (array $call): bool => in_array($call['Field'], ['BridgeVersions', 'BridgeConnectionStatus'], true)));
+        $this->assertSame([
+            ['Field' => 'BridgeConnectionStatus', 'Parameter' => 'caption', 'Value' => 'Online'],
+            ['Field' => 'BridgeConnectionStatus', 'Parameter' => 'caption', 'Value' => 'Offline - version information was last reported']
+        ], $calls);
+        $this->assertSame($summary, $this->findFormField(json_decode($bridge->GetConfigurationForm(), true), 'BridgeVersions')['caption']);
+    }
+
+    public function testRepeatedBridgeInfoOnlyUpdatesChangedVersionCaption(): void
+    {
+        $bridge = $this->createBridgeTestDouble(true);
+        $bridge->setBaseTopicForTest('zigbee2mqtt');
+        $bridge->setCachedBridgeStatusForTest(true, false, 'epoch');
+        $bridge->setVersionValuesForTest('6.05', '11.1.0', '2.14.2', true);
+        $bridge->GetConfigurationForm();
+        $bridge->formFieldCalls = [];
+        foreach (['2.14.2', '2.14.3', '2.14.3'] as $version) {
+            $bridge->ReceiveData(json_encode([
+                'Topic'   => 'zigbee2mqtt/bridge/info',
+                'Payload' => json_encode(['version' => $version])
+            ]));
+        }
+        $calls = array_values(array_filter($bridge->formFieldCalls, static fn (array $call): bool => in_array($call['Field'], ['BridgeVersions', 'BridgeConnectionStatus'], true)));
+        $this->assertCount(1, $calls);
+        $this->assertSame('BridgeVersions', $calls[0]['Field']);
+        $this->assertStringContainsString('Zigbee2MQTT: 2.14.3', $calls[0]['Value']);
+    }
+
+    public function testConnectionCaptionRetriesAfterTemporaryFormUpdateFailure(): void
+    {
+        $bridge = $this->createBridgeTestDouble(true);
+        $bridge->setBaseTopicForTest('zigbee2mqtt');
+        $bridge->setCachedBridgeStatusForTest(true, false, 'epoch');
+        $bridge->setVersionValuesForTest('6.05', '11.1.0', '2.14.2', false);
+        $bridge->GetConfigurationForm();
+        $bridge->formFieldCalls = [];
+        $message = json_encode(['Topic' => 'zigbee2mqtt/bridge/state', 'Payload' => '{"state":"online"}']);
+        $bridge->failFormUpdates = true;
+        $bridge->ReceiveData($message);
+        $this->assertSame([], $bridge->formFieldCalls);
+        $bridge->failFormUpdates = false;
+        $bridge->ReceiveData($message);
+        $this->assertSame([
+            ['Field' => 'BridgeConnectionStatus', 'Parameter' => 'caption', 'Value' => 'Online']
+        ], $bridge->formFieldCalls);
     }
 
     public function testApplyChangesDoesNotInstallOutdatedExtensionOnOnlineBridge(): void
@@ -1794,6 +1857,7 @@ class BridgeTest extends TestCase
             public int $lastTimeout = -1;
             public bool $lastSensitive = false;
             public array $updatedFields = [];
+            public array $formFieldCalls = [];
             public array $debugMessages = [];
             public bool $failFormUpdates = false;
             private string $testBaseTopic = '';
@@ -1900,7 +1964,7 @@ class BridgeTest extends TestCase
 
             protected function SetValue(string $Ident, mixed $Value): bool
             {
-                if (\in_array($Ident, ['permit_join', 'permit_join_end', 'permit_join_remaining', 'permit_join_target', 'extension_is_current', 'extension_loaded', 'extension_version', 'zigbee_herdsman', 'version'], true)) {
+                if (\in_array($Ident, ['permit_join', 'permit_join_end', 'permit_join_remaining', 'permit_join_target', 'extension_is_current', 'extension_loaded', 'extension_version', 'zigbee_herdsman', 'version', 'state'], true)) {
                     $this->testValues[$Ident] = $Value;
                     return true;
                 }
@@ -1938,6 +2002,7 @@ class BridgeTest extends TestCase
                     throw new \RuntimeException('InstanceInterface is not available');
                 }
                 $this->updatedFields[$Field][$Parameter] = $Value;
+                $this->formFieldCalls[] = ['Field' => $Field, 'Parameter' => $Parameter, 'Value' => $Value];
                 return true;
             }
         };
