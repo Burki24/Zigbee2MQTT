@@ -218,7 +218,7 @@ class GroupTest extends DumpInclude
         $this->assertSame('1', $list['values'][0]['endpoints']);
     }
 
-    public function testSelectingAvailableDevicePopulatesEndpointOptionsFromExtension(): void
+    public function testSelectingAvailableDevicePopulatesEndpointOptionsFromBridgeCacheWithoutMqtt(): void
     {
         $group = $this->createGroupFormTestDouble([
             [
@@ -245,6 +245,33 @@ class GroupTest extends DumpInclude
         $endpointOptions = json_decode($group->updatedFields['GroupMemberEndpoint']['options'], true);
         $this->assertSame(['11', '242'], array_column($endpointOptions, 'value'));
         $this->assertSame('11', $group->updatedFields['GroupMemberEndpoint']['value']);
+    }
+
+    public function testGroupDeviceCacheUsesMatchingTopicAndSplitterWhileOffline(): void
+    {
+        $splitterID = IPS_CreateInstance(self::VIRTUAL_IO_MODULE_ID);
+        $otherSplitterID = IPS_CreateInstance(self::VIRTUAL_IO_MODULE_ID);
+        IPS\InstanceManager::setStatus($splitterID, IS_INACTIVE);
+        IPS\InstanceManager::setStatus($otherSplitterID, IS_INACTIVE);
+        foreach ([
+            ['zigbee2mqtt', $otherSplitterID, 'Wrong/Splitter'],
+            ['other-z2m', $splitterID, 'Wrong/Topic'],
+            ['zigbee2mqtt', $splitterID, 'External/Without/SymconInstance']
+        ] as [$baseTopic, $parentID, $topic]) {
+            $bridgeID = IPS_CreateInstance('{00160D82-9E2F-D1BD-6D0B-952F945332C5}');
+            IPS_SetConfiguration($bridgeID, json_encode(['MQTTBaseTopic' => $baseTopic]));
+            IPS_ConnectInstance($bridgeID, $parentID);
+            IPS_ApplyChanges($bridgeID);
+            $this->writeStubAttributeArray($bridgeID, 'NetworkDevices', [
+                ['friendly_name' => $topic, 'type' => 'Router', 'model' => 'Test', 'endpoints' => [11 => ['id' => 11], 242 => ['id' => 242]]],
+                ['friendly_name' => 'Coordinator', 'type' => 'Coordinator', 'endpoints' => [1 => ['id' => 1]]]
+            ]);
+        }
+        $groupID = $this->createConfiguredGroup('zigbee2mqtt', 'Test/Group', $splitterID);
+        $form = json_decode(IPS_GetConfigurationForm($groupID), true);
+        $list = $this->findFormItemByName($form, 'GroupAvailableDeviceList')['values'];
+        $this->assertSame(['External/Without/SymconInstance'], array_column($list, 'topic'));
+        $this->assertSame('11, 242', $list[0]['endpoints']);
     }
 
     public function testRefreshingGroupInfoUpdatesExternalMembersOptionsAndScenes(): void
@@ -581,11 +608,12 @@ class GroupTest extends DumpInclude
 
             protected function SendData(string $Topic, array $Payload = [], int $Timeout = 5000): array|bool
             {
-                if ($Topic === self::SYMCON_EXTENSION_LIST_REQUEST . 'getDevices') {
-                    return ['list' => $this->devices];
-                }
+                throw new \RuntimeException('Group forms must not send synchronous MQTT requests');
+            }
 
-                return false;
+            protected function ReadGroupMemberDevicesFromBridgeCache(): array
+            {
+                return $this->devices;
             }
 
             protected function UpdateDeviceInfo(): bool

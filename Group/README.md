@@ -65,6 +65,8 @@
 
    Die Konfiguration entspricht grundsätzlich der Konfiguration der einzelnen [Zigbee2MQTT-Geräte](../Device/README.md#4-konfiguration). Statt einer IEEE-Adresse wird die Gruppen-ID angezeigt. Gruppen besitzen keine Geräteinformationen im engeren Sinn; Mitglieder, Optionen und Szenen werden über **Gruppeninformationen aktualisieren** aus Zigbee2MQTT übernommen.
 
+   Die Geräte- und Endpoint-Auswahl verwendet den vorhandenen Gerätecache der Bridge mit demselben MQTT-Basistopic und demselben MQTT-Splitter. Beim Öffnen des Formulars und Auswählen eines Geräts wird keine vollständige Geräteliste per MQTT angefordert. Auch Geräte ohne eigene Symcon-Instanz sind über den Bridge-Cache auswählbar. Fehlt eine passende Bridge oder ihr Cache, bleiben lokale Geräteinstanzen und gespeicherte Gruppenmitglieder verfügbar; der Cache wird durch neue `bridge/devices`-Nachrichten aktualisiert.
+
    ![Konfiguration Device](imgs/config.png)  
 
    Zusätzlich bietet die Gruppeninstanz eigene Bereiche für Gruppenfunktionen:

@@ -263,6 +263,19 @@ class Zigbee2MQTTGroup extends \Zigbee2MQTT\ModulBase
         return true;
     }
 
+    /** Reads the existing bridge/devices cache, including while MQTT is offline. */
+    protected function ReadGroupMemberDevicesFromBridgeCache(): array
+    {
+        $bridgeID = $this->FindMatchingBridgeInstanceID();
+        if ($bridgeID === false || !\function_exists('Z2M_GetCachedNetworkDevices')) {
+            return [];
+        }
+
+        $json = \Z2M_GetCachedNetworkDevices($bridgeID);
+        $devices = \is_string($json) ? json_decode($json, true) : null;
+        return \is_array($devices) ? $devices : [];
+    }
+
     /**
      * Baut das Gruppenformular nach Aktivierung des Reload-Schutzes auf.
      */
@@ -353,7 +366,7 @@ class Zigbee2MQTTGroup extends \Zigbee2MQTT\ModulBase
             $devices[$device['value']] = $device;
         }
 
-        foreach ($this->LoadGroupMemberDevicesFromExtension() as $device) {
+        foreach ($this->LoadGroupMemberDevicesFromBridgeCache() as $device) {
             $devices[$device['value']] = $device;
         }
 
@@ -414,21 +427,12 @@ class Zigbee2MQTTGroup extends \Zigbee2MQTT\ModulBase
     }
 
     /**
-     * Fragt Zigbee2MQTT nach bekannten Devices, damit auch noch nicht angelegte Instanzen auswählbar sind.
+     * Liest bekannte Devices samt Endpoints ohne synchrone MQTT-Abfrage aus der passenden Bridge.
      */
-    private function LoadGroupMemberDevicesFromExtension(): array
+    private function LoadGroupMemberDevicesFromBridgeCache(): array
     {
-        if (!$this->HasActiveParent()) {
-            return [];
-        }
-
-        $result = @$this->SendData(self::SYMCON_EXTENSION_LIST_REQUEST . 'getDevices', [], 2500);
-        if (!\is_array($result) || !\is_array($result['list'] ?? null)) {
-            return [];
-        }
-
         $devices = [];
-        foreach ($result['list'] as $device) {
+        foreach ($this->ReadGroupMemberDevicesFromBridgeCache() as $device) {
             if (!\is_array($device)) {
                 continue;
             }
@@ -1631,8 +1635,6 @@ class Zigbee2MQTTGroup extends \Zigbee2MQTT\ModulBase
         $filterAvailability = preg_quote('"Topic":"' . $baseTopic . '/' . $mqttTopic . '/' . self::AVAILABILITY_TOPIC . '"');
         $filterPayload = preg_quote('"Topic":"' . $baseTopic . '/' . $mqttTopic . '"');
         $filterInfo = preg_quote('"Topic":"' . $baseTopic . self::SYMCON_EXTENSION_RESPONSE . static::$ExtensionTopic . $mqttTopic . '"');
-        $filterDeviceList = preg_quote('"Topic":"' . $baseTopic . self::SYMCON_EXTENSION_LIST_RESPONSE . 'getDevices"');
-
-        $this->SetReceiveDataFilter('.*(' . $filterAvailability . '|' . $filterPayload . '|' . $filterInfo . '|' . $filterDeviceList . ').*');
+        $this->SetReceiveDataFilter('.*(' . $filterAvailability . '|' . $filterPayload . '|' . $filterInfo . ').*');
     }
 }
