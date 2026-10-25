@@ -12,6 +12,49 @@ use PHPUnit\Framework\TestCase;
  */
 class MQTTHelperTest extends TestCase
 {
+    public function testBusyTransactionLockAbortsRequestWithoutSendingOrChangingOtherTransactions(): void
+    {
+        $helper = new class() {
+            use \Zigbee2MQTT\SendData {
+                SendData as public sendMqttData;
+                ClearTransactionData as public clearTransactions;
+                UpdateTransaction as public completeTransaction;
+                UpdateTransactionByResponseTopic as public completeByTopic;
+            }
+            public array $TransactionData = [7 => ['pending' => true]];
+            public array $Multi_TransactionData = [8 => ['pending' => true]];
+            public int $unlockCalls = 0;
+            public int $sendCalls = 0;
+            public function lock(string $name): bool
+            {
+                return false;
+            }
+            public function unlock(string $name): void
+            {
+                $this->unlockCalls++;
+            }
+            public function SendDataToParent(string $data): void
+            {
+                $this->sendCalls++;
+            }
+            public function SendDebug(string $message, mixed $data, int $format): void
+            {
+            }
+            public function Translate(string $text): string
+            {
+                return $text;
+            }
+        };
+        $this->assertFalse($helper->sendMqttData('/SymconExtension/lists/request/getDevices', [], 2500));
+        $helper->clearTransactions();
+        $this->assertFalse($helper->completeTransaction(['transaction' => 8]));
+        $this->assertFalse($helper->completeByTopic('/bridge/response/options', []));
+        $this->assertSame([7 => ['pending' => true]], $helper->TransactionData);
+        $this->assertSame([8 => ['pending' => true]], $helper->Multi_TransactionData);
+        $this->assertSame(0, $helper->sendCalls);
+        $this->assertSame(0, $helper->unlockCalls);
+    }
+
     public function testDecodePayloadPreservesLegacyUtf8Payload(): void
     {
         $helper = new class() {

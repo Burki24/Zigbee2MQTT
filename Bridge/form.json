@@ -16,7 +16,7 @@
                     "caption": "Install or upgrade Symcon-Extension",
                     "onClick": [
                         "if (!Z2M_InstallSymconExtension($id)){",
-                        "   echo 'ERROR';",
+                        "   echo IPS_Translate($id, 'The extension installation could not be confirmed. Check the Zigbee2MQTT connection, the reported Zigbee-Herdsman version and the Symcon messages.');",
                         "}"
                     ]
                 },

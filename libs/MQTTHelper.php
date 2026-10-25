@@ -171,7 +171,7 @@ trait SendData
         $TransactionId = null;
         if ($Timeout) {
             $TransactionId = $this->ExecuteWithAvailableInstanceInterface(
-                function () use (&$Payload, $Topic): int
+                function () use (&$Payload, $Topic): int|false
                 {
                     return $this->AddTransaction($Payload, $Topic);
                 },
@@ -359,13 +359,14 @@ trait SendData
     /**
      * Fuehrt einen Zugriff auf den Transaktionsbuffer unter garantiertem Lock aus.
      *
-     * Der Lock wird auch dann freigegeben, wenn Lesen, Schreiben oder die
-     * Aufbereitung einer Antwort eine Exception ausloest.
+     * Ein belegter Lock liefert false, ohne fremde Daten zu lesen oder zu aendern.
+     * Ein erworbener Lock wird auch bei Exceptions garantiert freigegeben.
      */
     private function ExecuteWithTransactionLock(\Closure $Operation): mixed
     {
         if (!$this->lock('TransactionData')) {
-            throw new \RuntimeException($this->Translate('Transaction Data is locked'), E_USER_NOTICE);
+            $this->SendDebug(__FUNCTION__ . ':Busy', $this->Translate('Transaction Data is locked'), 0);
+            return false;
         }
 
         try {
@@ -421,9 +422,9 @@ trait SendData
      *
      * @param  array $Payload MQTT Payload als Referenz
      * @param  string $Topic Request-Topic zur Zuordnung von Antworten ohne TransactionId
-     * @return int Erzeugte TransactionId
+     * @return int|false Erzeugte TransactionId oder false bei belegtem Lock
      */
-    private function AddTransaction(array &$Payload, string $Topic): int
+    private function AddTransaction(array &$Payload, string $Topic): int|false
     {
         return $this->ExecuteWithTransactionLock(
             function () use (&$Payload, $Topic): int

@@ -1,6 +1,7 @@
 {
     "translations": {
         "de": {
+            "The extension installation could not be confirmed. Check the Zigbee2MQTT connection, the reported Zigbee-Herdsman version and the Symcon messages.": "Die Installation der Extension konnte nicht bestätigt werden. Bitte die Zigbee2MQTT-Verbindung, die gemeldete Zigbee-Herdsman-Version und das Symcon-Meldungsfenster prüfen.",
             "Online": "Online",
             "Offline - version information was last reported": "Offline - Versionsangaben entsprechen dem zuletzt gemeldeten Stand",
             "Zigbee2MQTT: %s | Installed extension: %s | Bundled extension: %s": "Zigbee2MQTT: %s | Installierte Extension: %s | Mitgelieferte Extension: %s",
