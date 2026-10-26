@@ -1302,7 +1302,7 @@ trait VariablePresentationHelper
             return 'flame';
         }
 
-        return $active ? 'power' : 'power-off';
+        return 'power-off';
     }
 
     /**

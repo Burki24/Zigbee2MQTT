@@ -664,6 +664,28 @@ class DevicesTest extends DumpInclude
         );
     }
 
+    public function testLightSwitchUsesSamePowerSymbolForBothStates(): void
+    {
+        $device = $this->createDeviceActionTestDouble();
+        $feature = ['type' => 'binary', 'name' => 'state', 'property' => 'state', 'access' => 7, 'value_on' => 'ON', 'value_off' => 'OFF'];
+        $exposes = [['type' => 'light', 'features' => [$feature]]];
+        $device->setExposesForTest($exposes);
+        (new \ReflectionMethod($device, 'mapExposesToVariables'))->invoke($device, $exposes);
+        $id = (new \ReflectionMethod($device, 'GetIDForIdent'))->invoke($device, 'state');
+        $presentation = IPS_GetVariable($id)['VariablePresentation'];
+        $this->assertSame('power-off', $presentation['ICON_FALSE']);
+        $this->assertSame('power-off', $presentation['ICON_TRUE']);
+        $this->assertSame(0, $presentation['USAGE_TYPE']);
+        $this->assertSame(60, $presentation['GLOW_INTENSITY']);
+        $device->RequestAction('state', true);
+        $this->assertSame(['state' => 'ON'], $device->sentPayload);
+        $device->RequestAction('state', false);
+        $this->assertSame(['state' => 'OFF'], $device->sentPayload);
+        $boost = (new \ReflectionMethod($device, 'BuildBinaryFeaturePresentation'))->invoke($device, ['type' => 'binary', 'property' => 'heating_boost', 'access' => 3]);
+        $this->assertSame('flame', $boost['ICON_TRUE']);
+        $this->assertSame('flame', $boost['ICON_FALSE']);
+    }
+
     public function testLightRolesExcludeSettingsRegardlessOfRegistrationOrder(): void
     {
         $state = ['type' => 'binary', 'name' => 'state', 'property' => 'state', 'access' => 7, 'value_on' => 'ON', 'value_off' => 'OFF'];

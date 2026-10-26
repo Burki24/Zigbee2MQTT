@@ -2,6 +2,8 @@
 
 ## Fixes
 
+- Das Schalter-Symbol bleibt bei Ein und Aus identisch. Der unpassende Symbolname für den eingeschalteten Zustand wurde korrigiert.
+
 - „Erkennen“ wird als String-Enum mit dem Befehlswert `identify` angelegt. Achtung: Bisherige Bool-Variablen bleiben mit ihrer alten ID und ihren Daten ausgeblendet erhalten, besitzen aber keine Aktion mehr. Für Skripte und Automationen müssen die neue Erkennen-Variable und der Enum-Wert verwendet werden. Die Migration sendet keinen Gerätebefehl und kann nach einem Abbruch erneut ausgeführt werden.
 
 - Bei Leuchtmitteln erhalten nur die tatsächlichen Lichtstatusvariablen aus den `light`-Exposes die Ein/Aus-Rolle, auch bei mehreren Endpoints. Zusatzoptionen wie „Nicht stören“, verzögertes Einschalten und Impulssteuerung bleiben bedienbar, werden jedoch nicht mehr als Lichtstatus angeboten.
