@@ -2,6 +2,12 @@
 
 ## Fixes
 
+- „Erkennen“ wird als String-Enum mit dem Befehlswert `identify` angelegt. Achtung: Bisherige Bool-Variablen bleiben mit ihrer alten ID und ihren Daten ausgeblendet erhalten, besitzen aber keine Aktion mehr. Für Skripte und Automationen müssen die neue Erkennen-Variable und der Enum-Wert verwendet werden. Die Migration sendet keinen Gerätebefehl und kann nach einem Abbruch erneut ausgeführt werden.
+
+- Bei Leuchtmitteln erhalten nur die tatsächlichen Lichtstatusvariablen aus den `light`-Exposes die Ein/Aus-Rolle, auch bei mehreren Endpoints. Zusatzoptionen wie „Nicht stören“, verzögertes Einschalten und Impulssteuerung bleiben bedienbar, werden jedoch nicht mehr als Lichtstatus angeboten.
+
+- Einmalige Befehle wie „Erkennen“ erhalten eine Schaltfläche statt einer Ein/Aus-Darstellung. Dadurch konkurrieren sie in nativen Kacheln nicht mehr mit dem eigentlichen Schaltstatus eines Leuchtmittels.
+
 - Die Online-Anzeige der Bridge berücksichtigt zusätzlich die aktuelle MQTT-Verbindung und aktualisiert sich auch in geöffneten Formularen bei Verbindungsabbruch und Wiederverbindung. Gemeldete Versionsinformationen bleiben erhalten.
 - RAW-Netzwerkkarten werden in der Bridge als JSON-Text gespeichert. Der bisherige Typfehler beim Empfang einer Netzwerkanalyse entfällt; Graphviz- und PlantUML-Ausgaben bleiben Text.
 

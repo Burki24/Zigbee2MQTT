@@ -664,6 +664,226 @@ class DevicesTest extends DumpInclude
         );
     }
 
+    public function testLightRolesExcludeSettingsRegardlessOfRegistrationOrder(): void
+    {
+        $state = ['type' => 'binary', 'name' => 'state', 'property' => 'state', 'access' => 7, 'value_on' => 'ON', 'value_off' => 'OFF'];
+        $binary = static fn (string $property): array => ['type' => 'binary', 'name' => $property, 'property' => $property, 'access' => 3, 'value_on' => true, 'value_off' => false];
+        $exposes = [
+            ['type' => 'light', 'features' => [$state]],
+            $binary('do_not_disturb'),
+            $binary('delayed_power_on_state'),
+            ['type' => 'composite', 'property' => 'inching_control_set', 'access' => 3, 'features' => [$binary('inching_control'), $binary('inching_mode')]]
+        ];
+        foreach ([$exposes, array_reverse($exposes)] as $ordered) {
+            $device = $this->createDeviceActionTestDouble();
+            $device->setExposesForTest($ordered);
+            $mapper = new \ReflectionMethod($device, 'mapExposesToVariables');
+            $mapper->invoke($device, $ordered);
+            $lookup = new \ReflectionMethod($device, 'GetIDForIdent');
+            foreach (['state' => 0, 'do_not_disturb' => 2, 'delayed_power_on_state' => 2, 'inching_control_set__inching_control' => 2, 'inching_control_set__inching_mode' => 2] as $ident => $usage) {
+                $id = $lookup->invoke($device, $ident);
+                $variable = IPS_GetVariable($id);
+                $this->assertSame(VARIABLE_PRESENTATION_SWITCH, $variable['VariablePresentation']['PRESENTATION'] ?? null, $ident);
+                $this->assertSame($usage, $variable['VariablePresentation']['USAGE_TYPE'] ?? null, $ident);
+                $this->assertNotSame(0, $variable['VariableAction'], $ident);
+            }
+            $id = $lookup->invoke($device, 'do_not_disturb');
+            $custom = ['PRESENTATION' => VARIABLE_PRESENTATION_SWITCH, 'USAGE_TYPE' => 1];
+            IPS_SetVariableCustomPresentation($id, $custom);
+            $mapper->invoke($device, $ordered);
+            $this->assertSame($id, $lookup->invoke($device, 'do_not_disturb'));
+            $this->assertSame($custom, IPS_GetVariable($id)['VariableCustomPresentation']);
+            $device->ApplyChanges();
+            $this->assertSame(2, IPS_GetVariable($id)['VariablePresentation']['USAGE_TYPE'] ?? null);
+            $this->assertSame($custom, IPS_GetVariable($id)['VariableCustomPresentation']);
+            $this->assertSame(0, IPS_GetVariable($lookup->invoke($device, 'state'))['VariablePresentation']['USAGE_TYPE'] ?? null);
+            $device->RequestAction('state', true);
+            $this->assertSame(['state' => 'ON'], $device->sentPayload);
+            $device->RequestAction('do_not_disturb', true);
+            $this->assertSame(['do_not_disturb' => true], $device->sentPayload);
+        }
+    }
+
+    public function testLightRolesRespectEndpointsAndRejectStateNamedSettings(): void
+    {
+        $device = $this->createDeviceActionTestDouble();
+        $state = static fn (string $endpoint, int $access): array => ['type' => 'binary', 'name' => 'state', 'property' => 'state_' . $endpoint, 'endpoint' => $endpoint, 'access' => $access, 'value_on' => 'ON', 'value_off' => 'OFF'];
+        $exposes = [
+            ['type' => 'light', 'endpoint' => 'l1', 'features' => [$state('l1', 7)]],
+            ['type' => 'light', 'endpoint' => 'l2', 'features' => [$state('l2', 7)]],
+            ['type' => 'light', 'endpoint' => 'l3', 'features' => [$state('l3', 1)]],
+            ['type' => 'binary', 'name' => 'state', 'property' => 'state_setting', 'access' => 3, 'value_on' => true, 'value_off' => false]
+        ];
+        $device->setExposesForTest($exposes);
+        (new \ReflectionMethod($device, 'mapExposesToVariables'))->invoke($device, $exposes);
+        $lookup = new \ReflectionMethod($device, 'GetIDForIdent');
+        foreach (['state_l1', 'state_l2'] as $ident) {
+            $this->assertSame(0, IPS_GetVariable($lookup->invoke($device, $ident))['VariablePresentation']['USAGE_TYPE'] ?? null);
+        }
+        $this->assertSame(2, IPS_GetVariable($lookup->invoke($device, 'state_setting'))['VariablePresentation']['USAGE_TYPE'] ?? null);
+        $readonly = IPS_GetVariable($lookup->invoke($device, 'state_l3'));
+        $this->assertSame(0, $readonly['VariableAction']);
+        $this->assertNotSame(VARIABLE_PRESENTATION_SWITCH, $readonly['VariablePresentation']['PRESENTATION'] ?? null);
+    }
+
+    public function testNonLightBinarySwitchKeepsItsExistingRole(): void
+    {
+        $device = $this->createDeviceActionTestDouble();
+        $feature = ['type' => 'binary', 'property' => 'child_lock', 'access' => 3, 'value_on' => true, 'value_off' => false];
+        $device->setExposesForTest([$feature]);
+        (new \ReflectionMethod($device, 'mapExposesToVariables'))->invoke($device, [$feature]);
+        $id = (new \ReflectionMethod($device, 'GetIDForIdent'))->invoke($device, 'child_lock');
+        $this->assertSame(0, IPS_GetVariable($id)['VariablePresentation']['USAGE_TYPE'] ?? null);
+    }
+
+    public function testIdentifyMigrationPreservesOldVariableButRemovesItsAction(): void
+    {
+        $device = $this->createDeviceActionTestDouble();
+        $old = $device->registerBooleanVariableForTest('identify');
+        SetValue($old, true);
+        IPS_SetName($old, 'My identify command');
+        IPS_SetVariableCustomAction($old, 12345);
+        $link = IPS_CreateLink();
+        IPS_SetLinkTargetID($link, $old);
+        $feature = ['type' => 'enum', 'name' => 'identify', 'property' => 'identify', 'access' => 2, 'values' => ['identify']];
+        $device->setExposesForTest([$feature]);
+        $register = new \ReflectionMethod($device, 'registerVariable');
+        $register->invoke($device, $feature);
+        $lookup = new \ReflectionMethod($device, 'GetIDForIdent');
+        $new = $lookup->invoke($device, 'identify');
+        $this->assertNotSame($old, $new);
+        $this->assertTrue(GetValue($old));
+        $this->assertSame($old, IPS_GetLink($link)['TargetID']);
+        $this->assertSame(VARIABLETYPE_BOOLEAN, IPS_GetVariable($old)['VariableType']);
+        $this->assertSame(0, IPS_GetVariable($old)['VariableAction']);
+        $this->assertSame(0, IPS_GetVariable($old)['VariableCustomAction']);
+        $this->assertTrue(IPS_GetObject($old)['ObjectIsHidden']);
+        $this->assertSame(VARIABLETYPE_STRING, IPS_GetVariable($new)['VariableType']);
+        $this->assertSame('My identify command', IPS_GetName($new));
+        $this->assertSame('', $device->sentTopic, 'Migration must not execute identify.');
+        $register->invoke($device, $feature);
+        $this->assertSame($new, $lookup->invoke($device, 'identify'));
+        $this->assertSame($old, IPS_GetLink($link)['TargetID']);
+        $alias = IPS_GetObject($old)['ObjectIdent'];
+        $handler = new \ReflectionMethod($device, 'handleVariableRequestAction');
+        foreach ([[$alias, true], ['identify', true], ['identify', false], ['identify', 'invalid']] as [$ident, $value]) {
+            $this->assertFalse($handler->invoke($device, $ident, $value));
+            $this->assertSame('', $device->sentTopic);
+        }
+        $device->RequestAction('identify', 'identify');
+        $this->assertSame(['identify' => 'identify'], $device->sentPayload);
+    }
+
+    public function testIdentifyMigrationResumesAfterRegistrationFailure(): void
+    {
+        $device = $this->createDeviceActionTestDouble();
+        $old = $device->registerBooleanVariableForTest('identify');
+        $feature = ['type' => 'enum', 'name' => 'identify', 'property' => 'identify', 'access' => 2, 'values' => ['identify']];
+        $device->setExposesForTest([$feature]);
+        $register = new \ReflectionMethod($device, 'registerVariable');
+        $device->failIdentifyRegistration = true;
+        try {
+            $register->invoke($device, $feature);
+            $this->fail('Expected registration failure');
+        } catch (\RuntimeException $error) {
+            $this->assertSame('Simulated identify registration failure', $error->getMessage());
+        }
+        $this->assertTrue(IPS_VariableExists($old));
+        $this->assertSame('', $device->sentTopic);
+        $device->failIdentifyRegistration = false;
+        $device->ApplyChanges();
+        $new = (new \ReflectionMethod($device, 'GetIDForIdent'))->invoke($device, 'identify');
+        $this->assertSame(VARIABLETYPE_STRING, IPS_GetVariable($new)['VariableType']);
+        $this->assertTrue(IPS_VariableExists($old));
+        $register->invoke($device, $feature);
+        $this->assertSame($new, (new \ReflectionMethod($device, 'GetIDForIdent'))->invoke($device, 'identify'));
+    }
+
+    public function testIdentifyMigrationRejectsUnexpectedTypesWithoutDeletingData(): void
+    {
+        $device = $this->createDeviceActionTestDouble();
+        $old = $device->registerIntegerVariableForTest('identify');
+        SetValue($old, 17);
+        $feature = ['type' => 'enum', 'name' => 'identify', 'property' => 'identify', 'access' => 2, 'values' => ['identify']];
+        try {
+            (new \ReflectionMethod($device, 'registerVariable'))->invoke($device, $feature);
+            $this->fail('Unexpected type must be rejected');
+        } catch (\RuntimeException $error) {
+            $this->assertStringContainsString('Unexpected identify variable type', $error->getMessage());
+        }
+        $this->assertSame(17, GetValue($old));
+        $this->assertSame('identify', IPS_GetObject($old)['ObjectIdent']);
+    }
+
+    public function testIdentifyMigrationResumesBeforeLegacyRename(): void
+    {
+        $device = $this->createDeviceActionTestDouble();
+        $old = $device->registerBooleanVariableForTest('identify');
+        $feature = ['type' => 'enum', 'property' => 'identify', 'access' => 2, 'values' => ['identify']];
+        (new \ReflectionMethod($device, 'WriteAttributeArray'))->invoke($device, 'IdentifyEnumMigrations', [
+            'identify' => ['version' => 1, 'legacyID' => $old, 'alias' => 'z2m_legacy_identify_' . $old, 'name' => 'Identify', 'pending' => true]
+        ]);
+        (new \ReflectionMethod($device, 'registerVariable'))->invoke($device, $feature);
+        $new = (new \ReflectionMethod($device, 'GetIDForIdent'))->invoke($device, 'identify');
+        $this->assertNotSame($old, $new);
+        $this->assertTrue(IPS_VariableExists($old));
+        $this->assertSame(VARIABLETYPE_STRING, IPS_GetVariable($new)['VariableType']);
+        $this->assertSame('', $device->sentTopic);
+    }
+
+    public function testIdentifyMigrationRejectsAliasCollisionWithoutRenamingLegacyVariable(): void
+    {
+        $device = $this->createDeviceActionTestDouble();
+        $old = $device->registerBooleanVariableForTest('identify');
+        $alias = $device->registerStringVariableForTest('z2m_legacy_identify_' . $old);
+        $feature = ['type' => 'enum', 'property' => 'identify', 'access' => 2, 'values' => ['identify']];
+        try {
+            (new \ReflectionMethod($device, 'registerVariable'))->invoke($device, $feature);
+            $this->fail('Alias collision must be rejected');
+        } catch (\RuntimeException $error) {
+            $this->assertStringContainsString('alias already exists', $error->getMessage());
+        }
+        $this->assertSame('identify', IPS_GetObject($old)['ObjectIdent']);
+        $this->assertSame('z2m_legacy_identify_' . $old, IPS_GetObject($alias)['ObjectIdent']);
+        $this->assertSame('', $device->sentTopic);
+    }
+
+    public function testIdentifyEnumCommandDoesNotReplaceLightSwitch(): void
+    {
+        $state = ['type' => 'binary', 'name' => 'state', 'property' => 'state', 'access' => 7, 'value_on' => 'ON', 'value_off' => 'OFF'];
+        $identify = ['type' => 'enum', 'name' => 'identify', 'property' => 'identify', 'access' => 2, 'values' => ['identify']];
+        foreach ([[$identify, $state], [$state, $identify]] as $features) {
+            $device = $this->createDeviceActionTestDouble();
+            $device->setExposesForTest($features);
+            $register = new \ReflectionMethod($device, 'registerVariable');
+            foreach ($features as $feature) {
+                $register->invoke($device, $feature);
+            }
+            $stateID = (new \ReflectionMethod($device, 'GetIDForIdent'))->invoke($device, 'state');
+            $identifyID = IPS_GetObjectIDByIdent('identify', IPS_GetParent($stateID));
+            $variable = IPS_GetVariable($identifyID);
+            $this->assertSame(VARIABLETYPE_STRING, $variable['VariableType']);
+            $this->assertSame(VARIABLE_PRESENTATION_ENUMERATION, $variable['VariablePresentation']['PRESENTATION'] ?? null);
+            $options = json_decode($variable['VariablePresentation']['OPTIONS'], true, 512, JSON_THROW_ON_ERROR);
+            $this->assertCount(1, $options);
+            $this->assertSame('identify', $options[0]['Value']);
+            $this->assertSame('Erkennen', $options[0]['Caption']);
+            $this->assertNotSame(VARIABLE_PRESENTATION_ENUMERATION, IPS_GetVariable($stateID)['VariablePresentation']['PRESENTATION'] ?? null);
+            $device->RequestAction('state', true);
+            $this->assertSame(['state' => 'ON'], $device->sentPayload);
+            $device->RequestAction('state', false);
+            $this->assertSame(['state' => 'OFF'], $device->sentPayload);
+            $device->RequestAction('identify', 'identify');
+            $this->assertSame(['identify' => 'identify'], $device->sentPayload);
+            $this->assertSame('identify', GetValue($identifyID));
+            $custom = ['PRESENTATION' => VARIABLE_PRESENTATION_ENUMERATION, 'OPTIONS' => json_encode([['Value' => 'identify', 'Caption' => 'Find']])];
+            IPS_SetVariableCustomPresentation($identifyID, $custom);
+            $register->invoke($device, $identify);
+            $this->assertSame($custom, IPS_GetVariable($identifyID)['VariableCustomPresentation']);
+            $this->assertSame($identifyID, IPS_GetObjectIDByIdent('identify', IPS_GetParent($stateID)));
+        }
+    }
+
     public function testSwitchStateActionMapsBooleanToOnOffAndWaitsForFeedback(): void
     {
         $device = $this->createDeviceActionTestDouble();
@@ -3262,6 +3482,14 @@ class DevicesTest extends DumpInclude
     {
         $instanceID = IPS_CreateInstance('{E5BB36C6-A70B-EB23-3716-9151A09AC8A2}');
         $device = new class($instanceID) extends Zigbee2MQTTDevice {
+            public bool $failIdentifyRegistration = false;
+            protected function RegisterVariableString(string $Ident, string $Name, string|array $ProfileOrPresentation = '', int $Position = 0): bool
+            {
+                if ($this->failIdentifyRegistration && $Ident === 'identify') {
+                    throw new \RuntimeException('Simulated identify registration failure');
+                }
+                return parent::RegisterVariableString($Ident, $Name, $ProfileOrPresentation, $Position);
+            }
             public string $sentTopic = '';
             public array $sentPayload = [];
 

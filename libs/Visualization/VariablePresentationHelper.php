@@ -655,6 +655,17 @@ trait VariablePresentationHelper
         }
     }
 
+    /** Represents a write-only command as a button rather than an on/off switch. */
+    protected function BuildCommandTriggerPresentation(array $feature): ?array
+    {
+        return $this->BuildWritableEnumerationPresentation($feature, [[
+            'Value'      => true,
+            'Caption'    => $this->Translate($this->convertLabelToName((string) $feature['property'])),
+            'IconActive' => false,
+            'IconValue'  => ''
+        ]]);
+    }
+
     /**
      * Erstellt fuer Enum-Exposes eine passende native Darstellung.
      *
@@ -959,6 +970,40 @@ trait VariablePresentationHelper
         ];
     }
 
+    /** Returns a light-specific switch role, or null for devices without a light expose. */
+    protected function GetLightBinaryUsage(array $feature): ?int
+    {
+        $hasLight = false;
+        $stateProperties = [];
+        $exposes = $this->ReadAttributeArray(self::ATTRIBUTE_EXPOSES);
+        // Retain the container context when restoring a catalog entry on its own.
+        if (($feature['group_type'] ?? '') === 'light') {
+            $exposes[] = ['type' => 'light', 'features' => [$feature]];
+        }
+        foreach ($exposes as $expose) {
+            if (!\is_array($expose) || ($expose['type'] ?? '') !== 'light') {
+                continue;
+            }
+            $hasLight = true;
+            foreach ($expose['features'] ?? [] as $candidate) {
+                if (!\is_array($candidate) || ($candidate['type'] ?? '') !== 'binary') {
+                    continue;
+                }
+                $property = (string) ($candidate['property'] ?? $candidate['name'] ?? '');
+                $name = (string) ($candidate['name'] ?? $property);
+                $endpoint = (string) ($candidate['endpoint'] ?? $expose['endpoint'] ?? '');
+                if ($property !== '' && ($name === 'state' || $property === 'state'
+                    || ($endpoint !== '' && $property === 'state_' . $endpoint))) {
+                    $stateProperties[] = $property;
+                }
+            }
+        }
+        if (!$hasLight) {
+            return null;
+        }
+        return \in_array((string) ($feature['property'] ?? ''), $stateProperties, true) ? 0 : 2;
+    }
+
     /**
      * Erstellt eine native Darstellung fuer Binary-Exposes.
      */
@@ -978,7 +1023,7 @@ trait VariablePresentationHelper
             'ICON_FALSE'       => $this->GetBinaryPresentationIcon($feature, false),
             'GLOW_COLOR'       => $this->GetBinaryGlowColor($feature),
             'GLOW_INTENSITY'   => 60,
-            'USAGE_TYPE'       => 0
+            'USAGE_TYPE'       => $this->GetLightBinaryUsage($feature) ?? 0
         ];
     }
 

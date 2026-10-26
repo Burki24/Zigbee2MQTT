@@ -118,6 +118,12 @@ Es werden nur Optionen angezeigt, die für das jeweilige Gerät fachlich passen.
 | Aktions-Kachel | Taster-, Fernbedienungs-, Button- oder Szenen-Exposes | Letzte Aktion und verfügbare Aktionswerte |
 | Sensor-Kachel | z.B. `temperature`, `humidity`, `soil_moisture`, `illuminance`, `occupancy`, `motion`, `presence`, `target_distance` | Messwertdarstellung für reine Sensoren und Radar-/Präsenzmelder, inklusive Detail-/Einstellseite wenn passende Einstellwerte vorhanden sind |
 
+Bei Leuchtmitteln erhalten nur die tatsächlichen Schaltzustände aus den `light`-Exposes die Rolle **Ein/Aus**. Das gilt auch für mehrere Endpoints. Zusätzliche Bool-Einstellungen wie **Nicht stören**, verzögertes Einschalten und Impulssteuerung erhalten **Keine dieser Verwendungen** und bleiben als eigene Schalter bedienbar. Benutzerdefinierte Darstellungen werden nicht überschrieben.
+
+**Umstellung von Erkennen:** Die aktuelle Erkennen-Variable ist eine String-Enum mit dem Wert `identify`. Sie zeigt den zuletzt über die neue Aktion gesendeten Befehl, keinen dauerhaften Gerätezustand. Bei einer bestehenden Bool-Variable bleibt deren alte ID samt Werten und Referenzen erhalten. Sie wird ausgeblendet, erhält einen internen Legacy-Ident und hat keine Standard- oder benutzerdefinierte Aktion mehr. Es gibt keine Weiterleitung alter Aufrufe. Skripte, Links und Automationen, die weiterhin Erkennen auslösen sollen, müssen auf die neue Variable umgestellt werden, beispielsweise `RequestAction($neueErkennenVariableID, 'identify')`. Ein boolesches `true` ist für die neue Aktion nicht zulässig. Die Migration selbst führt keinen Identify-Befehl aus.
+
+Einmalige Befehle wie **Erkennen** werden als separate Schaltfläche dargestellt. Der eigentliche Ein/Aus-Status bleibt dadurch für die native Schaltbedienung der Kachel verfügbar. Benutzerdefinierte Variablendarstellungen bleiben erhalten.
+
 #### Beispiel Schaltaktor mit Leistungsmessung
 ![Schaltaktor mit Leistungsmessung](imgs/Schaltaktoren-Kachel.png)
 

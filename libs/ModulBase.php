@@ -506,6 +506,7 @@ abstract class ModulBase extends \IPSModuleStrict
         $this->RegisterPropertyFloat(self::PROPERTY_HEATING_TILE_PRESET_2, 20.0);
         $this->RegisterPropertyFloat(self::PROPERTY_HEATING_TILE_PRESET_3, 22.0);
         $this->RegisterAttributeArray(self::ATTRIBUTE_EXPOSES, []);
+        $this->RegisterAttributeArray('IdentifyEnumMigrations', []);
         $this->RegisterAttributeArray(self::ATTRIBUTE_FILTERED, []);
         $this->RegisterAttributeArray(self::ATTRIBUTE_DEVICE_OPTIONS, []);
         $this->RegisterAttributeArray(self::ATTRIBUTE_DEVICE_OPTION_DEFINITIONS, []);

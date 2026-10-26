@@ -536,7 +536,7 @@ trait ExposeVariableRegistrationHelper
 
         $shouldCheckVariableCreation = !\is_array($feature)
             || (!isset($feature['color_mode']) && !$this->IsExposeCompositeContainer($feature));
-        if ($shouldCheckVariableCreation) {
+        if ($shouldCheckVariableCreation && !$this->HasPendingIdentifyEnumMigration($featureProperty)) {
             if (!$this->CanCreateVariable($featureProperty, \is_array($feature) ? $feature : null, 'expose')) {
                 return;
             }
@@ -613,10 +613,94 @@ trait ExposeVariableRegistrationHelper
         }
 
         $ident = str_replace('&', '_and_', $featureProperty);
-        $this->RegisterVariableBoolean($ident, $this->Translate($this->convertLabelToName($featureProperty)), '');
+        if ($this->IsIdentifyEnumFeature($feature)) {
+            $this->RegisterIdentifyEnumVariable($ident, $feature);
+            return true;
+        }
+        $presentation = $this->BuildCommandTriggerPresentation($feature) ?? '';
+        $this->RegisterVariableBoolean($ident, $this->Translate($this->convertLabelToName($featureProperty)), $presentation);
         $this->MarkVariableCreated($ident);
         $this->synchronizeVariableAction($ident, $feature, true);
         return true;
+    }
+
+    private function HasPendingIdentifyEnumMigration(string $ident): bool
+    {
+        return (bool) ($this->ReadAttributeArray('IdentifyEnumMigrations')[$ident]['pending'] ?? false);
+    }
+
+    private function IsIdentifyEnumFeature(array $feature): bool
+    {
+        return $this->isWriteOnlySingleEnumCommand($feature)
+            && (($feature['name'] ?? '') === 'identify' || ($feature['property'] ?? '') === 'identify');
+    }
+
+    /** Preserves legacy Boolean IDs and resumes interrupted enum creation without issuing commands. */
+    private function RegisterIdentifyEnumVariable(string $ident, array $feature): void
+    {
+        if (!$this->lock('IdentifyEnumMigration')) {
+            throw new \RuntimeException('Identify enum migration is busy; retry applying the configuration.');
+        }
+        try {
+            $migrations = $this->ReadAttributeArray('IdentifyEnumMigrations');
+            $entry = $migrations[$ident] ?? null;
+            if ($entry !== null && (!\is_array($entry) || ($entry['version'] ?? null) !== 1
+                || !isset($entry['legacyID'], $entry['alias'], $entry['name'], $entry['pending'])
+                || !\is_int($entry['legacyID']) || !\is_string($entry['alias']) || !\is_bool($entry['pending']))) {
+                throw new \RuntimeException('Invalid identify migration data: ' . $ident);
+            }
+            $current = @IPS_GetObjectIDByIdent($ident, $this->InstanceID);
+            if ($current !== false && !IPS_VariableExists($current)) {
+                throw new \RuntimeException('Identify ident is occupied by a non-variable object.');
+            }
+            if ($current !== false && IPS_GetVariable($current)['VariableType'] !== VARIABLETYPE_STRING) {
+                if (IPS_GetVariable($current)['VariableType'] !== VARIABLETYPE_BOOLEAN
+                    || ($entry !== null && ((int) $entry['legacyID'] !== $current || !$entry['pending']))
+                ) {
+                    throw new \RuntimeException('Unexpected identify variable type or migration conflict: ' . $ident);
+                }
+                if ($entry === null) {
+                    $alias = 'z2m_legacy_identify_' . $current;
+                    if (@IPS_GetObjectIDByIdent($alias, $this->InstanceID) !== false) {
+                        throw new \RuntimeException('Identify migration alias already exists: ' . $alias);
+                    }
+                    $entry = ['version' => 1, 'legacyID' => $current, 'alias' => $alias, 'name' => IPS_GetName($current), 'pending' => true];
+                    $migrations[$ident] = $entry;
+                    $this->WriteAttributeArray('IdentifyEnumMigrations', $migrations);
+                }
+            }
+            if ($entry !== null) {
+                $legacy = (int) $entry['legacyID'];
+                $validLegacy = IPS_VariableExists($legacy) && IPS_GetParent($legacy) === $this->InstanceID
+                    && IPS_GetVariable($legacy)['VariableType'] === VARIABLETYPE_BOOLEAN
+                    && \in_array(IPS_GetObject($legacy)['ObjectIdent'], [$ident, $entry['alias']], true);
+                if (!$validLegacy && $entry['pending']) {
+                    throw new \RuntimeException('Legacy identify variable is unavailable or was modified.');
+                }
+                if ($validLegacy) {
+                    $collision = @IPS_GetObjectIDByIdent($entry['alias'], $this->InstanceID);
+                    if ($collision !== false && $collision !== $legacy) {
+                        throw new \RuntimeException('Identify migration alias collision.');
+                    }
+                    IPS_SetIdent($legacy, $entry['alias']);
+                    IPS_SetHidden($legacy, true);
+                    $this->RegisterVariableBoolean($entry['alias'], $entry['name'], $this->BuildFeaturePresentation(['type' => 'binary', 'property' => $entry['alias'], 'access' => 1]) ?? '');
+                    $this->DisableAction($entry['alias']);
+                    IPS_SetVariableCustomAction($legacy, 0);
+                    $this->RememberVariableDefinition($entry['alias'], ['property' => $entry['alias'], 'type' => 'binary', 'access' => 1, 'label' => $entry['name']], 'system');
+                    $this->MarkVariableCreated($entry['alias']);
+                }
+            }
+            $this->RegisterVariableString($ident, $entry['name'] ?? $this->Translate($this->convertLabelToName($ident)), $this->BuildEnumerationPresentation($feature) ?? '');
+            $this->MarkVariableCreated($ident);
+            $this->synchronizeVariableAction($ident, $feature, true);
+            if ($entry !== null && $entry['pending']) {
+                $migrations[$ident]['pending'] = false;
+                $this->WriteAttributeArray('IdentifyEnumMigrations', $migrations);
+            }
+        } finally {
+            $this->unlock('IdentifyEnumMigration');
+        }
     }
 
     /**
@@ -672,6 +756,12 @@ trait ExposeVariableRegistrationHelper
      */
     private function BuildStatePresentation(array $stateConfig, ?array $feature): string|array
     {
+        if (($stateConfig['dataType'] ?? null) === VARIABLETYPE_BOOLEAN && $feature !== null
+            && $this->GetLightBinaryUsage($feature) !== null
+        ) {
+            return $this->BuildBinaryFeaturePresentation($feature) ?? '';
+        }
+
         if (($stateConfig['dataType'] ?? null) !== VARIABLETYPE_STRING || !isset($stateConfig['values']) || !\is_array($stateConfig['values'])) {
             return '';
         }

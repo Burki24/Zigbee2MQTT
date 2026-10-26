@@ -852,7 +852,7 @@ trait VariableCatalogHelper
             && \is_array($feature['presets'])
             && $this->GetObjectIDByIdent($property . '_presets') !== false;
 
-        if ($hasExistingVariable || $hasExistingDerivedVariable) {
+        if ($hasExistingVariable || $hasExistingDerivedVariable || $this->HasPendingIdentifyEnumMigration($ident)) {
             $this->registerVariable($feature);
         }
         if ($hasExistingPresetVariable) {

@@ -67,6 +67,11 @@ trait DeviceActionHelper
      */
     private function handleVariableRequestAction(string $ident, mixed $value): bool
     {
+        $identifyResult = $this->HandleIdentifyEnumAction($ident, $value);
+        if ($identifyResult !== null) {
+            return $identifyResult;
+        }
+
         // Presets muessen vor Composite Keys verarbeitet werden.
         if (strpos($ident, 'presets') !== false) {
             $this->SendDebug(__FUNCTION__, 'Verarbeite Preset: ' . $ident, 0);
@@ -102,6 +107,35 @@ trait DeviceActionHelper
 
         $this->SendDebug(__FUNCTION__, 'Verarbeite Standard-Variable: ' . $ident, 0);
         return $this->handleStandardVariable($ident, $value);
+    }
+
+    /** Executes only the new enum command; retained legacy variables have no function. */
+    private function HandleIdentifyEnumAction(string $ident, mixed $value): ?bool
+    {
+        $migrations = $this->ReadAttributeArray('IdentifyEnumMigrations');
+        foreach ($migrations as $entry) {
+            if (($entry['alias'] ?? '') === $ident) {
+                return false;
+            }
+        }
+        $feature = $this->findExposeFeatureByProperty($ident);
+        if ($feature === null || !$this->IsIdentifyEnumFeature($feature)) {
+            return null;
+        }
+        $variable = @IPS_GetObjectIDByIdent($ident, $this->InstanceID);
+        if ($variable === false || IPS_GetVariable($variable)['VariableType'] !== VARIABLETYPE_STRING) {
+            return false;
+        }
+        $command = $feature['values'][0];
+        if ($value !== $command) {
+            $this->SendDebug(__FUNCTION__, 'Ignored invalid identify enum command', 0);
+            return false;
+        }
+        if (!$this->SendSetCommand([$ident => $command])) {
+            return false;
+        }
+        $this->SetValueDirect($ident, $command);
+        return true;
     }
 
     /**
