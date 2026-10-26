@@ -169,6 +169,8 @@ Das Update kann anschließend über den [Modul-Store](https://www.symcon.de/de/s
 
 Während des Updates können vorübergehend Warnungen auftreten, wenn andere Symcon-Module zeitgleich auf Zigbee2MQTT-Instanzen zugreifen, deren Konfiguration gerade neu angewendet wird. Bleiben Meldungen nach Abschluss bestehen, sind die Bridge-Instanz und die betroffenen Geräteinstanzen erneut zu öffnen und anzuwenden.
 
+Bei älteren Migrationen bleiben vorhandene Exposes-Dateien als Wiederherstellungsquelle erhalten. Fehlerhafte Altdaten werden nicht stillschweigend durch leere Daten ersetzt. Nach einem Migrationsfehler wird der vorherige MQTT-Verarbeitungszustand wiederhergestellt; die im Meldungsfenster genannte Ursache muss vor einem erneuten Versuch behoben werden.
+
 #### III. Symcon-Extension prüfen <!-- omit in toc -->
 
 Nach dem Update ist die Bridge-Konfiguration zu öffnen und der Extension-Stand zu prüfen. Die aktuelle Modulversion liefert die Symcon-Extension in Version `6.06` mit.

@@ -12,6 +12,46 @@ use PHPUnit\Framework\TestCase;
  */
 class MQTTHelperTest extends TestCase
 {
+    public function testWaitingRetriesBusyLockAndConsumesCompletedTransactionAtomically(): void
+    {
+        $helper = $this->createPollingHelper([false, true, false]);
+        $helper->Multi_TransactionData = [42 => ['__meta' => [], '__result' => ['transaction' => 42, 'status' => 'ok']]];
+        $this->assertSame(['status' => 'ok'], $helper->waitForResult(42, 200));
+        $this->assertSame([], $helper->Multi_TransactionData);
+        $this->assertSame(1, $helper->unlockCalls);
+    }
+
+    public function testExpiredTransactionsAreReclaimedAfterCleanupLockWasBusy(): void
+    {
+        $helper = $this->createPollingHelper(array_fill(0, 100, false));
+        $helper->Multi_TransactionData = [42 => ['__meta' => ['expiresAt' => microtime(true) - 1], '__result' => null]];
+        $start = microtime(true);
+        $this->assertFalse($helper->waitForResult(42, 30));
+        $this->assertGreaterThanOrEqual(0.025, microtime(true) - $start);
+        $this->assertCount(1, $helper->Multi_TransactionData);
+        $this->assertSame(0, $helper->unlockCalls);
+        $helper->lockResults = [];
+        $helper->Multi_TransactionData[43] = ['__meta' => ['expiresAt' => microtime(true) + 60], '__result' => null];
+        $payload = [];
+        $id = $helper->createTransaction($payload, '/bridge/request/health_check');
+        $this->assertIsInt($id);
+        $this->assertArrayNotHasKey(42, $helper->Multi_TransactionData);
+        $this->assertArrayHasKey(43, $helper->Multi_TransactionData);
+    }
+
+    public function testRequestDeadlineIsStoredAndLateResponsesToExpiredTransactionsAreIgnored(): void
+    {
+        $helper = $this->createPollingHelper([]);
+        $payload = [];
+        $deadline = microtime(true) + 300;
+        $id = $helper->createTransaction($payload, '/bridge/request/backup', $deadline);
+        $this->assertSame($deadline, $helper->Multi_TransactionData[$id]['__meta']['expiresAt']);
+        $helper->Multi_TransactionData[77] = ['__meta' => ['expiresAt' => microtime(true) - 1], '__result' => null];
+        $this->assertFalse($helper->completeTransaction(['transaction' => 77, 'status' => 'ok']));
+        $this->assertArrayNotHasKey(77, $helper->Multi_TransactionData);
+        $this->assertArrayHasKey($id, $helper->Multi_TransactionData);
+    }
+
     public function testBusyTransactionLockAbortsRequestWithoutSendingOrChangingOtherTransactions(): void
     {
         $helper = new class() {
@@ -496,5 +536,37 @@ class MQTTHelperTest extends TestCase
         $this->assertSame('300000', $helper->debugMessages['SendData:Timeout'][0]);
         $this->assertSame('BACKUP', file_get_contents($result['data']['zip_file']));
         @unlink($result['data']['zip_file']);
+    }
+
+    private function createPollingHelper(array $locks): object
+    {
+        return new class($locks) {
+            use \Zigbee2MQTT\SendData {
+                WaitForTransactionEnd as public waitForResult;
+                AddTransaction as public createTransaction;
+                UpdateTransaction as public completeTransaction;
+            }
+            public array $TransactionData = [];
+            public array $Multi_TransactionData = [];
+            public int $unlockCalls = 0;
+            public function __construct(public array $lockResults)
+            {
+            }
+            public function lock(string $name): bool
+            {
+                return $this->lockResults !== [] ? array_shift($this->lockResults) : true;
+            }
+            public function unlock(string $name): void
+            {
+                $this->unlockCalls++;
+            }
+            public function SendDebug(string $message, mixed $data, int $format): void
+            {
+            }
+            public function Translate(string $text): string
+            {
+                return $text;
+            }
+        };
     }
 }

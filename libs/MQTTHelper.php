@@ -169,11 +169,12 @@ trait SendData
     private function SendDataInternal(string $Topic, array $Payload, int $Timeout, bool $Sensitive): array|bool
     {
         $TransactionId = null;
+        $Deadline = $Timeout > 0 ? microtime(true) + ($Timeout / 1000) : null;
         if ($Timeout) {
             $TransactionId = $this->ExecuteWithAvailableInstanceInterface(
-                function () use (&$Payload, $Topic): int|false
+                function () use (&$Payload, $Topic, $Deadline): int|false
                 {
-                    return $this->AddTransaction($Payload, $Topic);
+                    return $this->AddTransaction($Payload, $Topic, $Deadline);
                 },
                 null
             );
@@ -202,7 +203,7 @@ trait SendData
         }
 
         if ($Timeout) {
-            $Result = $this->WaitForTransactionEnd($TransactionId, $Timeout);
+            $Result = $this->WaitForTransactionEnd($TransactionId, $Timeout, $Deadline);
             $this->SendLimitedDebug($DebugMethod . ' :Result', $Sensitive ? '[redacted]' : json_encode($Result), 0);
             if ($Result === false) {
                 trigger_error(\sprintf($this->Translate('Zigbee2MQTT did not response on Topic %s'), $Topic), E_USER_NOTICE);
@@ -300,59 +301,47 @@ trait SendData
      * @param  int $Timeout
      * @return array|false Enthält die Antwort, oder false beim erreichen des Timeout oder im Fehlerfall.
      */
-    private function WaitForTransactionEnd(int $TransactionId, int $Timeout): array|false
+    private function WaitForTransactionEnd(int $TransactionId, int $Timeout, ?float $Deadline = null): array|false
     {
-        $Deadline = microtime(true) + ($Timeout / 1000);
+        $Deadline ??= microtime(true) + ($Timeout / 1000);
         $Sleep = max(10, min(250, intdiv($Timeout, 100)));
-
-        $this->SendDebug(
-            __FUNCTION__ . ':Start',
-            \sprintf('Transaction %d, Timeout %d ms, Sleep %d ms', $TransactionId, $Timeout, $Sleep),
-            0
-        );
-
+        $this->SendDebug(__FUNCTION__ . ':Start', sprintf('Transaction %d, Timeout %d ms, Sleep %d ms', $TransactionId, $Timeout, $Sleep), 0);
         while (microtime(true) < $Deadline) {
-            $Buffer = $this->ExecuteWithTransactionLock(fn (): array => $this->ReadTransactionData());
-            if (!isset($Buffer[$TransactionId])) {
-                $this->SendDebug(
-                    __FUNCTION__ . ':Abort',
-                    \sprintf('Transaction %d missing before timeout', $TransactionId),
-                    0
-                );
-                return false;
-            }
-            $Transaction = $Buffer[$TransactionId];
-            if (!\is_array($Transaction)) {
-                $this->SendDebug(
-                    __FUNCTION__ . ':Abort',
-                    \sprintf('Transaction %d has invalid buffer data', $TransactionId),
-                    0
-                );
-                return false;
-            }
-            if (\count($Transaction)) {
-                if (!$this->HasTransactionResult($Transaction)) {
-                    IPS_Sleep($Sleep);
-                    continue;
+            $poll = $this->ExecuteWithTransactionLock(function () use ($TransactionId): array
+            {
+                $data = $this->ReadTransactionData();
+                if (!array_key_exists($TransactionId, $data)) {
+                    return ['state' => 'missing'];
                 }
-                $this->RemoveTransaction($TransactionId);
-                $Result = $this->GetTransactionResult($Transaction);
-                unset($Result['transaction']);
-                $this->SendDebug(
-                    __FUNCTION__ . ':Done',
-                    \sprintf('Transaction %d finished', $TransactionId),
-                    0
-                );
-                return $Result;
+                $transaction = $data[$TransactionId];
+                if (!\is_array($transaction)) {
+                    return ['state' => 'invalid'];
+                }
+                if (!$this->HasTransactionResult($transaction)) {
+                    return ['state' => 'pending'];
+                }
+                $result = $this->GetTransactionResult($transaction);
+                unset($data[$TransactionId]);
+                $this->WriteTransactionData($data);
+                return ['state' => 'complete', 'result' => $result];
+            });
+            if ($poll === false || $poll['state'] === 'pending') {
+                IPS_Sleep($Sleep);
+                continue;
             }
-            IPS_Sleep($Sleep);
+            if ($poll['state'] !== 'complete') {
+                $this->RemoveTransactionSafely($TransactionId);
+                $this->SendDebug(__FUNCTION__ . ':Abort', sprintf('Transaction %d: %s', $TransactionId, $poll['state']), 0);
+                return false;
+            }
+            $result = $poll['result'];
+            unset($result['transaction']);
+            $this->SendDebug(__FUNCTION__ . ':Done', sprintf('Transaction %d finished', $TransactionId), 0);
+            return $result;
         }
-        $this->RemoveTransaction($TransactionId);
-        $this->SendDebug(
-            __FUNCTION__ . ':Timeout',
-            \sprintf('Transaction %d timed out after %d ms', $TransactionId, $Timeout),
-            0
-        );
+        // If the lock remains busy, expiry reclaims the entry on the next locked access.
+        $this->RemoveTransactionSafely($TransactionId);
+        $this->SendDebug(__FUNCTION__ . ':Timeout', sprintf('Transaction %d timed out after %d ms', $TransactionId, $Timeout), 0);
         return false;
     }
 
@@ -424,15 +413,16 @@ trait SendData
      * @param  string $Topic Request-Topic zur Zuordnung von Antworten ohne TransactionId
      * @return int|false Erzeugte TransactionId oder false bei belegtem Lock
      */
-    private function AddTransaction(array &$Payload, string $Topic): int|false
+    private function AddTransaction(array &$Payload, string $Topic, ?float $Deadline = null): int|false
     {
         return $this->ExecuteWithTransactionLock(
-            function () use (&$Payload, $Topic): int
+            function () use (&$Payload, $Topic, $Deadline): int
             {
                 $TransactionData = $this->ReadTransactionData();
                 $TransactionId = $this->FindAvailableTransactionId($TransactionData);
                 $TransactionData[$TransactionId] = [
                     '__meta'   => [
+                        'expiresAt'     => $Deadline ?? microtime(true) + 5.0,
                         'requestTopic'  => self::NormalizeTransactionTopic($Topic),
                         'responseTopic' => self::GetResponseTopicForRequest($Topic)
                     ],
@@ -670,17 +660,24 @@ trait SendData
      */
     private function ReadTransactionData(): array
     {
-        $TransactionData = $this->Multi_TransactionData;
-        if (\is_array($TransactionData) && $TransactionData !== []) {
-            return $TransactionData;
+        $data = $this->Multi_TransactionData;
+        if (!\is_array($data) || $data === []) {
+            $legacy = $this->TransactionData;
+            $data = \is_array($legacy) ? $legacy : [];
         }
-
-        $LegacyTransactionData = $this->TransactionData;
-        if (\is_array($LegacyTransactionData)) {
-            return $LegacyTransactionData;
+        $now = microtime(true);
+        $changed = false;
+        foreach ($data as $id => $transaction) {
+            $expiry = \is_array($transaction) ? ($transaction['__meta']['expiresAt'] ?? null) : null;
+            if ((\is_float($expiry) || \is_int($expiry)) && $expiry <= $now) {
+                unset($data[$id]);
+                $changed = true;
+            }
         }
-
-        return [];
+        if ($changed) {
+            $this->WriteTransactionData($data);
+        }
+        return $data;
     }
 
     /**

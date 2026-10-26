@@ -732,108 +732,124 @@ abstract class ModulBase extends \IPSModuleStrict
     public function Migrate(string $JSONData): string
     {
         // Prüfe Version diese Modul-Instanz
-        $j = json_decode($JSONData);
+        $j = json_decode($JSONData, false, 512, JSON_THROW_ON_ERROR);
+        if (!$j instanceof \stdClass || (isset($j->attributes) && !$j->attributes instanceof \stdClass)) {
+            throw new \RuntimeException('Invalid migration data');
+        }
+        $j->attributes ??= new \stdClass();
         if (isset($j->attributes->{self::ATTRIBUTE_MODUL_VERSION})) {
             if ($j->attributes->{self::ATTRIBUTE_MODUL_VERSION} >= self::MINIMAL_MODUL_VERSION) {
                 return $JSONData;
             }
         }
-        $j->attributes->{self::ATTRIBUTE_MODUL_VERSION} = self::MINIMAL_MODUL_VERSION;
 
-        // Flag für laufende Migration setzen
-        $this->BUFFER_MQTT_SUSPENDED = true;
-        $this->BUFFER_PROCESSING_MIGRATION = true;
-
-        // Move Exposes from file to attribute
-        $jsonFile = IPS_GetKernelDir() . self::EXPOSES_DIRECTORY . DIRECTORY_SEPARATOR . $this->InstanceID . '.json';
-        if (file_exists($jsonFile)) {
-            $exposeData = @file_get_contents($jsonFile);
-            $data = json_decode($exposeData, true);
-            if (isset($data['exposes'])) { //device
-                $exposes = $data['exposes'];
-            } else { //group
-                $exposes = $data;
+        $previousSuspended = (bool) $this->BUFFER_MQTT_SUSPENDED;
+        $previousMigrating = (bool) $this->BUFFER_PROCESSING_MIGRATION;
+        try {
+            // Flag für laufende Migration setzen
+            $this->BUFFER_MQTT_SUSPENDED = true;
+            $this->BUFFER_PROCESSING_MIGRATION = true;
+            // Move Exposes from file to attribute
+            $jsonFile = $this->GetLegacyExposeFilePath();
+            if (file_exists($jsonFile)) {
+                $exposeData = @file_get_contents($jsonFile);
+                if ($exposeData === false) {
+                    throw new \RuntimeException('Cannot read legacy expose data');
+                }
+                $data = json_decode($exposeData, true, 512, JSON_THROW_ON_ERROR);
+                if (!\is_array($data)) {
+                    throw new \RuntimeException('Invalid legacy expose data');
+                }
+                if (array_key_exists('exposes', $data)) { //device
+                    $exposes = $data['exposes'];
+                } else { //group
+                    $exposes = $data;
+                }
+                if (!\is_array($exposes)) {
+                    throw new \RuntimeException('Invalid legacy expose data');
+                }
+                $this->LogMessage(__FUNCTION__ . ' : Convert ExposeFile to attribute', KL_NOTIFY);
+                $j->attributes->{self::ATTRIBUTE_EXPOSES} = json_encode($exposes);
+                // Retain the recovery source: Symcon persists the returned attributes after this call.
             }
-            $this->LogMessage(__FUNCTION__ . ' : Convert ExposeFile to attribute', KL_NOTIFY);
-            $j->attributes->{self::ATTRIBUTE_EXPOSES} = json_encode($exposes);
-            @unlink($jsonFile);
+
+            // 1) Suche alle Kinder-Objekte dieser Instanz
+            // 2) Prüfe, ob ihr Ident z. B. mit "Z2M_" beginnt
+            // 3) Bilde den neuen Ident (snake_case) und setze ihn
+            $childrenIDs = IPS_GetChildrenIDs($this->InstanceID);
+            foreach ($childrenIDs as $childID) {
+                // Nur weitermachen, wenn es sich um eine Variable handelt
+                $obj = IPS_GetObject($childID);
+                if ($obj['ObjectType'] !== OBJECTTYPE_VARIABLE) {
+                    continue;
+                }
+
+                if ($obj['ObjectIdent'] == '') {
+                    // Hat keinen Ident, also ignorieren
+                    continue;
+                }
+
+                // Nur solche Idents, die mit 'Z2M_' beginnen:
+                if (substr($obj['ObjectIdent'], 0, 4) !== 'Z2M_') {
+                    // Überspringen
+                    continue;
+                }
+                if (\in_array($obj['ObjectIdent'], self::SKIP_IDENTS)) {
+                    // Überspringen
+                    continue;
+                }
+                // Neuen Ident bilden
+                $newIdent = self::convertToSnakeCase($obj['ObjectIdent']);
+                // Versuchen zu setzen
+                $result = @IPS_SetIdent($childID, $newIdent);
+                if ($result === false) {
+                    $this->LogMessage(__FUNCTION__ . ' : Fehler: Ident "' . $newIdent . '" konnte nicht für Variable #' . $childID . ' gesetzt werden!', KL_ERROR);
+                } else {
+                    $this->LogMessage(__FUNCTION__ . ' : Variable #' . $childID . ': "' . $obj['ObjectIdent'] . '" wurde geändert zu "' . $newIdent . '"', KL_NOTIFY);
+                }
+            }
+
+            // Brightness-Variablenmigration
+            $varID = $this->GetObjectIDByIdent('brightness');
+            if ($varID !== false) {
+                $brightnessFeature = $this->TraceHelperCall(
+                    'DeviceActionHelper',
+                    'findExposeFeatureByProperty',
+                    fn (): mixed => $this->findExposeFeatureByProperty('brightness'),
+                    'Property=brightness'
+                ) ?? [
+                    'name'     => 'brightness',
+                    'property' => 'brightness',
+                    'type'     => 'numeric'
+                ];
+                $brightnessPresentation = $this->TraceHelperCall(
+                    'VariablePresentationHelper',
+                    'BuildBrightnessFeaturePresentation',
+                    fn (): mixed => $this->BuildBrightnessFeaturePresentation($brightnessFeature),
+                    'Property=brightness'
+                ) ?? '';
+
+                $this->RegisterVariableInteger(
+                    'brightness',
+                    $this->Translate('Brightness'),
+                    $brightnessPresentation,
+                    10
+                );
+
+                // Standardaktion fuer die migrierte Helligkeitsvariable synchronisieren.
+                $this->TraceHelperCall(
+                    'ExposeVariableRegistrationHelper',
+                    'synchronizeVariableAction',
+                    fn (): mixed => $this->synchronizeVariableAction('brightness', $brightnessFeature),
+                    'Ident=brightness'
+                );
+            }
+            $j->attributes->{self::ATTRIBUTE_MODUL_VERSION} = self::MINIMAL_MODUL_VERSION;
+            return json_encode($j, JSON_THROW_ON_ERROR);
+        } finally {
+            $this->BUFFER_MQTT_SUSPENDED = $previousSuspended;
+            $this->BUFFER_PROCESSING_MIGRATION = $previousMigrating;
         }
-
-        // 1) Suche alle Kinder-Objekte dieser Instanz
-        // 2) Prüfe, ob ihr Ident z. B. mit "Z2M_" beginnt
-        // 3) Bilde den neuen Ident (snake_case) und setze ihn
-        $childrenIDs = IPS_GetChildrenIDs($this->InstanceID);
-        foreach ($childrenIDs as $childID) {
-            // Nur weitermachen, wenn es sich um eine Variable handelt
-            $obj = IPS_GetObject($childID);
-            if ($obj['ObjectType'] !== OBJECTTYPE_VARIABLE) {
-                continue;
-            }
-
-            if ($obj['ObjectIdent'] == '') {
-                // Hat keinen Ident, also ignorieren
-                continue;
-            }
-
-            // Nur solche Idents, die mit 'Z2M_' beginnen:
-            if (substr($obj['ObjectIdent'], 0, 4) !== 'Z2M_') {
-                // Überspringen
-                continue;
-            }
-            if (\in_array($obj['ObjectIdent'], self::SKIP_IDENTS)) {
-                // Überspringen
-                continue;
-            }
-            // Neuen Ident bilden
-            $newIdent = self::convertToSnakeCase($obj['ObjectIdent']);
-            // Versuchen zu setzen
-            $result = @IPS_SetIdent($childID, $newIdent);
-            if ($result === false) {
-                $this->LogMessage(__FUNCTION__ . ' : Fehler: Ident "' . $newIdent . '" konnte nicht für Variable #' . $childID . ' gesetzt werden!', KL_ERROR);
-            } else {
-                $this->LogMessage(__FUNCTION__ . ' : Variable #' . $childID . ': "' . $obj['ObjectIdent'] . '" wurde geändert zu "' . $newIdent . '"', KL_NOTIFY);
-            }
-        }
-
-        // Brightness-Variablenmigration
-        $varID = $this->GetObjectIDByIdent('brightness');
-        if ($varID !== false) {
-            $brightnessFeature = $this->TraceHelperCall(
-                'DeviceActionHelper',
-                'findExposeFeatureByProperty',
-                fn (): mixed => $this->findExposeFeatureByProperty('brightness'),
-                'Property=brightness'
-            ) ?? [
-                'name'     => 'brightness',
-                'property' => 'brightness',
-                'type'     => 'numeric'
-            ];
-            $brightnessPresentation = $this->TraceHelperCall(
-                'VariablePresentationHelper',
-                'BuildBrightnessFeaturePresentation',
-                fn (): mixed => $this->BuildBrightnessFeaturePresentation($brightnessFeature),
-                'Property=brightness'
-            ) ?? '';
-
-            $this->RegisterVariableInteger(
-                'brightness',
-                $this->Translate('Brightness'),
-                $brightnessPresentation,
-                10
-            );
-
-            // Standardaktion fuer die migrierte Helligkeitsvariable synchronisieren.
-            $this->TraceHelperCall(
-                'ExposeVariableRegistrationHelper',
-                'synchronizeVariableAction',
-                fn (): mixed => $this->synchronizeVariableAction('brightness', $brightnessFeature),
-                'Ident=brightness'
-            );
-        }
-        // Flag für beendete Migration wieder setzen
-        $this->BUFFER_MQTT_SUSPENDED = false;
-        $this->BUFFER_PROCESSING_MIGRATION = false;
-        return json_encode($j);
     }
 
     /**
@@ -887,6 +903,12 @@ abstract class ModulBase extends \IPSModuleStrict
         $DebugData['missingTranslations'] = $this->missingTranslations;
 
         return 'data:application/json;base64,' . base64_encode(json_encode($DebugData, JSON_PRETTY_PRINT));
+    }
+
+    /** Keeps the legacy source available until the migrated attributes have been persisted. */
+    protected function GetLegacyExposeFilePath(): string
+    {
+        return rtrim(IPS_GetKernelDir(), '/\\') . DIRECTORY_SEPARATOR . self::EXPOSES_DIRECTORY . DIRECTORY_SEPARATOR . $this->InstanceID . '.json';
     }
 
     /**
