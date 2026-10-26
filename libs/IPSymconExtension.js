@@ -1,6 +1,6 @@
 /*
  IPSymconExtension
- Version: 6.06
+ Version: 6.07
 */
 
 class IPSymconExtension {
@@ -27,10 +27,34 @@ class IPSymconExtension {
 
     async onMQTTMessage(data) {
         const topicPrefix = `${this.symconTopic}/${this.baseTopic}`;
-        if (data.topic.startsWith(`${this.baseTopic}/SymconExtension/request/getDeviceInfo/`)) {
+        if (!data || typeof data.topic !== 'string') {
+            return;
+        }
+        const extensionPrefix = `${this.baseTopic}/SymconExtension/`;
+        const deviceRequestPrefix = `${extensionPrefix}request/getDeviceInfo/`;
+        const groupRequestPrefix = `${extensionPrefix}request/getGroupInfo/`;
+        const isExtensionRequest = (data.topic.startsWith(deviceRequestPrefix) && data.topic.length > deviceRequestPrefix.length)
+            || (data.topic.startsWith(groupRequestPrefix) && data.topic.length > groupRequestPrefix.length)
+            || ['getDevices', 'getDevicesLight', 'getGroups'].some(name => data.topic === `${extensionPrefix}lists/request/${name}`);
+        let request;
+        if (data.topic.startsWith(extensionPrefix)) {
+            if (!isExtensionRequest) {
+                return;
+            }
             try {
-                const devicename = data.topic.split('/').slice(4).join('/');
-                const message = JSON.parse(data.message);
+                request = JSON.parse(data.message);
+                if (request === null || typeof request !== 'object' || Array.isArray(request)) {
+                    throw new Error('Expected a JSON object');
+                }
+            } catch (error) {
+                this.logger.error(`Symcon: invalid JSON request at Topic ${data.topic}`);
+                return;
+            }
+        }
+        if (data.topic.startsWith(deviceRequestPrefix)) {
+            try {
+                const devicename = data.topic.slice(deviceRequestPrefix.length);
+                const message = request;
                 const device = this.zigbee.resolveEntity(devicename);
                 let devicepayload = {};
                 if (typeof device !== "undefined") {
@@ -49,10 +73,10 @@ class IPSymconExtension {
             }
             return;
         }
-        if (data.topic.startsWith(`${this.baseTopic}/SymconExtension/request/getGroupInfo`)) {
+        if (data.topic.startsWith(groupRequestPrefix)) {
             try {
-                const groupname = data.topic.split('/').slice(4).join('/');
-                const message = JSON.parse(data.message);
+                const groupname = data.topic.slice(groupRequestPrefix.length);
+                const message = request;
                 const groupExposes = this.#createGroupExposes(groupname);
                 groupExposes.transaction = message.transaction;
                 this.logger.info('Symcon: request/getGroup');
@@ -69,7 +93,7 @@ class IPSymconExtension {
         }
         if (data.topic == `${this.baseTopic}/SymconExtension/lists/request/getGroups`) {
             try {
-                const message = JSON.parse(data.message);
+                const message = request;
                 const groups = {
                     list: [],
                     transaction: 0,
@@ -91,7 +115,7 @@ class IPSymconExtension {
         if (data.topic == `${this.baseTopic}/SymconExtension/lists/request/getDevices`
             || data.topic == `${this.baseTopic}/SymconExtension/lists/request/getDevicesLight`) {
             try {
-                const message = JSON.parse(data.message);
+                const message = request;
                 const lightweight = data.topic.endsWith('/getDevicesLight');
                 const devices = {
                     list: [],

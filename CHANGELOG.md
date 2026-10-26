@@ -2,6 +2,8 @@
 
 ## Fixes
 
+- Beide Symcon-Extensions sind auf Version 6.07 angehoben. Ungültige JSON-Anfragen werden kontrolliert verworfen; Geräte- und Gruppenanfragen funktionieren auch mit mehrstufigen MQTT-Basistopics. Das Extension-Update wird weiterhin manuell gestartet.
+
 - Abgebrochene Migrationen stellen den vorherigen MQTT-Verarbeitungszustand wieder her. Alte Exposes-Dateien bleiben als Wiederherstellungsquelle erhalten; ungültige Altdaten brechen die Migration ausdrücklich ab.
 - MQTT-Anfragen warten bei vorübergehend belegter Transaktionssperre innerhalb ihres Zeitlimits weiter. Fertige Antworten werden atomar entnommen; abgelaufene Transaktionen werden beim nächsten erfolgreichen Zugriff aufgeräumt.
 

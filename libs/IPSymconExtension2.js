@@ -1,6 +1,6 @@
 /*
  IPSymconExtension
- Version: 6.06
+ Version: 6.07
 */
 
 class MyLogger {
@@ -57,24 +57,43 @@ class IPSymconExtension {
     }
 
     async onMQTTMessage(data) {
-        if (!data.topic.startsWith(`${this.baseTopic}/${this.symconExtensionTopic}`)) {
+        if (!data || typeof data.topic !== 'string') {
+            return;
+        }
+        const extensionPrefix = `${this.baseTopic}/SymconExtension/`;
+        const deviceRequestPrefix = `${extensionPrefix}request/getDeviceInfo/`;
+        const groupRequestPrefix = `${extensionPrefix}request/getGroupInfo/`;
+        const isExtensionRequest = (data.topic.startsWith(deviceRequestPrefix) && data.topic.length > deviceRequestPrefix.length)
+            || (data.topic.startsWith(groupRequestPrefix) && data.topic.length > groupRequestPrefix.length)
+            || ['getDevices', 'getDevicesLight', 'getGroups'].some(name => data.topic === `${extensionPrefix}lists/request/${name}`);
+        if (!isExtensionRequest) {
+            return;
+        }
+        let request;
+        try {
+            request = JSON.parse(data.message);
+            if (request === null || typeof request !== 'object' || Array.isArray(request)) {
+                throw new Error('Expected a JSON object');
+            }
+        } catch (error) {
+            this.logger.error(`Symcon: invalid JSON request at Topic ${data.topic}`);
             return;
         }
         let message = {};
-        const transaction = JSON.parse(data.message).transaction;
+        const transaction = request.transaction;
         const topic = (data.topic.slice(this.baseTopic.length + 1)).replace('request', 'response');
         try {
-            if (data.topic.startsWith(`${this.baseTopic}/${this.symconExtensionTopic}/request/getDeviceInfo/`)) {
+            if (data.topic.startsWith(deviceRequestPrefix)) {
                 this.logger.info('Symcon: request/getDeviceInfo');
-                const devicename = data.topic.split('/').slice(4).join('/');
+                const devicename = data.topic.slice(deviceRequestPrefix.length);
                 const device = this.zigbee.resolveEntity(devicename);
                 if (typeof device !== "undefined") {
                     message = this.#createDevicePayload(device, true);
                 }
             }
-            if (data.topic.startsWith(`${this.baseTopic}/${this.symconExtensionTopic}/request/getGroupInfo`)) {
+            if (data.topic.startsWith(groupRequestPrefix)) {
                 this.logger.info('Symcon: request/getGroupInfo');
-                const groupname = data.topic.split('/').slice(4).join('/');
+                const groupname = data.topic.slice(groupRequestPrefix.length);
                 message = this.#createGroupExposes(groupname);
             }
             if (data.topic == `${this.baseTopic}/${this.symconExtensionTopic}/lists/request/getGroups`) {

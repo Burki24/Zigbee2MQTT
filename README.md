@@ -173,7 +173,7 @@ Bei älteren Migrationen bleiben vorhandene Exposes-Dateien als Wiederherstellun
 
 #### III. Symcon-Extension prüfen <!-- omit in toc -->
 
-Nach dem Update ist die Bridge-Konfiguration zu öffnen und der Extension-Stand zu prüfen. Die aktuelle Modulversion liefert die Symcon-Extension in Version `6.06` mit.
+Nach dem Update ist die Bridge-Konfiguration zu öffnen und der Extension-Stand zu prüfen. Die aktuelle Modulversion liefert die Symcon-Extension in Version `6.07` mit. Beide Extension-Varianten behandeln ungültige JSON-Anfragen kontrolliert und unterstützen mehrstufige MQTT-Basistopics.
 
 Die Bridge zeigt die Zigbee2MQTT-Version sowie die installierte und die mitgelieferte Extension-Version an. Eine separate Online-/Offline-Statuszeile weist bei Offline-Status auf den zuletzt gemeldeten Versionsstand hin; die Versionszeile bleibt bei Verbindungswechseln unverändert. Installation und Update starten ausschließlich durch den Anwender über **Symcon Erweiterung installieren oder updaten** oder anhand der [manuellen Anleitung](#34-installation-der-ip-symcon-extension-in-zigbee2mqtt). Ein Modulupdate installiert die Extension nicht automatisch.
 
