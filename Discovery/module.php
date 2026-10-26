@@ -230,6 +230,7 @@ class Zigbee2MQTTDiscovery extends IPSModuleStrict
         $IPSConfigurators = $this->GetConfigurators();
         $this->SendDebug('Known Configurators', json_encode($IPSConfigurators), 0);
         $Values = [];
+        $KnownManualTopics = [];
 
         if ($FoundZ2mBySplitterId === null) {
             if (!count($this->ManuelTopics)) {
@@ -241,6 +242,9 @@ class Zigbee2MQTTDiscovery extends IPSModuleStrict
                     continue;
                 }
                 foreach ($Topics as $key => $Topic) {
+                    if ($this->IsManualBrokerSplitter((int) $SplitterId)) {
+                        $KnownManualTopics[] = $Topic;
+                    }
                     $instanceID = $this->FindConfigurator($Topic, $IPSConfigurators, (int) $SplitterId);
                     if ($instanceID) {
                         unset($IPSConfigurators[$instanceID]);
@@ -276,9 +280,8 @@ class Zigbee2MQTTDiscovery extends IPSModuleStrict
                 }
             }
         }
-        $KnownTopics = array_column($Values, 'topic');
         foreach ($this->ManuelTopics as $Topic) {
-            if (in_array($Topic, $KnownTopics)) {
+            if (in_array($Topic, $KnownManualTopics, true)) {
                 //skip found topics
                 continue;
             }
@@ -497,20 +500,28 @@ class Zigbee2MQTTDiscovery extends IPSModuleStrict
                 }
                 continue;
             }
-            if (!$parentID || IPS_GetInstance($parentID)['ModuleInfo']['ModuleID'] !== self::GUID_MQTT_CLIENT) {
-                continue;
-            }
-            $socketID = IPS_GetInstance($parentID)['ConnectionID'];
-            if (!$socketID) {
-                continue;
-            }
-            $broker = array_merge(json_decode(IPS_GetConfiguration($parentID), true), json_decode(IPS_GetConfiguration($socketID), true));
-            $keys = array_flip(['Host', 'Port', 'UseSSL', 'UserName', 'Password']);
-            if (array_intersect_key($broker, $keys) == array_intersect_key($this->ManuelBrokerConfig, $keys)) {
+            if ($this->IsManualBrokerSplitter($parentID)) {
                 $matches[] = $instanceID;
             }
         }
         return \count($matches) === 1 ? $matches[0] : false;
+    }
+
+    /**
+     * Compares the MQTT connection with the manually selected broker.
+     */
+    private function IsManualBrokerSplitter(int $splitterID): bool
+    {
+        if (!$splitterID || IPS_GetInstance($splitterID)['ModuleInfo']['ModuleID'] !== self::GUID_MQTT_CLIENT) {
+            return false;
+        }
+        $socketID = IPS_GetInstance($splitterID)['ConnectionID'];
+        if (!$socketID) {
+            return false;
+        }
+        $broker = array_merge(json_decode(IPS_GetConfiguration($splitterID), true), json_decode(IPS_GetConfiguration($socketID), true));
+        $keys = array_flip(['Host', 'Port', 'UseSSL', 'UserName', 'Password']);
+        return array_intersect_key($broker, $keys) == array_intersect_key($this->ManuelBrokerConfig, $keys);
     }
 
     /**

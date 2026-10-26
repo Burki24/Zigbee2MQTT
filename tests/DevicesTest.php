@@ -9,6 +9,30 @@ include_once __DIR__ . '/DumpInclude.php';
  */
 class DevicesTest extends DumpInclude
 {
+    public function testDeviceAndGroupAvailabilityAcceptsLegacyAndJsonStates(): void
+    {
+        foreach (['{E5BB36C6-A70B-EB23-3716-9151A09AC8A2}', '{11BF3773-E940-469B-9DD7-FB9ACD7199A2}'] as $moduleID) {
+            $id = IPS_CreateInstance($moduleID);
+            IPS_SetConfiguration($id, json_encode(['MQTTBaseTopic' => 'house/z2m', 'MQTTTopic' => 'Test/Sensor']));
+            IPS_ApplyChanges($id);
+            $instance = IPS\InstanceManager::getInstanceInterface($id);
+            $instance->BUFFER_MQTT_SUSPENDED = false;
+            (new \ReflectionMethod($instance, 'SetStatus'))->invoke($instance, IS_ACTIVE);
+            $method = new \ReflectionMethod($instance, 'validateAndParseMessage');
+            foreach (['online' => true, 'offline' => false] as $state => $expected) {
+                foreach ([$state, json_encode(['state' => $state])] as $raw) {
+                    $frame = json_encode(['Topic' => 'house/z2m/Test/Sensor/availability', 'Payload' => bin2hex($raw)]);
+                    $this->assertSame([['Test', 'Sensor', 'availability'], ['state' => $state]], $method->invoke($instance, $frame));
+                    $instance->ReceiveData($frame);
+                    $this->assertSame($expected, GetValue(IPS_GetObjectIDByIdent('device_status', $id)));
+                }
+                $this->assertSame([false, false], $method->invoke($instance, json_encode([
+                    'Topic' => 'house/z2m/Test/Sensor', 'Payload' => bin2hex($state)
+                ])));
+            }
+        }
+    }
+
     public function testDeviceAndGroupRejectScalarAndMalformedPayloads(): void
     {
         foreach (['{E5BB36C6-A70B-EB23-3716-9151A09AC8A2}', '{11BF3773-E940-469B-9DD7-FB9ACD7199A2}'] as $moduleID) {

@@ -48,8 +48,13 @@ trait PayloadProcessingHelper
 
         $topic = substr($receivedTopic, \strlen($baseTopic) + 1);
         $rawPayload = self::DecodePayload($messageData['Payload']);
-        if ($rawPayload === '' && str_ends_with($topic, '/' . self::AVAILABILITY_TOPIC)) {
-            return [explode('/', $topic), null];
+        if ($receivedTopic === $baseTopic . '/' . $mqttTopic . '/' . self::AVAILABILITY_TOPIC) {
+            if ($rawPayload === '') {
+                return [explode('/', $topic), null];
+            }
+            if (\in_array($rawPayload, ['online', 'offline'], true)) {
+                return [explode('/', $topic), ['state' => $rawPayload]];
+            }
         }
         $payloadData = json_decode($rawPayload, true);
         if (json_last_error() !== JSON_ERROR_NONE || !\is_array($payloadData)) {

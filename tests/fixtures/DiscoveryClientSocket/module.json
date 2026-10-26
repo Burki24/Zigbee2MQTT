@@ -1,0 +1,11 @@
+{
+    "id": "{3CFF0FD9-E306-41DB-9B5A-9D06D38576C3}",
+    "name": "DiscoveryClientSocket",
+    "type": 1,
+    "vendor": "Test",
+    "aliases": [],
+    "parentRequirements": [],
+    "childRequirements": [],
+    "implemented": [],
+    "prefix": ""
+}

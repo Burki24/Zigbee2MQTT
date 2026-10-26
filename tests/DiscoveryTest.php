@@ -28,6 +28,60 @@ class DiscoveryTest extends DumpInclude
         unset($GLOBALS['MQTT_RETAINED_MESSAGES']);
     }
 
+    public function testManualBrokerDuplicatesUseBrokerIdentityAndTopic(): void
+    {
+        IPS\ModuleLoader::loadSingleModule(__DIR__ . '/fixtures/DiscoveryMqttClient', '{EBDB6E58-DFAC-911B-0EDA-79A9C7CCD0B3}');
+        IPS\ModuleLoader::loadSingleModule(__DIR__ . '/fixtures/DiscoveryClientSocket', '{EBDB6E58-DFAC-911B-0EDA-79A9C7CCD0B3}');
+        $socket = IPS_CreateInstance('{3CFF0FD9-E306-41DB-9B5A-9D06D38576C3}');
+        IPS_SetConfiguration($socket, json_encode(['Host' => 'broker-a.test', 'Port' => 1883, 'UseSSL' => false]));
+        IPS_ApplyChanges($socket);
+        $splitter = IPS_CreateInstance('{F7A0DD2E-7684-95C0-64C2-D2A9DC47577B}');
+        IPS_SetConfiguration($splitter, json_encode(['UserName' => 'user', 'Password' => 'secret']));
+        IPS_ApplyChanges($splitter);
+        IPS_ConnectInstance($splitter, $socket);
+        $config = IPS_CreateInstance('{D30BADA8-F261-4D9F-89A9-2E9961AF021F}');
+        IPS_SetConfiguration($config, json_encode(['MQTTBaseTopic' => 'zigbee2mqtt']));
+        IPS_ConnectInstance($config, $splitter);
+        IPS_ApplyChanges($config);
+        $discovery = new class(990008, $splitter) extends Zigbee2MQTTDiscovery {
+            public function __construct(int $id, private int $splitter)
+            {
+                parent::__construct($id);
+            }
+            protected function ScanMqttServers(array $fallbackTopics = []): ?array
+            {
+                return [$this->splitter => ['zigbee2mqtt']];
+            }
+            protected function ReloadForm(): bool
+            {
+                return true;
+            }
+            protected function getTime(): int
+            {
+                return time();
+            }
+        };
+        $discovery->Create();
+        $discovery->RequestAction('RefreshDiscoveryCache', true);
+        $broker = ['Host' => 'broker-a.test', 'Port' => 1883, 'UseSSL' => false, 'UserName' => 'user', 'Password' => 'secret'];
+        foreach ([$broker, array_replace($broker, ['Host' => 'broker-b.test']), array_replace($broker, ['Port' => 1884]), array_replace($broker, ['UseSSL' => true]), array_replace($broker, ['UserName' => 'other']), array_replace($broker, ['Password' => 'other'])] as $index => $manualBroker) {
+            $discovery->ManuelBrokerConfig = $manualBroker;
+            $discovery->ManuelTopics = ['zigbee2mqtt'];
+            $form = json_decode($discovery->GetConfigurationForm(), true);
+            $rows = $form['actions'][1]['values'];
+            $this->assertCount($index === 0 ? 1 : 2, $rows);
+            $this->assertSame($config, $rows[0]['instanceID']);
+            if ($index !== 0) {
+                $this->assertSame(0, $rows[1]['instanceID']);
+                $this->assertSame($manualBroker['Host'], $rows[1]['create'][2]['configuration']['Host']);
+            }
+        }
+        $discovery->ManuelBrokerConfig = $broker;
+        $discovery->ManuelTopics = ['other/z2m'];
+        $form = json_decode($discovery->GetConfigurationForm(), true);
+        $this->assertSame(['zigbee2mqtt', 'other/z2m'], array_column($form['actions'][1]['values'], 'topic'));
+    }
+
     public function testDiscoveryMatchesSameBaseTopicBySplitter(): void
     {
         $servers = [];

@@ -1,0 +1,11 @@
+{
+    "id": "{F7A0DD2E-7684-95C0-64C2-D2A9DC47577B}",
+    "name": "DiscoveryMqttClient",
+    "type": 2,
+    "vendor": "Test",
+    "aliases": [],
+    "parentRequirements": [],
+    "childRequirements": [],
+    "implemented": [],
+    "prefix": ""
+}
