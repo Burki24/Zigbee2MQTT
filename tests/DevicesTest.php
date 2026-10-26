@@ -9,6 +9,28 @@ include_once __DIR__ . '/DumpInclude.php';
  */
 class DevicesTest extends DumpInclude
 {
+    public function testDeviceAndGroupRejectScalarAndMalformedPayloads(): void
+    {
+        foreach (['{E5BB36C6-A70B-EB23-3716-9151A09AC8A2}', '{11BF3773-E940-469B-9DD7-FB9ACD7199A2}'] as $moduleID) {
+            $id = IPS_CreateInstance($moduleID);
+            IPS_SetConfiguration($id, json_encode(['MQTTBaseTopic' => 'zigbee2mqtt', 'MQTTTopic' => 'Test/Sensor']));
+            IPS_ApplyChanges($id);
+            $instance = IPS\InstanceManager::getInstanceInterface($id);
+            $method = new \ReflectionMethod($instance, 'validateAndParseMessage');
+            foreach (['42', 'true', '"text"', 'null', '{broken'] as $payload) {
+                foreach (['', '/availability'] as $suffix) {
+                    $this->assertSame([false, false], $method->invoke($instance, json_encode([
+                        'Topic'   => 'zigbee2mqtt/Test/Sensor' . $suffix,
+                        'Payload' => bin2hex($payload)
+                    ])));
+                }
+            }
+            $this->assertSame([['Test', 'Sensor', 'availability'], null], $method->invoke($instance, json_encode([
+                'Topic' => 'zigbee2mqtt/Test/Sensor/availability', 'Payload' => ''
+            ])));
+        }
+    }
+
     public function testReceiveDataIgnoresIncompleteMqttFrames(): void
     {
         $deviceID = IPS_CreateInstance('{E5BB36C6-A70B-EB23-3716-9151A09AC8A2}');

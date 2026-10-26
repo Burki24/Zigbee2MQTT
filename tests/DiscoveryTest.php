@@ -28,6 +28,50 @@ class DiscoveryTest extends DumpInclude
         unset($GLOBALS['MQTT_RETAINED_MESSAGES']);
     }
 
+    public function testDiscoveryMatchesSameBaseTopicBySplitter(): void
+    {
+        $servers = [];
+        $configs = [];
+        for ($i = 0; $i < 2; ++$i) {
+            $io = IPS_CreateInstance('{6179ED6A-FC31-413C-BB8E-1204150CF376}');
+            $splitter = IPS_CreateInstance('{6179ED6A-FC31-413C-BB8E-1204150CF376}');
+            IPS_ConnectInstance($splitter, $io);
+            $servers[] = $splitter;
+            $config = IPS_CreateInstance('{D30BADA8-F261-4D9F-89A9-2E9961AF021F}');
+            IPS_SetConfiguration($config, json_encode(['MQTTBaseTopic' => 'shared/z2m']));
+            IPS_ConnectInstance($config, $splitter);
+            IPS_ApplyChanges($config);
+            $configs[] = $config;
+        }
+        $discovery = new class(990005, array_reverse($servers)) extends Zigbee2MQTTDiscovery {
+            public function __construct(int $id, private array $servers)
+            {
+                parent::__construct($id);
+            }
+            protected function ScanMqttServers(array $fallbackTopics = []): ?array
+            {
+                return array_fill_keys($this->servers, ['shared/z2m']);
+            }
+            protected function ReloadForm(): bool
+            {
+                return true;
+            }
+            protected function getTime(): int
+            {
+                return time();
+            }
+        };
+        $discovery->Create();
+        $matcher = new \ReflectionMethod($discovery, 'FindConfigurator');
+        $known = array_fill_keys($configs, 'shared/z2m');
+        $this->assertFalse($matcher->invoke($discovery, 'shared/z2m', $known, 0));
+        $this->assertFalse($matcher->invoke($discovery, 'other/z2m', $known, $servers[0]));
+        $this->assertFalse($matcher->invoke($discovery, 'shared/z2m', $known));
+        $discovery->RequestAction('RefreshDiscoveryCache', true);
+        $form = json_decode($discovery->GetConfigurationForm(), true);
+        $this->assertSame(array_reverse($configs), array_column($form['actions'][1]['values'], 'instanceID'));
+    }
+
     public function testRetainedBridgeTopicDiscoveryKeepsAllOnlineBases(): void
     {
         $GLOBALS['MQTT_RETAINED_MESSAGES'][12345] = [

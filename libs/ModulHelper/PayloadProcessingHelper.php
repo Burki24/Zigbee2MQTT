@@ -47,7 +47,15 @@ trait PayloadProcessingHelper
         }
 
         $topic = substr($receivedTopic, \strlen($baseTopic) + 1);
-        $payloadData = json_decode(self::DecodePayload($messageData['Payload']), true);
+        $rawPayload = self::DecodePayload($messageData['Payload']);
+        if ($rawPayload === '' && str_ends_with($topic, '/' . self::AVAILABILITY_TOPIC)) {
+            return [explode('/', $topic), null];
+        }
+        $payloadData = json_decode($rawPayload, true);
+        if (json_last_error() !== JSON_ERROR_NONE || !\is_array($payloadData)) {
+            $this->SendDebug(__FUNCTION__, 'Ignored invalid MQTT payload: expected a JSON object or array', 0);
+            return [false, false];
+        }
         return [explode('/', $topic), $payloadData];
     }
 

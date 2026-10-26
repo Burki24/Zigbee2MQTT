@@ -495,48 +495,36 @@ trait SendData
      */
     private function UpdateTransactionByResponseTopic(string $ResponseTopic, array $Data): bool
     {
+        // An explicit ID must never be replaced by the topic fallback.
+        if (array_key_exists('transaction', $Data)) {
+            return false;
+        }
         $ResponseTopic = self::NormalizeTransactionTopic($ResponseTopic);
-
-        $TransactionId = $this->ExecuteWithTransactionLock(
-            function () use ($ResponseTopic, $Data): int|false
+        return $this->ExecuteWithTransactionLock(
+            function () use ($ResponseTopic, $Data): bool
             {
                 $TransactionData = $this->ReadTransactionData();
+                $Matches = [];
                 foreach ($TransactionData as $TransactionId => $Transaction) {
-                    if (!\is_array($Transaction)) {
+                    if (!\is_array($Transaction) || ($Transaction['__result'] ?? null) !== null) {
                         continue;
                     }
-
                     $Meta = $Transaction['__meta'] ?? null;
-                    if (!\is_array($Meta) || (($Meta['responseTopic'] ?? '') !== $ResponseTopic)) {
-                        continue;
-                    }
-
                     $NormalizedId = $this->NormalizeTransactionId($TransactionId);
-                    if ($NormalizedId === null) {
-                        continue;
+                    if (\is_array($Meta) && ($Meta['responseTopic'] ?? '') === $ResponseTopic && $NormalizedId !== null) {
+                        $Matches[] = $NormalizedId;
                     }
-
-                    $ResponseData = $Data;
-                    $ResponseData['transaction'] = $NormalizedId;
-                    $TransactionData[$TransactionId] = $this->SetTransactionResult($Transaction, $ResponseData);
-                    $this->WriteTransactionData($TransactionData);
-                    return $NormalizedId;
                 }
-
-                return false;
+                if (\count($Matches) !== 1) {
+                    return false;
+                }
+                $TransactionId = $Matches[0];
+                $Data['transaction'] = $TransactionId;
+                $TransactionData[$TransactionId] = $this->SetTransactionResult($TransactionData[$TransactionId], $Data);
+                $this->WriteTransactionData($TransactionData);
+                return true;
             }
         );
-        if ($TransactionId !== false) {
-            $this->SendDebug(
-                __FUNCTION__,
-                \sprintf('Transaction %d matched by response topic %s', $TransactionId, $ResponseTopic),
-                0
-            );
-            return true;
-        }
-
-        $this->SendDebug(__FUNCTION__, \sprintf('No pending transaction for response topic %s', $ResponseTopic), 0);
-        return false;
     }
 
     /**

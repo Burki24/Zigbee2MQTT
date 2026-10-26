@@ -2,6 +2,11 @@
 
 ## Fixes
 
+- Verspätete MQTT-Antworten mit abweichender Transaktions-ID schließen keine neueren Anfragen mehr ab. Antworten ohne ID werden nur bei einer eindeutig passenden offenen Anfrage übernommen.
+- Geräte und Gruppen verwerfen skalare und fehlerhafte JSON-Payloads ohne TypeError. Leere Availability-Nachrichten bleiben unterstützt.
+- Die Netzwerkkarte übernimmt ausschließlich Antworten mit passender Transaktions-ID für den laufenden Scan; alte und unaufgeforderte Antworten bleiben ohne Wirkung.
+- Discovery ordnet vorhandene Konfiguratoren anhand von Basistopic und MQTT-Verbindung zu. Gleiche Basistopics auf unterschiedlichen Servern werden nicht mehr verwechselt.
+
 - Beide Symcon-Extensions sind auf Version 6.07 angehoben. UngÃ¼ltige JSON-Anfragen werden kontrolliert verworfen; GerÃ¤te- und Gruppenanfragen funktionieren auch mit mehrstufigen MQTT-Basistopics. Das Extension-Update wird weiterhin manuell gestartet.
 
 - Abgebrochene Migrationen stellen den vorherigen MQTT-Verarbeitungszustand wieder her. Alte Exposes-Dateien bleiben als Wiederherstellungsquelle erhalten; ungÃ¼ltige Altdaten brechen die Migration ausdrÃ¼cklich ab.

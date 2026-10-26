@@ -11,6 +11,7 @@ use PHPUnit\Framework\TestCase;
  */
 class NetworkMapTest extends TestCase
 {
+    private Zigbee2MQTTNetworkMap $currentMap;
     public function setUp(): void
     {
         IPS\Kernel::reset();
@@ -19,6 +20,47 @@ class NetworkMapTest extends TestCase
         IPS\ModuleLoader::loadLibrary(__DIR__ . '/stubs/IOStubs/library.json');
 
         parent::setUp();
+    }
+
+    public function testUnrelatedAndUnsolicitedScanResponsesAreIgnored(): void
+    {
+        $map = $this->createMapTestDouble();
+        $map->StartNetworkScan(false);
+        $scan = $map->readMapAttribute('Scan');
+        $topology = $map->readMapAttribute('Topology');
+        foreach ([null, $map->lastPayload['transaction'] + 1] as $transaction) {
+            foreach (['ok', 'error'] as $status) {
+                $payload = ['status' => $status, 'error' => 'old failure', 'data' => ['type' => 'raw', 'value' => ['nodes' => [], 'links' => []]]];
+                if ($transaction !== null) {
+                    $payload['transaction'] = $transaction;
+                }
+                $map->ReceiveData(json_encode(['Topic' => 'zigbee2mqtt/bridge/response/networkmap', 'Payload' => bin2hex(json_encode($payload))]));
+                $this->assertSame($scan, $map->readMapAttribute('Scan'));
+                $this->assertSame($topology, $map->readMapAttribute('Topology'));
+            }
+        }
+        $response = $this->buildRawResponse(['nodes' => [], 'links' => []], false);
+        $map->ReceiveData($response);
+        $finished = $map->readMapAttribute('Scan');
+        $map->ReceiveData($response);
+        $this->assertSame($finished, $map->readMapAttribute('Scan'));
+    }
+
+    public function testLateFailureAfterResetDoesNotStopReplacementScan(): void
+    {
+        $map = $this->createMapTestDouble();
+        $map->StartNetworkScan(false);
+        $oldTransaction = $map->lastPayload['transaction'];
+        $map->ResetNetworkScanStatus();
+        $map->StartNetworkScan(true);
+        $scan = $map->readMapAttribute('Scan');
+        $map->ReceiveData(json_encode([
+            'Topic'   => 'zigbee2mqtt/bridge/response/networkmap',
+            'Payload' => bin2hex(json_encode(['transaction' => $oldTransaction, 'status' => 'error', 'error' => 'old scan failed']))
+        ]));
+        $this->assertSame($scan, $map->readMapAttribute('Scan'));
+        $map->ReceiveData($this->buildRawResponse(['nodes' => [], 'links' => []], true));
+        $this->assertFalse($map->readMapAttribute('Scan')['running']);
     }
 
     public function testQuickScanSendsAsynchronousRawRequestWithoutRoutes(): void
@@ -159,8 +201,9 @@ class NetworkMapTest extends TestCase
         $map->ReceiveData(json_encode([
             'Topic'   => 'zigbee2mqtt/bridge/response/networkmap',
             'Payload' => bin2hex(json_encode([
-                'status' => 'error',
-                'error'  => 'scan failed'
+                'transaction' => $map->lastPayload['transaction'],
+                'status'      => 'error',
+                'error'       => 'scan failed'
             ]))
         ]));
 
@@ -299,16 +342,21 @@ class NetworkMapTest extends TestCase
             }
         };
         $map->Create();
+        $this->currentMap = $map;
         return $map;
     }
 
     private function buildRawResponse(array $topology, bool $routes): string
     {
+        if (!($this->currentMap->readMapAttribute('Scan')['running'] ?? false)) {
+            $this->currentMap->StartNetworkScan($routes);
+        }
         return json_encode([
             'Topic'   => 'zigbee2mqtt/bridge/response/networkmap',
             'Payload' => bin2hex(json_encode([
-                'status' => 'ok',
-                'data'   => [
+                'status'      => 'ok',
+                'transaction' => $this->currentMap->lastPayload['transaction'],
+                'data'        => [
                     'type'   => 'raw',
                     'routes' => $routes,
                     'value'  => $topology

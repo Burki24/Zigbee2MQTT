@@ -241,7 +241,7 @@ class Zigbee2MQTTDiscovery extends IPSModuleStrict
                     continue;
                 }
                 foreach ($Topics as $key => $Topic) {
-                    $instanceID = array_search($Topic, $IPSConfigurators);
+                    $instanceID = $this->FindConfigurator($Topic, $IPSConfigurators, (int) $SplitterId);
                     if ($instanceID) {
                         unset($IPSConfigurators[$instanceID]);
                     }
@@ -282,7 +282,7 @@ class Zigbee2MQTTDiscovery extends IPSModuleStrict
                 //skip found topics
                 continue;
             }
-            $instanceID = array_search($Topic, $IPSConfigurators);
+            $instanceID = $this->FindConfigurator($Topic, $IPSConfigurators);
             if ($instanceID) {
                 unset($IPSConfigurators[$instanceID]);
             }
@@ -478,6 +478,39 @@ class Zigbee2MQTTDiscovery extends IPSModuleStrict
     {
         return $cache === null
             || time() - (int) $cache['timestamp'] >= self::DISCOVERY_CACHE_TTL_SECONDS;
+    }
+
+    /**
+     * Matches configurators only within the discovered MQTT connection.
+     */
+    private function FindConfigurator(string $topic, array $configurators, ?int $splitterID = null): int|false
+    {
+        $matches = [];
+        foreach ($configurators as $instanceID => $baseTopic) {
+            if ($baseTopic !== $topic) {
+                continue;
+            }
+            $parentID = IPS_GetInstance($instanceID)['ConnectionID'];
+            if ($splitterID !== null) {
+                if ($parentID === $splitterID) {
+                    $matches[] = $instanceID;
+                }
+                continue;
+            }
+            if (!$parentID || IPS_GetInstance($parentID)['ModuleInfo']['ModuleID'] !== self::GUID_MQTT_CLIENT) {
+                continue;
+            }
+            $socketID = IPS_GetInstance($parentID)['ConnectionID'];
+            if (!$socketID) {
+                continue;
+            }
+            $broker = array_merge(json_decode(IPS_GetConfiguration($parentID), true), json_decode(IPS_GetConfiguration($socketID), true));
+            $keys = array_flip(['Host', 'Port', 'UseSSL', 'UserName', 'Password']);
+            if (array_intersect_key($broker, $keys) == array_intersect_key($this->ManuelBrokerConfig, $keys)) {
+                $matches[] = $instanceID;
+            }
+        }
+        return \count($matches) === 1 ? $matches[0] : false;
     }
 
     /**

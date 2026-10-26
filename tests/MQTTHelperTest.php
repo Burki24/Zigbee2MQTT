@@ -12,6 +12,39 @@ use PHPUnit\Framework\TestCase;
  */
 class MQTTHelperTest extends TestCase
 {
+    public function testExpiredResponseCannotCompleteReplacementRequest(): void
+    {
+        $helper = $this->createPollingHelper([]);
+        $oldPayload = [];
+        $old = $helper->createTransaction($oldPayload, '/bridge/request/options', microtime(true) - 1);
+        $newPayload = [];
+        $new = $helper->createTransaction($newPayload, '/bridge/request/options');
+        $late = ['transaction' => $old, 'status' => 'ok'];
+        $this->assertFalse($helper->completeTransaction($late));
+        $this->assertFalse($helper->completeByTopic('/bridge/response/options', $late));
+        $this->assertNull($helper->Multi_TransactionData[$new]['__result']);
+        $this->assertTrue($helper->completeTransaction(['transaction' => $new, 'status' => 'ok']));
+        $this->assertSame(['status' => 'ok'], $helper->waitForResult($new, 100));
+    }
+
+    public function testTopicFallbackRejectsExplicitAndAmbiguousTransactions(): void
+    {
+        $helper = $this->createPollingHelper([]);
+        $payload = [];
+        $id = $helper->createTransaction($payload, '/bridge/request/options');
+        foreach ([999999, null, 'invalid'] as $transaction) {
+            $this->assertFalse($helper->completeByTopic('/bridge/response/options', ['transaction' => $transaction, 'status' => 'ok']));
+            $this->assertNull($helper->Multi_TransactionData[$id]['__result']);
+        }
+        $secondPayload = [];
+        $second = $helper->createTransaction($secondPayload, '/bridge/request/options');
+        $this->assertFalse($helper->completeByTopic('/bridge/response/options', ['status' => 'ok']));
+        unset($helper->Multi_TransactionData[$second]);
+        $this->assertTrue($helper->completeByTopic('/bridge/response/options', ['status' => 'ok']));
+        $this->assertFalse($helper->completeByTopic('/bridge/response/options', ['status' => 'error']));
+        $this->assertSame(['status' => 'ok'], $helper->waitForResult($id, 100));
+    }
+
     public function testWaitingRetriesBusyLockAndConsumesCompletedTransactionAtomically(): void
     {
         $helper = $this->createPollingHelper([false, true, false]);
@@ -542,6 +575,7 @@ class MQTTHelperTest extends TestCase
     {
         return new class($locks) {
             use \Zigbee2MQTT\SendData {
+                UpdateTransactionByResponseTopic as public completeByTopic;
                 WaitForTransactionEnd as public waitForResult;
                 AddTransaction as public createTransaction;
                 UpdateTransaction as public completeTransaction;

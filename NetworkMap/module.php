@@ -121,7 +121,10 @@ class Zigbee2MQTTNetworkMap extends IPSModuleStrict
             return false;
         }
 
-        $transaction = mt_rand(10000, 999999);
+        $previousScan = $this->ReadAttributeArray(self::ATTRIBUTE_SCAN);
+        do {
+            $transaction = mt_rand(10000, 999999);
+        } while ($transaction === ($previousScan['transaction'] ?? null));
         $scan = [
             'running'     => true,
             'routes'      => $IncludeRoutes,
@@ -361,6 +364,15 @@ class Zigbee2MQTTNetworkMap extends IPSModuleStrict
 
         $payload = json_decode(self::DecodePayload((string) $buffer['Payload']), true);
         if (!\is_array($payload)) {
+            return '';
+        }
+
+        $scan = $this->ReadAttributeArray(self::ATTRIBUTE_SCAN);
+        $transaction = $payload['transaction'] ?? null;
+        if (!($scan['running'] ?? false)
+            || !(\is_int($transaction) || (\is_string($transaction) && ctype_digit($transaction)))
+            || (string) $transaction !== (string) ($scan['transaction'] ?? '')
+        ) {
             return '';
         }
 
