@@ -56,6 +56,8 @@ Wird eine Zeile selektiert und die Schaltfläche `Erstellen` betätigt, so wird 
 
 Über den Button `Konfigurieren` wird die weitere Konfiguration in der [Konfigurator](../Configurator/README.md)-Instanz fortgesetzt.  
 
+Bei einem Umzug auf eine andere MQTT-Verbindung kann unter **Vorhandenen Konfigurator wiederverwenden (optional)** ein vorhandener Konfigurator mit gleichem Basistopic für ein gefundenes Ziel ausgewählt werden. Das gilt auch für Konfiguratoren ohne Verbindung. Die Liste bietet anschließend dessen Konfiguration für das gewählte Ziel an. Erst das bewusste Übernehmen dieser Konfiguration führt den Umzug aus; die Auswahl allein ändert keine Verbindung. Bereits passend verbundene Konfiguratoren bleiben ihrer MQTT-Verbindung zugeordnet. Bei mehreren möglichen Quellen oder Zielen muss die gewünschte Kombination ausdrücklich ausgewählt werden.
+
 ## 4. Statusvariablen
 
 Dieses Modul erzeugt keine Statusvariablen.  

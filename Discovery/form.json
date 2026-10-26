@@ -117,6 +117,26 @@
             }
         },
         {
+            "type": "Select",
+            "name": "ConfiguratorMove",
+            "caption": "Reuse existing configurator (optional)",
+            "visible": false,
+            "options": [
+                {
+                    "caption": "Do not reuse a configurator",
+                    "value": ""
+                }
+            ],
+            "value": "",
+            "onChange": "IPS_RequestAction($id, 'SelectConfiguratorMove', $ConfiguratorMove);"
+        },
+        {
+            "type": "Label",
+            "name": "ConfiguratorMoveInfo",
+            "visible": false,
+            "caption": "Select the existing configurator and target connection, then review and apply the offered configuration in the list. Selecting alone does not change connections."
+        },
+        {
             "name": "ErrorPopup",
             "type": "PopupAlert",
             "visible": false,

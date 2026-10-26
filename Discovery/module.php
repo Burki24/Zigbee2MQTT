@@ -10,6 +10,7 @@ require_once dirname(__DIR__) . '/libs/phpMQTT.php';
 /**
  * Erkennt Zigbee2MQTT-Systeme anhand gespeicherter MQTT-Topics oder einer direkten Brokerabfrage.
  *
+ * @property string $SelectedConfiguratorMove
  * @property array $ManuelTopics
  * @property array $ManuelBrokerConfig
  * @property bool  $DiscoveryRefreshRunning
@@ -40,6 +41,7 @@ class Zigbee2MQTTDiscovery extends IPSModuleStrict
         parent::Create();
         // Init Buffers
         $this->ManuelBrokerConfig = [];
+        $this->SelectedConfiguratorMove = '';
         $this->ManuelTopics = [];
         $this->DiscoveryRefreshRunning = false;
         $this->DiscoveryRefreshScheduled = false;
@@ -63,6 +65,7 @@ class Zigbee2MQTTDiscovery extends IPSModuleStrict
         //Never delete this line!
         parent::ApplyChanges();
         // Buffer leeren
+        $this->SelectedConfiguratorMove = '';
         $this->ManuelTopics = [];
         $this->ManuelBrokerConfig = [];
         $this->DiscoveryRefreshRunning = false;
@@ -104,7 +107,12 @@ class Zigbee2MQTTDiscovery extends IPSModuleStrict
             case 'RefreshDiscoveryCache':
                 $this->RefreshDiscoveryCache();
                 break;
+            case 'SelectConfiguratorMove':
+                $this->SelectedConfiguratorMove = (string) $value;
+                $this->ReloadForm();
+                break;
             case 'CheckMQTTBroker':
+                $this->SelectedConfiguratorMove = '';
                 $Config = json_decode($value, true);
                 $this->SendRedactedDebug(
                     'Manuel CheckMQTTBroker',
@@ -231,6 +239,7 @@ class Zigbee2MQTTDiscovery extends IPSModuleStrict
         $this->SendDebug('Known Configurators', json_encode($IPSConfigurators), 0);
         $Values = [];
         $KnownManualTopics = [];
+        $MoveTargets = [];
 
         if ($FoundZ2mBySplitterId === null) {
             if (!count($this->ManuelTopics)) {
@@ -276,6 +285,11 @@ class Zigbee2MQTTDiscovery extends IPSModuleStrict
                             'configuration' => json_decode(IPS_GetConfiguration(IPS_GetInstance($SplitterId)['ConnectionID']), true)
                         ]
                     ];
+                    if (!$instanceID) {
+                        $MoveTargets[] = ['row' => count($Values), 'topic' => $Topic,
+                            'key'               => 'splitter:' . $SplitterId . ':' . hash('sha256', json_encode($this->RedactSensitiveDebugData($value['create']))),
+                            'label'             => IPS_GetName((int) $SplitterId) . ' (#' . $SplitterId . ')'];
+                    }
                     $Values[] = $value;
                 }
             }
@@ -320,9 +334,47 @@ class Zigbee2MQTTDiscovery extends IPSModuleStrict
 
                 ]
             ];
+            if (!$instanceID) {
+                $MoveTargets[] = ['row' => count($Values), 'topic' => $Topic,
+                    'key'               => 'manual:' . hash('sha256', json_encode(array_intersect_key($this->ManuelBrokerConfig, array_flip(['Host', 'Port', 'UseSSL', 'UserName'])))),
+                    'label'             => $this->Translate('External broker') . ' ' . ($this->ManuelBrokerConfig['Host'] ?? '') . ':' . ($this->ManuelBrokerConfig['Port'] ?? '')];
+            }
             $Values[] = $value;
 
         }
+        $MoveOptions = [['caption' => $this->Translate('Do not reuse a configurator'), 'value' => '']];
+        $MoveCandidates = [];
+        foreach ($MoveTargets as $Target) {
+            foreach ($IPSConfigurators as $ConfiguratorID => $Topic) {
+                if ($Topic !== $Target['topic']) {
+                    continue;
+                }
+                $Key = $ConfiguratorID . '|' . $Target['key'] . '|' . $Target['topic'];
+                $MoveOptions[] = ['caption' => IPS_GetName($ConfiguratorID) . ' (#' . $ConfiguratorID . ') → ' . $Target['label'] . ' [' . $Topic . ']', 'value' => $Key];
+                $MoveCandidates[$Key] = ['id' => $ConfiguratorID, 'row' => $Target['row']];
+            }
+        }
+        $Selection = $this->SelectedConfiguratorMove;
+        if (!isset($MoveCandidates[$Selection])) {
+            $Selection = '';
+            $this->SelectedConfiguratorMove = '';
+        } else {
+            $Candidate = $MoveCandidates[$Selection];
+            $Values[$Candidate['row']]['instanceID'] = $Candidate['id'];
+            $Values[$Candidate['row']]['name'] = IPS_GetName($Candidate['id']);
+            unset($IPSConfigurators[$Candidate['id']]);
+        }
+        foreach ($Form['actions'] as &$Action) {
+            if (($Action['name'] ?? '') === 'ConfiguratorMove') {
+                $Action['visible'] = count($MoveOptions) > 1;
+                $Action['options'] = $MoveOptions;
+                $Action['value'] = $Selection;
+            }
+            if (($Action['name'] ?? '') === 'ConfiguratorMoveInfo') {
+                $Action['visible'] = count($MoveOptions) > 1;
+            }
+        }
+        unset($Action);
         foreach ($IPSConfigurators as $instanceID => $Topic) {
             // nicht gefundene Konfiguratoren werden hier in rot auflisten
             $value = []; //Array leeren

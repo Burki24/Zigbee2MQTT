@@ -28,6 +28,121 @@ class DiscoveryTest extends DumpInclude
         unset($GLOBALS['MQTT_RETAINED_MESSAGES']);
     }
 
+    public function testExplicitMoveOptionReusesWronglyConnectedAndDisconnectedConfigurators(): void
+    {
+        foreach ([true, false] as $connected) {
+            $io = IPS_CreateInstance('{6179ED6A-FC31-413C-BB8E-1204150CF376}');
+            $old = IPS_CreateInstance('{6179ED6A-FC31-413C-BB8E-1204150CF376}');
+            $target = IPS_CreateInstance('{6179ED6A-FC31-413C-BB8E-1204150CF376}');
+            IPS_ConnectInstance($old, $io);
+            IPS_ConnectInstance($target, $io);
+            $config = IPS_CreateInstance('{D30BADA8-F261-4D9F-89A9-2E9961AF021F}');
+            IPS_SetConfiguration($config, json_encode(['MQTTBaseTopic' => 'unique-' . $config]));
+            if ($connected) {
+                IPS_ConnectInstance($config, $old);
+            }
+            IPS_ApplyChanges($config);
+            $discovery = $this->createMoveDiscovery([$target => ['unique-' . $config]]);
+            $form = json_decode($discovery->GetConfigurationForm(), true);
+            $move = array_values(array_filter($form['actions'], static fn ($field) => ($field['name'] ?? '') === 'ConfiguratorMove'))[0] ?? [];
+            $this->assertTrue($move['visible'] ?? false);
+            $this->assertCount(2, $move['options']);
+            $this->assertSame('', $move['value']);
+            $discovery->RequestAction('SelectConfiguratorMove', $move['options'][1]['value']);
+            $form = json_decode($discovery->GetConfigurationForm(), true);
+            $rows = array_values(array_filter($form['actions'][1]['values'], static fn ($row) => $row['topic'] === 'unique-' . $config));
+            $this->assertCount(1, $rows);
+            $this->assertSame($config, $rows[0]['instanceID']);
+            $this->assertArrayHasKey('create', $rows[0]);
+            $this->assertSame($connected ? $old : 0, IPS_GetInstance($config)['ConnectionID']);
+            $discovery->RequestAction('SelectConfiguratorMove', '');
+            $cancelled = json_decode($discovery->GetConfigurationForm(), true);
+            $this->assertSame(0, $cancelled['actions'][1]['values'][0]['instanceID']);
+            $this->assertSame($connected ? $old : 0, IPS_GetInstance($config)['ConnectionID']);
+            $discovery->RequestAction('SelectConfiguratorMove', 'forged-selection');
+            $form = json_decode($discovery->GetConfigurationForm(), true);
+            $this->assertSame(0, $form['actions'][1]['values'][0]['instanceID']);
+        }
+    }
+
+    public function testAmbiguousMoveCandidatesRequireExplicitSelectionAndKeepStableTargets(): void
+    {
+        $io = IPS_CreateInstance('{6179ED6A-FC31-413C-BB8E-1204150CF376}');
+        $targets = [];
+        $configs = [];
+        for ($i = 0; $i < 2; ++$i) {
+            $splitter = IPS_CreateInstance('{6179ED6A-FC31-413C-BB8E-1204150CF376}');
+            IPS_ConnectInstance($splitter, $io);
+            $targets[$splitter] = ['shared/z2m'];
+            $config = IPS_CreateInstance('{D30BADA8-F261-4D9F-89A9-2E9961AF021F}');
+            IPS_SetConfiguration($config, json_encode(['MQTTBaseTopic' => 'shared/z2m']));
+            IPS_ApplyChanges($config);
+            $configs[] = $config;
+        }
+        $discovery = $this->createMoveDiscovery($targets);
+        $form = json_decode($discovery->GetConfigurationForm(), true);
+        $move = array_values(array_filter($form['actions'], static fn ($field) => ($field['name'] ?? '') === 'ConfiguratorMove'))[0] ?? [];
+        $this->assertCount(5, $move['options'] ?? []);
+        $this->assertSame([0, 0], array_slice(array_column($form['actions'][1]['values'], 'instanceID'), 0, 2));
+        $choice = $move['options'][1]['value'];
+        $discovery->RequestAction('SelectConfiguratorMove', $choice);
+        $discovery->targets = array_reverse($targets, true);
+        $discovery->RequestAction('RefreshDiscoveryCache', true);
+        $form = json_decode($discovery->GetConfigurationForm(), true);
+        $ids = array_column($form['actions'][1]['values'], 'instanceID');
+        $this->assertSame(0, $ids[0]);
+        $this->assertSame($configs[0], $ids[1]);
+        $this->assertSame(0, IPS_GetInstance($configs[0])['ConnectionID']);
+    }
+
+    public function testMoveSelectionDistinguishesTopicsAndExpiresWithMissingTarget(): void
+    {
+        $io = IPS_CreateInstance('{6179ED6A-FC31-413C-BB8E-1204150CF376}');
+        $target = IPS_CreateInstance('{6179ED6A-FC31-413C-BB8E-1204150CF376}');
+        IPS_ConnectInstance($target, $io);
+        $configs = [];
+        foreach (['first/z2m', 'second/z2m'] as $topic) {
+            $config = IPS_CreateInstance('{D30BADA8-F261-4D9F-89A9-2E9961AF021F}');
+            IPS_SetConfiguration($config, json_encode(['MQTTBaseTopic' => $topic]));
+            IPS_ApplyChanges($config);
+            $configs[] = $config;
+        }
+        $discovery = $this->createMoveDiscovery([$target => ['first/z2m', 'second/z2m']]);
+        $form = json_decode($discovery->GetConfigurationForm(), true);
+        $move = array_values(array_filter($form['actions'], static fn ($field) => ($field['name'] ?? '') === 'ConfiguratorMove'))[0];
+        $this->assertCount(3, $move['options']);
+        $this->assertNotSame($move['options'][1]['value'], $move['options'][2]['value']);
+        $discovery->RequestAction('SelectConfiguratorMove', $move['options'][1]['value']);
+        $form = json_decode($discovery->GetConfigurationForm(), true);
+        $this->assertSame($configs[0], $form['actions'][1]['values'][0]['instanceID']);
+        $this->assertSame(0, $form['actions'][1]['values'][1]['instanceID']);
+        $discovery->targets = [$target => ['second/z2m']];
+        $discovery->RequestAction('RefreshDiscoveryCache', true);
+        $form = json_decode($discovery->GetConfigurationForm(), true);
+        $move = array_values(array_filter($form['actions'], static fn ($field) => ($field['name'] ?? '') === 'ConfiguratorMove'))[0];
+        $this->assertSame('', $move['value']);
+        $this->assertSame(0, $form['actions'][1]['values'][0]['instanceID']);
+        $this->assertSame(0, IPS_GetInstance($configs[0])['ConnectionID']);
+    }
+
+    public function testManualBrokerCanExplicitlyReuseExistingConfigurator(): void
+    {
+        $config = IPS_CreateInstance('{D30BADA8-F261-4D9F-89A9-2E9961AF021F}');
+        IPS_SetConfiguration($config, json_encode(['MQTTBaseTopic' => 'manual/z2m']));
+        IPS_ApplyChanges($config);
+        $discovery = $this->createMoveDiscovery([]);
+        $discovery->ManuelTopics = ['manual/z2m'];
+        $discovery->ManuelBrokerConfig = ['Host' => 'broker.test', 'Port' => 1883, 'UseSSL' => false, 'UserName' => '', 'Password' => ''];
+        $form = json_decode($discovery->GetConfigurationForm(), true);
+        $move = array_values(array_filter($form['actions'], static fn ($field) => ($field['name'] ?? '') === 'ConfiguratorMove'))[0] ?? [];
+        $this->assertCount(2, $move['options'] ?? []);
+        $discovery->RequestAction('SelectConfiguratorMove', $move['options'][1]['value']);
+        $form = json_decode($discovery->GetConfigurationForm(), true);
+        $this->assertSame($config, $form['actions'][1]['values'][0]['instanceID']);
+        $this->assertSame('broker.test', $form['actions'][1]['values'][0]['create'][2]['configuration']['Host']);
+        $this->assertSame(0, IPS_GetInstance($config)['ConnectionID']);
+    }
+
     public function testManualBrokerDuplicatesUseBrokerIdentityAndTopic(): void
     {
         IPS\ModuleLoader::loadSingleModule(__DIR__ . '/fixtures/DiscoveryMqttClient', '{EBDB6E58-DFAC-911B-0EDA-79A9C7CCD0B3}');
@@ -320,5 +435,30 @@ class DiscoveryTest extends DumpInclude
         $this->assertStringNotContainsString('form-debug-password', $debug);
         $this->assertStringNotContainsString('nested-debug-secret', $debug);
         $this->assertStringContainsString('[redacted]', $debug);
+    }
+
+    private function createMoveDiscovery(array $targets): Zigbee2MQTTDiscovery
+    {
+        $discovery = new class(990025, $targets) extends Zigbee2MQTTDiscovery {
+            public function __construct(int $id, public array $targets)
+            {
+                parent::__construct($id);
+            }
+            protected function ScanMqttServers(array $fallbackTopics = []): ?array
+            {
+                return $this->targets;
+            }
+            protected function ReloadForm(): bool
+            {
+                return true;
+            }
+            protected function getTime(): int
+            {
+                return time();
+            }
+        };
+        $discovery->Create();
+        $discovery->RequestAction('RefreshDiscoveryCache', true);
+        return $discovery;
     }
 }
