@@ -219,7 +219,23 @@ trait BridgeConfigurationCommandHelper
 
     private function BuildBridgeConnectionStatus(): string
     {
-        return $this->Translate($this->GetValue('state') ? 'Online' : 'Offline - version information was last reported');
+        return $this->Translate($this->HasActiveParent() && $this->GetValue('state') ? 'Online' : 'Offline - version information was last reported');
+    }
+
+    /** Observes the current MQTT parent's connection status and follows parent changes. */
+    private function SynchronizeBridgeConnectionMessages(): void
+    {
+        $this->RegisterMessage($this->InstanceID, FM_CONNECT);
+        $this->RegisterMessage($this->InstanceID, FM_DISCONNECT);
+        $previous = $this->ReadAttributeInteger('ConnectionStatusParentID');
+        $current = IPS_InstanceExists($this->InstanceID) ? (int) IPS_GetInstance($this->InstanceID)['ConnectionID'] : 0;
+        if ($previous > 0 && $previous !== $current) {
+            $this->UnregisterMessage($previous, IM_CHANGESTATUS);
+        }
+        if ($current > 0) {
+            $this->RegisterMessage($current, IM_CHANGESTATUS);
+        }
+        $this->WriteAttributeInteger('ConnectionStatusParentID', $current);
     }
 
     /** Avoid repainting unchanged version and connection labels on repeated MQTT messages. */

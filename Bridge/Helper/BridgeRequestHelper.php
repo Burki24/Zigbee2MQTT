@@ -7,6 +7,27 @@ declare(strict_types=1);
  */
 trait BridgeRequestHelper
 {
+    /** Stores raw topology as JSON while retaining textual network map formats. */
+    private function StoreNetworkMapResponse(array $payload): void
+    {
+        if (($payload['status'] ?? '') !== 'ok' || !\is_array($payload['data'] ?? null)) {
+            return;
+        }
+        $type = $payload['data']['type'] ?? null;
+        $value = $payload['data']['value'] ?? null;
+        if (!\in_array($type, ['raw', 'graphviz', 'plantuml'], true)) {
+            return;
+        }
+        if ($type === 'raw' && \is_array($value)) {
+            $value = json_encode($value, JSON_UNESCAPED_SLASHES | JSON_UNESCAPED_UNICODE | JSON_THROW_ON_ERROR);
+        }
+        if (!\is_string($value)) {
+            return;
+        }
+        $this->RegisterVariableString($type, $this->Translate('Network Map'));
+        $this->SetValue($type, $value);
+    }
+
     /**
      * Sendet einen Bridge-Request und gibt bei erfolgreicher Antwort das data-Array zurueck.
      *

@@ -2,6 +2,9 @@
 
 ## Fixes
 
+- Die Online-Anzeige der Bridge berücksichtigt zusätzlich die aktuelle MQTT-Verbindung und aktualisiert sich auch in geöffneten Formularen bei Verbindungsabbruch und Wiederverbindung. Gemeldete Versionsinformationen bleiben erhalten.
+- RAW-Netzwerkkarten werden in der Bridge als JSON-Text gespeichert. Der bisherige Typfehler beim Empfang einer Netzwerkanalyse entfällt; Graphviz- und PlantUML-Ausgaben bleiben Text.
+
 - Geräte und Gruppen verarbeiten Availability-Meldungen älterer Zigbee2MQTT-Versionen wieder als Klartext (`online`/`offline`). Die Prüfung ungültiger Payloads bleibt für andere Nachrichten aktiv.
 - Manuell hinzugefügte MQTT-Broker bleiben in Discovery auch bei gleichem Basistopic auf anderen Servern sichtbar. Dubletten werden anhand von Broker-Verbindung und Basistopic erkannt.
 

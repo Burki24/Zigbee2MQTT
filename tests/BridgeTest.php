@@ -26,6 +26,96 @@ class BridgeTest extends TestCase
         parent::setUp();
     }
 
+    public function testDisconnectedParentOverridesRetainedOnlineStateWithoutChangingVersions(): void
+    {
+        $id = IPS_CreateInstance(self::BRIDGE_MODULE_ID);
+        $parent = IPS_CreateInstance(self::VIRTUAL_IO_MODULE_ID);
+        IPS_ConnectInstance($id, $parent);
+        $bridge = $this->createBridgeTestDouble(true, $id);
+        $bridge->setBaseTopicForTest('zigbee2mqtt');
+        $bridge->ApplyChanges();
+        $bridge->parentActive = true;
+        $bridge->setVersionValuesForTest('6.07', '11.1.0', '2.14.2', true);
+        $form = json_decode($bridge->GetConfigurationForm(), true);
+        $summary = $this->findFormField($form, 'BridgeVersions')['caption'];
+        $this->assertSame('Online', $this->findFormField($form, 'BridgeConnectionStatus')['caption']);
+        $bridge->formFieldCalls = [];
+        $bridge->parentActive = false;
+        $bridge->MessageSink(time(), $parent, IM_CHANGESTATUS, [IS_INACTIVE]);
+        $bridge->MessageSink(time(), $parent, IM_CHANGESTATUS, [IS_INACTIVE]);
+        $this->assertSame('Offline - version information was last reported', $bridge->updatedFields['BridgeConnectionStatus']['caption']);
+        $this->assertTrue($bridge->readPairingValue('state'));
+        $this->assertSame($summary, $this->findFormField(json_decode($bridge->GetConfigurationForm(), true), 'BridgeVersions')['caption']);
+        $bridge->parentActive = true;
+        $bridge->MessageSink(time(), $parent, IM_CHANGESTATUS, [IS_ACTIVE]);
+        $this->assertSame('Online', $bridge->updatedFields['BridgeConnectionStatus']['caption']);
+        $this->assertSame([], array_values(array_filter($bridge->formFieldCalls, static fn (array $call): bool => $call['Field'] === 'BridgeVersions')));
+        $this->assertCount(2, array_values(array_filter($bridge->formFieldCalls, static fn (array $call): bool => $call['Field'] === 'BridgeConnectionStatus')));
+    }
+
+    public function testParentConnectionSubscriptionsFollowReconnects(): void
+    {
+        $id = IPS_CreateInstance(self::BRIDGE_MODULE_ID);
+        $old = IPS_CreateInstance(self::VIRTUAL_IO_MODULE_ID);
+        $new = IPS_CreateInstance(self::VIRTUAL_IO_MODULE_ID);
+        IPS_ConnectInstance($id, $old);
+        $bridge = $this->createBridgeTestDouble(true, $id);
+        $bridge->setBaseTopicForTest('zigbee2mqtt');
+        $bridge->ApplyChanges();
+        $this->assertContains([$old, IM_CHANGESTATUS], $bridge->registeredMessages);
+        $this->assertContains([$id, FM_CONNECT], $bridge->registeredMessages);
+        $this->assertContains([$id, FM_DISCONNECT], $bridge->registeredMessages);
+        IPS_DisconnectInstance($id);
+        $bridge->parentActive = false;
+        $bridge->MessageSink(time(), $id, FM_DISCONNECT, []);
+        $this->assertContains([$old, IM_CHANGESTATUS], $bridge->unregisteredMessages);
+        IPS_ConnectInstance($id, $new);
+        $bridge->parentActive = true;
+        $bridge->MessageSink(time(), $id, FM_CONNECT, []);
+        $this->assertContains([$new, IM_CHANGESTATUS], $bridge->registeredMessages);
+        $bridge->formFieldCalls = [];
+        $bridge->MessageSink(time(), $old, IM_CHANGESTATUS, [IS_INACTIVE]);
+        $this->assertSame([], $bridge->formFieldCalls);
+    }
+
+    public function testRawNetworkMapIsStoredAsJsonAndTextFormatsRemainUnchanged(): void
+    {
+        $bridge = $this->createBridgeTestDouble(true, IPS_CreateInstance(self::BRIDGE_MODULE_ID));
+        $bridge->setBaseTopicForTest('zigbee2mqtt');
+        $raw = ['nodes' => [['friendlyName' => 'Room/Sensor']], 'links' => []];
+        foreach (['raw' => $raw, 'graphviz' => 'digraph G {}', 'plantuml' => '@startuml'] as $type => $value) {
+            $bridge->ReceiveData(json_encode(['Topic' => 'zigbee2mqtt/bridge/response/networkmap', 'Payload' => bin2hex(json_encode([
+                'transaction' => 123456, 'status' => 'ok', 'data' => ['type' => $type, 'value' => $value]
+            ]))]));
+            $stored = $bridge->readPairingValue($type);
+            $this->assertIsString($stored);
+            $this->assertSame($value, $type === 'raw' ? json_decode($stored, true, 512, JSON_THROW_ON_ERROR) : $stored);
+        }
+    }
+
+    public function testMalformedNetworkMapResponsesDoNotOverwriteStoredMap(): void
+    {
+        $bridge = $this->createBridgeTestDouble(true, IPS_CreateInstance(self::BRIDGE_MODULE_ID));
+        $bridge->setBaseTopicForTest('zigbee2mqtt');
+        $send = static function (array $payload) use ($bridge): void
+        {
+            $bridge->ReceiveData(json_encode(['Topic' => 'zigbee2mqtt/bridge/response/networkmap', 'Payload' => bin2hex(json_encode($payload))]));
+        };
+        $send(['status' => 'ok', 'data' => ['type' => 'raw', 'value' => ['nodes' => [], 'links' => []]]]);
+        $stored = $bridge->readPairingValue('raw');
+        foreach ([
+            ['status' => 'error', 'data' => ['type' => 'raw', 'value' => []]],
+            ['status' => 'ok'],
+            ['status' => 'ok', 'data' => ['type' => 'raw', 'value' => null]],
+            ['status' => 'ok', 'data' => ['type' => 'graphviz', 'value' => []]],
+            ['status' => 'ok', 'data' => ['type' => 'unknown', 'value' => 'text']]
+        ] as $payload) {
+            $send($payload);
+            $this->assertSame($stored, $bridge->readPairingValue('raw'));
+            $this->assertNull($bridge->readPairingValue('graphviz'));
+        }
+    }
+
     public function testReceiveDataIgnoresIncompleteMqttFrames(): void
     {
         $bridgeID = IPS_CreateInstance(self::BRIDGE_MODULE_ID);
@@ -142,6 +232,7 @@ class BridgeTest extends TestCase
     {
         $bridge = $this->createBridgeTestDouble(true);
         $bridge->setCachedBridgeStatusForTest(true, true, 'epoch');
+        $bridge->parentActive = true;
         $bridge->setVersionValuesForTest('6.07', '11.1.0', '2.14.2', true);
 
         $form = json_decode($bridge->GetConfigurationForm(), true);
@@ -158,6 +249,7 @@ class BridgeTest extends TestCase
     {
         $bridge = $this->createBridgeTestDouble(true);
         $bridge->setCachedBridgeStatusForTest(true, true, 'epoch');
+        $bridge->parentActive = true;
         $bridge->setVersionValuesForTest('6.05', '11.1.0', '2.14.2', false);
         $bridge->actualExtensionVersion = 6.05;
         $form = json_decode($bridge->GetConfigurationForm(), true);
@@ -177,6 +269,7 @@ class BridgeTest extends TestCase
     {
         $bridge = $this->createBridgeTestDouble(true);
         $bridge->setCachedBridgeStatusForTest(true, true, 'epoch');
+        $bridge->parentActive = true;
         $bridge->setVersionValuesForTest('unknown', '', '', false);
         $form = json_decode($bridge->GetConfigurationForm(), true);
         $this->assertTrue($this->findFormField($form, 'InstallExtension')['enabled']);
@@ -189,6 +282,7 @@ class BridgeTest extends TestCase
         $bridge = $this->createBridgeTestDouble(true);
         $bridge->setBaseTopicForTest('zigbee2mqtt');
         $bridge->setCachedBridgeStatusForTest(true, false, 'epoch');
+        $bridge->parentActive = true;
         $bridge->setVersionValuesForTest('6.05', '11.1.0', '2.14.2', false);
         $form = json_decode($bridge->GetConfigurationForm(), true);
         $summary = $this->findFormField($form, 'BridgeVersions')['caption'];
@@ -212,6 +306,7 @@ class BridgeTest extends TestCase
         $bridge = $this->createBridgeTestDouble(true);
         $bridge->setBaseTopicForTest('zigbee2mqtt');
         $bridge->setCachedBridgeStatusForTest(true, false, 'epoch');
+        $bridge->parentActive = true;
         $bridge->setVersionValuesForTest('6.05', '11.1.0', '2.14.2', true);
         $bridge->GetConfigurationForm();
         $bridge->formFieldCalls = [];
@@ -232,6 +327,7 @@ class BridgeTest extends TestCase
         $bridge = $this->createBridgeTestDouble(true);
         $bridge->setBaseTopicForTest('zigbee2mqtt');
         $bridge->setCachedBridgeStatusForTest(true, false, 'epoch');
+        $bridge->parentActive = true;
         $bridge->setVersionValuesForTest('6.05', '11.1.0', '2.14.2', false);
         $bridge->GetConfigurationForm();
         $bridge->formFieldCalls = [];
@@ -1849,9 +1945,26 @@ class BridgeTest extends TestCase
         $this->assertSame(0, $bridge->lastTimeout);
     }
 
-    private function createBridgeTestDouble(array|bool $result): Zigbee2MQTTBridge
+    private function createBridgeTestDouble(array|bool $result, int $instanceID = 900001): Zigbee2MQTTBridge
     {
-        $bridge = new class(900001, $result) extends Zigbee2MQTTBridge {
+        $bridge = new class($instanceID, $result) extends Zigbee2MQTTBridge {
+            public bool $parentActive = false;
+            public array $registeredMessages = [];
+            public array $unregisteredMessages = [];
+            protected function HasActiveParent(): bool
+            {
+                return $this->parentActive;
+            }
+            protected function RegisterMessage(int $SenderID, int $Message): bool
+            {
+                $this->registeredMessages[] = [$SenderID, $Message];
+                return true;
+            }
+            protected function UnregisterMessage(int $SenderID, int $Message): bool
+            {
+                $this->unregisteredMessages[] = [$SenderID, $Message];
+                return true;
+            }
             public string $lastTopic = '';
             public array $lastPayload = [];
             public int $lastTimeout = -1;
@@ -1964,6 +2077,13 @@ class BridgeTest extends TestCase
 
             protected function SetValue(string $Ident, mixed $Value): bool
             {
+                if (in_array($Ident, ['raw', 'graphviz', 'plantuml'], true)) {
+                    if (!is_string($Value)) {
+                        throw new \TypeError('Network map string variable requires a string');
+                    }
+                    $this->testValues[$Ident] = $Value;
+                    return true;
+                }
                 if (\in_array($Ident, ['permit_join', 'permit_join_end', 'permit_join_remaining', 'permit_join_target', 'extension_is_current', 'extension_loaded', 'extension_version', 'zigbee_herdsman', 'version', 'state'], true)) {
                     $this->testValues[$Ident] = $Value;
                     return true;

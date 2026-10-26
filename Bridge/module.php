@@ -168,6 +168,7 @@ class Zigbee2MQTTBridge extends IPSModuleStrict
             fn (): mixed => $this->RegisterOTAFormRefreshTimer()
         );
 
+        $this->RegisterAttributeInteger('ConnectionStatusParentID', 0);
         $this->RegisterAttributeArray(self::ATTRIBUTE_DIAGNOSTIC_HEALTH, []);
         $this->RegisterAttributeArray(self::ATTRIBUTE_DIAGNOSTIC_COORDINATOR, []);
         $this->RegisterAttributeArray(self::ATTRIBUTE_DIAGNOSTIC_EVENTS, []);
@@ -272,6 +273,7 @@ class Zigbee2MQTTBridge extends IPSModuleStrict
             }
         }
         $this->SendDebug('Online', $online ? 'true' : 'false', 0);
+        $this->SynchronizeBridgeConnectionMessages();
         $this->RefreshExtensionVersionStatus();
         $this->TraceHelperCall(
             'BridgeOTAFormHelper',
@@ -296,6 +298,16 @@ class Zigbee2MQTTBridge extends IPSModuleStrict
      */
     public function MessageSink(int $TimeStamp, int $SenderID, int $Message, array $Data): void
     {
+        if (($SenderID === $this->InstanceID && \in_array($Message, [FM_CONNECT, FM_DISCONNECT], true))
+            || ($SenderID === $this->ReadAttributeInteger('ConnectionStatusParentID') && $SenderID > 0 && $Message === IM_CHANGESTATUS)
+        ) {
+            $this->SynchronizeBridgeConnectionMessages();
+            if (@IPS_GetObjectIDByIdent('state', $this->InstanceID) !== false) {
+                $this->UpdateBridgeVersionFormFields();
+            }
+            return;
+        }
+
         if ($Message === VM_UPDATE && \in_array($SenderID, $this->ReadAttributeArray(self::ATTRIBUTE_OTA_MONITORED_VARIABLES), true)) {
             if (($Data[1] ?? false) !== true) {
                 return;
@@ -725,11 +737,8 @@ class Zigbee2MQTTBridge extends IPSModuleStrict
                     break;
                 }
                 if (is_array($Topics) && isset($Topics[0])) {
-                    if ($Topics[0] == 'networkmap') {
-                        if ($Payload['status'] == 'ok') {
-                            $this->RegisterVariableString($Payload['data']['type'], $this->Translate('Network Map'));
-                            $this->SetValue($Payload['data']['type'], $Payload['data']['value']);
-                        }
+                    if ($Topics[0] == 'networkmap' && \is_array($Payload)) {
+                        $this->StoreNetworkMapResponse($Payload);
                     }
                 }
                 break;
