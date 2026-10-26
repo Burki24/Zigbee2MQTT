@@ -47,7 +47,6 @@ class ConfiguratorTest extends DumpInclude
 
         $configurator = IPS\InstanceManager::getInstanceInterface($configuratorID);
         $matchingMethod = new ReflectionMethod($configurator, 'GetIPSInstancesByBaseTopic');
-        $matchingMethod->setAccessible(true);
 
         $this->assertSame(
             [$correctDeviceID => 'Wohnzimmer/Licht'],

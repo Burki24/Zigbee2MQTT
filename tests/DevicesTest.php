@@ -2134,7 +2134,6 @@ class DevicesTest extends DumpInclude
 
         $interface = IPS\InstanceManager::getInstanceInterface($iid);
         $synchronizeAction = new \ReflectionMethod($interface, 'synchronizeVariableAction');
-        $synchronizeAction->setAccessible(true);
 
         // Das aktuelle Feature ist verbindlich, auch wenn die gespeicherten Exposes noch beschreibbar sind.
         $synchronizeAction->invoke($interface, 'brightness', ['access' => 1]);
@@ -2153,7 +2152,6 @@ class DevicesTest extends DumpInclude
 
         $interface = IPS\InstanceManager::getInstanceInterface($iid);
         $synchronizeStateAction = new \ReflectionMethod($interface, 'synchronizeStateFeatureAction');
-        $synchronizeStateAction->setAccessible(true);
         $feature = ['access' => 7];
 
         $synchronizeStateAction->invoke($interface, ['ident' => 'brightness', 'enableAction' => false], $feature);
@@ -2569,7 +2567,6 @@ class DevicesTest extends DumpInclude
         $device = $this->createDeviceOptionFormTestDouble();
 
         $method = new \ReflectionMethod($device, 'BuildBindingTargetOptions');
-        $method->setAccessible(true);
         $options = $method->invoke($device);
 
         $this->assertIsArray($options);
@@ -3256,7 +3253,6 @@ class DevicesTest extends DumpInclude
         $module = $this->getStubModule($iid);
         $reflection = new \ReflectionClass(IPSModule::class);
         $attributeProperty = $reflection->getProperty('attributes');
-        $attributeProperty->setAccessible(true);
 
         $attributes = $attributeProperty->getValue($module);
         $this->assertArrayHasKey($name, $attributes, 'Attribute not found: ' . $name);
@@ -3269,7 +3265,6 @@ class DevicesTest extends DumpInclude
         $module = $this->getStubModule($iid);
         $reflection = new \ReflectionClass(IPSModule::class);
         $attributeProperty = $reflection->getProperty('attributes');
-        $attributeProperty->setAccessible(true);
 
         $attributes = $attributeProperty->getValue($module);
         $this->assertArrayHasKey($name, $attributes, 'Attribute not found: ' . $name);
@@ -3288,7 +3283,6 @@ class DevicesTest extends DumpInclude
         $module = $this->getStubModule($iid);
         $reflection = new \ReflectionClass(IPSModule::class);
         $attributeProperty = $reflection->getProperty('attributes');
-        $attributeProperty->setAccessible(true);
 
         $attributes = $attributeProperty->getValue($module);
         $this->assertArrayHasKey($name, $attributes, 'Attribute not found: ' . $name);
@@ -3301,7 +3295,6 @@ class DevicesTest extends DumpInclude
         $module = $this->getStubModule($iid);
         $reflection = new \ReflectionClass(IPSModule::class);
         $property = $reflection->getProperty('properties');
-        $property->setAccessible(true);
 
         $properties = $property->getValue($module);
         foreach ($names as $name) {
@@ -3315,7 +3308,6 @@ class DevicesTest extends DumpInclude
         $module = $this->getStubModule($iid);
         $reflection = new \ReflectionClass(IPSModule::class);
         $property = $reflection->getProperty('attributes');
-        $property->setAccessible(true);
 
         $attributes = $property->getValue($module);
         foreach ($names as $name) {
@@ -3329,7 +3321,6 @@ class DevicesTest extends DumpInclude
         $module = $this->getStubModule($iid);
         $reflection = new \ReflectionClass(IPSModule::class);
         $attributeProperty = $reflection->getProperty('attributes');
-        $attributeProperty->setAccessible(true);
         $attributes = $attributeProperty->getValue($module);
         return \is_array($attributes) ? $attributes : [];
     }
@@ -3339,7 +3330,6 @@ class DevicesTest extends DumpInclude
         $interface = IPS\InstanceManager::getInstanceInterface($iid);
         $reflection = new \ReflectionClass(IPSModuleStrict::class);
         $moduleProperty = $reflection->getProperty('module');
-        $moduleProperty->setAccessible(true);
         return $moduleProperty->getValue($interface);
     }
 

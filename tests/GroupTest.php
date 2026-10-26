@@ -774,7 +774,6 @@ class GroupTest extends DumpInclude
         $module = $this->getStubModule($iid);
         $reflection = new \ReflectionClass(IPSModule::class);
         $attributeProperty = $reflection->getProperty('attributes');
-        $attributeProperty->setAccessible(true);
 
         $attributes = $attributeProperty->getValue($module);
         $this->assertArrayHasKey($name, $attributes, 'Attribute not found: ' . $name);
@@ -787,7 +786,6 @@ class GroupTest extends DumpInclude
         $interface = IPS\InstanceManager::getInstanceInterface($iid);
         $reflection = new \ReflectionClass(IPSModuleStrict::class);
         $moduleProperty = $reflection->getProperty('module');
-        $moduleProperty->setAccessible(true);
         return $moduleProperty->getValue($interface);
     }
 }

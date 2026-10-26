@@ -138,7 +138,6 @@ class DiscoveryTest extends DumpInclude
 
         $discovery = new Zigbee2MQTTDiscovery(990004);
         $reflection = new \ReflectionMethod(Zigbee2MQTTDiscovery::class, 'FindRetainedBridgeTopics');
-        $reflection->setAccessible(true);
 
         $this->assertSame(
             ['zigbee2mqtt', 'second-z2m'],
