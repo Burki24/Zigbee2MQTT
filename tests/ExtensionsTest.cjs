@@ -30,7 +30,97 @@ function createHarness(filename, baseTopic, devices = []) {
     return {extension, published, errors, resolved};
 }
 
+function createGroupDevice(ieeeAddr, definition) {
+    return {
+        ieeeAddr, name: `Floor/Device${ieeeAddr}`, zh: {}, options: {}, definition,
+        exposes() {
+            assert.ok(this.definition, 'Cannot retreive exposes before definition is resolved');
+            return typeof this.definition.exposes === 'function'
+                ? this.definition.exposes(this.zh, this.options)
+                : this.definition.exposes;
+        }
+    };
+}
+
 for (const filename of ['IPSymconExtension.js', 'IPSymconExtension2.js']) {
+    test(`${filename}: unresolved members do not interrupt other group members in any position`, async () => {
+        const state = {type: 'binary', property: 'state', access: 7};
+        const position = {type: 'numeric', property: 'position', access: 7, value_min: 0, value_max: 100};
+        for (const unresolvedIndex of [0, 1, 2]) {
+            const devices = [
+                createGroupDevice('0x01', {exposes: [{type: 'light', features: [state]}]}),
+                createGroupDevice('0x02', {exposes: [{type: 'cover', features: [position]}]})
+            ];
+            devices.splice(unresolvedIndex, 0, createGroupDevice('0x03', undefined));
+            const h = createHarness(filename, 'house/z2m', devices);
+            await h.extension.onMQTTMessage({topic: 'house/z2m/SymconExtension/request/getGroupInfo/Floor/Lights', message: '{"transaction":51}'});
+            assert.equal(h.published.length, 1);
+            const payload = h.published[0].payload;
+            assert.equal(payload.foundGroup, true);
+            assert.equal(payload.transaction, 51);
+            assert.equal(payload.ID, 3);
+            assert.equal(payload.members.length, 3);
+            assert.deepEqual(payload.light.features, [state]);
+            assert.deepEqual(payload.cover.features, [position]);
+            assert.equal(h.errors.length, 1);
+            assert.match(h.errors[0], /0x03.*Cannot retreive exposes before definition is resolved/);
+        }
+    });
+
+    test(`${filename}: groups with only unresolved definitions still return their metadata`, async () => {
+        const h = createHarness(filename, 'house/z2m', [createGroupDevice('0x01', undefined), createGroupDevice('0x02', null)]);
+        await h.extension.onMQTTMessage({topic: 'house/z2m/SymconExtension/request/getGroupInfo/Floor/Lights', message: '{"transaction":52}'});
+        assert.equal(h.published.length, 1);
+        const payload = h.published[0].payload;
+        assert.equal(payload.foundGroup, true);
+        assert.equal(payload.friendly_name, 'Floor/Lights');
+        assert.equal(payload.ID, 3);
+        assert.equal(payload.transaction, 52);
+        assert.equal(payload.members.length, 2);
+        for (const type of ['light', 'switch', 'lock', 'cover']) {
+            assert.deepEqual(payload[type].features, []);
+        }
+        assert.equal(h.errors.length, 2);
+    });
+
+    test(`${filename}: failing dynamic exposes are isolated for public and legacy device APIs`, async () => {
+        const expected = {type: 'binary', property: 'state', access: 7};
+        for (const api of ['public', 'definition', '_definition']) {
+            const broken = createGroupDevice('0x01', {exposes() { throw new Error('Dynamic exposes failed'); }});
+            if (api !== 'public') {
+                broken[api] = broken.definition;
+                if (api === '_definition') {
+                    delete broken.definition;
+                }
+                delete broken.exposes;
+            }
+            const h = createHarness(filename, 'house/z2m', [broken, createGroupDevice('0x02', {exposes: [{type: 'switch', features: [expected]}]})]);
+            await h.extension.onMQTTMessage({topic: 'house/z2m/SymconExtension/request/getGroupInfo/Floor/Lights', message: '{"transaction":53}'});
+            assert.equal(h.published.length, 1);
+            assert.equal(h.published[0].payload.foundGroup, true);
+            assert.equal(h.published[0].payload.transaction, 53);
+            assert.deepEqual(h.published[0].payload.switch.features, [expected]);
+            assert.equal(h.errors.length, 1);
+            assert.match(h.errors[0], /0x01.*Dynamic exposes failed/);
+        }
+    });
+
+    test(`${filename}: a resolved member contributes exposes on the next group request`, async () => {
+        const expected = {type: 'binary', property: 'state', access: 7};
+        const device = createGroupDevice('0x01', undefined);
+        const h = createHarness(filename, 'house/z2m', [device]);
+        await h.extension.onMQTTMessage({topic: 'house/z2m/SymconExtension/request/getGroupInfo/Floor/Lights', message: '{"transaction":54}'});
+        assert.equal(h.published.length, 1);
+        assert.equal(h.published[0].payload.foundGroup, true);
+        assert.deepEqual(h.published[0].payload.light.features, []);
+        device.definition = {exposes: [{type: 'light', features: [expected]}]};
+        await h.extension.onMQTTMessage({topic: 'house/z2m/SymconExtension/request/getGroupInfo/Floor/Lights', message: '{"transaction":55}'});
+        assert.equal(h.published.length, 2);
+        assert.equal(h.published[1].payload.transaction, 55);
+        assert.deepEqual(h.published[1].payload.light.features, [expected]);
+        assert.equal(h.errors.length, 1);
+    });
+
     for (const type of ['light', 'switch', 'lock', 'cover']) {
         test(`${filename}: group ${type} exposes use the device API and current options`, async () => {
             const device = {ieeeAddr: '0x00124b0000000001', name: 'Floor/Device', zh: {}, options: {tilt: true}};
@@ -205,7 +295,7 @@ for (const filename of ['IPSymconExtension.js', 'IPSymconExtension2.js']) {
             topic: 'SymconExtension/lists/response/getDevicesLight',
             payload: {list: [], transaction: 42}
         }]);
-        assert.match(fs.readFileSync(path.join(__dirname, '..', 'libs', filename), 'utf8'), /Version: 6\.08\r?\n/);
+        assert.match(fs.readFileSync(path.join(__dirname, '..', 'libs', filename), 'utf8'), /Version: 6\.09\r?\n/);
     });
 }
 
@@ -214,4 +304,17 @@ test('legacy extension retains plain-text device requests under bridge/symcon', 
     await h.extension.onMQTTMessage({topic: 'house/z2m/bridge/symcon/getDevice', message: 'Floor/Lamp'});
     assert.deepEqual(h.resolved, ['Floor/Lamp']);
     assert.deepEqual(h.errors, []);
+});
+
+test('legacy group requests also tolerate unresolved group members', async () => {
+    const expected = {type: 'binary', property: 'state', access: 7};
+    const h = createHarness('IPSymconExtension.js', 'house/z2m', [
+        createGroupDevice('0x01', undefined),
+        createGroupDevice('0x02', {exposes: [{type: 'light', features: [expected]}]})
+    ]);
+    await h.extension.onMQTTMessage({topic: 'house/z2m/bridge/symcon/getGroup', message: 'Floor/Lights'});
+    assert.equal(h.published.length, 1);
+    assert.equal(h.published[0].payload.foundGroup, true);
+    assert.deepEqual(h.published[0].payload.light.features, [expected]);
+    assert.equal(h.errors.length, 1);
 });

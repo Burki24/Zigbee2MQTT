@@ -1,6 +1,6 @@
 /*
  IPSymconExtension
- Version: 6.08
+ Version: 6.09
 */
 
 class IPSymconExtension {
@@ -268,7 +268,13 @@ class IPSymconExtension {
         this.#createLegacyGroupMemberPayload(group).forEach(member => {
             const device = this.zigbee.resolveEntity(member.ieee_address || member.device);
             if (typeof device !== "undefined") {
-                this.#addDeviceExposesToGroup(device, groupExposes);
+                try {
+                    this.#addDeviceExposesToGroup(device, groupExposes);
+                } catch (error) {
+                    // An unresolved or failing member must not abort the group response.
+                    const reason = error instanceof Error ? error.message : String(error);
+                    this.logger.error(`Symcon: skipping group exposes for member ${member.ieee_address || member.device}: ${reason}`);
+                }
             }
         });
     }

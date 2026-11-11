@@ -2,6 +2,8 @@
 
 ## Fixes
 
+- Beide Symcon-Extensions sind auf Version 6.09 angehoben. Fehlende Gerätedefinitionen und Fehler einzelner Mitglieder beim Ermitteln der Gruppen-Exposes brechen die Gruppenabfrage nicht mehr ab. Gruppendaten und verfügbare Funktionen der übrigen Mitglieder werden weiterhin geliefert; betroffene Geräte werden protokolliert und bei der nächsten Abfrage erneut berücksichtigt.
+
 - Beide Symcon-Extensions sind auf Version 6.08 angehoben. Gruppenabfragen verwenden die von Zigbee2MQTT für das jeweilige Gerät und seine Optionen aufgelösten Exposes. Dynamische Funktionen fehlen dadurch nicht mehr in den Gruppen; ältere Definitionen bleiben unterstützt.
 - Die OTA-Erkennung beider Extensions berücksichtigt das aktuelle Definitionsfeld `ota`, einschließlich einer ausdrücklich deaktivierten Unterstützung. Nur bei fehlendem Feld wird das ältere `supports_ota` verwendet. Das Extension-Update wird weiterhin manuell über die Bridge bestätigt.
 
