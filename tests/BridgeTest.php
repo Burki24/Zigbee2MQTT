@@ -35,7 +35,7 @@ class BridgeTest extends TestCase
         $bridge->setBaseTopicForTest('zigbee2mqtt');
         $bridge->ApplyChanges();
         $bridge->parentActive = true;
-        $bridge->setVersionValuesForTest('6.07', '11.1.0', '2.14.2', true);
+        $bridge->setVersionValuesForTest('6.08', '11.1.0', '2.14.2', true);
         $form = json_decode($bridge->GetConfigurationForm(), true);
         $summary = $this->findFormField($form, 'BridgeVersions')['caption'];
         $this->assertSame('Online', $this->findFormField($form, 'BridgeConnectionStatus')['caption']);
@@ -233,7 +233,7 @@ class BridgeTest extends TestCase
         $bridge = $this->createBridgeTestDouble(true);
         $bridge->setCachedBridgeStatusForTest(true, true, 'epoch');
         $bridge->parentActive = true;
-        $bridge->setVersionValuesForTest('6.07', '11.1.0', '2.14.2', true);
+        $bridge->setVersionValuesForTest('6.08', '11.1.0', '2.14.2', true);
 
         $form = json_decode($bridge->GetConfigurationForm(), true);
         $actions = array_column($form['actions'][0]['items'], null, 'name');
@@ -256,12 +256,12 @@ class BridgeTest extends TestCase
         $button = $this->findFormField($form, 'InstallExtension');
         $this->assertTrue($button['enabled']);
         $this->assertFalse($bridge->readPairingValue('extension_is_current'));
-        $this->assertSame(6.07, $bridge->actualExtensionVersion);
+        $this->assertSame(6.08, $bridge->actualExtensionVersion);
         $summary = $this->findFormField($form, 'BridgeVersions')['caption'];
         $this->assertStringContainsString('Zigbee2MQTT: 2.14.2', $summary);
         $this->assertStringContainsString('Installed extension: 6.05', $summary);
         $this->assertSame('Offline - version information was last reported', $this->findFormField($form, 'BridgeConnectionStatus')['caption']);
-        $this->assertStringContainsString('Bundled extension: 6.07', $summary);
+        $this->assertStringContainsString('Bundled extension: 6.08', $summary);
         $this->assertSame('', $bridge->lastTopic);
     }
 
@@ -369,7 +369,7 @@ class BridgeTest extends TestCase
         SetValue(IPS_GetObjectIDByIdent('extension_loaded', $id), true);
         $bridge->ApplyChanges();
         $this->assertSame(0, $bridge->installCalls);
-        $this->assertSame(6.07, $bridge->actualExtensionVersion);
+        $this->assertSame(6.08, $bridge->actualExtensionVersion);
         $this->assertFalse(GetValue(IPS_GetObjectIDByIdent('extension_is_current', $id)));
     }
 

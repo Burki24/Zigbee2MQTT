@@ -74,6 +74,8 @@
 
 Das Formular zeigt die Zigbee2MQTT-Version sowie die installierte und die mitgelieferte Symcon-Extension-Version. Eine separate Statuszeile berücksichtigt den zuletzt gemeldeten Z2M-Zustand und die aktuelle MQTT-Verbindung. Sie aktualisiert sich auch im geöffneten Formular bei Verbindungsabbruch und Wiederverbindung und zeigt „Online“ beziehungsweise „Offline“ und weist bei Offline-Status auf den zuletzt gemeldeten Versionsstand hin. Verbindungswechsel verändern die Versionszeile nicht. Die Prüfung berücksichtigt die mitgelieferte Datei auch direkt nach einem Modulupdate. Installation und Update der Extension werden ausschließlich durch den Anwender über **Symcon Erweiterung installieren oder updaten** gestartet.
 
+Die mitgelieferte Extension-Version `6.08` berücksichtigt dynamische Gerätefunktionen auch bei Gruppenabfragen. Die OTA-Erkennung verwendet das aktuelle Feld `ota` der Gerätedefinition und greift für ältere Definitionen ohne dieses Feld auf `supports_ota` zurück. Die Korrekturen stehen nach dem manuell bestätigten Extension-Update und einer erneuten Geräte- beziehungsweise Gruppenabfrage zur Verfügung.
+
 ## 5. Bridge-Funktionen
 
 Zusätzlich zu den Grundeinstellungen enthält die Bridge folgende Funktionsbereiche:

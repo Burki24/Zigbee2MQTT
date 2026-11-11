@@ -1,6 +1,6 @@
 /*
  IPSymconExtension
- Version: 6.07
+ Version: 6.08
 */
 
 class IPSymconExtension {
@@ -216,7 +216,7 @@ class IPSymconExtension {
         payload.options = options;
         payload.definition_options = definition.options ?? [];
         payload.filtered_attributes = options.filtered_attributes ?? [];
-        payload.supports_ota = definition.supports_ota ?? false;
+        payload.supports_ota = definition.ota === undefined ? Boolean(definition.supports_ota) : Boolean(definition.ota);
 
         if (boolExposes) {
             payload.exposes = device.exposes();
@@ -301,14 +301,18 @@ class IPSymconExtension {
     #addDeviceExposesToGroup(device, groupExposes) {
         let exposes = [];
 
-        // Überprüfen, ob 'definition' vorhanden ist und Exposes hinzufügen
-        if (device.definition && device.definition.exposes) {
-            exposes = exposes.concat(device.definition.exposes);
-        }
-
-        // Überprüfen, ob '_definition' vorhanden ist und Exposes hinzufügen
-        if (device._definition && device._definition.exposes) {
-            exposes = exposes.concat(device._definition.exposes);
+        // Z2M resolves dynamic exposes with the current device and options.
+        if (typeof device.exposes === 'function') {
+            exposes = device.exposes();
+        } else {
+            // Older device wrappers may only expose their definitions.
+            for (const definition of [device.definition, device._definition]) {
+                if (typeof definition?.exposes === 'function') {
+                    exposes = exposes.concat(definition.exposes(device.zh, device.options ?? {}));
+                } else if (Array.isArray(definition?.exposes)) {
+                    exposes = exposes.concat(definition.exposes);
+                }
+            }
         }
 
         // Verarbeite alle gesammelten Exposes
