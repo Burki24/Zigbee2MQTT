@@ -1,3 +1,5 @@
+[Deutsch](README.md) | [English](README.en.md)
+
 [![SDK](https://img.shields.io/badge/Symcon-PHPModul-red.svg)](https://www.symcon.de/service/dokumentation/entwicklerbereich/sdk-tools/sdk-php/)
 [![Module Version](https://img.shields.io/badge/dynamic/json?url=https%3A%2F%2Fraw.githubusercontent.com%2FBurki24%2FZigbee2MQTT%2Frefs%2Fheads%2Fdev_V6%2Flibrary.json&query=%24.version&label=Modul%20Version&color=blue)](https://community.symcon.de/t/modul-zigbee2mqtt-version-5-x/139819)
 [![Symcon Version](https://img.shields.io/badge/Symcon%20Version-9.0%3E-green)](https://www.symcon.de/de/service/dokumentation/einfuehrung/systemvoraussetzungen/versionenuebersicht/#version-90)
@@ -7,7 +9,7 @@
 
 # Zigbee2MQTT-Gerät  <!-- omit in toc -->  
 
-   Mit diesem Modul werden die Geräte von Zigbee2MQTT in IP-Symcon als Instanz abgebildet
+   Mit diesem Modul werden die Geräte von Zigbee2MQTT in Symcon als Instanz abgebildet
 
 ## Inhaltsverzeichnis <!-- omit in toc -->  
 
@@ -49,9 +51,9 @@
   
 ## 2. Voraussetzungen
 
-- mindestens IP-Symcon Version 9.0
+- mindestens Symcon Version 9.0
 - MQTT-Broker (interner MQTT-Server von Symcon oder externer z.B. Mosquitto)
-- installiertes und lauffähiges [zigbee2mqtt](https://www.zigbee2mqtt.io)  
+- installiertes und lauffähiges [Zigbee2MQTT](https://www.zigbee2mqtt.io) mit installierter Symcon-Extension; die Library liefert Version **6.09** mit. Installation und Update müssen in der Bridge manuell bestätigt werden.
   
 ## 3. Software-Installation
 
@@ -390,11 +392,16 @@ Bei Problemen mit einer Geräteinstanz hilft zuerst der Debug der Instanz. Dort 
 | Variable wird nach dem Löschen nicht wieder angelegt | Die Variable ist im Variablenkatalog als gelöscht oder deaktiviert vermerkt. | Im Bereich **Variablen** die betroffene Variable über `Anlegen` wieder erstellen oder über `Aktivieren` für die automatische Anlage freigeben. |
 | Bedienaktion sendet den falschen Wert | Die Variablenaktion, Darstellung oder Expose-Zuordnung passt nicht zum Gerät, z. B. bei enum-basierten `state`-Variablen. | Im Debug prüfen, welcher Payload gesendet wird. Bei Rollladen und ähnlichen Geräten müssen Originalwerte wie `OPEN`, `CLOSE` oder `STOP` gesendet werden. |
 
+> [!NOTE]
+> Im klassischen WebFront können neue Variablen zunächst Rohwerte und Eingabefelder zeigen. Nach dem Neuladen der Browserseite werden die nativen Darstellungen korrekt übernommen. Das Verhalten wurde unter Symcon 9.1 unabhängig vom Modul reproduziert und für 9.0 gemeldet; die Kachel-Visualisierung ist nicht betroffen.
+
 ## 5. Statusvariablen
 
 Die Statusvariablen werden je nach Funktion und Fähigkeiten der Geräte dynamisch erstellt.  
 
 ## 6. PHP-Funktionsreferenz
+
+`InstanzId` bezeichnet die Geräte- bzw. Gruppeninstanz, `VariablenID` dagegen die Statusvariable. Leseanfragen werden asynchron gesendet: Der Rückgabewert ist kein synchron gelesener Messwert; Antworten werden später per MQTT verarbeitet. `Z2M_SendGetCommand` fragt ausschließlich laut Exposes lesbare, nicht gefilterte Eigenschaften ab und liefert `false`, wenn keine vorhanden sind. `Z2M_WriteValue*` ruft die Modulaktion unter Umgehung einer benutzerdefinierten Variablenaktion auf; der Rückgabewert bestätigt nicht den physischen Gerätezustand. `Z2M_Command` und `Z2M_CommandExt` erwarten JSON-Objekte oder JSON-Arrays, keine skalaren JSON-Werte.
 
 ### RequestAction <!-- omit in toc -->  
 
@@ -522,7 +529,7 @@ Die Statusvariablen werden je nach Funktion und Fähigkeiten der Geräte dynamis
    bool Z2M_SendGetCommand(int $InstanzId);
    ```
 
-   Mit dieser Funktion wird eine Leseanfrage für alle bekannten Eigenschaften an das Gerät gesendet.
+   Mit dieser Funktion wird eine Leseanfrage für alle laut Exposes lesbaren und nicht gefilterten Eigenschaften an das Gerät gesendet.
 
    **Beispiel:**
 
@@ -530,7 +537,7 @@ Die Statusvariablen werden je nach Funktion und Fähigkeiten der Geräte dynamis
       Z2M_SendGetCommand(12345);
    ```
 
-   Sendet eine Leseanfrage für alle bekannten Eigenschaften an das Gerät der Instanz 12345.
+   Sendet eine Leseanfrage für alle laut Exposes lesbaren und nicht gefilterten Eigenschaften an das Gerät der Instanz 12345.
 
 ---
 
@@ -587,7 +594,7 @@ Die Statusvariablen werden je nach Funktion und Fähigkeiten der Geräte dynamis
    Z2M_CommandExt(12345, 'Keller/Lampe1/get', json_encode($Payload));
    ```
 
-   Dieses Beispiel ruft `state` von `{BaseTopic}Keller/Lampe1` ab.
+   Dieses Beispiel ruft `state` von `{BaseTopic}/Keller/Lampe1/get` ab.
 
 ---
 
@@ -609,7 +616,7 @@ Die Statusvariablen werden je nach Funktion und Fähigkeiten der Geräte dynamis
    string Z2M_UIExportDebugData(int $InstanzId);
    ```
 
-   Exportiert die für Support und Fehlersuche relevanten Instanzdaten als JSON-Download. Die Funktion wird vom Button **Debug-Daten herunterladen** in der Instanz-Konfiguration genutzt.
+   Gibt die für Support und Fehlersuche relevanten Instanzdaten als `data:application/json;base64,...`-URI zurück, nicht als unverpackten JSON-String. Die Funktion wird vom Button **Debug-Daten herunterladen** in der Instanz-Konfiguration genutzt.
 
 ## 7. Aktionen
 
@@ -649,7 +656,7 @@ Die Aktion **Szene abrufen** wird für Geräte und Gruppen angeboten. Sie setzt 
 
 ### 1. Changelog
 
-[Changelog der Library](../README.md#5-changelog)
+[Changelog der Library](../CHANGELOG.md)
 
 ### 2. Spenden
 

@@ -1,9 +1,11 @@
 [![SDK](https://img.shields.io/badge/Symcon-PHPModul-red.svg)](https://www.symcon.de/service/dokumentation/entwicklerbereich/sdk-tools/sdk-php/)
-[![Module Version](https://img.shields.io/badge/dynamic/json?url=https%3A%2F%2Fraw.githubusercontent.com%2FBurki24%2FZigbee2MQTT%2Frefs%2Fheads%2Fdev_V6%2Flibrary.json&query=%24.version&label=Modul%20Version&color=blue)](https://community.symcon.de/t/modul-zigbee2mqtt-version-5-x/139819)
+[![Module Version](https://img.shields.io/badge/dynamic/json?url=https%3A%2F%2Fraw.githubusercontent.com%2FBurki24%2FZigbee2MQTT%2Frefs%2Fheads%2Fdev_V6%2Flibrary.json&query=%24.version&label=Modul%20Version&color=blue)](https://community.symcon.de/t/modul-zigbee2mqtt-v6-0-testing/144007)
 [![Symcon Version](https://img.shields.io/badge/Symcon%20Version-9.0%3E-green)](https://www.symcon.de/de/service/dokumentation/einfuehrung/systemvoraussetzungen/versionenuebersicht/#version-90)
 [![License](https://img.shields.io/badge/License-CC%20BY--NC--SA%204.0-green.svg)](https://creativecommons.org/licenses/by-nc-sa/4.0/)
 [![Check Style](https://github.com/Burki24/Zigbee2MQTT/actions/workflows/style.yml/badge.svg?branch=dev_V6)](https://github.com/Burki24/Zigbee2MQTT/actions/workflows/style.yml?query=branch%3Adev_V6)
 [![Run Tests](https://github.com/Burki24/Zigbee2MQTT/actions/workflows/tests.yml/badge.svg?branch=dev_V6)](https://github.com/Burki24/Zigbee2MQTT/actions/workflows/tests.yml?query=branch%3Adev_V6)
+
+[Deutsch](README.md) | [English](README.en.md)
 
 # Zigbee2MQTT-Discovery <!-- omit in toc -->
 
@@ -24,7 +26,7 @@ Mit dieser Instanz werden alle mit MQTT-Brokern(Servern) verbundenen Zigbee2MQTT
 
 ## 1. Voraussetzungen
 
-- mindestens IP-Symcon Version 9.0
+- mindestens Symcon Version 9.0
 - MQTT-Broker (interner MQTT-Server von Symcon oder externer z.B. Mosquitto)
 - installiertes und lauffähiges [zigbee2mqtt](https://www.zigbee2mqtt.io) 
   
@@ -74,7 +76,7 @@ Keine Aktionen verfügbar.
 
 ### 1. Changelog
 
-[Changelog der Library](../README.md#5-changelog)
+[Changelog der Library](../CHANGELOG.md)
 
 ### 2. Spenden
 

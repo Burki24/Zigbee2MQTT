@@ -1,9 +1,11 @@
 [![SDK](https://img.shields.io/badge/Symcon-PHPModul-red.svg)](https://www.symcon.de/service/dokumentation/entwicklerbereich/sdk-tools/sdk-php/)
-[![Module Version](https://img.shields.io/badge/dynamic/json?url=https%3A%2F%2Fraw.githubusercontent.com%2FBurki24%2FZigbee2MQTT%2Frefs%2Fheads%2Fdev_V6%2Flibrary.json&query=%24.version&label=Modul%20Version&color=blue)](https://community.symcon.de/t/modul-zigbee2mqtt-version-5-x/139819)
+[![Module Version](https://img.shields.io/badge/dynamic/json?url=https%3A%2F%2Fraw.githubusercontent.com%2FBurki24%2FZigbee2MQTT%2Frefs%2Fheads%2Fdev_V6%2Flibrary.json&query=%24.version&label=Modul%20Version&color=blue)](https://community.symcon.de/t/modul-zigbee2mqtt-v6-0-testing/144007)
 [![Symcon Version](https://img.shields.io/badge/Symcon%20Version-9.0%3E-green)](https://www.symcon.de/de/service/dokumentation/einfuehrung/systemvoraussetzungen/versionenuebersicht/#version-90)
 [![License](https://img.shields.io/badge/License-CC%20BY--NC--SA%204.0-green.svg)](https://creativecommons.org/licenses/by-nc-sa/4.0/)
 [![Check Style](https://github.com/Burki24/Zigbee2MQTT/actions/workflows/style.yml/badge.svg?branch=dev_V6)](https://github.com/Burki24/Zigbee2MQTT/actions/workflows/style.yml?query=branch%3Adev_V6)
 [![Run Tests](https://github.com/Burki24/Zigbee2MQTT/actions/workflows/tests.yml/badge.svg?branch=dev_V6)](https://github.com/Burki24/Zigbee2MQTT/actions/workflows/tests.yml?query=branch%3Adev_V6)
+
+[Deutsch](README.md) | [English](README.en.md)
 
 # Zigbee2MQTT-Konfigurator <!-- omit in toc -->
 
@@ -24,7 +26,7 @@ Mit dieser Instanz werden die Geräte und Gruppen aus Zigbee2MQTT ausgelesen und
 
 ## 1. Voraussetzungen
 
-- mindestens IP-Symcon Version 9.0
+- mindestens Symcon Version 9.0
 - MQTT-Broker (interner MQTT-Server von Symcon oder externer z.B. Mosquitto)  
 - installiertes und lauffähiges [zigbee2mqtt](https://www.zigbee2mqtt.io)  
   
@@ -36,10 +38,10 @@ Mit dieser Instanz werden die Geräte und Gruppen aus Zigbee2MQTT ausgelesen und
 
 Der Konfigurator liest die von Zigbee2MQTT bereitgestellten Geräte und Gruppen aus und gleicht sie mit den vorhandenen Symcon-Instanzen ab. Voraussetzung ist eine passende [Bridge-Instanz](../Bridge/README.md) mit gleicher MQTT-Verbindung und gleichem MQTT-Basistopic.
 
-Wird beim ersten Öffnen der Instanz eine Fehlermeldung angezeigt, dass keine Geräte gefunden wurden, ist die benötigte [Symcon-Erweiterung in Zigbee2MQTT](../README.md#34-installation-der-ip-symcon-erweiterung-in-zigbee2mqtt) nicht installiert, nicht aktuell oder Zigbee2MQTT hat noch keine passenden Gerätedaten geliefert.
+Wird beim ersten Öffnen der Instanz eine Fehlermeldung angezeigt, dass keine Geräte gefunden wurden, ist die benötigte [Symcon-Erweiterung in Zigbee2MQTT](../README.md) nicht installiert, nicht aktuell oder Zigbee2MQTT hat noch keine passenden Gerätedaten geliefert.
 Eine fehlende Bridge wird in diesem Fall als regulärer Eintrag in der Geräteliste angeboten. Sie wird wie andere Instanzen über den normalen Symcon-Konfigurator erstellt. Dadurch übernimmt Symcon die Verbindung mit dem MQTT-Splitter sowie die Konfiguration des MQTT-Basistopics. Anschließend kann die Erweiterung innerhalb der Bridge-Konfiguration installiert oder aktualisiert werden.
 
-Ist die Erweiterung verfügbar, werden alle in Zigbee2MQTT angelernten Geräte und Gruppen sowie die dazugehörigen Symcon-Instanzen aufgelistet.
+Ist die Erweiterung verfügbar, werden die in Zigbee2MQTT bekannten Geräte und Gruppen sowie die dazugehörigen Symcon-Instanzen aufgelistet. Bereits vorhandene Instanzen derselben MQTT-Verbindung und desselben Basistopics bleiben auch dann sichtbar, wenn das physische Gerät oder die Gruppe nicht mehr in den aktuellen Zigbee2MQTT-Daten enthalten ist.
 
 ![Konfigurator](imgs/configurator.png)  
 
@@ -53,7 +55,7 @@ Für eine kompaktere Standardansicht ist die Geräteliste geöffnet und die Grup
 | **4**  | **Gateway konfigurieren**      | Unter diesem Punkt kann der verbundene MQTT-Splitter (Client oder Server) aufgerufen werden.                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                          |
 | **5**  | **Gateway ändern**             | Hier werden alle in Symcon vorhandenen MQTT-Splitter (Client und Server) angezeigt.<br>Und durch wählen eines Eintrag wird die Verbindung zu einem anderen Splitter ausgewählt.                                                                                                                                                                                                                                                                                                                                                                                                                                                                                       |
 | **6**  | **Erstelle neue Instanzen in** | Hier kann eine Startkategorie aus dem Objektbaum ausgewählt werden, unter welcher neue Instanzen angelegt werden.                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                     |
-| **7**  | **Topic**                      | Gibt den in Zigbee2MQTT (Z2M) angegebenen Namen an. <br> **WICHTIG: MQTT unterstützt eine Ordnerstruktur bei Topics. Hierzu wird ein Slashes (`/`) in dem Namen bei Z2M benutzt um die einzelnen Ebenen zu trennen. Zum Beispiel: `Etage/Raum/Sparte/Gerätename`).**<br>![MQTT Struktur](imgs/mqtt_struktur.png)<br>Der Konfigurator zeigt diese Ordnerstruktur an und erstellt Instanzen in entsprechenden Kategorien unterhalb der in **6** angegeben Kategorie. Wichtig: In Z2M darf der Gerätename (das spätere Topic) NICHT mit einem "/" oder einer einzeln stehenden Ziffer (z.B. `Etage/Raum/Sparte/Gerätename/` oder `Etage/Raum/Sparte/Gerätename/5` enden. |
+| **7**  | **Topic**                      | Gibt den in Zigbee2MQTT (Z2M) angegebenen Namen an. <br> **WICHTIG: MQTT unterstützt eine Ordnerstruktur bei Topics. Hierzu wird ein Slashes (`/`) in dem Namen bei Z2M benutzt um die einzelnen Ebenen zu trennen. Zum Beispiel: `Etage/Raum/Sparte/Gerätename`).**<br>![MQTT Struktur](imgs/mqtt_struktur.png)<br>Der Konfigurator zeigt diese Ordnerstruktur an und erstellt Instanzen in entsprechenden Kategorien unterhalb der in **6** angegeben Kategorie. Verwenden Sie eindeutige Namen und vermeiden Sie leere Pfadsegmente oder einen abschließenden `/`. |
 | **8**  | **Name**                       | Als Name wird der letzte Teil des Topics genutzt, oder bei vorhandenen Instanzen wir deren Name angezeigt.                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                            |
 | **9**  | **Zeileneintrag**              | Jede Zeile stellt entweder einen Ordner der Topic-Struktur, ein Gerät oder eine Gruppe dar. Die verschiedenen Farben und Bedeutungen entsprechen dem [Symcon-Standard aller Konfiguratoren](https://www.symcon.de/de/service/dokumentation/grundlagen/instanzen/konfiguratoren/).                                                                                                                                                                                                                                                                                                                                                                                         |
 | **10** | **Erstellen/Konfigurieren**     | Erstellt die ausgewählte oder alle noch fehlenden Instanzen. Bei einer bereits vorhandenen Instanz öffnet **Konfigurieren** deren Instanzkonfiguration.                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                   |
@@ -62,7 +64,7 @@ Weitere allgemeine Hinweise zu Konfiguratoren sind der [Symcon Dokumentation](ht
 
 ### Aktualisieren der Listen
 
-Die Listen werden beim Öffnen des Formulars aus den aktuellen Bridge- und Zigbee2MQTT-Daten aufgebaut. Bei großen Zigbee-Netzen oder kurz nach einer Neuinstallation kann die erste Antwort einige Sekunden dauern.
+Die Listen werden beim Öffnen des Formulars aus den zuletzt verfügbaren Bridge- und Zigbee2MQTT-Daten aufgebaut. Bei großen Zigbee-Netzen oder kurz nach einer Neuinstallation kann die erste Antwort einige Sekunden dauern.
 
 Über **Aktualisieren** wird die jeweilige Liste erneut aufgebaut. Das ist sinnvoll, wenn Geräte in Zigbee2MQTT umbenannt, neue Gruppen angelegt, die Bridge-Erweiterung aktualisiert oder gerade erst neue Geräte angelernt wurden.
 
@@ -95,7 +97,7 @@ Es sind keine extern aufzurufenden Aktionen vorgesehen. Formularschaltflächen w
 
 ### 1. Changelog
 
-[Changelog der Library](../README.md#5-changelog)
+[Changelog der Library](../CHANGELOG.md)
 
 ### 2. Spenden
 

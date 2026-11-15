@@ -1,3 +1,5 @@
+[Deutsch](README.md) | [English](README.en.md)
+
 [![SDK](https://img.shields.io/badge/Symcon-PHPModul-red.svg)](https://www.symcon.de/service/dokumentation/entwicklerbereich/sdk-tools/sdk-php/)
 [![Module Version](https://img.shields.io/badge/dynamic/json?url=https%3A%2F%2Fraw.githubusercontent.com%2FBurki24%2FZigbee2MQTT%2Frefs%2Fheads%2Fdev_V6%2Flibrary.json&query=%24.version&label=Modul%20Version&color=blue)](https://community.symcon.de/t/modul-zigbee2mqtt-version-5-x/139819)
 [![Symcon Version](https://img.shields.io/badge/Symcon%20Version-9.0%3E-green)](https://www.symcon.de/de/service/dokumentation/einfuehrung/systemvoraussetzungen/versionenuebersicht/#version-90)
@@ -7,7 +9,7 @@
 
 # Zigbee2MQTT-Gruppen  <!-- omit in toc -->
 
-   Mit diesem Modul werden die Gruppen von Zigbee2MQTT in IP-Symcon als Instanz abgebildet
+   Mit diesem Modul werden die Gruppen von Zigbee2MQTT in Symcon als Instanz abgebildet
 
 ## Inhaltsverzeichnis <!-- omit in toc -->
 
@@ -35,9 +37,9 @@
   
 ## 2. Voraussetzungen
 
-- mindestens IP-Symcon Version 9.0
+- mindestens Symcon Version 9.0
 - MQTT-Broker (interner MQTT-Server von Symcon oder externer z.B. Mosquitto)
-- installiertes und lauffähiges [zigbee2mqtt](https://www.zigbee2mqtt.io)  
+- installiertes und lauffähiges [Zigbee2MQTT](https://www.zigbee2mqtt.io) mit installierter Symcon-Extension; die Library liefert Version **6.09** mit. Installation und Update müssen in der Bridge manuell bestätigt werden.
   
 ## 3. Software-Installation
 
@@ -82,6 +84,8 @@
    Die allgemeine Variablenverwaltung folgt der Geräteinstanz: Exposes und Payload-Daten bestimmen, welche Variablen angelegt werden können. Neue oder erneut registrierte Gruppenvariablen verwenden moderne Symcon-Variablendarstellungen. Das Modul setzt keine Symcon-Standardprofile und erzeugt keine dynamischen `Z2M.*`-Profile mehr. Benutzerdefinierte Darstellungen oder Profile haben Vorrang und werden nicht überschrieben.
 
    Lichtgruppen verwenden wie einzelne Leuchtmittel die Symcon-Standarddarstellung. Native Farb-, Helligkeits- und Kelvin-Variablen sowie Farbtemperatur-Presets bleiben entsprechend den gemeinsamen Exposes der Gruppe verfügbar.
+
+Mit Extension **6.09** werden dynamische Gruppen-Exposes anhand der aktuellen Geräteoptionen ausgewertet. Fehlende Definitionen oder Fehler eines Mitglieds brechen die Gruppenabfrage nicht mehr vollständig ab; die übrigen Mitglieder und Gruppenmetadaten bleiben verfügbar. Nach Behebung werden betroffene Mitglieder bei der nächsten Aktualisierung erneut berücksichtigt.
 
 **Gruppenmitglieder**
 
@@ -129,11 +133,16 @@ Für Boolean- und Enum-Optionen werden Schalter bzw. Auswahllisten angezeigt. F�
 
 Szenen können aus dem aktuellen Gruppenstatus gespeichert, als vollständige JSON-Definition hinzugefügt, abgerufen, umbenannt und gelöscht werden. `Scene ID` entspricht der Zigbee2MQTT-Szenen-ID. `Scene JSON` wird für erweiterte Szenendefinitionen verwendet, z. B. wenn zusätzliche Werte wie Helligkeit oder Farbe direkt mitgegeben werden sollen.
 
+> [!NOTE]
+> Im klassischen WebFront können neue Variablen zunächst Rohwerte und Eingabefelder zeigen. Nach dem Neuladen der Browserseite werden die nativen Darstellungen korrekt übernommen. Das Verhalten wurde unter Symcon 9.1 unabhängig vom Modul reproduziert und für 9.0 gemeldet; die Kachel-Visualisierung ist nicht betroffen.
+
 ## 5. Statusvariablen
 
    Die Statusvariablen werden je nach Funktion und Fähigkeiten der Gruppe dynamisch erstellt. Exposes und Payload-Daten bestimmen Typ, Aktion und Standarddarstellung. Bereits vorhandene Benutzeranpassungen an Darstellung oder Profil bleiben erhalten.
 
 ## 6. PHP-Funktionsreferenz
+
+`InstanzId` bezeichnet die Geräte- bzw. Gruppeninstanz, `VariablenID` dagegen die Statusvariable. Leseanfragen werden asynchron gesendet: Der Rückgabewert ist kein synchron gelesener Messwert; Antworten werden später per MQTT verarbeitet. `Z2M_SendGetCommand` fragt ausschließlich laut Exposes lesbare, nicht gefilterte Eigenschaften ab und liefert `false`, wenn keine vorhanden sind. `Z2M_WriteValue*` ruft die Modulaktion unter Umgehung einer benutzerdefinierten Variablenaktion auf; der Rückgabewert bestätigt nicht den physischen Gerätezustand. `Z2M_Command` und `Z2M_CommandExt` erwarten JSON-Objekte oder JSON-Arrays, keine skalaren JSON-Werte.
 
 ### RequestAction <!-- omit in toc -->
 
@@ -251,7 +260,7 @@ Szenen können aus dem aktuellen Gruppenstatus gespeichert, als vollständige JS
    bool Z2M_SendGetCommand(int $InstanzId);
    ```
 
-   Mit dieser Funktion wird eine Leseanfrage für alle bekannten Eigenschaften an die Gruppe gesendet.
+   Mit dieser Funktion wird eine Leseanfrage für alle laut Exposes lesbaren und nicht gefilterten Eigenschaften an die Gruppe gesendet.
 
    **Beispiel:**
 
@@ -312,7 +321,7 @@ Szenen können aus dem aktuellen Gruppenstatus gespeichert, als vollständige JS
    Z2M_CommandExt(12345, 'Keller/Lampe1/get', json_encode($Payload));
    ```
 
-   Dieses Beispiel ruft `state` von `{BaseTopic}Keller/Lampe1` ab.
+   Dieses Beispiel ruft `state` von `{BaseTopic}/Keller/Lampe1/get` ab.
 
 ---
 
@@ -334,7 +343,7 @@ Szenen können aus dem aktuellen Gruppenstatus gespeichert, als vollständige JS
    string Z2M_UIExportDebugData(int $InstanzId);
    ```
 
-   Exportiert die für Support und Fehlersuche relevanten Instanzdaten als JSON-Download. Die Funktion wird vom Button **Debug-Daten herunterladen** in der Instanz-Konfiguration genutzt.
+   Gibt die für Support und Fehlersuche relevanten Instanzdaten als `data:application/json;base64,...`-URI zurück, nicht als unverpackten JSON-String. Die Funktion wird vom Button **Debug-Daten herunterladen** in der Instanz-Konfiguration genutzt.
 
 ## 7. Aktionen
 
@@ -371,7 +380,7 @@ Die Aktion **Szene abrufen** ist besonders für Gruppen sinnvoll: Zigbee2MQTT se
 
 ### 1. Changelog
 
-[Changelog der Library](../README.md#5-changelog)
+[Changelog der Library](../CHANGELOG.md)
 
 ### 2. Spenden
 

@@ -1,9 +1,11 @@
 [![SDK](https://img.shields.io/badge/Symcon-PHPModul-red.svg)](https://www.symcon.de/service/dokumentation/entwicklerbereich/sdk-tools/sdk-php/)
-[![Module Version](https://img.shields.io/badge/dynamic/json?url=https%3A%2F%2Fraw.githubusercontent.com%2FBurki24%2FZigbee2MQTT%2Frefs%2Fheads%2Fdev_V6%2Flibrary.json&query=%24.version&label=Modul%20Version&color=blue)](https://community.symcon.de/t/modul-zigbee2mqtt-version-5-x/139819)
+[![Module Version](https://img.shields.io/badge/dynamic/json?url=https%3A%2F%2Fraw.githubusercontent.com%2FBurki24%2FZigbee2MQTT%2Frefs%2Fheads%2Fdev_V6%2Flibrary.json&query=%24.version&label=Modul%20Version&color=blue)](https://community.symcon.de/t/modul-zigbee2mqtt-v6-0-testing/144007)
 [![Symcon Version](https://img.shields.io/badge/Symcon%20Version-9.0%3E-green)](https://www.symcon.de/de/service/dokumentation/einfuehrung/systemvoraussetzungen/versionenuebersicht/#version-90)
 [![License](https://img.shields.io/badge/License-CC%20BY--NC--SA%204.0-green.svg)](https://creativecommons.org/licenses/by-nc-sa/4.0/)
 [![Check Style](https://github.com/Burki24/Zigbee2MQTT/actions/workflows/style.yml/badge.svg?branch=dev_V6)](https://github.com/Burki24/Zigbee2MQTT/actions/workflows/style.yml?query=branch%3Adev_V6)
 [![Run Tests](https://github.com/Burki24/Zigbee2MQTT/actions/workflows/tests.yml/badge.svg?branch=dev_V6)](https://github.com/Burki24/Zigbee2MQTT/actions/workflows/tests.yml?query=branch%3Adev_V6)
+
+[Deutsch](README.md) | [English](README.en.md)
 
 # Zigbee2MQTT-Bridge  <!-- omit in toc -->
 
@@ -49,7 +51,7 @@
 
 ## 2. Voraussetzungen
 
-- mindestens IP-Symcon Version 9.0
+- mindestens Symcon Version 9.0
 - MQTT-Broker (interner MQTT-Server von Symcon oder externer z.B. Mosquitto)
 - installiertes und lauffähiges [zigbee2mqtt](https://www.zigbee2mqtt.io)
 
@@ -152,7 +154,7 @@ Die Netzwerksicherheit befindet sich unter **Erweiterte Administration**. Die `b
 
 ### 5.4 OTA-Updates
 
-Die OTA-Verwaltung bietet nur Geräte desselben MQTT-Splitters und MQTT-Basistopics an, die Zigbee2MQTT in den Bridge-Gerätedaten ausdrücklich mit `supports_ota` kennzeichnet. Historische `update__*`-Variablen einer Symcon-Instanz reichen dafür nicht aus. Über **Update prüfen** wird ein einzelnes Gerät aktiv geprüft. Verfügbare Updates können direkt gestartet oder für die nächste OTA-Anfrage des Geräts geplant werden. Batteriegeräte müssen vor Prüfung oder Planung eventuell aufgeweckt werden. Ein direkt gestartetes Update dauert laut Zigbee2MQTT abhängig von Gerät, Einstellungen und Netzwerkstabilität etwa 10 bis 100 Minuten. Deshalb erlaubt die Bridge immer nur ein aktives Update gleichzeitig. Während eines Updates werden Fortschritt und Restzeit in der geöffneten Bridge-Konfiguration automatisch aktualisiert. Geplante Updates können in der Liste **Aktive und geplante OTA-Updates** über **Planung aufheben** wieder aus der Zigbee2MQTT-Planung entfernt werden. Bereits angeforderte oder laufende Updates können über **Abbrechen** an Zigbee2MQTT zum Abbruch übergeben werden. Über **Status aktualisieren** oder die Aktualisieren-Schaltfläche direkt oberhalb einer OTA-Tabelle können die Werte zusätzlich manuell neu aus den Geräteinstanzen eingelesen werden. Später eintreffende Erfolgs-, Abbruch- oder Fehlermeldungen speichert die Bridge zusätzlich im Ergebnisverlauf.
+Die OTA-Verwaltung bietet nur Geräte desselben MQTT-Splitters und MQTT-Basistopics an, die Zigbee2MQTT beziehungsweise die Symcon-Extension ausdrücklich als OTA-fähig meldet. Die Extension 6.09 wertet dafür das aktuelle Definitionsfeld `ota` aus; nur wenn dieses fehlt, wird das ältere Feld `supports_ota` verwendet. Die normalisierte Geräteinformation für Symcon heißt weiterhin `supports_ota`. Historische `update__*`-Variablen einer Symcon-Instanz reichen dafür nicht aus. Über **Update prüfen** wird ein einzelnes Gerät aktiv geprüft. Verfügbare Updates können direkt gestartet oder für die nächste OTA-Anfrage des Geräts geplant werden. Batteriegeräte müssen vor Prüfung oder Planung eventuell aufgeweckt werden. Ein direkt gestartetes Update dauert laut Zigbee2MQTT abhängig von Gerät, Einstellungen und Netzwerkstabilität etwa 10 bis 100 Minuten. Deshalb erlaubt die Bridge immer nur ein aktives Update gleichzeitig. Während eines Updates werden Fortschritt und Restzeit in der geöffneten Bridge-Konfiguration automatisch aktualisiert. Geplante Updates können in der Liste **Aktive und geplante OTA-Updates** über **Planung aufheben** wieder aus der Zigbee2MQTT-Planung entfernt werden. Bereits angeforderte oder laufende Updates können über **Abbrechen** an Zigbee2MQTT zum Abbruch übergeben werden. Über **Status aktualisieren** oder die Aktualisieren-Schaltfläche direkt oberhalb einer OTA-Tabelle können die Werte zusätzlich manuell neu aus den Geräteinstanzen eingelesen werden. Später eintreffende Erfolgs-, Abbruch- oder Fehlermeldungen speichert die Bridge zusätzlich im Ergebnisverlauf.
 
 ![OTA-Updates](imgs/ota-updates.png)
 
@@ -273,10 +275,10 @@ Die aktuelle Symcon Erweiterung wird in Z2M installiert.
 ### Z2M_RequestOptions <!-- omit in toc -->
 
 ```php
-bool Z2M_RequestOptions(int $InstanzID);
+bool Z2M_RequestOptions(int $InstanzID, int $Timeout = 20000);
 ```
 
-Fordert die aktuellen Bridge-Optionen von Zigbee2MQTT an und aktualisiert die Bridge-Instanz anhand der Antwort.
+Fordert die aktuellen Bridge-Optionen von Zigbee2MQTT an und aktualisiert die Bridge-Instanz anhand der Antwort. `Timeout` gibt die maximale Wartezeit in Millisekunden an und beträgt standardmäßig `20000`.
 
 ---
 
@@ -417,6 +419,8 @@ Entfernt ein Gerät aus einer Gruppe. `SkipDisableReporting` verhindert, dass Zi
 ```php
 bool Z2M_RemoveAllDevicesFromGroup(int $InstanzID, string $GroupName);
 ```
+
+Entfernt alle Mitglieder aus der angegebenen Zigbee2MQTT-Gruppe.
 
 ---
 
@@ -582,7 +586,7 @@ Die Funktion wird intern vom Konfigurator und von Geräteformularen genutzt, um 
 bool Z2M_ConfigureReporting(int $InstanzID, string $DeviceName, string $Endpoint, string $Cluster, string $Attribute, int $MinimumReportInterval, int $MaximumReportInterval, string $ReportableChange, string $OptionsJSON);
 ```
 
-Konfiguriert Zigbee Attribute Reporting. `ReportableChange` kann leer bleiben, wenn das Attribut keinen Change-Wert unterstützt. `OptionsJSON` ist optional und muss bei Nutzung ein JSON-Objekt sein.
+Konfiguriert Zigbee Attribute Reporting; Minimum- und Maximum-Intervall werden in Sekunden angegeben. `ReportableChange` kann leer bleiben, wenn das Attribut keinen Change-Wert unterstützt. `OptionsJSON` darf als leerer String übergeben werden und muss bei Nutzung ein JSON-Objekt sein. Alle Parameter der PHP-Signatur müssen angegeben werden.
 
 ---
 
@@ -592,7 +596,7 @@ Konfiguriert Zigbee Attribute Reporting. `ReportableChange` kann leer bleiben, w
 string Z2M_ReadReporting(int $InstanzID, string $DeviceName, string $Endpoint, string $Cluster, string $AttributesJSON, string $ManufacturerCode);
 ```
 
-Liest die Reporting-Konfiguration eines oder mehrerer Attribute. `AttributesJSON` kann ein JSON-Array oder eine kommaseparierte Attributliste sein. Rückgabe ist ein JSON-String mit den Antwortdaten oder leer bei Fehler.
+Liest die Reporting-Konfiguration eines oder mehrerer Attribute. `AttributesJSON` kann ein JSON-Array oder eine kommaseparierte Attributliste sein. `ManufacturerCode` kann als leerer String übergeben werden, wenn kein herstellerspezifischer Code benötigt wird. Rückgabe ist ein JSON-String mit den Antwortdaten oder leer bei Fehler.
 
 ---
 
@@ -907,13 +911,13 @@ Bricht ein bereits angefordertes oder laufendes OTA-Update über die Zigbee2MQTT
 
 ## 8. Aktionen
 
-Keine Aktionen verfügbar.
+Die Bridge wird über ihre Formularschaltflächen, bedienbare Statusvariablen und die oben aufgeführten PHP-Funktionen gesteuert. Eigene Aktionsvorlagen für Ablaufpläne werden für die Bridge nicht mitgeliefert; die [mitgelieferten Symcon-Actions](../actions/README.md) richten sich an Geräte und Gruppen.
 
 ## 9. Anhang
 
 ### 1. Changelog
 
-[Changelog der Library](../README.md#5-changelog)
+[Changelog der Library](../CHANGELOG.md)
 
 ### 2. Spenden
 

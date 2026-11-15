@@ -1,0 +1,70 @@
+{
+    "symcon": "9.1",
+    "revision": "rust-2b3c9295995acc6734252298bbea89f3dfe0e161",
+    "cases": [
+        {
+            "mode": "customProfile",
+            "checks": {
+                "newID": true,
+                "oldValue": true,
+                "oldBoolean": true,
+                "newString": true,
+                "newAction": true,
+                "oldModuleActionDisabled": true,
+                "referenceRetained": true,
+                "VariableProfile": true,
+                "VariablePresentation": true,
+                "VariableCustomProfile": true,
+                "VariableCustomPresentation": true,
+                "VariableCustomAction": true,
+                "ObjectName": true,
+                "ObjectIcon": true,
+                "ObjectInfo": true,
+                "ObjectPosition": true,
+                "ObjectIsHidden": true,
+                "ObjectIsDisabled": true,
+                "customActionStillWorks": true,
+                "idempotentNewID": true,
+                "repeatVisibility": true,
+                "repeatName": true,
+                "repeatCustomAction": true
+            },
+            "passed": true
+        },
+        {
+            "mode": "customPresentation",
+            "checks": {
+                "newID": true,
+                "oldValue": true,
+                "oldBoolean": true,
+                "newString": true,
+                "newAction": true,
+                "oldModuleActionDisabled": true,
+                "referenceRetained": true,
+                "VariableProfile": true,
+                "VariablePresentation": true,
+                "VariableCustomProfile": true,
+                "VariableCustomPresentation": true,
+                "VariableCustomAction": true,
+                "ObjectName": true,
+                "ObjectIcon": true,
+                "ObjectInfo": true,
+                "ObjectPosition": true,
+                "ObjectIsHidden": true,
+                "ObjectIsDisabled": true,
+                "customActionStillWorks": true,
+                "idempotentNewID": true,
+                "repeatVisibility": true,
+                "repeatName": true,
+                "repeatCustomAction": true
+            },
+            "passed": true
+        }
+    ],
+    "errors": [],
+    "cleanup": true,
+    "scope": "Real Symcon9.1 kernel objects and installed migration method; two isolated temporary module instances without MQTT parent; not a complete5.x-to6.0 upgrade or Symcon9.0 test.",
+    "date": "2026-11-15",
+    "sourceCommit": "49d2336",
+    "checksPerCase": 23
+}

@@ -16,7 +16,7 @@ Diese Texte sind für die nächste Beta vorgesehen. Diese Datei veröffentlicht 
 - Im klassischen WebFront können neue Variablen bis zum Neuladen der Browserseite als Rohwerte erscheinen. Die Kachel-Visualisierung ist davon nicht betroffen.
 - Weitere Funktionen und Änderungen: moderne Kacheln, Netzwerkkarte, Geräteoptionen, Binding/Reporting, Gruppenverwaltung, OTA und Variablen-Wartung; Einzelheiten in der Dokumentation.
 
-Dokumentation für das deutsche und englische Store-Feld: <https://github.com/Burki24/Zigbee2MQTT/blob/dev_V6/README.md>. Die Dokumentation ist derzeit deutschsprachig; für 6.0 nicht mehr auf den alten 5.x-Hauptzweig verweisen.
+Dokumentation für das deutsche Store-Feld: <https://github.com/Burki24/Zigbee2MQTT/blob/dev_V6/README.md>. Der [vollständige Changelog](../CHANGELOG.md) vergleicht mit der letzten veröffentlichten Beta 5.43. Für 6.0 nicht mehr auf den alten 5.x-Hauptzweig verweisen.
 
 ## English
 
@@ -32,4 +32,4 @@ Dokumentation für das deutsche und englische Store-Feld: <https://github.com/Bu
 - In classic WebFront, newly created variables may show raw values until the browser page is reloaded. Tile visualization is unaffected.
 - Further features include modern tiles, a network map, device options, binding/reporting, group management, OTA and variable maintenance. See the documentation for details.
 
-Documentation URL for both Store localizations: <https://github.com/Burki24/Zigbee2MQTT/blob/dev_V6/README.md>. The documentation is currently in German. Do not link version 6.0 to the old 5.x main-branch documentation.
+Documentation URL for the English Store localization: <https://github.com/Burki24/Zigbee2MQTT/blob/dev_V6/README.en.md>. The [complete English changelog](../CHANGELOG.en.md) compares with the last published beta, 5.43. Do not link version 6.0 to the old 5.x main-branch documentation.

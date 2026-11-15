@@ -1,11 +1,50 @@
 # Unveröffentlicht
 
+[Deutsch](CHANGELOG.md) | [English](CHANGELOG.en.md)
+
+Vergleichsbasis: die zuletzt veröffentlichte Beta **5.43**, Commit `ce8aba0de27c8e9a6ffbaa91759009fb34d11806`. Die folgenden Punkte fassen die benutzersichtbaren Änderungen des 6.0-Zweigs gegenüber dieser Basis zusammen. Zwischenzeitlich hinzugefügte und wieder entfernte Funktionen werden nicht als neue Funktionen angekündigt. Version, Build und Veröffentlichungsdatum werden hierdurch nicht geändert.
+
 > [!CAUTION]
 > **BETA 6.0 – „ERKENNEN“ WIRD ALS NEUE VARIABLE ANGELEGT!** Die neue String-Variable erwartet `identify` statt `true`. Bestehende Skripte, Links und Automationen müssen bei Bedarf auf die neue Variablen-ID umgestellt werden. Die alte Bool-Variable bleibt mit ihrer ID, ihrem Wert, ihrer bisherigen Sichtbarkeit und ihren Benutzeranpassungen erhalten; nur die veraltete Modul-Standardaktion wird deaktiviert. Benutzerdefinierte Aktionen bleiben erhalten. Es gibt keine automatische Weiterleitung alter Modulaufrufe.
 
 Bereits durch ältere Testing-Versionen ausgeblendete Variablen oder entfernte Benutzeraktionen werden nicht automatisch wiederhergestellt: Die vorherigen Einstellungen sind nicht gespeichert und müssen bei Bedarf anhand eines Backups geprüft werden.
 
+## Neu
+
+- Mindestversion Symcon 9.0; alle sechs Module verwenden `IPSModuleStrict`. Vor einem Update von 5.x oder früherem Testing ist ein vollständiges Backup erforderlich; ein Downgrade erfolgt nur durch dessen Wiederherstellung.
+- Native Symcon-Darstellungen für Schalter, Aufzählungen, Messwerte, Helligkeit, Farbe, Rollläden, Dauer und Datum/Uhrzeit ersetzen automatisch erzeugte Modul-Standardprofile. Benutzerdefinierte Profile und Darstellungen haben weiterhin Vorrang. Alte `Z2M.*`-Profile werden nicht global gelöscht; profilabhängige Skripte müssen geprüft werden.
+- Eigene, an das Symcon-Theme angepasste Kacheln für Heizungen, Schaltaktoren mit optionalen Messwerten und mehreren Kanälen, Sensoren, Sicherheitsgeräte, Fenstergriffe und Aktionen. Archivdiagramme werden nur für aufgezeichnete Variablen angeboten. Leuchten und Rollläden verwenden native Symcon-Darstellungen; separate RGB-/Tunable-White-HTML-Kacheln gehören nicht zum aktuellen Lieferumfang.
+- Heizungs-Vorgabewerte sowie Fallback-Temperaturbereiche und Kelvin-Grenzen lassen sich pro Geräteinstanz einstellen. Abgeleitete Kelvin- und Farbwerte unterstützen passende native Lichtdarstellungen und Voreinstellungen.
+- Lokaler Variablenkatalog mit Einzel- und Mehrfachauswahl, gezielter Anlage, Deaktivierung, Wiederfreigabe manuell gelöschter Variablen und Anzeige von Darstellungswechseln. Ein manueller Neuaufbau berücksichtigt aktuelle Exposes und bekannte Payloads.
+- Instanzbezogene Variablen-Wartung erkennt verwaiste Variablen. Archivierte oder referenzierte Variablen sind geschützt; jede Löschung wird erneut geprüft und einzeln bestätigt. Die Bridge liefert eine nach MQTT-Verbindung und Basistopic getrennte Übersicht, löscht aber nicht zentral.
+- Geräteoptionen mit typisierten Editoren für Boolean, Enum, Zahl, Text, JSON und Attributlisten. Bekannte Werte und gerätespezifische Optionsdefinitionen werden zusammen angezeigt.
+- Binding und Reporting mit Endpoint-, Cluster-, Attribut- und Zielauswahl, Anzeige bestehender Konfiguration und explizitem Aktualisieren der Endpoint-Daten aus dem passenden Bridge-Cache.
+- Gerätewartung für erneutes Interview, Neukonfiguration und bestätigtes normales, erzwungenes oder blockierendes Entfernen aus Zigbee2MQTT. Die Symcon-Instanz wird dabei nicht automatisch gelöscht.
+- Gruppenverwaltung für Mitglieder einschließlich Endpoints, Gruppenoptionen und Zigbee-Szenen; Gruppeninformationen können gezielt aktualisiert werden. Gruppenauswahlen bleiben auf die passende MQTT-Verbindung beschränkt.
+- Neues Netzwerkkarten-Modul mit asynchronem Scan, Topologie, Verbindungsqualität, Routing, Suche, Filtern, einstellbarer Ansicht, eigenem Vollbildmodus und Export. Eine vollständige Netzwerkanalyse erfordert Bestätigung und kann das Zigbee-Netz vorübergehend belasten.
+- Zentrale OTA-Verwaltung für ausdrücklich unterstützte Geräte: Prüfungen, Updates, Downgrades, eigene Firmware-URLs, Planung, Aufheben der Planung, Abbruch, Fortschritt, Restzeit und Ergebnisübersichten. Die Oberfläche verhindert mehrere gleichzeitig gestartete Updates.
+- Erweiterte Bridge-Diagnose mit Health Check, Coordinator Check, Events, Warnungen, Fehlern sowie nicht unterstützten oder unvollständig interviewten Geräten.
+- Erweiterte Anlernsteuerung mit Zielauswahl und Zeitbegrenzung sowie Verwaltung von Blocklist und Passlist. Restriktive Passlist-Änderungen erfordern eine Sicherheitsbestätigung.
+- Zigbee2MQTT-Backups werden als ZIP-Datei auf dem Symcon-Server gespeichert. Große Antworten werden begrenzt und stückweise verarbeitet; ein direkter Base64-Export über die öffentliche PHP-Schnittstelle wird nicht angeboten.
+- Install-Code-Katalog mit maskierter Anzeige, erneutem Senden und bestätigtem Löschen sowie Touchlink-Scan, Identify und bestätigtem Factory-Reset. Gespeicherte Install-Codes sind nicht verschlüsselt und können Bestandteil von Symcon-Backups sein.
+- Bestätigte Bridge-Expertenaktionen für ausgewählte administrative Befehle, einschließlich klarer Rückmeldungen und bewusst gewählter JSON-Parameter.
+- Zusätzliche Ablaufplan-Actions für Umschalten, Übergänge, Kelvin-Farbtemperatur und Szenenabruf; Übergangsaktionen sind auf passende Geräte- und Gruppeninstanzen begrenzt.
+- Vollständige englische Haupt- und Modul-Anleitungen, synchronisierte Beta-/Migrationshinweise und ein konsolidierter Changelog. Frühere chronologische Entwicklungsnotizen bleiben als ausdrücklich gekennzeichnete Historie verfügbar.
+- Entwicklungswerkzeuge für isolierte MQTT-Gerätesimulation und die Suche fehlender Übersetzungen sowie deutlich erweiterte Regressionsprüfungen und interne Helper-Diagnose.
+
 ## Fixes
+
+- Die neue Erkennen-Migration wurde zusätzlich im echten Symcon-9.1-Testsystem mit sichtbaren und ausgeblendeten Altvariablen, Benutzerprofilen, Darstellungen, funktionierenden Benutzeraktionen und wiederholter Ausführung geprüft.
+- Farb- und Helligkeitsbefehle sind unabhängig: Farbbefehle übernehmen nicht ungefragt die aktuelle Helligkeit. Schwarz und fehlende beziehungsweise unbrauchbare Helligkeitswerte werden korrekt behandelt; HSV-/RGB-Konvertierungen wurden abgesichert.
+- Native Zahlenparameter werden passend zum Integer-/Float-Typ registriert und erfüllen die strengere Validierung in Symcon 9.1. Einheiten, Millivolt-/Volt-Umrechnung und nachgelieferte Temperatur-/Taupunktwerte werden konsistent behandelt.
+- Schreibgeschützte Exposes erhalten keine Bedienaktion. Beschreibbare Textwerte nutzen die kompatible Werteingabe; Status-Texte erhalten keine aktionspflichtige Darstellung. Voreinstellungen behalten Bruchwerte und besondere Enum-Werte, vermeiden Dubletten und lassen sich gezielt wiederherstellen.
+- Schaltwerte werden nicht vorzeitig als erfolgreich gesetzt; wiederholte empfangene Werte aktualisieren wieder den Schreibzeitpunkt. Partielle MQTT-Payloads werden zusammengeführt, verschachtelte Objekte bleiben erhalten und Listen werden vollständig ersetzt. GET-Abfragen berücksichtigen nur lesbare und nicht gefilterte Properties.
+- Große Exposes-, Geräte-, Discovery- und Transaktionsdaten verwenden begrenzte beziehungsweise komprimierte Puffer. Formulare nutzen Caches, Discovery kann veraltete Daten asynchron aktualisieren und Katalogänderungen werden gesammelt statt mehrfach gespeichert.
+- Konfiguratoren und Gruppenlisten unterscheiden MQTT-Verbindungen auch bei gleichem Basistopic. Bereits zugeordnete Instanzen bleiben bei fehlendem physischem Gerät sichtbar; Konfigurator-Anlage, Umzug und Eigenschaftsänderungen benötigen die entsprechende Anwenderauswahl.
+- Gerätebild-Downloads prüfen TLS, Größe und PNG-Format. Direkte Discovery-Verbindungen über MQTT-TLS prüfen Zertifikat und Hostnamen, sofern dies nicht ausdrücklich deaktiviert wird; es erfolgt kein automatischer unverschlüsselter Rückfall. Zugangsdaten, Tokens und Install-Codes werden in den vorgesehenen Diagnoseausgaben maskiert.
+- Exposes-Migrationen behalten Wiederherstellungsdaten, Benutzeranpassungen und kontrollierte Fehlerzustände. Kurzzeitig nicht verfügbare Instanzschnittstellen während Modulupdates führen nicht mehr zu den bekannten Formular-/Timer-Warnungen. OTA-Statusmeldungen verursachen keine rekursive MessageSink-Flut mehr.
+- Weitere deutsche Geräte-, Energie-, Schutz-, Wetter- und Modusübersetzungen wurden ergänzt. Fehlende Enum-/Preset-Übersetzungen werden wieder erkannt; Diagnoseberichte enthalten die nötigen Informationen ohne die vorgesehenen Geheimnisse offenzulegen.
+- Der Extension-Installationspfad wurde korrigiert; Lesefehler brechen die Installation ab. Zusätzliche MQTT-Abonnements der Extension wurden entfernt. Installation und Aktualisierung erfolgen ausschließlich nach Anwenderaktion.
 
 - Beide Symcon-Extensions sind auf Version 6.09 angehoben. Fehlende Gerätedefinitionen und Fehler einzelner Mitglieder beim Ermitteln der Gruppen-Exposes brechen die Gruppenabfrage nicht mehr ab. Gruppendaten und verfügbare Funktionen der übrigen Mitglieder werden weiterhin geliefert; betroffene Geräte werden protokolliert und bei der nächsten Abfrage erneut berücksichtigt.
 
@@ -42,3 +81,10 @@ Bereits durch ältere Testing-Versionen ausgeblendete Variablen oder entfernte B
 
 - Eine vorübergehend belegte MQTT-Transaktionssperre führt nicht mehr zum fatalen Abbruch einer Anfrage oder Formularaktion. Bestehende Transaktionsdaten bleiben geschützt.
 - Kann die Installation einer Extension nicht bestätigt werden, enthält die Bridge-Fehlermeldung Hinweise zur Prüfung von Verbindung und Versionsinformationen.
+
+## Bekannte Einschränkungen
+
+- Das klassische WebFront kann neue native Darstellungen erst nach einem Neuladen der Browserseite korrekt anzeigen. Unter Symcon 9.1 wurde das Verhalten unabhängig vom Modul reproduziert; für Symcon 9.0 liegt eine Nutzermeldung vor. Die Kachel-Visualisierung ist nicht betroffen.
+- Ein automatischer Rückweg auf 5.x ist nicht vorgesehen. Besonders profilabhängige Skripte sowie Verweise auf die frühere Erkennen-Variable müssen nach dem Update geprüft werden.
+
+Frühere Entwicklungszwischenstände und ältere 5.x-Einträge: [Historische Änderungsnotizen](docs/CHANGELOG_HISTORY.md). Der technische Abgleich mit der letzten Beta steht im [Dokumentations- und Migrationsnachweis](docs/VERIFICATION.md).

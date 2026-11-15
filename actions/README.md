@@ -1,3 +1,5 @@
+[Deutsch](README.md) | [English](README.en.md)
+
 # Zigbee2MQTT Actions
 
 Die Dateien in diesem Verzeichnis sind Symcon-Aktionsvorlagen. Sie werden nicht als eigene PHP-Funktionen direkt aus dem Dateisystem aufgerufen, sondern stehen in Symcon als auswählbare Aktionen zur Verfügung, wenn eine passende Zigbee2MQTT-Geräte- oder Gruppeninstanz als Ziel verwendet wird.
@@ -33,7 +35,7 @@ Symcon blendet eine Action nur ein, wenn die Zielinstanz die nötigen Variablen-
 
 ### Übergangszeit
 
-`TransitionTime` wird in Sekunden angegeben. `0` bedeutet sofortige Ausführung. Das Zielgerät muss Übergangszeiten über Zigbee2MQTT unterstützen; andernfalls kann Zigbee2MQTT den Wert ignorieren.
+`TransitionTime` wird in Sekunden angegeben. Die Funktion `Z2M_SetColorExt` erwartet ganze Sekunden (`int`); für andere Set-Payloads können je nach Gerät auch gebrochene Sekunden verwendet werden. `0` bedeutet sofortige Ausführung. Das Zielgerät muss Übergangszeiten über Zigbee2MQTT unterstützen; andernfalls kann Zigbee2MQTT den Wert ignorieren.
 
 ### Helligkeit
 
@@ -94,7 +96,7 @@ Z2M_SendSetCommand($instanceID, [
 ]);
 
 // RGB-Farbe mit Übergangszeit setzen
-Z2M_SetColorExt($instanceID, 0xFFAA00, 2.0);
+Z2M_SetColorExt($instanceID, 0xFFAA00, 2);
 
 // Szene 1 abrufen
 Z2M_SendSetCommand($instanceID, ['scene_recall' => 1]);
@@ -108,3 +110,5 @@ Z2M_SendSetCommand($instanceID, ['scene_recall' => 1]);
 - Countdown-Actions erscheinen nur bei Geräten mit passendem `countdown`-Expose.
 - Szenen müssen vor dem Abruf bereits existieren.
 - Für eigene Skripte sollten die dokumentierten `Z2M_*`-Funktionen genutzt werden. Ein direkter Aufruf von `RequestAction()` auf Statusvariablen ist dafür normalerweise nicht nötig.
+
+[Hauptanleitung](../README.md) · [Changelog](../CHANGELOG.md)
