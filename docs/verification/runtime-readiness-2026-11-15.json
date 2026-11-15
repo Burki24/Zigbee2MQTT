@@ -1,0 +1,125 @@
+{
+    "date": "2026-11-15",
+    "symcon": "9.1",
+    "revision": "rust-2b3c9295995acc6734252298bbea89f3dfe0e161",
+    "installedBuild": 2473,
+    "repositoryCommit": "d1e62074bd201901f3a1ef535c224495bfbc4093",
+    "creation": {
+        "cases": {
+            "Bridge": {
+                "created": true,
+                "parent": 0,
+                "status": 104,
+                "formValid": true,
+                "formSections": [
+                    "actions",
+                    "elements",
+                    "translations"
+                ],
+                "warnings": []
+            },
+            "Configurator": {
+                "created": true,
+                "parent": 0,
+                "status": 104,
+                "formValid": true,
+                "formSections": [
+                    "actions",
+                    "elements",
+                    "translations"
+                ],
+                "warnings": []
+            },
+            "Device": {
+                "created": true,
+                "parent": 0,
+                "status": 104,
+                "formValid": true,
+                "formSections": [
+                    "actions",
+                    "elements",
+                    "translations"
+                ],
+                "warnings": []
+            },
+            "Discovery": {
+                "created": true,
+                "parent": 0,
+                "status": 102,
+                "formValid": true,
+                "formSections": [
+                    "actions",
+                    "elements",
+                    "translations"
+                ],
+                "warnings": []
+            },
+            "Group": {
+                "created": true,
+                "parent": 0,
+                "status": 104,
+                "formValid": true,
+                "formSections": [
+                    "actions",
+                    "elements",
+                    "translations"
+                ],
+                "warnings": []
+            },
+            "NetworkMap": {
+                "created": true,
+                "parent": 0,
+                "status": 104,
+                "formValid": true,
+                "formSections": [
+                    "actions",
+                    "elements",
+                    "translations"
+                ],
+                "warnings": []
+            }
+        },
+        "warnings": [],
+        "cleanup": true,
+        "categoryRemoved": true
+    },
+    "isolation": {
+        "checks": {
+            "ownDeviceIncludedWithoutPhysicalDevice": true,
+            "foreignSameTopicExcluded": true,
+            "ownOtherBaseTopicExcluded": true,
+            "ieeeOwnIncluded": true,
+            "ieeeForeignExcluded": true,
+            "ieeeOtherTopicExcluded": true,
+            "groupOwnIncluded": true,
+            "groupForeignExcluded": true,
+            "groupIdOwnIncluded": true,
+            "groupIdForeignExcluded": true,
+            "bridgeOwnIncluded": true,
+            "bridgeForeignExcluded": true,
+            "discoveryMatchesA": true,
+            "discoveryMatchesB": true,
+            "discoveryNoMatchForWrongTopic": true,
+            "unconfiguredDiscoveryScanPersistsCache": true,
+            "discoveryFormAfterScanValid": true,
+            "discoveryDidNotMoveOrReconfigureInstances": true
+        },
+        "details": {
+            "scanTopicConnections": 2
+        },
+        "warnings": [],
+        "cleanup": true,
+        "categoryRemoved": true
+    },
+    "sourceHashes": {
+        "Bridge/module.php": "06e0ebcba513b634c13fd55b4bcb288714f003e7b7aae9756d7038bb4fb2bda3",
+        "Configurator/module.php": "c0d1930db5e60ea744d89af62695e7ec460a829048fd889db54a19fe143b1a9e",
+        "Device/module.php": "1ba176a8d9ca3110b4c7f043b7b985674d80316328944f2050540a1329927434",
+        "Discovery/module.php": "5605ef6b6c9136ffe1438102d12e7398301c784838303bbd4a1bc191e95d9b0a",
+        "Group/module.php": "819fd6b3569b36f7caa8dacb6587316cb3be06d424bf60885feb76e7667a9849",
+        "NetworkMap/module.php": "7e6e01ee0aff4e065a7dd10efe548a35aed73f6a3177615038093f6f3e2e1a17",
+        "libs/ModulBase.php": "3ddd56ed8c3d7e0d0d0f0b22efbe95c22eaffe8593845c4e62d770b4c1f4393d"
+    },
+    "scope": "Real kernel creation, ApplyChanges and configuration forms; real unconfigured Discovery scan; real installed selection methods via reflection with isolated disconnected MQTT clients. No end-to-end Configurator device-list response simulation or physical device commands.",
+    "preliminaryObservation": "Extended fixture error handler initially recorded an intentionally @-suppressed missing MQTTTopic property on Bridge lookup; final capture respects PHP error_reporting and no unsuppressed warnings occurred."
+}
