@@ -758,13 +758,19 @@ class DevicesTest extends DumpInclude
         $this->assertSame(0, IPS_GetVariable($id)['VariablePresentation']['USAGE_TYPE'] ?? null);
     }
 
-    public function testIdentifyMigrationPreservesOldVariableButRemovesItsAction(): void
+    public function testIdentifyMigrationPreservesUserSettingsAndOnlyRemovesModuleAction(): void
     {
         $device = $this->createDeviceActionTestDouble();
         $old = $device->registerBooleanVariableForTest('identify');
         SetValue($old, true);
         IPS_SetName($old, 'My identify command');
         IPS_SetVariableCustomAction($old, 12345);
+        IPS_SetVariableCustomProfile($old, '~Switch');
+        IPS_SetIcon($old, 'lightbulb');
+        IPS_SetInfo($old, 'User description');
+        IPS_SetPosition($old, 42);
+        $oldVariable = IPS_GetVariable($old);
+        $oldObject = IPS_GetObject($old);
         $link = IPS_CreateLink();
         IPS_SetLinkTargetID($link, $old);
         $feature = ['type' => 'enum', 'name' => 'identify', 'property' => 'identify', 'access' => 2, 'values' => ['identify']];
@@ -778,8 +784,12 @@ class DevicesTest extends DumpInclude
         $this->assertSame($old, IPS_GetLink($link)['TargetID']);
         $this->assertSame(VARIABLETYPE_BOOLEAN, IPS_GetVariable($old)['VariableType']);
         $this->assertSame(0, IPS_GetVariable($old)['VariableAction']);
-        $this->assertSame(0, IPS_GetVariable($old)['VariableCustomAction']);
-        $this->assertTrue(IPS_GetObject($old)['ObjectIsHidden']);
+        $this->assertSame(12345, IPS_GetVariable($old)['VariableCustomAction']);
+        $this->assertSame($oldVariable['VariableCustomProfile'], IPS_GetVariable($old)['VariableCustomProfile']);
+        $this->assertSame($oldVariable['VariablePresentation'], IPS_GetVariable($old)['VariablePresentation']);
+        foreach (['ObjectName', 'ObjectIcon', 'ObjectInfo', 'ObjectPosition', 'ObjectIsHidden'] as $field) {
+            $this->assertSame($oldObject[$field], IPS_GetObject($old)[$field], $field);
+        }
         $this->assertSame(VARIABLETYPE_STRING, IPS_GetVariable($new)['VariableType']);
         $this->assertSame('My identify command', IPS_GetName($new));
         $this->assertSame('', $device->sentTopic, 'Migration must not execute identify.');
@@ -787,6 +797,17 @@ class DevicesTest extends DumpInclude
         $this->assertSame($new, $lookup->invoke($device, 'identify'));
         $this->assertSame($old, IPS_GetLink($link)['TargetID']);
         $alias = IPS_GetObject($old)['ObjectIdent'];
+        // Repeated registration must also respect changes made after migration.
+        IPS_SetName($old, 'Retained user command');
+        IPS_SetHidden($old, true);
+        IPS_SetVariableCustomAction($old, 23456);
+        $customPresentation = ['PRESENTATION' => VARIABLE_PRESENTATION_SWITCH, 'ICON_TRUE' => 'star'];
+        IPS_SetVariableCustomPresentation($old, $customPresentation);
+        $register->invoke($device, $feature);
+        $this->assertSame('Retained user command', IPS_GetName($old));
+        $this->assertTrue(IPS_GetObject($old)['ObjectIsHidden']);
+        $this->assertSame(23456, IPS_GetVariable($old)['VariableCustomAction']);
+        $this->assertSame($customPresentation, IPS_GetVariable($old)['VariableCustomPresentation']);
         $handler = new \ReflectionMethod($device, 'handleVariableRequestAction');
         foreach ([[$alias, true], ['identify', true], ['identify', false], ['identify', 'invalid']] as [$ident, $value]) {
             $this->assertFalse($handler->invoke($device, $ident, $value));

@@ -1,5 +1,10 @@
 # Unveröffentlicht
 
+> [!CAUTION]
+> **BETA 6.0 – „ERKENNEN“ WIRD ALS NEUE VARIABLE ANGELEGT!** Die neue String-Variable erwartet `identify` statt `true`. Bestehende Skripte, Links und Automationen müssen bei Bedarf auf die neue Variablen-ID umgestellt werden. Die alte Bool-Variable bleibt mit ihrer ID, ihrem Wert, ihrer bisherigen Sichtbarkeit und ihren Benutzeranpassungen erhalten; nur die veraltete Modul-Standardaktion wird deaktiviert. Benutzerdefinierte Aktionen bleiben erhalten. Es gibt keine automatische Weiterleitung alter Modulaufrufe.
+
+Bereits durch ältere Testing-Versionen ausgeblendete Variablen oder entfernte Benutzeraktionen werden nicht automatisch wiederhergestellt: Die vorherigen Einstellungen sind nicht gespeichert und müssen bei Bedarf anhand eines Backups geprüft werden.
+
 ## Fixes
 
 - Beide Symcon-Extensions sind auf Version 6.09 angehoben. Fehlende Gerätedefinitionen und Fehler einzelner Mitglieder beim Ermitteln der Gruppen-Exposes brechen die Gruppenabfrage nicht mehr ab. Gruppendaten und verfügbare Funktionen der übrigen Mitglieder werden weiterhin geliefert; betroffene Geräte werden protokolliert und bei der nächsten Abfrage erneut berücksichtigt.
@@ -11,7 +16,7 @@
 
 - Das Schalter-Symbol bleibt bei Ein und Aus identisch. Der unpassende Symbolname für den eingeschalteten Zustand wurde korrigiert.
 
-- „Erkennen“ wird als String-Enum mit dem Befehlswert `identify` angelegt. Achtung: Bisherige Bool-Variablen bleiben mit ihrer alten ID und ihren Daten ausgeblendet erhalten, besitzen aber keine Aktion mehr. Für Skripte und Automationen müssen die neue Erkennen-Variable und der Enum-Wert verwendet werden. Die Migration sendet keinen Gerätebefehl und kann nach einem Abbruch erneut ausgeführt werden.
+- Die Erkennen-Migration lässt die Sichtbarkeit, Namen, Icons, Beschreibungen, Positionen, Darstellungen, Profile und benutzerdefinierten Aktionen bestehender Bool-Variablen unverändert. Die neue Enum-Variable wird zusätzlich angelegt. Wiederholtes Übernehmen verändert auch nachträgliche Benutzeranpassungen an der alten Variable nicht. Die Migration sendet keinen Gerätebefehl und kann nach einem Abbruch erneut ausgeführt werden.
 
 - Bei Leuchtmitteln erhalten nur die tatsächlichen Lichtstatusvariablen aus den `light`-Exposes die Ein/Aus-Rolle, auch bei mehreren Endpoints. Zusatzoptionen wie „Nicht stören“, verzögertes Einschalten und Impulssteuerung bleiben bedienbar, werden jedoch nicht mehr als Lichtstatus angeboten.
 

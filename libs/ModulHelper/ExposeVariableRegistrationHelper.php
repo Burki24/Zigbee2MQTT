@@ -683,10 +683,9 @@ trait ExposeVariableRegistrationHelper
                         throw new \RuntimeException('Identify migration alias collision.');
                     }
                     IPS_SetIdent($legacy, $entry['alias']);
-                    IPS_SetHidden($legacy, true);
-                    $this->RegisterVariableBoolean($entry['alias'], $entry['name'], $this->BuildFeaturePresentation(['type' => 'binary', 'property' => $entry['alias'], 'access' => 1]) ?? '');
+                    // Keep the retained variable's presentation and user-owned settings unchanged.
+                    // Only the obsolete module action is disabled; custom actions remain usable.
                     $this->DisableAction($entry['alias']);
-                    IPS_SetVariableCustomAction($legacy, 0);
                     $this->RememberVariableDefinition($entry['alias'], ['property' => $entry['alias'], 'type' => 'binary', 'access' => 1, 'label' => $entry['name']], 'system');
                     $this->MarkVariableCreated($entry['alias']);
                 }

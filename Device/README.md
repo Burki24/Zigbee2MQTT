@@ -120,7 +120,12 @@ Es werden nur Optionen angezeigt, die für das jeweilige Gerät fachlich passen.
 
 Bei Leuchtmitteln erhalten nur die tatsächlichen Schaltzustände aus den `light`-Exposes die Rolle **Ein/Aus**. Das gilt auch für mehrere Endpoints. Zusätzliche Bool-Einstellungen wie **Nicht stören**, verzögertes Einschalten und Impulssteuerung erhalten **Keine dieser Verwendungen** und bleiben als eigene Schalter bedienbar. Benutzerdefinierte Darstellungen werden nicht überschrieben.
 
-**Umstellung von Erkennen:** Die aktuelle Erkennen-Variable ist eine String-Enum mit dem Wert `identify`. Sie zeigt den zuletzt über die neue Aktion gesendeten Befehl, keinen dauerhaften Gerätezustand. Bei einer bestehenden Bool-Variable bleibt deren alte ID samt Werten und Referenzen erhalten. Sie wird ausgeblendet, erhält einen internen Legacy-Ident und hat keine Standard- oder benutzerdefinierte Aktion mehr. Es gibt keine Weiterleitung alter Aufrufe. Skripte, Links und Automationen, die weiterhin Erkennen auslösen sollen, müssen auf die neue Variable umgestellt werden, beispielsweise `RequestAction($neueErkennenVariableID, 'identify')`. Ein boolesches `true` ist für die neue Aktion nicht zulässig. Die Migration selbst führt keinen Identify-Befehl aus.
+> [!CAUTION]
+> **Erkennen wird als neue Variable angelegt.** Die aktuelle Erkennen-Variable ist eine String-Enum mit dem Wert `identify`. Skripte, Links und Automationen müssen bei Bedarf auf die neue Variablen-ID umgestellt werden, beispielsweise `RequestAction($neueErkennenVariableID, 'identify')`. Ein boolesches `true` ist für die neue Aktion nicht zulässig.
+
+Die neue Variable zeigt den zuletzt über ihre Aktion gesendeten Befehl, keinen dauerhaften Gerätezustand. Die alte Bool-Variable behält ihre ID, Werte, Referenzen, Sichtbarkeit, Namen, Icons, Beschreibung, Position, Profile, Darstellungen und benutzerdefinierte Aktion. Sie erhält einen internen Legacy-Ident; nur ihre veraltete Modul-Standardaktion wird deaktiviert. Eigene Aktionen bleiben zugewiesen und sollten auf ihre weitere Funktion geprüft werden. Es gibt keine automatische Weiterleitung alter Modulaufrufe. Die Migration selbst führt keinen Identify-Befehl aus.
+
+Bei bereits mit älteren Testing-Versionen migrierten Instanzen lassen sich frühere Sichtbarkeit und entfernte Benutzeraktionen nicht automatisch rekonstruieren. Diese Einstellungen müssen gegebenenfalls anhand eines Backups manuell geprüft werden.
 
 Einmalige Befehle wie **Erkennen** werden als separate Schaltfläche dargestellt. Der eigentliche Ein/Aus-Status bleibt dadurch für die native Schaltbedienung der Kachel verfügbar. Benutzerdefinierte Variablendarstellungen bleiben erhalten.
 

@@ -133,10 +133,17 @@ Weitere Schritte zur Ersteinrichtung sind unter dem [Zigbee2MQTT-Discovery](Disc
 
 ### 3.3 Update von Modul Version 5.42 auf 6.0
 
+> [!CAUTION]
+> **Beta 6.0: „Erkennen“ wird als neue String-Variable angelegt!** Bestehende Skripte, Links und Automationen müssen bei Bedarf auf die neue ID und den Befehlswert `identify` statt `true` umgestellt werden. Die bisherige Bool-Variable bleibt mit ihren Benutzeranpassungen und ihrer bisherigen Sichtbarkeit erhalten; nur ihre veraltete Modul-Standardaktion wird deaktiviert. Benutzerdefinierte Aktionen bleiben erhalten. Es gibt keine automatische Weiterleitung alter Modulaufrufe. Details stehen in der [Gerätedokumentation](Device/README.md) und im [Changelog](CHANGELOG.md).
+
 > [!IMPORTANT]
 > **Version 6.0 benötigt mindestens IP-Symcon 9.0. Vor dem Update ist ein vollständiges Symcon-Backup zu erstellen. Ein Downgrade auf Version 5.42 sollte nur durch Wiederherstellung dieses Backups erfolgen.**
 
 Version 6.0 migriert die Module auf `IPSModuleStrict` und erweitert Geräte-, Gruppen- und Bridge-Instanzen deutlich. Bestehende Variablen werden beim Update nicht automatisch gelöscht. Objekt-IDs vorhandener Variablen bleiben erhalten. Trotzdem sollten die folgenden Schritte beachtet werden.
+
+Die [Beta-Versionshinweise in Deutsch und Englisch](docs/BETA_RELEASE_NOTES.md) enthalten die Migrationshinweise und die bekannte WebFront-Einschränkung. Bereits durch ältere Testing-Versionen entfernte Benutzeraktionen oder geänderte Sichtbarkeit werden nicht automatisch wiederhergestellt; die ursprünglichen Einstellungen sind nicht gespeichert und müssen gegebenenfalls anhand eines Backups geprüft werden.
+
+**Klassisches WebFront:** Bei neu angelegten Variablen können zunächst Rohwerte und Eingabefelder erscheinen. Ein Neuladen der Browserseite übernimmt die nativen Darstellungen korrekt. Das Verhalten wurde unter Symcon 9.1 auch unabhängig vom Modul reproduziert und für Symcon 9.0 im Forum gemeldet. Die Kachel-Visualisierung ist davon nicht betroffen.
 
 #### Wichtiger Hinweis zu Variablenprofilen <!-- omit in toc -->
 
