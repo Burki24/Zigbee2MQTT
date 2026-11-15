@@ -67,6 +67,28 @@ Die PHP-Suite benötigt einen sauberen Bibliotheksbaum mit vorhandenen Stub-Subm
 
 Externe Submodule `.style` und `tests/stubs` wurden gelesen, aber nicht redaktionell verändert. Ausführliche Laufzeit-/Testanleitungen stehen hier statt in Benutzer-READMEs.
 
+## Community-Nachweise und abschließende Bewertung
+
+Ergänzt am **15.11.2026** für Kandidat `d94f05c77319ccdc9f29c2376a1e7d5f904b10a7` (6.00, Build 2473). Der vollständige öffentlich zugängliche [Testing-Thread](https://community.symcon.de/t/modul-zigbee2mqtt-v6-0-testing/144007) wurde gelesen: 211 abrufbare Beiträge bis Beitragsnummer 212; Nummer 196 war im öffentlichen Beitragsstrom nicht enthalten. Forum-Bildanhänge und verlinkte Debug-Dateien wurden für diese Bewertung nicht zusätzlich ausgewertet.
+
+| Quelle | Praktischer Nachweis |
+| --- | --- |
+| [HarmonyFan, Beitrag 58](https://community.symcon.de/t/144007/58) | Unauffälliger Umstieg auf V6 und Betrieb ohne veränderte Bewegungsmelder-Reaktionszeit. |
+| [brdiver677, Beitrag 133](https://community.symcon.de/t/144007/133) und [154](https://community.symcon.de/t/144007/154) | Wochen-/monatelanger Testing-Betrieb; später bestätigte Korrektur der Extension-Installation. |
+| [doctee, Beitrag 155](https://community.symcon.de/t/144007/155) | Sauberes Update auf 6.00 Build 2413; zwei Bridges, fünf RGB-Einzelgeräte und eine Gruppe aus drei LEDs: Farben, Dimmen, Farbtemperatur und Alexa erfolgreich. |
+| [doctee, Beitrag 164](https://community.symcon.de/t/144007/164) und [172](https://community.symcon.de/t/144007/172) | Explizit Symcon 9.1; nach Darstellungskorrektur fehlerfreier Betrieb bestätigt. |
+| [hagi01, Beitrag 201](https://community.symcon.de/t/144007/201), [204–207](https://community.symcon.de/t/144007/204) | Explizit Symcon 9.0 und Modul 6.0, Geräteerstellung über den Konfigurator. WebFront-Darstellungsproblem reproduziert; Neuladen als Abhilfe dokumentiert. Dies ist kein pauschaler Fehlerfreiheitsnachweis. |
+| [Hein09, Beiträge 189–190](https://community.symcon.de/t/144007/189) | Nach korrigierter Extension positive Rückmeldung zum zuvor gestörten Verbindungsbetrieb. |
+| [Burki24, Beitrag 157](https://community.symcon.de/t/144007/157) und direkte Bestätigung im Prüfauftrag | Produktiver Betrieb mit zwei MQTT-Servern, zwei Bridges und zwei Konfiguratoren; Upgrade und anschließender Betrieb vom Betreiber bestätigt. |
+
+Damit wird die frühere pauschale Einstufung „praktischer Upgrade-/Betriebsnachweis für Symcon 9.0/9.1 fehlt“ zurückgenommen. Die Community-Erfahrungen betreffen verschiedene Entwicklungsstände und ersetzen keinen identischen vollständigen Upgrade-Test des aktuellen Commits. Zusammen mit den Regressionstests und dem gezielten Live-Migrationstest reichen sie als Praxisnachweise für eine öffentliche Beta aus.
+
+**Bewertung: keine bestätigten technischen Beta-Blocker; fachliche Empfehlung zur Beta bleibt bestehen.** Aktuelle reale Nachweise für alle sechs Neuanlagen ohne Voraussetzungen sowie sämtliche Discovery-/Konfigurator-Konstellationen sind weiterhin Abdeckungslücken, keine bestätigten Fehler. Die im Thread behandelten früheren Fehler werden anhand nachfolgender Korrekturen und Rückmeldungen bewertet; eine bloße Update-Ankündigung ist kein eigener erfolgreicher Laufzeittest.
+
+Am Kandidaten wurden erneut 366 PHP-Tests / 4.844 Assertions unter PHP 8.5.10, 36 JavaScript-Tests, Syntax für 74 PHP-Dateien sowie Dokumentations-, JSON- und PHP-CS-Fixer-Prüfungen erfolgreich ausgeführt. GitHub Tests und Style sind für den direkten Vorgänger `ffbbc36` erfolgreich; `d94f05c` ändert danach ausschließlich `library.json`.
+
+Im Store wurde ausschließlich der **Testing-Entwurf 21425** vorbereitet: Status `uploaded`, Paketierung `done`, Git-Commit `d94f05c77319ccdc9f29c2376a1e7d5f904b10a7`, deutsche und englische Hinweise mit Erkennen-Warnung, aktuelle Dokumentationslinks sowie Kategorien 1 und 5. Die veröffentlichte Testing 21085 bleibt unverändert; Stable- und Beta-Datensätze wurden vor und nach der Vorbereitung verglichen und sind unverändert. Ein Beta-Entwurf wird weder angelegt noch bearbeitet. Der Store-Kandidat ist der bereits verfügbare Commit `d94f05c`; dieser lokale Nachtrag wird erst nach einem späteren Commit/Push Bestandteil eines Store-Pakets. Keine Einreichung, Veröffentlichung oder Versionsänderung erfolgt durch diesen Nachtrag.
+
 ## English summary
 
 The documentation and consolidated German/English changelogs were checked against the last public beta **5.43** (release `18221`, commit `ce8aba0de27c8e9a6ffbaa91759009fb34d11806`). The comparison includes 459 non-merge commits excluding automatic metadata updates. User-visible changes are grouped by their current behavior; superseded intermediate implementations are retained only as labelled historical notes.
@@ -75,4 +97,6 @@ The installed identify migration passed **22 checks in each of two real Symcon 9
 
 Final local checks passed: **366 PHP tests / 4,844 assertions**, **36 JavaScript tests**, documentation checks covering **24 Markdown files / 377 local links / 10 language pairs**, JSON formatting, PHP-CS-Fixer (51 files, no changes required) and `git diff --check`.
 
-This does not establish a complete 5.x installation upgrade, all hardware operations or Symcon 9.0 runtime behavior. No release was submitted, no Store text was changed, no commit/push was performed and no version metadata was updated. See the commands and machine-readable evidence above for reproducible checks.
+The complete publicly available testing thread was reviewed (211 posts through post number 212). Community reports linked above and the maintainer's direct confirmation establish practical upgrade and operating experience, including explicit Symcon 9.0 and 9.1 reports, multiple bridges, lighting/group operations and positive feedback after extension fixes. The previous blanket finding of missing upgrade/operating evidence is withdrawn. Reports concern different development revisions and do not establish a complete identical upgrade test of the current commit. Together with regression tests and the focused live migration test, they support the beta recommendation with no confirmed technical blockers. Fresh real-kernel coverage of every module's missing-prerequisite creation and every discovery/configurator scenario remains incomplete.
+
+Testing Store draft **21425** was prepared and verified: status `uploaded`, clone status `done`, exact candidate commit, updated German/English migration notes and documentation links, categories 1 and 5. Published Testing 21085 remains unchanged; Stable and Beta records were compared before and after and are unchanged. No Beta draft is created or edited. Its package targets the already available commit `d94f05c` (6.00, build 2473); this local report amendment will require a later owner commit/push to become part of a package. No release is submitted, no commit/push is performed and no version metadata is changed.
