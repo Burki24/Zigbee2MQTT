@@ -34,6 +34,8 @@ Variables hidden or custom actions removed by earlier testing versions are not r
 
 ## Fixes
 
+- Late MQTT responses carrying a transaction ID can no longer complete a new request through a reused ID after a timeout. ID allocation remains monotonic across configuration changes and restarts.
+
 - The new identify migration was also verified on a real Symcon 9.1 test system with visible and hidden legacy variables, custom profiles, presentations, working custom actions and repeated execution.
 - Color and brightness commands are independent: color commands no longer implicitly include the current brightness. Black and missing or unusable brightness values are handled correctly; HSV/RGB conversions have been hardened.
 - Native numeric parameters are registered with the correct Integer/Float type and satisfy stricter validation in Symcon 9.1. Units, millivolt-to-volt conversion and subsequently received temperature/dew-point values are handled consistently.

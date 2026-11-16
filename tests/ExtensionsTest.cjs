@@ -43,6 +43,15 @@ function createGroupDevice(ieeeAddr, definition) {
 }
 
 for (const filename of ['IPSymconExtension.js', 'IPSymconExtension2.js']) {
+    test(`${filename}: transaction IDs retain exact JSON integer precision`, async () => {
+        for (const transaction of [1794785036000001, Number.MAX_SAFE_INTEGER]) {
+            const h = createHarness(filename, 'house/z2m');
+            await h.extension.onMQTTMessage({topic: 'house/z2m/SymconExtension/request/getGroupInfo/Floor/Lights', message: JSON.stringify({transaction})});
+            assert.equal(h.published.length, 1);
+            assert.equal(h.published[0].payload.transaction, transaction);
+        }
+    });
+
     test(`${filename}: unresolved members do not interrupt other group members in any position`, async () => {
         const state = {type: 'binary', property: 'state', access: 7};
         const position = {type: 'numeric', property: 'position', access: 7, value_min: 0, value_max: 100};

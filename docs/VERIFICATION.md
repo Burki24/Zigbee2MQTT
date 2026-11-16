@@ -1,6 +1,39 @@
 # Dokumentations- und Migrationsnachweis / Verification
 
-Stand: **15.11.2026**. Diese Datei dokumentiert Prüfungen und deren Grenzen, keine Veröffentlichung oder Freigabe durch Symcon.
+Stand: **16.11.2026**. Diese Datei dokumentiert Prüfungen und deren Grenzen, keine Veröffentlichung oder Freigabe durch Symcon.
+
+## MQTT-Transaktionskorrektur vom 16.11.2026
+
+**Aktueller Prüfstand:** `7312166` (6.00, Build 2477) plus die noch nicht veröffentlichten Arbeitsbaumänderungen dieser Korrektur. Der nachfolgend dokumentierte CI-Fehler betrifft auch den unveränderten Transaktionscode dieses Commits. Frühere grüne Testläufe und Freigabeempfehlungen haben diesen seltenen Fehler nicht ausgeschlossen und sind insoweit überholt. Die lokale Korrektur ist geprüft; vor einer weiteren Store-Einreichung muss sie in einem neuen Commit enthalten sein und dessen CI erfolgreich laufen.
+
+**Fehlernachweis:** [GitHub Run Tests 43774569119](https://github.com/Burki24/Zigbee2MQTT/actions/runs/43774569119), Commit `bab1383`: 366 PHP-Tests unter PHP 8.2.35 / PHPUnit 10.1.1, ein Fehler in `MQTTHelperTest::testExpiredResponseCannotCompleteReplacementRequest`. Die 36 Extension-Tests waren erfolgreich. Ursache ist die zufällige Wiederverwendung einer bereits abgelaufenen ID aus dem Bereich 1–10.000. Eine verspätete Antwort kann dann die neue Anfrage abschließen. Mit `mt_srand(6113)` zieht der alte Algorithmus zweimal die ID 371. Der deterministische Regressionstest scheitert gegen den alten Code sowohl unter PHP 8.5 als auch unter PHP 8.2 / PHPUnit 10.1.1 mit „Failed asserting that true is false“.
+
+**Korrektur und Kompatibilität:** Der Generator verwendet nun fortlaufende Integer-IDs mit einem persistenten Höchststand im Attribut `TransactionIdHighWaterMark`. Dieses wird in `Create()` von Bridge, Configurator und ModulBase (Device/Group) registriert. Die Vergabe findet unter dem bisherigen Transaktions-Lock statt und speichert den Höchststand, bevor eine ID ausgegeben oder der Transaktionspuffer geschrieben wird. Ablauf, Abschluss, Pufferleeren und `ApplyChanges` setzen diesen nicht zurück. Die aktuelle Mikrosekundenzeit dient als Startwert oberhalb der alten IDs; bei gleicher oder rückläufiger Uhr sowie vorhandenen größeren IDs wird weitergezählt. Oberhalb von `Number.MAX_SAFE_INTEGER` (9.007.199.254.740.991) wird kontrolliert abgebrochen, niemals umgebrochen. Ein fehlgeschlagener Attributschreibzugriff gibt keine ID aus; auch ein nachfolgender Pufferfehler gibt keine reservierte ID wieder frei.
+
+Die Wire-Daten bleiben numerische JSON-IDs; beide mitgelieferten Extension-Varianten geben die neuen großen IDs einschließlich des maximal sicheren JavaScript-Integers exakt zurück. Bestehende offene Anfragen mit kleinen IDs und Antworten mit numerischer String-ID bleiben unterstützt. Es werden keine Variablen oder Benutzerkonfigurationen verändert; Versionsmetadaten und Extension-Version bleiben unverändert.
+
+**Frische Prüfergebnisse nach der letzten Codeänderung:**
+
+| Prüfung | Ergebnis |
+| --- | --- |
+| Deterministischer Regressionstest gegen alten Code | Erwartet fehlgeschlagen, gleicher ID-Kollisionsfehler, unter PHP 8.5 und PHP 8.2.35 / PHPUnit 10.1.1 |
+| Gesamte PHP-Suite, PHP 8.5.10 / PHPUnit 10.5.63 | 371 Tests, 4.888 Assertions, Exit 0 |
+| Gesamte PHP-Suite, PHP 8.2.35 / PHPUnit 10.1.1 | 371 Tests, 4.888 Assertions, Exit 0 |
+| `node --test tests/ExtensionsTest.cjs` | 38 Tests, Exit 0 |
+| PHP-Syntax | 75 eigene PHP-Dateien ohne Fehler |
+| PHP-CS-Fixer im Prüfmodus | 52 Dateien, keine Korrekturen erforderlich, Exit 0 |
+
+Zusätzlich wurden die lokale Dokumentationsprüfung, JSON-Formatprüfung und `git diff --check` ausgeführt. Die PHP-Suiten liefen in isolierten temporären Bibliothekskopien einschließlich der vorhandenen Submodule. Für den PHP-8.2-Lauf wurde ausschließlich ein temporäres portables PHP 8.2.35 von windows.php.net (Archiv-SHA-256 gegen die offizielle Metadatendatei geprüft) und PHPUnit 10.1.1 von phar.phpunit.de verwendet; keine Systeminstallation, PATH- oder Projekt-Abhängigkeitsänderung.
+
+Die Tests decken feste ID-Kollision, Timeout, Abschluss, Pufferleeren, simulierte Neuerstellung mit erhaltenen Attributen, rückläufige Uhr durch einen zukünftigen Zählerstand, bestehende Altanfragen, numerische String-IDs, offene größere IDs, Bereichsende, Attribut-/Pufferschreibfehler und Lock-Freigabe ab. Ein zusätzlicher Modulintegrationstest prüft Registrierung und Erhalt des Zählers bei `ApplyChanges` in allen vier synchronen MQTT-Modultypen mit den Symcon-Stubs.
+
+**Grenzen:** Kein Deployment, echter Kernel-Neustart oder End-to-End-Test gegen einen laufenden Zigbee2MQTT-Broker für diese Korrektur. Die vorhandenen Stubs überschreiben Attribute beim erneuten direkten `Create()`-Aufruf; dieser Vorgang ist deshalb kein Neustartnachweis. Die Beständigkeit des Zählers nach Neuerstellung wird im isolierten Attributspeicher simuliert, während die reale Persistenz dem Symcon-Attributvertrag folgt. Die Netzwerkkarte verwendet eigene asynchrone Scan-IDs und wurde nicht auf diesen Generator umgestellt; ihre bestehenden Tests bleiben erfolgreich. Antworten **ohne** Transaktions-ID verwenden weiterhin den bestehenden eindeutigen Topic-Fallback und sind durch diese ID-Korrektur nicht zusätzlich unterscheidbar. Der bereits fehlgeschlagene GitHub-Lauf wird nicht durch lokale Tests grün; eine CI-Prüfung des späteren Fix-Commits steht aus. Keine Veröffentlichung, Store-Änderung, Commit oder Push ausgeführt.
+
+### English verification update
+
+The failed GitHub run exposed an actual ID-reuse defect, not a harmless flaky assertion. A fixed Mersenne Twister seed reproduces the collision (371 twice) deterministically against the former allocator on PHP 8.5 and PHP 8.2.35 / PHPUnit 10.1.1. IDs now increase monotonically, with a persisted per-instance high-water mark written under the transaction lock before issuance. Existing low-ID requests remain usable. IDs stay within JavaScript's exact integer range; both bundled extensions pass numeric precision tests. Failure to persist the counter aborts allocation; buffer clearing, completion and configuration changes do not reset it.
+
+Fresh final results: **371 PHP tests / 4,888 assertions on each of PHP 8.5.10 / PHPUnit 10.5.63 and PHP 8.2.35 / PHPUnit 10.1.1**, **38 JavaScript tests**, syntax checks for 75 PHP files and PHP-CS-Fixer for 52 files passed. Lifecycle coverage uses stubs and simulated retained attributes, not a real kernel restart. Network Map's independent asynchronous IDs and ID-less topic fallback are outside this allocator fix. Earlier release-readiness statements do not certify the affected old commit; a new fix commit and successful CI are required before further submission. No deployment or publication was performed.
 
 ## Vergleichsbasis und Changelog
 

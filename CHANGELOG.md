@@ -34,6 +34,8 @@ Bereits durch ältere Testing-Versionen ausgeblendete Variablen oder entfernte B
 
 ## Fixes
 
+- Verspätete MQTT-Antworten mit Transaktions-ID können nach einem Timeout keine neue Anfrage mehr durch eine wiederverwendete ID abschließen. Die ID-Vergabe bleibt auch nach Konfigurationsänderungen und Neustarts fortlaufend.
+
 - Die neue Erkennen-Migration wurde zusätzlich im echten Symcon-9.1-Testsystem mit sichtbaren und ausgeblendeten Altvariablen, Benutzerprofilen, Darstellungen, funktionierenden Benutzeraktionen und wiederholter Ausführung geprüft.
 - Farb- und Helligkeitsbefehle sind unabhängig: Farbbefehle übernehmen nicht ungefragt die aktuelle Helligkeit. Schwarz und fehlende beziehungsweise unbrauchbare Helligkeitswerte werden korrekt behandelt; HSV-/RGB-Konvertierungen wurden abgesichert.
 - Native Zahlenparameter werden passend zum Integer-/Float-Typ registriert und erfüllen die strengere Validierung in Symcon 9.1. Einheiten, Millivolt-/Volt-Umrechnung und nachgelieferte Temperatur-/Taupunktwerte werden konsistent behandelt.

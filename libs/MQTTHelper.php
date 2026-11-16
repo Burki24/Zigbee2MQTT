@@ -19,7 +19,9 @@ trait SendData
     use Constants;
 
     private const TRANSACTION_ID_MIN = 1;
-    private const TRANSACTION_ID_MAX = 10000;
+    // JSON integers must round-trip exactly through Zigbee2MQTT's JavaScript runtime.
+    private const TRANSACTION_ID_MAX = 9007199254740991;
+    private const ATTRIBUTE_TRANSACTION_ID_HIGH_WATER_MARK = 'TransactionIdHighWaterMark';
 
     /** @var mixed $MQTTDataArray
      *  Vorlage Daten Array zum versenden an einen MQTT-Splitter
@@ -366,24 +368,33 @@ trait SendData
     }
 
     /**
-     * Ermittelt eine freie Transaktions-ID, ohne offene Anfragen zu ueberschreiben.
+     * Vergibt IDs monoton und ohne Wiederverwendung, auch nach Timeout oder Neustart.
+     * Der Aufrufer haelt bereits den TransactionData-Lock. Der persistente Zaehler
+     * wird vor dem Pufferzugriff fortgeschrieben, damit auch Schreibfehler keine ID freigeben.
      */
     private function FindAvailableTransactionId(array $TransactionData): int
     {
-        $Candidate = mt_rand(self::TRANSACTION_ID_MIN, self::TRANSACTION_ID_MAX);
-        $Capacity = self::TRANSACTION_ID_MAX - self::TRANSACTION_ID_MIN + 1;
-        for ($Attempt = 0; $Attempt < $Capacity; $Attempt++) {
-            if (!array_key_exists($Candidate, $TransactionData)) {
-                return $Candidate;
-            }
-
-            $Candidate++;
-            if ($Candidate > self::TRANSACTION_ID_MAX) {
-                $Candidate = self::TRANSACTION_ID_MIN;
+        $LastId = $this->ReadAttributeInteger(self::ATTRIBUTE_TRANSACTION_ID_HIGH_WATER_MARK);
+        foreach (array_keys($TransactionData) as $Id) {
+            $NormalizedId = $this->NormalizeTransactionId($Id);
+            if ($NormalizedId !== null) {
+                $LastId = max($LastId, $NormalizedId);
             }
         }
+        if ($LastId >= self::TRANSACTION_ID_MAX) {
+            throw new \RuntimeException($this->Translate('No transaction IDs available'), E_USER_NOTICE);
+        }
 
-        throw new \RuntimeException($this->Translate('No transaction IDs available'), E_USER_NOTICE);
+        // The clock seed also separates new installations from the former 1..10000 IDs.
+        // Persisted state takes precedence if the clock moves backwards or requests coincide.
+        $Candidate = max(self::TRANSACTION_ID_MIN, (int) floor(microtime(true) * 1000000), $LastId + 1);
+        if ($Candidate > self::TRANSACTION_ID_MAX) {
+            throw new \RuntimeException($this->Translate('No transaction IDs available'), E_USER_NOTICE);
+        }
+        if (!$this->WriteAttributeInteger(self::ATTRIBUTE_TRANSACTION_ID_HIGH_WATER_MARK, $Candidate)) {
+            throw new \RuntimeException($this->Translate('No transaction IDs available'), E_USER_NOTICE);
+        }
+        return $Candidate;
     }
 
     /**

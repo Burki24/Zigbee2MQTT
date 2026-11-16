@@ -8,23 +8,118 @@ require_once __DIR__ . '/../libs/MQTTHelper.php';
 use PHPUnit\Framework\TestCase;
 
 /**
- * Prüft die Transaktionsverwaltung von MQTT-Requests.
+ * Bildet den persistenten Attributspeicher fuer isolierte MQTT-Tests ab.
  */
+abstract class MQTTTransactionAttributeStub
+{
+    public array $attributes = [];
+    public bool $rejectAttributeWrites = false;
+
+    protected function ReadAttributeInteger(string $name): int
+    {
+        return $this->attributes[$name] ?? 0;
+    }
+
+    protected function WriteAttributeInteger(string $name, int $value): bool
+    {
+        if ($this->rejectAttributeWrites) {
+            return false;
+        }
+        $this->attributes[$name] = $value;
+        return true;
+    }
+}
+
+/** Prüft die Transaktionsverwaltung von MQTT-Requests. */
 class MQTTHelperTest extends TestCase
 {
     public function testExpiredResponseCannotCompleteReplacementRequest(): void
     {
+        // This seed makes the former allocator draw ID 371 twice, on every run.
+        mt_srand(6113);
+        try {
+            $helper = $this->createPollingHelper([]);
+            $oldPayload = [];
+            $old = $helper->createTransaction($oldPayload, '/bridge/request/options', microtime(true) - 1);
+            $newPayload = [];
+            $new = $helper->createTransaction($newPayload, '/bridge/request/options');
+            $late = ['transaction' => $old, 'status' => 'ok'];
+            $this->assertFalse($helper->completeTransaction($late));
+            $this->assertFalse($helper->completeByTopic('/bridge/response/options', $late));
+            $this->assertNotSame($old, $new);
+            $this->assertNull($helper->Multi_TransactionData[$new]['__result']);
+            $this->assertTrue($helper->completeTransaction(['transaction' => $new, 'status' => 'ok']));
+            $this->assertSame(['status' => 'ok'], $helper->waitForResult($new, 100));
+        } finally {
+            mt_srand();
+        }
+    }
+
+    public function testTransactionIdsSurviveCompletionBufferClearAndInstanceRecreation(): void
+    {
         $helper = $this->createPollingHelper([]);
-        $oldPayload = [];
-        $old = $helper->createTransaction($oldPayload, '/bridge/request/options', microtime(true) - 1);
-        $newPayload = [];
-        $new = $helper->createTransaction($newPayload, '/bridge/request/options');
-        $late = ['transaction' => $old, 'status' => 'ok'];
-        $this->assertFalse($helper->completeTransaction($late));
-        $this->assertFalse($helper->completeByTopic('/bridge/response/options', $late));
-        $this->assertNull($helper->Multi_TransactionData[$new]['__result']);
-        $this->assertTrue($helper->completeTransaction(['transaction' => $new, 'status' => 'ok']));
-        $this->assertSame(['status' => 'ok'], $helper->waitForResult($new, 100));
+        $helper->attributes['TransactionIdHighWaterMark'] = 2000000000000000;
+        $payload = [];
+        $first = $helper->createTransaction($payload, '/bridge/request/options');
+        $this->assertSame(2000000000000001, $first);
+        $this->assertTrue($helper->completeTransaction(['transaction' => $first, 'status' => 'ok']));
+        $this->assertSame(['status' => 'ok'], $helper->waitForResult($first, 100));
+        $helper->clearTransactions();
+
+        // A new PHP interface reads the attributes that the kernel retained across reload/restart.
+        $recreated = $this->createPollingHelper([]);
+        $recreated->attributes = $helper->attributes;
+        $second = $recreated->createTransaction($payload, '/bridge/request/options');
+        $this->assertSame($first + 1, $second);
+        $this->assertFalse($recreated->completeTransaction(['transaction' => (string) $first, 'status' => 'old']));
+        $this->assertNull($recreated->Multi_TransactionData[$second]['__result']);
+        $this->assertTrue($recreated->completeTransaction(['transaction' => (string) $second, 'status' => 'new']));
+        $this->assertSame(['status' => 'new'], $recreated->waitForResult($second, 100));
+    }
+
+    public function testPendingLegacyTransactionsRemainUsableDuringAllocatorUpgrade(): void
+    {
+        $helper = $this->createPollingHelper([]);
+        $helper->Multi_TransactionData[371] = ['__meta' => ['expiresAt' => microtime(true) + 60], '__result' => null];
+        $payload = [];
+        $next = $helper->createTransaction($payload, '/bridge/request/options');
+        $this->assertGreaterThan(10000, $next);
+        $this->assertTrue($helper->completeTransaction(['transaction' => 371, 'status' => 'legacy']));
+        $this->assertSame(['status' => 'legacy'], $helper->waitForResult(371, 100));
+        $this->assertNull($helper->Multi_TransactionData[$next]['__result']);
+    }
+
+    public function testAllocatorHonorsPendingIdsAndNeverWrapsAtJavascriptIntegerLimit(): void
+    {
+        $helper = $this->createPollingHelper([]);
+        $helper->Multi_TransactionData[9007199254740989] = ['__meta' => [], '__result' => null];
+        $payload = [];
+        $this->assertSame(9007199254740990, $helper->createTransaction($payload, '/bridge/request/options'));
+        $last = $helper->createTransaction($payload, '/bridge/request/options');
+        $this->assertSame(9007199254740991, $last);
+        $this->assertTrue($helper->completeTransaction(['transaction' => (string) $last, 'status' => 'ok']));
+        $this->assertSame(['status' => 'ok'], $helper->waitForResult($last, 100));
+        $this->expectException(\RuntimeException::class);
+        $this->expectExceptionMessage('No transaction IDs available');
+        $helper->createTransaction($payload, '/bridge/request/options');
+    }
+
+    public function testFailedIdPersistenceAbortsAllocationWithoutChangingPendingRequests(): void
+    {
+        $helper = $this->createPollingHelper([]);
+        $helper->Multi_TransactionData[371] = ['__meta' => [], '__result' => null];
+        $before = $helper->Multi_TransactionData;
+        $helper->rejectAttributeWrites = true;
+        $payload = [];
+        try {
+            $helper->createTransaction($payload, '/bridge/request/options');
+            $this->fail('An unpersisted ID must never be issued.');
+        } catch (\RuntimeException $exception) {
+            $this->assertSame('No transaction IDs available', $exception->getMessage());
+        }
+        $this->assertSame($before, $helper->Multi_TransactionData);
+        $this->assertArrayNotHasKey('transaction', $payload);
+        $this->assertSame(1, $helper->unlockCalls);
     }
 
     public function testTopicFallbackRejectsExplicitAndAmbiguousTransactions(): void
@@ -87,7 +182,7 @@ class MQTTHelperTest extends TestCase
 
     public function testBusyTransactionLockAbortsRequestWithoutSendingOrChangingOtherTransactions(): void
     {
-        $helper = new class() {
+        $helper = new class() extends MQTTTransactionAttributeStub {
             use \Zigbee2MQTT\SendData {
                 SendData as public sendMqttData;
                 ClearTransactionData as public clearTransactions;
@@ -130,7 +225,7 @@ class MQTTHelperTest extends TestCase
 
     public function testDecodePayloadPreservesLegacyUtf8Payload(): void
     {
-        $helper = new class() {
+        $helper = new class() extends MQTTTransactionAttributeStub {
             use \Zigbee2MQTT\SendData {
                 DecodePayload as public decodePayloadForTest;
             }
@@ -141,7 +236,7 @@ class MQTTHelperTest extends TestCase
 
     public function testDecodePayloadDecodesStrictHexPayload(): void
     {
-        $helper = new class() {
+        $helper = new class() extends MQTTTransactionAttributeStub {
             use \Zigbee2MQTT\SendData {
                 DecodePayload as public decodePayloadForTest;
             }
@@ -153,7 +248,7 @@ class MQTTHelperTest extends TestCase
 
     public function testAddTransactionUsesOnlyFreeIdsAndPreservesPendingEntries(): void
     {
-        $helper = new class() {
+        $helper = new class() extends MQTTTransactionAttributeStub {
             use \Zigbee2MQTT\SendData {
                 AddTransaction as public createTransaction;
             }
@@ -180,14 +275,13 @@ class MQTTHelperTest extends TestCase
             }
         };
         $helper->Multi_TransactionData = array_fill_keys(range(1, 10000), []);
-        unset($helper->Multi_TransactionData[7777]);
         $payload = [];
 
         $transactionId = $helper->createTransaction($payload, '/bridge/request/health_check');
 
-        $this->assertSame(7777, $transactionId);
-        $this->assertSame(7777, $payload['transaction']);
-        $this->assertCount(10000, $helper->Multi_TransactionData);
+        $this->assertGreaterThan(10000, $transactionId);
+        $this->assertSame($transactionId, $payload['transaction']);
+        $this->assertCount(10001, $helper->Multi_TransactionData);
         $this->assertArrayHasKey(1, $helper->Multi_TransactionData);
         $this->assertSame(1, $helper->lockCount);
         $this->assertSame(1, $helper->unlockCount);
@@ -195,7 +289,7 @@ class MQTTHelperTest extends TestCase
 
     public function testTransactionLockIsReleasedWhenNoIdIsAvailable(): void
     {
-        $helper = new class() {
+        $helper = new class() extends MQTTTransactionAttributeStub {
             use \Zigbee2MQTT\SendData {
                 AddTransaction as public createTransaction;
             }
@@ -219,7 +313,7 @@ class MQTTHelperTest extends TestCase
                 return $text;
             }
         };
-        $helper->Multi_TransactionData = array_fill_keys(range(1, 10000), []);
+        $helper->attributes['TransactionIdHighWaterMark'] = 9007199254740991;
         $payload = [];
 
         try {
@@ -235,7 +329,7 @@ class MQTTHelperTest extends TestCase
 
     public function testTransactionLockIsReleasedWhenBufferWriteFails(): void
     {
-        $helper = new class() {
+        $helper = new class() extends MQTTTransactionAttributeStub {
             use \Zigbee2MQTT\SendData {
                 AddTransaction as public createTransaction;
             }
@@ -278,13 +372,14 @@ class MQTTHelperTest extends TestCase
             $this->assertSame('Buffer write failed', $exception->getMessage());
         }
 
+        $this->assertGreaterThan(10000, $helper->attributes['TransactionIdHighWaterMark']);
         $this->assertSame(1, $helper->unlockCount);
         $this->assertArrayNotHasKey('transaction', $payload);
     }
 
     public function testInvalidTransactionIdIsRejectedBeforeLockingBuffer(): void
     {
-        $helper = new class() {
+        $helper = new class() extends MQTTTransactionAttributeStub {
             use \Zigbee2MQTT\SendData {
                 UpdateTransaction as public completeTransaction;
             }
@@ -314,13 +409,13 @@ class MQTTHelperTest extends TestCase
         };
 
         $this->assertFalse($helper->completeTransaction(['transaction' => ['invalid']]));
-        $this->assertFalse($helper->completeTransaction(['transaction' => 10001]));
+        $this->assertFalse($helper->completeTransaction(['transaction' => 9007199254740992]));
         $this->assertSame(0, $helper->lockCount);
     }
 
     public function testExtensionListResponseWithoutTransactionIsMatchedByResponseTopic(): void
     {
-        $helper = new class() {
+        $helper = new class() extends MQTTTransactionAttributeStub {
             use \Zigbee2MQTT\SendData {
                 SendData as public sendMqttData;
                 UpdateTransactionByResponseTopic as public completeByResponseTopic;
@@ -370,7 +465,7 @@ class MQTTHelperTest extends TestCase
 
     public function testLargeDebugOutputIsTruncated(): void
     {
-        $helper = new class() {
+        $helper = new class() extends MQTTTransactionAttributeStub {
             use \Zigbee2MQTT\SendData {
                 SendLimitedDebug as public limitedDebug;
             }
@@ -392,7 +487,7 @@ class MQTTHelperTest extends TestCase
 
     public function testSensitiveDataIsSentButRedactedFromDebugOutput(): void
     {
-        $helper = new class() {
+        $helper = new class() extends MQTTTransactionAttributeStub {
             use \Zigbee2MQTT\SendData {
                 SendSensitiveData as public sendSensitiveMqttData;
             }
@@ -425,7 +520,7 @@ class MQTTHelperTest extends TestCase
 
     public function testDeviceCommandCombinesTopicsAndPreservesOffPayload(): void
     {
-        $helper = new class() {
+        $helper = new class() extends MQTTTransactionAttributeStub {
             use \Zigbee2MQTT\SendData;
 
             public array $sentRequests = [];
@@ -456,7 +551,7 @@ class MQTTHelperTest extends TestCase
 
     public function testUnavailableInstanceInterfaceStopsBeforeSending(): void
     {
-        $helper = new class() {
+        $helper = new class() extends MQTTTransactionAttributeStub {
             use \Zigbee2MQTT\SendData {
                 SendData as public sendMqttData;
             }
@@ -485,7 +580,7 @@ class MQTTHelperTest extends TestCase
 
     public function testUnavailableParentInterfaceStopsWithoutWarning(): void
     {
-        $helper = new class() {
+        $helper = new class() extends MQTTTransactionAttributeStub {
             use \Zigbee2MQTT\SendData {
                 SendData as public sendMqttData;
             }
@@ -510,7 +605,7 @@ class MQTTHelperTest extends TestCase
 
     public function testResponseWithoutTransactionIsMatchedByResponseTopic(): void
     {
-        $helper = new class() {
+        $helper = new class() extends MQTTTransactionAttributeStub {
             use \Zigbee2MQTT\SendData {
                 SendData as public sendMqttData;
                 UpdateTransactionByResponseTopic as public completeByResponseTopic;
@@ -573,11 +668,12 @@ class MQTTHelperTest extends TestCase
 
     private function createPollingHelper(array $locks): object
     {
-        return new class($locks) {
+        return new class($locks) extends MQTTTransactionAttributeStub {
             use \Zigbee2MQTT\SendData {
                 UpdateTransactionByResponseTopic as public completeByTopic;
                 WaitForTransactionEnd as public waitForResult;
                 AddTransaction as public createTransaction;
+                ClearTransactionData as public clearTransactions;
                 UpdateTransaction as public completeTransaction;
             }
             public array $TransactionData = [];

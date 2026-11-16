@@ -145,6 +145,7 @@ class Zigbee2MQTTBridge extends IPSModuleStrict
     {
         //Never delete this line!
         parent::Create();
+        $this->RegisterAttributeInteger(self::ATTRIBUTE_TRANSACTION_ID_HIGH_WATER_MARK, 0);
         $this->RegisterPropertyString(self::MQTT_BASE_TOPIC, '');
 
         // Init Buffers
