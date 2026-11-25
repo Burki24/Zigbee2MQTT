@@ -71,7 +71,7 @@ Die Buttons der Kachel haben folgende Aufgaben:
 | **Schwache LQI** | Zeigt ausschließlich Verbindungen, deren LQI unterhalb des in der Instanz konfigurierten Warnwerts liegt. |
 | **Routen** | Zeigt ausschließlich Verbindungen an, für die in der letzten Analyse Routing-Einträge vorhanden waren. Routing-Daten stehen nur nach einer Analyse mit Routen zur Verfügung. |
 | **Ansicht** | Öffnet die Werkzeuge für Layoutwechsel, Gerätesuche, Umfeldfokus und das Ein- oder Ausblenden der Beschriftungen. |
-| **Vollbild** | Öffnet die interaktive Netzwerkkarte bildschirmfüllend. Der Vollbildmodus kann über denselben Button oder `Esc` geschlossen werden und verwendet automatisch eine zum aktiven Symcon-Profil passende kontrastierende Fläche. |
+| **Vollbild** | Öffnet die Karte unter Symcon 9.0 bildschirmfüllend, sofern der Browser den Vollbildmodus unterstützt. |
 
 Im Abschnitt **Ansicht** der Instanzkonfiguration werden das beim Öffnen verwendete Standardlayout und die anfängliche Sichtbarkeit der Beschriftungen festgelegt. Änderungen über den Button **Ansicht** innerhalb der Kachel gelten nur für die aktuell geöffnete Darstellung und verändern diese gespeicherten Vorgaben nicht.
 
@@ -89,11 +89,9 @@ Die verfügbaren Layouts sind:
 
 Über **Gerät suchen** kann ein Gerät anhand von Name, Modell, Typ, IEEE-Adresse oder Netzwerkadresse gefunden werden. **Umfeld** blendet anschließend nur das ausgewählte Gerät und seine direkten Nachbarn ein. **Alle anzeigen** hebt die Einschränkung wieder auf.
 
-### Warum gibt es einen eigenen Vollbildmodus?
+### Netzwerkkarte vergrößern
 
-Der Button **Vollbild** ist aufgrund einer Einschränkung von Symcon erforderlich. Der reguläre Vergrößerungspfeil einer individuellen HTML-SDK-Kachel öffnet lediglich die normale Detailansicht der Instanz. Das PHP-SDK von Symcon bietet derzeit keine Möglichkeit, für diese maximierte Detailansicht eine eigene HTML-Darstellung bereitzustellen.
-
-Da die Netzwerkkarten-Instanz keine darzustellenden Kindobjekte benötigt, bleibt die von Symcon geöffnete Detailansicht leer. Für eine große, weiterhin interaktive Darstellung stellt das Modul deshalb den eigenen Button **Vollbild** innerhalb der Netzwerkkarte bereit.
+Ab Symcon 9.1 öffnet der Vergrößern-Pfeil der Kachel die interaktive Netzwerkkarte in der großen Symcon-Ansicht. Unter Symcon 9.0 öffnet **Vollbild** innerhalb der Karte den Browser-Vollbildmodus. Derselbe Button oder `Esc` schließt ihn.
 
 ### Routing-Ansicht
 

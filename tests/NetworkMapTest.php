@@ -4,6 +4,7 @@ declare(strict_types=1);
 
 include_once __DIR__ . '/stubs/autoload.php';
 
+use PHPUnit\Framework\Attributes\RunInSeparateProcess;
 use PHPUnit\Framework\TestCase;
 
 /**
@@ -177,6 +178,7 @@ class NetworkMapTest extends TestCase
         $this->assertStringContainsString("window.addEventListener('pageshow', requestCurrentState)", $tile);
         $this->assertStringContainsString('setTimeout(requestCurrentState, 50)', $tile);
         $this->assertStringContainsString('document.documentElement.requestFullscreen()', $tile);
+        $this->assertStringContainsString('"nativeFullscreen":false', $tile);
         $this->assertStringContainsString("fullscreenButton.addEventListener('click', toggleFullscreen)", $tile);
         $this->assertStringContainsString('prepareFullscreenTheme()', $tile);
         $this->assertStringContainsString('html:fullscreen::backdrop', $tile);
@@ -192,6 +194,23 @@ class NetworkMapTest extends TestCase
         $this->assertStringNotContainsString('__CYTOSCAPE__', $tile);
         $this->assertStringNotContainsString('__CYTOSCAPE_VIEW_CONTROLLER__', $tile);
         $this->assertStringNotContainsString('__THEME_SUPPORT__', $tile);
+    }
+
+    #[RunInSeparateProcess]
+    public function testNativeFullscreenKeepsTheInteractiveTileOnSymcon91(): void
+    {
+        define('INSTANCE_VISUALIZATION_TYPE_HTML_FULLSCREEN', 2);
+        $id = IPS_CreateInstance('{C07834E7-9821-218C-C3EC-A4A87FFB8D7D}');
+        IPS_ApplyChanges($id);
+
+        $map = IPS\InstanceManager::getInstanceInterface($id);
+        $moduleStub = (new ReflectionProperty(IPSModuleStrict::class, 'module'))->getValue($map);
+        $this->assertSame(2, (new ReflectionProperty(IPSModule::class, 'visualizationType'))->getValue($moduleStub));
+
+        $tile = $map->GetVisualizationTile();
+        $this->assertStringContainsString('"nativeFullscreen":true', $tile);
+        $this->assertStringContainsString('class CytoscapeViewController', $tile);
+        $this->assertStringContainsString("requestAction('RefreshVisualization', true)", $tile);
     }
 
     public function testFailedResponseStopsRunningScan(): void

@@ -43,7 +43,7 @@ class Zigbee2MQTTNetworkMap extends IPSModuleStrict
 
         $baseTopic = trim($this->ReadPropertyString(self::MQTT_BASE_TOPIC), '/');
         $this->SetSummary($baseTopic);
-        $this->SetVisualizationType(1);
+        $this->SetVisualizationType(\defined('INSTANCE_VISUALIZATION_TYPE_HTML_FULLSCREEN') ? INSTANCE_VISUALIZATION_TYPE_HTML_FULLSCREEN : 1);
 
         if ($baseTopic === '') {
             $this->SetStatus(IS_INACTIVE);
@@ -92,12 +92,13 @@ class Zigbee2MQTTNetworkMap extends IPSModuleStrict
         }
 
         $initialData = json_encode([
-            'scan'      => [],
-            'summary'   => [],
-            'threshold' => $this->ReadPropertyInteger('WeakLQIThreshold'),
-            'view'      => $this->BuildVisualizationViewSettings(),
-            'nodes'     => [],
-            'links'     => []
+            'scan'             => [],
+            'summary'          => [],
+            'threshold'        => $this->ReadPropertyInteger('WeakLQIThreshold'),
+            'view'             => $this->BuildVisualizationViewSettings(),
+            'nativeFullscreen' => \defined('INSTANCE_VISUALIZATION_TYPE_HTML_FULLSCREEN'),
+            'nodes'            => [],
+            'links'            => []
         ], JSON_HEX_TAG | JSON_HEX_APOS | JSON_HEX_AMP | JSON_HEX_QUOT);
         return str_replace(
             ['__THEME_SUPPORT__', '__CYTOSCAPE__', '__CYTOSCAPE_VIEW_CONTROLLER__', '__INITIAL_DATA__'],

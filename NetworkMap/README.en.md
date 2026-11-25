@@ -45,7 +45,7 @@ Coordinator, routers and end devices use distinct styling. Click a node for deta
 | Weak LQI | Displays only links below the configured warning threshold. |
 | Routes | Displays only links with routing entries from the last scan. Requires a scan including routes to be meaningful. |
 | View | Opens layout, search, neighborhood focus and label controls. |
-| Fullscreen | Opens the interactive map in a contrasting theme-aware fullscreen area. Use the same button or `Esc` to exit. |
+| Fullscreen | Opens the map in browser fullscreen on Symcon 9.0 if the browser supports it. |
 
 ### Layouts and search
 
@@ -61,9 +61,9 @@ Coordinator, routers and end devices use distinct styling. Click a node for deta
 
 **Find device** searches the known identifiers. **Neighborhood** limits the view to the selected node and direct neighbors; **Show all** removes that restriction. Default layout and label visibility are saved in the instance configuration; tile controls are temporary.
 
-### Why a dedicated fullscreen control?
+### Expand the network map
 
-Symcon's ordinary maximize arrow for a custom HTML-SDK tile opens the instance's standard detail view. This instance needs no visible child variables, so that detail view can be empty. The module's own **Fullscreen** control keeps the large network map interactive.
+On Symcon 9.1 or newer, the tile's maximize arrow opens the interactive map in Symcon's expanded view. On Symcon 9.0, use **Fullscreen** within the map to enter browser fullscreen. Use the same button or `Esc` to exit.
 
 ### Route view and details
 
