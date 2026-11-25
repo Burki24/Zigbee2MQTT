@@ -19,7 +19,7 @@ Represents one Zigbee2MQTT device in Symcon. The instance derives variables, act
 
 ## Requirements and installation
 
-- Symcon 9.0 or newer, a working Zigbee2MQTT installation and an internal or external MQTT broker.
+- Symcon 9.1 or newer, a working Zigbee2MQTT installation and an internal or external MQTT broker.
 - Install this module as part of the [Zigbee2MQTT library](../README.en.md), then create devices using the [Configurator](../Configurator/README.en.md).
 - Install/update the Symcon extension manually from the matching [Bridge](../Bridge/README.en.md). The library bundles extension **6.09**. A module update alone does not update the extension in Zigbee2MQTT.
 

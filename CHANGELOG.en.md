@@ -11,7 +11,7 @@ Variables hidden or custom actions removed by earlier testing versions are not r
 
 ## New
 
-- Requires Symcon 9.0 or newer; all six modules use `IPSModuleStrict`. Create a complete backup before upgrading from 5.x or an earlier testing version. Downgrading requires restoring that backup.
+- Requires Symcon 9.1 or newer; all six modules use `IPSModuleStrict`. Create a complete backup before upgrading from 5.x or an earlier testing version. Downgrading requires restoring that backup.
 - Native Symcon presentations for switches, enumerations, measurements, brightness, color, shutters, duration and date/time replace automatically generated module default profiles. Custom profiles and presentations continue to take precedence. Old `Z2M.*` profiles are not deleted globally; review scripts that depend on profile names.
 - Custom, Symcon-theme-aware tiles for heating, switches with optional measurements and multiple channels, sensors, security devices, window handles and actions. Archive charts are offered only for logged variables. Lights and shutters use native Symcon presentations; separate RGB/tunable-white HTML tiles are not included in the current distribution.
 - Heating presets, fallback temperature ranges and Kelvin limits can be configured per Device instance. Derived Kelvin and color values support suitable native light presentations and presets.
@@ -20,8 +20,8 @@ Variables hidden or custom actions removed by earlier testing versions are not r
 - Device options have typed editors for Boolean, enum, number, text, JSON and attribute lists. Known values and device-specific option definitions are displayed together.
 - Binding and reporting provide endpoint, cluster, attribute and target selection, display the existing configuration and allow explicit refresh of endpoint information from the matching Bridge cache.
 - Device maintenance supports a new interview, reconfiguration and confirmed normal, forced or blocklisting removal from Zigbee2MQTT. This does not automatically delete the Symcon instance.
-- Group management covers members including endpoints, group options and Zigbee scenes; group information can be refreshed explicitly. Group selections remain restricted to the matching MQTT connection.
-- A new Network Map module provides asynchronous scans, topology, link quality, routing, search, filters, adjustable views, a dedicated fullscreen mode and export. A full network analysis requires confirmation and may temporarily load the Zigbee network.
+- Group management covers members including endpoints, group options and Zigbee scenes. Selecting a row in either member or device list fills in the device and endpoint. Group selections remain restricted to the matching MQTT connection.
+- A new Network Map module provides asynchronous scans, topology, link quality, routing, search, filters, adjustable views, Symcon's native expanded view and export. A full network analysis requires confirmation and may temporarily load the Zigbee network.
 - Central OTA management for explicitly supported devices: checks, updates, downgrades, custom firmware URLs, scheduling, unscheduling, cancellation, progress, remaining time and result overviews. The UI prevents multiple updates from being started simultaneously.
 - Extended Bridge diagnostics include health checks, coordinator checks, events, warnings, errors and unsupported or incompletely interviewed devices.
 - Extended pairing controls offer target selection and a time limit, together with blocklist and passlist management. Changes to the restrictive passlist require security confirmation.

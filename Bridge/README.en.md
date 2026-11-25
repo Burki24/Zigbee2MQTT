@@ -6,7 +6,7 @@ The Bridge provides installation-wide Zigbee2MQTT settings, extension management
 
 ## Requirements and installation
 
-- Symcon 9.0 or newer, a running [Zigbee2MQTT](https://www.zigbee2mqtt.io) installation and an MQTT broker.
+- Symcon 9.1 or newer, a running [Zigbee2MQTT](https://www.zigbee2mqtt.io) installation and an MQTT broker.
 - A Symcon MQTT Client connected to the external broker, or a Symcon MQTT Server used by Zigbee2MQTT.
 - The correct MQTT base topic. Each Zigbee2MQTT installation on a shared broker needs a distinct base topic.
 

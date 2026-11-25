@@ -6,7 +6,7 @@ Discovery finds Zigbee2MQTT installations through MQTT brokers and offers their 
 
 ## Requirements and installation
 
-- Symcon 9.0 or newer.
+- Symcon 9.1 or newer.
 - A running [Zigbee2MQTT](https://www.zigbee2mqtt.io) installation.
 - An MQTT broker: either a Symcon MQTT Server or an external broker such as Mosquitto.
 

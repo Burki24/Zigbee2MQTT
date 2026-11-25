@@ -6,7 +6,7 @@ Represents a Zigbee2MQTT group as one Symcon instance. Group control sends comma
 
 ## Requirements and installation
 
-- Symcon 9.0 or newer, a working Zigbee2MQTT installation and an internal or external MQTT broker.
+- Symcon 9.1 or newer, a working Zigbee2MQTT installation and an internal or external MQTT broker.
 - Install the [library](../README.en.md), then create the group using the [Configurator](../Configurator/README.en.md).
 - Install/update the Symcon extension manually through the matching [Bridge](../Bridge/README.en.md). The library bundles **6.09**; installing a module update alone does not update the Zigbee2MQTT extension.
 
@@ -27,8 +27,9 @@ With extension **6.09**, dynamic group exposes are evaluated using current membe
 ![Group member management](imgs/members.png)
 
 - **Refresh group information** updates members, group options and scenes, particularly after changes outside Symcon.
-- **Current group members** shows devices and endpoints; select/edit a row to remove a member.
+- **Current group members** shows devices and endpoints.
 - **Available devices** includes local instances and devices known by the matching Bridge. A different Zigbee installation is excluded even if its base topic happens to be identical.
+- Selecting a row in either list fills in **Device** and **Endpoint**. **Add member** and **Remove member** apply the selection.
 - Select the correct endpoint for multi-channel devices. Endpoint choices come from cached device details.
 - **Keep reporting when removing** sends `skip_disable_reporting` so existing reporting configuration need not be removed.
 

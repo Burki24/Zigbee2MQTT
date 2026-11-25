@@ -6,7 +6,7 @@ Analyzes Zigbee devices, directed links, routing tables and scan failures. The l
 
 ## Requirements and setup
 
-Requires Symcon 9.0 or newer, a working Zigbee2MQTT installation and its reachable Symcon MQTT Client or MQTT Server. Install as part of the [library](../README.en.md).
+Requires Symcon 9.1 or newer, a working Zigbee2MQTT installation and its reachable Symcon MQTT Client or MQTT Server. Install as part of the [library](../README.en.md).
 
 1. Create a **Zigbee2MQTT Network Map** instance.
 2. Select the same MQTT parent as the matching Zigbee2MQTT Bridge.
@@ -45,7 +45,6 @@ Coordinator, routers and end devices use distinct styling. Click a node for deta
 | Weak LQI | Displays only links below the configured warning threshold. |
 | Routes | Displays only links with routing entries from the last scan. Requires a scan including routes to be meaningful. |
 | View | Opens layout, search, neighborhood focus and label controls. |
-| Fullscreen | Opens the map in browser fullscreen on Symcon 9.0 if the browser supports it. |
 
 ### Layouts and search
 
@@ -63,7 +62,7 @@ Coordinator, routers and end devices use distinct styling. Click a node for deta
 
 ### Expand the network map
 
-On Symcon 9.1 or newer, the tile's maximize arrow opens the interactive map in Symcon's expanded view. On Symcon 9.0, use **Fullscreen** within the map to enter browser fullscreen. Use the same button or `Esc` to exit.
+The tile's maximize arrow opens the interactive map in Symcon's expanded view.
 
 ### Route view and details
 

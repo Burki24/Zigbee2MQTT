@@ -11,7 +11,7 @@ Bereits durch ältere Testing-Versionen ausgeblendete Variablen oder entfernte B
 
 ## Neu
 
-- Mindestversion Symcon 9.0; alle sechs Module verwenden `IPSModuleStrict`. Vor einem Update von 5.x oder früherem Testing ist ein vollständiges Backup erforderlich; ein Downgrade erfolgt nur durch dessen Wiederherstellung.
+- Mindestversion Symcon 9.1; alle sechs Module verwenden `IPSModuleStrict`. Vor einem Update von 5.x oder früherem Testing ist ein vollständiges Backup erforderlich; ein Downgrade erfolgt nur durch dessen Wiederherstellung.
 - Native Symcon-Darstellungen für Schalter, Aufzählungen, Messwerte, Helligkeit, Farbe, Rollläden, Dauer und Datum/Uhrzeit ersetzen automatisch erzeugte Modul-Standardprofile. Benutzerdefinierte Profile und Darstellungen haben weiterhin Vorrang. Alte `Z2M.*`-Profile werden nicht global gelöscht; profilabhängige Skripte müssen geprüft werden.
 - Eigene, an das Symcon-Theme angepasste Kacheln für Heizungen, Schaltaktoren mit optionalen Messwerten und mehreren Kanälen, Sensoren, Sicherheitsgeräte, Fenstergriffe und Aktionen. Archivdiagramme werden nur für aufgezeichnete Variablen angeboten. Leuchten und Rollläden verwenden native Symcon-Darstellungen; separate RGB-/Tunable-White-HTML-Kacheln gehören nicht zum aktuellen Lieferumfang.
 - Heizungs-Vorgabewerte sowie Fallback-Temperaturbereiche und Kelvin-Grenzen lassen sich pro Geräteinstanz einstellen. Abgeleitete Kelvin- und Farbwerte unterstützen passende native Lichtdarstellungen und Voreinstellungen.
@@ -20,8 +20,8 @@ Bereits durch ältere Testing-Versionen ausgeblendete Variablen oder entfernte B
 - Geräteoptionen mit typisierten Editoren für Boolean, Enum, Zahl, Text, JSON und Attributlisten. Bekannte Werte und gerätespezifische Optionsdefinitionen werden zusammen angezeigt.
 - Binding und Reporting mit Endpoint-, Cluster-, Attribut- und Zielauswahl, Anzeige bestehender Konfiguration und explizitem Aktualisieren der Endpoint-Daten aus dem passenden Bridge-Cache.
 - Gerätewartung für erneutes Interview, Neukonfiguration und bestätigtes normales, erzwungenes oder blockierendes Entfernen aus Zigbee2MQTT. Die Symcon-Instanz wird dabei nicht automatisch gelöscht.
-- Gruppenverwaltung für Mitglieder einschließlich Endpoints, Gruppenoptionen und Zigbee-Szenen; Gruppeninformationen können gezielt aktualisiert werden. Gruppenauswahlen bleiben auf die passende MQTT-Verbindung beschränkt.
-- Neues Netzwerkkarten-Modul mit asynchronem Scan, Topologie, Verbindungsqualität, Routing, Suche, Filtern, einstellbarer Ansicht, eigenem Vollbildmodus und Export. Eine vollständige Netzwerkanalyse erfordert Bestätigung und kann das Zigbee-Netz vorübergehend belasten.
+- Gruppenverwaltung für Mitglieder einschließlich Endpoints, Gruppenoptionen und Zigbee-Szenen. Ein Klick auf eine Zeile der Mitglieder- oder Geräteliste übernimmt Gerät und Endpoint. Gruppenauswahlen bleiben auf die passende MQTT-Verbindung beschränkt.
+- Neues Netzwerkkarten-Modul mit asynchronem Scan, Topologie, Verbindungsqualität, Routing, Suche, Filtern, einstellbarer Ansicht, nativer Symcon-Vergrößerung und Export. Eine vollständige Netzwerkanalyse erfordert Bestätigung und kann das Zigbee-Netz vorübergehend belasten.
 - Zentrale OTA-Verwaltung für ausdrücklich unterstützte Geräte: Prüfungen, Updates, Downgrades, eigene Firmware-URLs, Planung, Aufheben der Planung, Abbruch, Fortschritt, Restzeit und Ergebnisübersichten. Die Oberfläche verhindert mehrere gleichzeitig gestartete Updates.
 - Erweiterte Bridge-Diagnose mit Health Check, Coordinator Check, Events, Warnungen, Fehlern sowie nicht unterstützten oder unvollständig interviewten Geräten.
 - Erweiterte Anlernsteuerung mit Zielauswahl und Zeitbegrenzung sowie Verwaltung von Blocklist und Passlist. Restriktive Passlist-Änderungen erfordern eine Sicherheitsbestätigung.

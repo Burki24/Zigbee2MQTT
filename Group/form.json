@@ -36,6 +36,7 @@
                 {
                     "type": "List",
                     "name": "GroupMemberList",
+                    "onSelectionChanged": "IPS_RequestAction($id, 'SelectGroupMember', json_encode(['device' => $GroupMemberList['device'], 'endpoint' => $GroupMemberList['endpoint']]));",
                     "add": false,
                     "delete": false,
                     "rowCount": 4,
@@ -51,13 +52,6 @@
                             "caption": "Endpoint",
                             "name": "endpoint",
                             "width": "120px"
-                        },
-                        {
-                            "caption": "Action",
-                            "name": "action",
-                            "width": "100px",
-                            "align": "center",
-                            "onClick": "IPS_RequestAction($id, 'SelectGroupMember', json_encode(['device' => $GroupMemberList['device'], 'endpoint' => $GroupMemberList['endpoint']]));"
                         }
                     ],
                     "values": []
@@ -69,6 +63,7 @@
                 {
                     "type": "List",
                     "name": "GroupAvailableDeviceList",
+                    "onSelectionChanged": "IPS_RequestAction($id, 'SelectGroupMemberDevice', json_encode(['device' => $GroupAvailableDeviceList['topic'], 'endpoint' => '']));",
                     "add": false,
                     "delete": false,
                     "rowCount": 4,
@@ -90,13 +85,6 @@
                             "caption": "Endpoints",
                             "name": "endpoints",
                             "width": "140px"
-                        },
-                        {
-                            "caption": "Action",
-                            "name": "action",
-                            "width": "100px",
-                            "align": "center",
-                            "onClick": "IPS_RequestAction($id, 'SelectGroupMemberDevice', json_encode(['device' => $GroupAvailableDeviceList['topic'], 'endpoint' => '']));"
                         }
                     ],
                     "values": []

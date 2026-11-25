@@ -13,6 +13,8 @@ class LibraryTest extends TestCaseSymconValidation
     public function testValidateLibrary(): void
     {
         $this->validateLibrary(__DIR__ . '/..');
+        $library = json_decode(file_get_contents(__DIR__ . '/../library.json'), true, 512, JSON_THROW_ON_ERROR);
+        $this->assertSame('9.1', $library['compatibility']['version']);
     }
 
     public function testValidateConfigurator(): void

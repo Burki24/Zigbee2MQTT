@@ -234,6 +234,7 @@ class GroupTest extends DumpInclude
         $form = json_decode($group->GetConfigurationForm(), true);
         $list = $this->findFormItemByName($form, 'GroupAvailableDeviceList');
 
+        $this->assertGroupSelectionAction($list, 'SelectGroupMemberDevice', 'topic');
         $this->assertSame('11, 242', $list['values'][0]['endpoints']);
 
         $group->RequestAction('SelectGroupMemberDevice', json_encode([
@@ -245,6 +246,35 @@ class GroupTest extends DumpInclude
         $endpointOptions = json_decode($group->updatedFields['GroupMemberEndpoint']['options'], true);
         $this->assertSame(['11', '242'], array_column($endpointOptions, 'value'));
         $this->assertSame('11', $group->updatedFields['GroupMemberEndpoint']['value']);
+    }
+
+    public function testSelectingGroupMemberPrefillsItsEndpointWithoutChangingMembers(): void
+    {
+        $group = $this->createGroupFormTestDouble([
+            ['friendly_name' => 'Flur/Treppe', 'type' => 'Router', 'endpoints' => [11 => ['id' => 11], 242 => ['id' => 242]]]
+        ]);
+        $group->setGroupInfoForRefreshTest([
+            'members' => [
+                ['friendly_name' => 'Flur/Treppe', 'endpoint' => '242'],
+                ['friendly_name' => 'Flur/Treppe', 'endpoint' => '']
+            ]
+        ]);
+        $group->RequestAction('RefreshGroupInfo', true);
+        $group->updatedFields = [];
+
+        $form = json_decode($group->GetConfigurationForm(), true);
+        $list = $this->findFormItemByName($form, 'GroupMemberList');
+        $this->assertGroupSelectionAction($list, 'SelectGroupMember', 'device');
+
+        foreach ($list['values'] as $row) {
+            $group->RequestAction('SelectGroupMember', json_encode(['device' => $row['device'], 'endpoint' => $row['endpoint']]));
+
+            $this->assertSame(['GroupMemberDevice', 'GroupMemberEndpoint'], array_keys($group->updatedFields));
+            $this->assertSame('Flur/Treppe', $group->updatedFields['GroupMemberDevice']['value']);
+            $this->assertSame($row['endpoint'], $group->updatedFields['GroupMemberEndpoint']['value']);
+            $options = json_decode($group->updatedFields['GroupMemberEndpoint']['options'], true);
+            $this->assertContains($row['endpoint'], array_column($options, 'value'));
+        }
     }
 
     public function testGroupDeviceCacheUsesMatchingTopicAndSplitterWhileOffline(): void
@@ -747,6 +777,17 @@ class GroupTest extends DumpInclude
         $group->Create();
 
         return $group;
+    }
+
+    private function assertGroupSelectionAction(array $list, string $action, string $deviceColumn): void
+    {
+        $this->assertNotContains('action', array_column($list['columns'], 'name'));
+        $callback = $list['onSelectionChanged'] ?? '';
+
+        $this->assertStringContainsString("IPS_RequestAction(\$id, '$action'", $callback);
+        $this->assertStringContainsString("['$deviceColumn']", $callback);
+        $this->assertStringNotContainsString('AddGroupMember', $callback);
+        $this->assertStringNotContainsString('RemoveGroupMember', $callback);
     }
 
     private function findFormItemByName(array $node, string $name): ?array

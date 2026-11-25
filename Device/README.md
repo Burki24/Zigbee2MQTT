@@ -1,11 +1,11 @@
 [Deutsch](README.md) | [English](README.en.md)
 
 [![SDK](https://img.shields.io/badge/Symcon-PHPModul-red.svg)](https://www.symcon.de/service/dokumentation/entwicklerbereich/sdk-tools/sdk-php/)
-[![Module Version](https://img.shields.io/badge/dynamic/json?url=https%3A%2F%2Fraw.githubusercontent.com%2FBurki24%2FZigbee2MQTT%2Frefs%2Fheads%2Fdev_V6%2Flibrary.json&query=%24.version&label=Modul%20Version&color=blue)](https://community.symcon.de/t/modul-zigbee2mqtt-version-5-x/139819)
-[![Symcon Version](https://img.shields.io/badge/Symcon%20Version-9.0%3E-green)](https://www.symcon.de/de/service/dokumentation/einfuehrung/systemvoraussetzungen/versionenuebersicht/#version-90)
+[![Module Version](https://img.shields.io/badge/dynamic/json?url=https%3A%2F%2Fraw.githubusercontent.com%2FBurki24%2FZigbee2MQTT%2Frefs%2Fheads%2FSymcon-9.1%2Flibrary.json&query=%24.version&label=Modul%20Version&color=blue)](https://community.symcon.de/t/modul-zigbee2mqtt-version-5-x/139819)
+[![Symcon Version](https://img.shields.io/badge/Symcon%20Version-9.1%3E-green)](https://www.symcon.de/de/service/dokumentation/einfuehrung/systemvoraussetzungen/versionenuebersicht/#version-91)
 [![License](https://img.shields.io/badge/License-CC%20BY--NC--SA%204.0-green.svg)](https://creativecommons.org/licenses/by-nc-sa/4.0/)
-[![Check Style](https://github.com/Burki24/Zigbee2MQTT/actions/workflows/style.yml/badge.svg?branch=dev_V6)](https://github.com/Burki24/Zigbee2MQTT/actions/workflows/style.yml?query=branch%3Adev_V6)
-[![Run Tests](https://github.com/Burki24/Zigbee2MQTT/actions/workflows/tests.yml/badge.svg?branch=dev_V6)](https://github.com/Burki24/Zigbee2MQTT/actions/workflows/tests.yml?query=branch%3Adev_V6)
+[![Check Style](https://github.com/Burki24/Zigbee2MQTT/actions/workflows/style.yml/badge.svg?branch=Symcon-9.1)](https://github.com/Burki24/Zigbee2MQTT/actions/workflows/style.yml?query=branch%3ASymcon-9.1)
+[![Run Tests](https://github.com/Burki24/Zigbee2MQTT/actions/workflows/tests.yml/badge.svg?branch=Symcon-9.1)](https://github.com/Burki24/Zigbee2MQTT/actions/workflows/tests.yml?query=branch%3ASymcon-9.1)
 
 # Zigbee2MQTT-Gerät  <!-- omit in toc -->  
 
@@ -51,7 +51,7 @@
   
 ## 2. Voraussetzungen
 
-- mindestens Symcon Version 9.0
+- mindestens Symcon Version 9.1
 - MQTT-Broker (interner MQTT-Server von Symcon oder externer z.B. Mosquitto)
 - installiertes und lauffähiges [Zigbee2MQTT](https://www.zigbee2mqtt.io) mit installierter Symcon-Extension; die Library liefert Version **6.09** mit. Installation und Update müssen in der Bridge manuell bestätigt werden.
   

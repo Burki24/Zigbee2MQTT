@@ -1,9 +1,9 @@
 [![SDK](https://img.shields.io/badge/Symcon-PHPModul-red.svg)](https://www.symcon.de/en/service/documentation/developer-area/sdk-tools/sdk-php/)
-[![Module Version](https://img.shields.io/badge/dynamic/json?url=https%3A%2F%2Fraw.githubusercontent.com%2FBurki24%2FZigbee2MQTT%2Frefs%2Fheads%2Fdev_V6%2Flibrary.json&query=%24.version&label=Module%20Version&color=blue)](https://community.symcon.de/t/modul-zigbee2mqtt-v6-0-testing/144007)
-[![Symcon Version](https://img.shields.io/badge/Symcon-9.0%2B-green)](https://www.symcon.de/en/service/documentation/)
+[![Module Version](https://img.shields.io/badge/dynamic/json?url=https%3A%2F%2Fraw.githubusercontent.com%2FBurki24%2FZigbee2MQTT%2Frefs%2Fheads%2FSymcon-9.1%2Flibrary.json&query=%24.version&label=Module%20Version&color=blue)](https://community.symcon.de/t/modul-zigbee2mqtt-v6-0-testing/144007)
+[![Symcon Version](https://img.shields.io/badge/Symcon-9.1%2B-green)](https://www.symcon.de/en/service/documentation/)
 [![License](https://img.shields.io/badge/License-CC%20BY--NC--SA%204.0-green.svg)](https://creativecommons.org/licenses/by-nc-sa/4.0/)
-[![Check Style](https://github.com/Burki24/Zigbee2MQTT/actions/workflows/style.yml/badge.svg?branch=dev_V6)](https://github.com/Burki24/Zigbee2MQTT/actions/workflows/style.yml?query=branch%3Adev_V6)
-[![Run Tests](https://github.com/Burki24/Zigbee2MQTT/actions/workflows/tests.yml/badge.svg?branch=dev_V6)](https://github.com/Burki24/Zigbee2MQTT/actions/workflows/tests.yml?query=branch%3Adev_V6)
+[![Check Style](https://github.com/Burki24/Zigbee2MQTT/actions/workflows/style.yml/badge.svg?branch=Symcon-9.1)](https://github.com/Burki24/Zigbee2MQTT/actions/workflows/style.yml?query=branch%3ASymcon-9.1)
+[![Run Tests](https://github.com/Burki24/Zigbee2MQTT/actions/workflows/tests.yml/badge.svg?branch=Symcon-9.1)](https://github.com/Burki24/Zigbee2MQTT/actions/workflows/tests.yml?query=branch%3ASymcon-9.1)
 
 # Zigbee2MQTT
 
@@ -30,10 +30,12 @@ Connect [Zigbee2MQTT](https://www.zigbee2mqtt.io) to Symcon. The library discove
 
 ## Requirements
 
-- Symcon **9.0 or newer**.
+- Symcon **9.1 or newer**.
 - A working Zigbee2MQTT installation and a Zigbee coordinator compatible with it.
 - An MQTT broker, either Symcon's MQTT Server or an external broker such as Mosquitto.
 - The matching Symcon extension installed in Zigbee2MQTT. The library bundles **6.09**; confirm installation/update manually in the bridge. Features requiring newer extension responses need the current extension, not just the minimum 6.05.
+
+For Symcon 9.0, use the [dev_V6 branch](https://github.com/Burki24/Zigbee2MQTT/tree/dev_V6).
 
 ## Included modules
 
@@ -68,7 +70,7 @@ Keep separate brokers/connections and base topics separate. Two installations us
 > [!IMPORTANT]
 > Create a complete Symcon backup before upgrading from 5.x or earlier testing builds. There is no automatic downgrade migration. Restore that backup if you need to return to 5.x.
 
-The public beta used for the 6.0 changelog comparison is **5.43**; older installation instructions also refer to 5.42. Version 6.0 uses `IPSModuleStrict` and native Symcon presentations and requires Symcon 9.0. Existing variables are not deleted automatically, but callers relying on old profile names or identify behavior need review.
+The public beta used for the 6.0 changelog comparison is **5.43**; older installation instructions also refer to 5.42. Version 6.0 uses `IPSModuleStrict` and native Symcon presentations and requires Symcon 9.1 on this branch. Existing variables are not deleted automatically, but callers relying on old profile names or identify behavior need review.
 
 ### Identify migration
 

@@ -177,12 +177,7 @@ class NetworkMapTest extends TestCase
         $this->assertStringContainsString("requestAction('RefreshVisualization', true)", $tile);
         $this->assertStringContainsString("window.addEventListener('pageshow', requestCurrentState)", $tile);
         $this->assertStringContainsString('setTimeout(requestCurrentState, 50)', $tile);
-        $this->assertStringContainsString('document.documentElement.requestFullscreen()', $tile);
-        $this->assertStringContainsString('"nativeFullscreen":false', $tile);
-        $this->assertStringContainsString("fullscreenButton.addEventListener('click', toggleFullscreen)", $tile);
-        $this->assertStringContainsString('prepareFullscreenTheme()', $tile);
-        $this->assertStringContainsString('html:fullscreen::backdrop', $tile);
-        $this->assertStringContainsString('--fullscreen-background', $tile);
+        $this->assertStringNotContainsString('id="fullscreen"', $tile);
         $this->assertStringContainsString('class CytoscapeViewController', $tile);
         $this->assertStringContainsString('viewController.runLayout(selectedLayout)', $tile);
         $this->assertStringContainsString("searchFields: ['id', 'label', 'model', 'type']", $tile);
@@ -208,7 +203,6 @@ class NetworkMapTest extends TestCase
         $this->assertSame(2, (new ReflectionProperty(IPSModule::class, 'visualizationType'))->getValue($moduleStub));
 
         $tile = $map->GetVisualizationTile();
-        $this->assertStringContainsString('"nativeFullscreen":true', $tile);
         $this->assertStringContainsString('class CytoscapeViewController', $tile);
         $this->assertStringContainsString("requestAction('RefreshVisualization', true)", $tile);
     }

@@ -1,9 +1,9 @@
 [![SDK](https://img.shields.io/badge/Symcon-PHPModul-red.svg)](https://www.symcon.de/service/dokumentation/entwicklerbereich/sdk-tools/sdk-php/)
-[![Module Version](https://img.shields.io/badge/dynamic/json?url=https%3A%2F%2Fraw.githubusercontent.com%2FBurki24%2FZigbee2MQTT%2Frefs%2Fheads%2Fdev_V6%2Flibrary.json&query=%24.version&label=Modul%20Version&color=blue)](https://community.symcon.de/t/modul-zigbee2mqtt-v6-0-testing/144007)
-[![Symcon Version](https://img.shields.io/badge/Symcon%20Version-9.0%3E-green)](https://www.symcon.de/de/service/dokumentation/einfuehrung/systemvoraussetzungen/versionenuebersicht/#version-90)
+[![Module Version](https://img.shields.io/badge/dynamic/json?url=https%3A%2F%2Fraw.githubusercontent.com%2FBurki24%2FZigbee2MQTT%2Frefs%2Fheads%2FSymcon-9.1%2Flibrary.json&query=%24.version&label=Modul%20Version&color=blue)](https://community.symcon.de/t/modul-zigbee2mqtt-v6-0-testing/144007)
+[![Symcon Version](https://img.shields.io/badge/Symcon%20Version-9.1%3E-green)](https://www.symcon.de/de/service/dokumentation/einfuehrung/systemvoraussetzungen/versionenuebersicht/#version-91)
 [![License](https://img.shields.io/badge/License-CC%20BY--NC--SA%204.0-green.svg)](https://creativecommons.org/licenses/by-nc-sa/4.0/)
-[![Check Style](https://github.com/Burki24/Zigbee2MQTT/actions/workflows/style.yml/badge.svg?branch=dev_V6)](https://github.com/Burki24/Zigbee2MQTT/actions/workflows/style.yml?query=branch%3Adev_V6)
-[![Run Tests](https://github.com/Burki24/Zigbee2MQTT/actions/workflows/tests.yml/badge.svg?branch=dev_V6)](https://github.com/Burki24/Zigbee2MQTT/actions/workflows/tests.yml?query=branch%3Adev_V6)
+[![Check Style](https://github.com/Burki24/Zigbee2MQTT/actions/workflows/style.yml/badge.svg?branch=Symcon-9.1)](https://github.com/Burki24/Zigbee2MQTT/actions/workflows/style.yml?query=branch%3ASymcon-9.1)
+[![Run Tests](https://github.com/Burki24/Zigbee2MQTT/actions/workflows/tests.yml/badge.svg?branch=Symcon-9.1)](https://github.com/Burki24/Zigbee2MQTT/actions/workflows/tests.yml?query=branch%3ASymcon-9.1)
 
 # Zigbee2MQTT  <!-- omit in toc -->
 
@@ -34,9 +34,11 @@ Anbindung von [zigbee2mqtt](https://www.zigbee2mqtt.io) an Symcon.
 
 ## 1. Voraussetzungen
 
-- mindestens Symcon Version 9.0
+- mindestens Symcon Version 9.1
 - MQTT-Broker (interner MQTT-Server von Symcon oder externer z.B. Mosquitto)
 - installiertes und lauffähiges [zigbee2mqtt](https://www.zigbee2mqtt.io)
+
+Für Symcon 9.0 steht der Zweig [dev_V6](https://github.com/Burki24/Zigbee2MQTT/tree/dev_V6) zur Verfügung.
 
 ## 2. Enthaltene Module
 
@@ -142,7 +144,7 @@ Weitere Schritte zur Ersteinrichtung sind unter dem [Zigbee2MQTT-Discovery](Disc
 > **Beta 6.0: „Erkennen“ wird als neue String-Variable angelegt!** Bestehende Skripte, Links und Automationen müssen bei Bedarf auf die neue ID und den Befehlswert `identify` statt `true` umgestellt werden. Die bisherige Bool-Variable bleibt mit ihren Benutzeranpassungen und ihrer bisherigen Sichtbarkeit erhalten; nur ihre veraltete Modul-Standardaktion wird deaktiviert. Benutzerdefinierte Aktionen bleiben erhalten. Es gibt keine automatische Weiterleitung alter Modulaufrufe. Details stehen in der [Gerätedokumentation](Device/README.md) und im [Changelog](CHANGELOG.md).
 
 > [!IMPORTANT]
-> **Version 6.0 benötigt mindestens Symcon 9.0. Vor dem Update ist ein vollständiges Symcon-Backup zu erstellen. Ein Downgrade auf Version 5.x sollte nur durch Wiederherstellung dieses Backups erfolgen.**
+> **Der Zweig Symcon-9.1 benötigt mindestens Symcon 9.1. Vor dem Update ist ein vollständiges Symcon-Backup zu erstellen. Ein Downgrade auf Version 5.x sollte nur durch Wiederherstellung dieses Backups erfolgen.**
 
 Version 6.0 migriert die Module auf `IPSModuleStrict` und erweitert Geräte-, Gruppen- und Bridge-Instanzen deutlich. Bestehende Variablen werden beim Update nicht automatisch gelöscht. Objekt-IDs vorhandener Variablen bleiben erhalten. Trotzdem sollten die folgenden Schritte beachtet werden.
 
@@ -161,7 +163,7 @@ Skripte, Visualisierungen oder externe Werkzeuge, die gezielt auf Profilnamen wi
 #### I. Vorbereitung <!-- omit in toc -->
 
 1. **Symcon-Version prüfen**
-   Vor dem Modulupdate muss Symcon mindestens in Version 9.0 installiert sein.
+   Vor dem Modulupdate muss Symcon mindestens in Version 9.1 installiert sein.
 
 2. **Symcon-Backup erstellen**
    Vor dem Update ist ein vollständiges Symcon-Backup anzulegen. Dies ist insbesondere erforderlich, falls auf Version 5.x zurückgewechselt werden soll.

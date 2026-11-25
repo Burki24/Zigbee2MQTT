@@ -159,12 +159,8 @@ class Zigbee2MQTTGroup extends \Zigbee2MQTT\ModulBase
             $this->RefreshGroupInfoFromForm();
             return;
         }
-        if ($ident == 'SelectGroupMember') {
-            $this->SelectGroupMemberFromForm($value);
-            return;
-        }
-        if ($ident == 'SelectGroupMemberDevice') {
-            $this->SelectGroupMemberFromForm($value);
+        if ($ident === 'SelectGroupMember' || $ident === 'SelectGroupMemberDevice') {
+            $this->SelectGroupMemberFromForm($value, $ident === 'SelectGroupMemberDevice');
             return;
         }
         if ($ident == 'AddGroupMember') {
@@ -330,8 +326,7 @@ class Zigbee2MQTTGroup extends \Zigbee2MQTT\ModulBase
 
             $values[] = [
                 'device'   => $this->FormatGroupMemberDevice($member),
-                'endpoint' => (string) ($member['endpoint'] ?? ''),
-                'action'   => $this->Translate('Edit')
+                'endpoint' => (string) ($member['endpoint'] ?? '')
             ];
         }
 
@@ -348,8 +343,7 @@ class Zigbee2MQTTGroup extends \Zigbee2MQTT\ModulBase
             $values[] = [
                 'device'    => $device['caption'],
                 'topic'     => $device['value'],
-                'endpoints' => $this->FormatGroupMemberEndpointList($device['endpoints'] ?? []),
-                'action'    => $this->Translate('Select')
+                'endpoints' => $this->FormatGroupMemberEndpointList($device['endpoints'] ?? [])
             ];
         }
 
@@ -640,7 +634,7 @@ class Zigbee2MQTTGroup extends \Zigbee2MQTT\ModulBase
     /**
      * Uebernimmt ein Gruppenmitglied in die Eingabefelder.
      */
-    private function SelectGroupMemberFromForm(mixed $value): bool
+    private function SelectGroupMemberFromForm(mixed $value, bool $selectFirstEndpoint): bool
     {
         $selection = $this->DecodeGroupFormPayload($value);
         if ($selection === null) {
@@ -650,8 +644,12 @@ class Zigbee2MQTTGroup extends \Zigbee2MQTT\ModulBase
         $device = (string) ($selection['device'] ?? '');
         $endpoint = (string) ($selection['endpoint'] ?? '');
         $endpointOptions = $this->BuildGroupMemberEndpointOptions($device, $endpoint);
-        if ($endpoint === '' && \count($endpointOptions) > 0) {
-            $endpoint = (string) $endpointOptions[0]['value'];
+        if ($endpoint === '' && $endpointOptions !== []) {
+            if ($selectFirstEndpoint) {
+                $endpoint = (string) $endpointOptions[0]['value'];
+            } else {
+                array_unshift($endpointOptions, ['caption' => '-', 'value' => '']);
+            }
         }
 
         $this->UpdateFormField('GroupMemberDevice', 'value', $device);

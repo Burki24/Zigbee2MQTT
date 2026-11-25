@@ -6,7 +6,7 @@ Das Modul analysiert die Zigbee-Netzwerktopologie und stellt Geräte, Verbindung
 
 ## Voraussetzungen
 
-- Symcon 9.0 oder neuer und eine laufende Zigbee2MQTT-Installation.
+- Symcon 9.1 oder neuer und eine laufende Zigbee2MQTT-Installation.
 - Ein erreichbarer Symcon-MQTT-Client oder MQTT-Server für diese Installation.
 - Das Modul ist Bestandteil der [Zigbee2MQTT-Library](../README.md).
 
@@ -71,7 +71,6 @@ Die Buttons der Kachel haben folgende Aufgaben:
 | **Schwache LQI** | Zeigt ausschließlich Verbindungen, deren LQI unterhalb des in der Instanz konfigurierten Warnwerts liegt. |
 | **Routen** | Zeigt ausschließlich Verbindungen an, für die in der letzten Analyse Routing-Einträge vorhanden waren. Routing-Daten stehen nur nach einer Analyse mit Routen zur Verfügung. |
 | **Ansicht** | Öffnet die Werkzeuge für Layoutwechsel, Gerätesuche, Umfeldfokus und das Ein- oder Ausblenden der Beschriftungen. |
-| **Vollbild** | Öffnet die Karte unter Symcon 9.0 bildschirmfüllend, sofern der Browser den Vollbildmodus unterstützt. |
 
 Im Abschnitt **Ansicht** der Instanzkonfiguration werden das beim Öffnen verwendete Standardlayout und die anfängliche Sichtbarkeit der Beschriftungen festgelegt. Änderungen über den Button **Ansicht** innerhalb der Kachel gelten nur für die aktuell geöffnete Darstellung und verändern diese gespeicherten Vorgaben nicht.
 
@@ -91,7 +90,7 @@ Die verfügbaren Layouts sind:
 
 ### Netzwerkkarte vergrößern
 
-Ab Symcon 9.1 öffnet der Vergrößern-Pfeil der Kachel die interaktive Netzwerkkarte in der großen Symcon-Ansicht. Unter Symcon 9.0 öffnet **Vollbild** innerhalb der Karte den Browser-Vollbildmodus. Derselbe Button oder `Esc` schließt ihn.
+Der Vergrößern-Pfeil der Kachel öffnet die interaktive Netzwerkkarte in der großen Symcon-Ansicht.
 
 ### Routing-Ansicht
 
