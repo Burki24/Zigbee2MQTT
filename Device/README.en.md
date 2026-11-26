@@ -133,7 +133,7 @@ Targets are restricted to the same MQTT splitter and base topic, including devic
 
 **Unbind** opens a separate dialog for the source, target and cluster. **Keep reporting when unbinding** sends `skip_disable_reporting`. **Clear bindings** is a separate action.
 
-**Configure reporting** opens a two-step wizard. Select the endpoint, cluster and attribute. Use **Read reporting** on this page to query the device's current configuration. Select **Next**, then enter the minimum and maximum intervals, the reportable change and any optional JSON object. **OK** sends the configuration to Zigbee2MQTT and the result appears in the Reporting section. Small intervals increase radio traffic and battery consumption. Wake battery devices before reading or confirming.
+**Configure reporting** opens a two-step wizard. Select the endpoint, cluster and attribute. Use **Read reporting** on this page to query the device's current configuration. Select **Next**, then enter the minimum and maximum intervals and the reportable change. Enable **Use advanced options** to enter an optional JSON object. **OK** sends the configuration to Zigbee2MQTT and the result appears in the Reporting section. Small intervals increase radio traffic and battery consumption. Wake battery devices before reading or confirming.
 
 ## Variables and maintenance
 

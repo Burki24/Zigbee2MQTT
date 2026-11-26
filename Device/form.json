@@ -839,17 +839,25 @@
                                                         "caption": "Reportable change"
                                                     },
                                                     {
-                                                        "type": "ValidationTextBox",
-                                                        "name": "ReportingOptions",
-                                                        "caption": "Options JSON"
+                                                        "type": "CheckBox",
+                                                        "name": "ReportingUseOptions",
+                                                        "caption": "Use advanced options",
+                                                        "value": false,
+                                                        "items": [
+                                                            {
+                                                                "type": "ValidationTextBox",
+                                                                "name": "ReportingOptions",
+                                                                "caption": "Options JSON"
+                                                            }
+                                                        ]
                                                     },
                                                     {
                                                         "type": "Label",
                                                         "caption": "Confirm to send these settings to Zigbee2MQTT."
                                                     }
                                                 ],
-                                                "validate": "$options = trim((string) $ReportingOptions); return ($options !== '' && !is_object(json_decode($options))) ? 'Options must be a JSON object.' : '';",
-                                                "onConfirm": "IPS_RequestAction($id, 'ConfigureReporting', json_encode(['endpoint' => $ReportingEndpoint, 'cluster' => $ReportingCluster, 'attribute' => $ReportingAttribute, 'minimum' => $ReportingMinimumInterval, 'maximum' => $ReportingMaximumInterval, 'change' => $ReportingReportableChange, 'options' => $ReportingOptions]));"
+                                                "validate": "$options = $ReportingUseOptions ? trim((string) ($ReportingOptions ?? '')) : ''; return ($options !== '' && !is_object(json_decode($options))) ? 'Options must be a JSON object.' : '';",
+                                                "onConfirm": "IPS_RequestAction($id, 'ConfigureReporting', json_encode(['endpoint' => $ReportingEndpoint, 'cluster' => $ReportingCluster, 'attribute' => $ReportingAttribute, 'minimum' => $ReportingMinimumInterval, 'maximum' => $ReportingMaximumInterval, 'change' => $ReportingReportableChange, 'options' => $ReportingUseOptions ? ($ReportingOptions ?? '') : '']));"
                                             }
                                         ]
                                     }

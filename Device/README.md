@@ -316,7 +316,7 @@ Nach einem erfolgreichen Binding kann der Taster das Zielgerät auch dann direkt
 Über den Reporting-Bereich kann Attribute Reporting gelesen oder konfiguriert werden. Endpoint, Cluster und Attribut werden als Auswahl angeboten und aus den bekannten Endpoint-Daten, bereits konfigurierten Reportings und typischen Zigbee-Clustern abgeleitet. Batteriebetriebene Geräte müssen dafür unter Umständen direkt vor dem Ausführen geweckt werden. Nicht jedes Gerät und nicht jedes Attribut unterstützt Reporting.
 
 1. **Reporting konfigurieren** öffnet den Assistenten. Wählen Sie Endpoint, Cluster und Attribut. **Reporting lesen** fragt bei Bedarf die aktuelle Konfiguration vom Gerät ab.
-2. Wählen Sie **Weiter** und tragen Sie die Intervalle, die Änderungsschwelle und bei Bedarf Optionen als JSON-Objekt ein. Erst **OK** sendet die Konfiguration an Zigbee2MQTT. Das Ergebnis erscheint im Reporting-Bereich.
+2. Wählen Sie **Weiter** und tragen Sie die Intervalle und die Änderungsschwelle ein. **Erweiterte Optionen verwenden** blendet bei Bedarf das Feld für ein JSON-Objekt ein. Erst **OK** sendet die Konfiguration an Zigbee2MQTT. Das Ergebnis erscheint im Reporting-Bereich.
 
 Für die Bedienung sind vor allem diese Felder wichtig:
 

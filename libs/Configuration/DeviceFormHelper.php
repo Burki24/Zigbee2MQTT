@@ -189,6 +189,7 @@ trait DeviceFormHelper
         $this->UpdateFormField('ReportingMinimumInterval', 'value', (int) ($selection['minimum'] ?? 0));
         $this->UpdateFormField('ReportingMaximumInterval', 'value', (int) ($selection['maximum'] ?? 65535));
         $this->UpdateFormField('ReportingReportableChange', 'value', $this->FormatReportingValue($selection['change'] ?? ''));
+        $this->UpdateFormField('ReportingUseOptions', 'value', false);
         $this->UpdateFormField('ReportingOptions', 'value', '');
     }
 

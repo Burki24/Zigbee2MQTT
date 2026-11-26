@@ -2556,6 +2556,7 @@ class DevicesTest extends DumpInclude
         $this->assertSame(0, $device->updatedFields['ReportingMinimumInterval']['value']);
         $this->assertSame(300, $device->updatedFields['ReportingMaximumInterval']['value']);
         $this->assertSame('0', $device->updatedFields['ReportingReportableChange']['value']);
+        $this->assertFalse($device->updatedFields['ReportingUseOptions']['value']);
         $this->assertSame('', $device->updatedFields['ReportingOptions']['value']);
 
         $updatedFields = $device->updatedFields;
@@ -2926,7 +2927,11 @@ class DevicesTest extends DumpInclude
         $this->assertArrayNotHasKey('onConfirm', $target);
         $this->assertStringNotContainsString('ConfigureReporting', json_encode($target, JSON_THROW_ON_ERROR));
         $this->assertStringContainsString('ReadReporting', json_encode($target, JSON_THROW_ON_ERROR));
-        $this->assertNotNull($this->findFormItemByName($settings, 'ReportingOptions'));
+        $advancedOptions = $this->findFormItemByName($settings, 'ReportingUseOptions');
+        $this->assertSame('CheckBox', $advancedOptions['type'] ?? null);
+        $this->assertFalse($advancedOptions['value']);
+        $this->assertNotNull($this->findFormItemByName($advancedOptions['items'], 'ReportingOptions'));
+        $this->assertArrayNotHasKey('onChange', $advancedOptions);
         $this->assertStringContainsString("IPS_RequestAction(\$id, 'ConfigureReporting'", $settings['onConfirm']);
         $this->assertSame(1, substr_count(json_encode($form, JSON_THROW_ON_ERROR), "'ConfigureReporting'"));
         $this->assertSame('', $device->calledBridgeFunction);
