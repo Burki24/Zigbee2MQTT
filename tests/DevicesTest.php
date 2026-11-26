@@ -2560,6 +2560,12 @@ class DevicesTest extends DumpInclude
         $this->assertContains('genOnOff', $clusterValues);
         $this->assertNotContains('greenPower', $clusterValues);
 
+        $wizardEndpoint = $this->findFormItemByName($form, 'BindingWizardEndpoint');
+        $wizardTarget = $this->findFormItemByName($form, 'BindingWizardTarget');
+        $this->assertSame($endpointSelect['options'], $wizardEndpoint['options']);
+        $this->assertSame($targetSelect['options'], $wizardTarget['options']);
+        $this->assertStringContainsString('UpdateBindingWizardClusters', $wizardTarget['onChange']);
+
         $reportingEndpointSelect = $this->findFormItemByName($form, 'ReportingEndpoint');
         $this->assertNotNull($reportingEndpointSelect);
         $this->assertSame('Select', $reportingEndpointSelect['type']);
@@ -2692,6 +2698,58 @@ class DevicesTest extends DumpInclude
         $this->assertContains('genLevelCtrl', $clusterValues);
         $this->assertNotContains('genBasic', $clusterValues);
         $this->assertNotContains('greenPower', $clusterValues);
+
+        $device->updatedFields = [];
+        $device->RequestAction('UpdateBindingWizardClusters', json_encode([
+            'endpoint' => '1',
+            'target'   => '',
+            'cluster'  => ''
+        ], JSON_THROW_ON_ERROR));
+
+        $this->assertSame(['BindingWizardCluster'], array_keys($device->updatedFields));
+        $this->assertSame($options, json_decode($device->updatedFields['BindingWizardCluster']['options'], true));
+        $this->assertSame('genLevelCtrl', $device->updatedFields['BindingWizardCluster']['value']);
+        $this->assertSame('', $device->calledBridgeFunction);
+        $this->assertSame('', $device->sentTopic);
+    }
+
+    public function testBindingWizardOnlyBindsAfterReview(): void
+    {
+        [$id] = $this->createTestInstance('MixedLightSensor.json');
+        $device = $this->createDeviceOptionFormTestDouble();
+        $device->bridgeFunctionResult = true;
+        $form = json_decode(IPS_GetConfigurationForm($id), true, 512, JSON_THROW_ON_ERROR);
+        $wizard = $this->findFormItemByName($form, 'BindingWizard');
+        $this->assertNotNull($wizard);
+        $this->assertSame('PopupButton', $wizard['type']);
+        $this->assertArrayNotHasKey('onClick', $wizard);
+        $this->assertCount(3, $wizard['popup']['pages']);
+
+        [$sourceAndTarget, $clusters, $review] = $wizard['popup']['pages'];
+        $this->assertArrayNotHasKey('onConfirm', $sourceAndTarget);
+        $this->assertArrayNotHasKey('onConfirm', $clusters);
+        $this->assertArrayNotHasKey('onUndo', $sourceAndTarget);
+        $this->assertArrayNotHasKey('onUndo', $clusters);
+        $reviewCode = implode("\n", $review['items']);
+        foreach (['$BindingWizardEndpoint', '$BindingWizardTarget', '$BindingWizardCluster'] as $field) {
+            $this->assertStringContainsString($field, $reviewCode);
+            $this->assertStringContainsString($field, $review['onConfirm']);
+        }
+        $this->assertSame(1, substr_count(json_encode($form, JSON_THROW_ON_ERROR), "'ApplyBinding'"));
+        $this->assertStringContainsString("'ApplyBinding'", $review['onConfirm']);
+        $this->assertStringNotContainsString('ApplyUnbinding', json_encode($wizard, JSON_THROW_ON_ERROR));
+        $this->assertStringNotContainsString('ClearBindings', json_encode($wizard, JSON_THROW_ON_ERROR));
+        $this->assertSame('', $device->calledBridgeFunction);
+
+        $device->RequestAction('ApplyBinding', json_encode([
+            'endpoint' => '1',
+            'target'   => 'Binding/Target/Group',
+            'clusters' => 'genOnOff'
+        ], JSON_THROW_ON_ERROR));
+
+        $this->assertSame('BindWithOptions', $device->calledBridgeFunction);
+        $this->assertSame(['Flur/Beleuchtung/Unten/1', 'Binding/Target/Group', 'genOnOff', false], $device->calledBridgeArguments);
+        $this->assertTrue($device->updatedFields['BindingResult']['visible']);
     }
 
     public function testBindingClusterSelectionUsesGroupMemberClusters(): void

@@ -243,7 +243,13 @@ class Zigbee2MQTTDevice extends \Zigbee2MQTT\ModulBase
                 return;
 
             case 'ApplyBinding':
-                $this->ApplyBindingFromForm($value);
+                $bound = $this->ApplyBindingFromForm($value);
+                $this->UpdateFormField(
+                    'BindingResult',
+                    'caption',
+                    $this->Translate($bound ? 'Zigbee2MQTT confirmed the binding.' : 'Zigbee2MQTT did not confirm the binding.')
+                );
+                $this->UpdateFormField('BindingResult', 'visible', true);
                 return;
 
             case 'ApplyUnbinding':
@@ -259,7 +265,8 @@ class Zigbee2MQTTDevice extends \Zigbee2MQTT\ModulBase
                 return;
 
             case 'UpdateBindingClusters':
-                $this->UpdateBindingClustersFromForm($value);
+            case 'UpdateBindingWizardClusters':
+                $this->UpdateBindingClustersFromForm($value, $ident === 'UpdateBindingWizardClusters');
                 return;
 
             case 'UpdateReportingSelection':

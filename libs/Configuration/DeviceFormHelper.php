@@ -133,7 +133,7 @@ trait DeviceFormHelper
     /**
      * Aktualisiert die Cluster-Auswahl bei Wechsel des Quell-Endpoints oder Ziels.
      */
-    protected function UpdateBindingClustersFromForm(mixed $value): bool
+    protected function UpdateBindingClustersFromForm(mixed $value, bool $wizard): bool
     {
         $selection = $this->DecodeDeviceOptionFormPayload($value);
         if ($selection === null) {
@@ -145,9 +145,10 @@ trait DeviceFormHelper
         $currentCluster = $this->FormatFormTextValue($selection['cluster'] ?? '');
         $options = $this->BuildBindingClusterOptions($endpoint, $target);
         $selectedCluster = $this->ResolveBindingClusterSelection($currentCluster, $options);
+        $field = $wizard ? 'BindingWizardCluster' : 'BindingClusters';
 
-        $this->UpdateFormField('BindingClusters', 'options', json_encode($options));
-        $this->UpdateFormField('BindingClusters', 'value', $selectedCluster);
+        $this->UpdateFormField($field, 'options', json_encode($options));
+        $this->UpdateFormField($field, 'value', $selectedCluster);
 
         return true;
     }
@@ -603,9 +604,9 @@ trait DeviceFormHelper
         $this->SetDeviceFormField($form, 'ReportingOverviewList', 'visible', $visible);
         $this->SetDeviceFormField($form, 'ReportingOverviewList', 'values', $reportingValues);
         $this->SetDeviceFormField($form, 'ReportingOverviewList', 'rowCount', min(10, max(4, \count($reportingValues) + 1)));
-        $this->SetDeviceFormField($form, 'BindingSourceEndpoint', 'options', $this->BuildBindingSourceEndpointOptions());
-        $this->SetDeviceFormField($form, 'BindingTarget', 'options', $this->BuildBindingTargetOptions());
-        $this->SetDeviceFormField($form, 'BindingClusters', 'options', $this->BuildBindingClusterOptions());
+        foreach ($this->BuildBindingFormOptions() as $field => $options) {
+            $this->SetDeviceFormField($form, $field, 'options', $options);
+        }
         $this->SetDeviceFormField($form, 'ReportingEndpoint', 'options', $this->BuildReportingEndpointOptions());
         $this->SetDeviceFormField($form, 'ReportingCluster', 'options', $this->BuildReportingClusterOptions());
         $this->SetDeviceFormField($form, 'ReportingAttribute', 'options', $this->BuildReportingAttributeOptions());
@@ -651,12 +652,31 @@ trait DeviceFormHelper
         $this->UpdateFormList('BindingOverviewList', $bindingValues);
         $this->UpdateFormList('ReportingOverviewList', $reportingValues);
 
-        $this->UpdateFormField('BindingSourceEndpoint', 'options', json_encode($this->BuildBindingSourceEndpointOptions()));
-        $this->UpdateFormField('BindingTarget', 'options', json_encode($this->BuildBindingTargetOptions()));
-        $this->UpdateFormField('BindingClusters', 'options', json_encode($this->BuildBindingClusterOptions()));
+        foreach ($this->BuildBindingFormOptions() as $field => $options) {
+            $this->UpdateFormField($field, 'options', json_encode($options));
+        }
         $this->UpdateFormField('ReportingEndpoint', 'options', json_encode($this->BuildReportingEndpointOptions()));
         $this->UpdateFormField('ReportingCluster', 'options', json_encode($this->BuildReportingClusterOptions()));
         $this->UpdateFormField('ReportingAttribute', 'options', json_encode($this->BuildReportingAttributeOptions()));
+    }
+
+    /**
+     * Liefert die gemeinsamen Ausgangsoptionen für den Assistenten und den Lösen-Dialog.
+     */
+    private function BuildBindingFormOptions(): array
+    {
+        $endpoints = $this->BuildBindingSourceEndpointOptions();
+        $targets = $this->BuildBindingTargetOptions();
+        $clusters = $this->BuildBindingClusterOptions();
+
+        return [
+            'BindingSourceEndpoint' => $endpoints,
+            'BindingTarget'         => $targets,
+            'BindingClusters'       => $clusters,
+            'BindingWizardEndpoint' => $endpoints,
+            'BindingWizardTarget'   => $targets,
+            'BindingWizardCluster'  => $clusters
+        ];
     }
 
     /**

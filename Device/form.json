@@ -617,51 +617,124 @@
                                     "type": "RowLayout",
                                     "items": [
                                         {
-                                            "type": "Select",
-                                            "name": "BindingSourceEndpoint",
-                                            "caption": "Source endpoint",
-                                            "options": [],
-                                            "onChange": "IPS_RequestAction($id, 'UpdateBindingClusters', json_encode(['endpoint' => $BindingSourceEndpoint, 'target' => $BindingTarget, 'cluster' => $BindingClusters]));"
-                                        },
-                                        {
-                                            "type": "Select",
-                                            "name": "BindingTarget",
-                                            "caption": "Target device or group",
-                                            "options": [],
-                                            "onChange": "IPS_RequestAction($id, 'UpdateBindingClusters', json_encode(['endpoint' => $BindingSourceEndpoint, 'target' => $BindingTarget, 'cluster' => $BindingClusters]));"
-                                        },
-                                        {
-                                            "type": "Select",
-                                            "name": "BindingClusters",
-                                            "caption": "Clusters",
-                                            "options": []
-                                        }
-                                    ]
-                                },
-                                {
-                                    "type": "CheckBox",
-                                    "name": "BindingSkipDisableReporting",
-                                    "caption": "Keep reporting when unbinding"
-                                },
-                                {
-                                    "type": "RowLayout",
-                                    "items": [
-                                        {
-                                            "type": "Button",
+                                            "type": "PopupButton",
+                                            "name": "BindingWizard",
                                             "caption": "Bind",
-                                            "onClick": "IPS_RequestAction($id, 'ApplyBinding', json_encode(['endpoint' => $BindingSourceEndpoint, 'target' => $BindingTarget, 'clusters' => $BindingClusters, 'skip_disable_reporting' => $BindingSkipDisableReporting]));"
+                                            "popup": {
+                                                "pages": [
+                                                    {
+                                                        "caption": "Binding source and target (1/3)",
+                                                        "items": [
+                                                            {
+                                                                "type": "Select",
+                                                                "name": "BindingWizardEndpoint",
+                                                                "caption": "Source endpoint",
+                                                                "options": [],
+                                                                "onChange": "IPS_RequestAction($id, 'UpdateBindingWizardClusters', json_encode(['endpoint' => $BindingWizardEndpoint, 'target' => $BindingWizardTarget, 'cluster' => $BindingWizardCluster]));"
+                                                            },
+                                                            {
+                                                                "type": "Select",
+                                                                "name": "BindingWizardTarget",
+                                                                "caption": "Target device or group",
+                                                                "options": [],
+                                                                "onChange": "IPS_RequestAction($id, 'UpdateBindingWizardClusters', json_encode(['endpoint' => $BindingWizardEndpoint, 'target' => $BindingWizardTarget, 'cluster' => $BindingWizardCluster]));"
+                                                            }
+                                                        ],
+                                                        "validate": "return (string) $BindingWizardTarget === '' ? 'Target device or group is required.' : '';"
+                                                    },
+                                                    {
+                                                        "caption": "Binding cluster (2/3)",
+                                                        "items": [
+                                                            {
+                                                                "type": "Select",
+                                                                "name": "BindingWizardCluster",
+                                                                "caption": "Cluster",
+                                                                "options": []
+                                                            },
+                                                            {
+                                                                "type": "Label",
+                                                                "caption": "Leave the cluster unset for automatic selection by Zigbee2MQTT."
+                                                            }
+                                                        ]
+                                                    },
+                                                    {
+                                                        "caption": "Review binding (3/3)",
+                                                        "items": [
+                                                            "return [",
+                                                            "    ['type' => 'RowLayout', 'items' => [",
+                                                            "        ['type' => 'Label', 'caption' => 'Source endpoint'],",
+                                                            "        ['type' => 'Label', 'caption' => (string) $BindingWizardEndpoint !== '' ? (string) $BindingWizardEndpoint : 'Default endpoint']",
+                                                            "    ]],",
+                                                            "    ['type' => 'RowLayout', 'items' => [",
+                                                            "        ['type' => 'Label', 'caption' => 'Target device or group'],",
+                                                            "        ['type' => 'Label', 'caption' => (string) $BindingWizardTarget]",
+                                                            "    ]],",
+                                                            "    ['type' => 'RowLayout', 'items' => [",
+                                                            "        ['type' => 'Label', 'caption' => 'Cluster'],",
+                                                            "        ['type' => 'Label', 'caption' => (string) $BindingWizardCluster !== '' ? (string) $BindingWizardCluster : 'Automatic cluster selection']",
+                                                            "    ]],",
+                                                            "    ['type' => 'Label', 'caption' => 'Confirm to send the binding request to Zigbee2MQTT.']",
+                                                            "];"
+                                                        ],
+                                                        "onConfirm": "IPS_RequestAction($id, 'ApplyBinding', json_encode(['endpoint' => $BindingWizardEndpoint, 'target' => $BindingWizardTarget, 'clusters' => $BindingWizardCluster]));"
+                                                    }
+                                                ]
+                                            }
                                         },
                                         {
-                                            "type": "Button",
+                                            "type": "PopupButton",
+                                            "name": "UnbindDialog",
                                             "caption": "Unbind",
-                                            "onClick": "IPS_RequestAction($id, 'ApplyUnbinding', json_encode(['endpoint' => $BindingSourceEndpoint, 'target' => $BindingTarget, 'clusters' => $BindingClusters, 'skip_disable_reporting' => $BindingSkipDisableReporting]));"
+                                            "popup": {
+                                                "caption": "Unbind",
+                                                "items": [
+                                                    {
+                                                        "type": "Select",
+                                                        "name": "BindingSourceEndpoint",
+                                                        "caption": "Source endpoint",
+                                                        "options": [],
+                                                        "onChange": "IPS_RequestAction($id, 'UpdateBindingClusters', json_encode(['endpoint' => $BindingSourceEndpoint, 'target' => $BindingTarget, 'cluster' => $BindingClusters]));"
+                                                    },
+                                                    {
+                                                        "type": "Select",
+                                                        "name": "BindingTarget",
+                                                        "caption": "Target device or group",
+                                                        "options": [],
+                                                        "onChange": "IPS_RequestAction($id, 'UpdateBindingClusters', json_encode(['endpoint' => $BindingSourceEndpoint, 'target' => $BindingTarget, 'cluster' => $BindingClusters]));"
+                                                    },
+                                                    {
+                                                        "type": "Select",
+                                                        "name": "BindingClusters",
+                                                        "caption": "Clusters",
+                                                        "options": []
+                                                    },
+                                                    {
+                                                        "type": "CheckBox",
+                                                        "name": "BindingSkipDisableReporting",
+                                                        "caption": "Keep reporting when unbinding"
+                                                    }
+                                                ],
+                                                "buttons": [
+                                                    {
+                                                        "caption": "Unbind",
+                                                        "onClick": "IPS_RequestAction($id, 'ApplyUnbinding', json_encode(['endpoint' => $BindingSourceEndpoint, 'target' => $BindingTarget, 'clusters' => $BindingClusters, 'skip_disable_reporting' => $BindingSkipDisableReporting]));"
+                                                    }
+                                                ]
+                                            }
                                         },
                                         {
                                             "type": "Button",
+                                            "name": "ClearDeviceBindings",
                                             "caption": "Clear bindings",
                                             "onClick": "IPS_RequestAction($id, 'ClearBindings', true);"
                                         }
                                     ]
+                                },
+                                {
+                                    "type": "Label",
+                                    "name": "BindingResult",
+                                    "caption": "",
+                                    "visible": false
                                 }
                             ]
                         },

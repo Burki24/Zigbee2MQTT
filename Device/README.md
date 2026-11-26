@@ -301,15 +301,13 @@ Vorhandene Bindings und Reportings werden aus dem von Zigbee2MQTT veröffentlich
 
 Über den Binding-Bereich können Geräte oder Gruppen direkt gebunden oder wieder gelöst werden. Der Quell-Endpoint wird aus den bekannten Endpoints des Geräts als Auswahl angeboten. Als Ziel können lokale Zigbee2MQTT-Geräte- und Gruppeninstanzen desselben MQTT-Splitters und MQTT-Basistopics sowie von der zugehörigen Bridge gemeldete Geräte und Gruppen ausgewählt werden. Die Cluster-Auswahl wird aus den bekannten Clustern des Quell-Endpoints aufgebaut und beim Wechsel von Endpoint oder Zielgerät aktualisiert. Bleibt der Quell-Endpoint leer, wird das Gerät ohne Endpoint-Suffix verwendet.
 
-![Binding konfigurieren](imgs/binding-editor.png)
-
 Ein typisches Beispiel ist ein Zigbee-Taster, der eine Lampe oder eine Gruppe direkt schalten soll:
 
-1. Beim Taster den Bereich **Binding** öffnen.
-2. Den passenden **Quell-Endpoint** auswählen. Bei einfachen Geräten ist das häufig `1`.
-3. Als **Zielgerät oder Gruppe** die gewünschte Lampe oder Zigbee2MQTT-Gruppe auswählen.
-4. Als **Cluster** z. B. `genOnOff` für Ein/Aus oder `genLevelCtrl` für Helligkeit auswählen.
-5. Mit **Binden** die direkte Zigbee-Verknüpfung erstellen.
+1. Beim Taster **Binding → Binden** öffnen. Quell-Endpoint und Zielgerät oder Gruppe auswählen und **Weiter** wählen.
+2. Einen Cluster auswählen, etwa `genOnOff` für Ein/Aus oder `genLevelCtrl` für Helligkeit. Ohne ausgewählten Cluster übernimmt Zigbee2MQTT die Auswahl.
+3. Die Zusammenfassung prüfen. Erst **OK** sendet den Binding-Befehl. Das Ergebnis erscheint im Binding-Bereich.
+
+**Lösen** öffnet einen eigenen Dialog für Quelle, Ziel und Cluster. **Bindings löschen** ist eine eigene Aktion.
 
 Nach einem erfolgreichen Binding kann der Taster das Zielgerät auch dann direkt ansprechen, wenn keine Symcon-Automation dafür angelegt wurde. Ob ein Gerät Binding unterstützt und welche Cluster sinnvoll sind, hängt vom Gerät ab.
 
