@@ -2503,6 +2503,69 @@ class DevicesTest extends DumpInclude
         $this->assertSame('measuredValue', $reportingList['values'][1]['attribute']);
     }
 
+    public function testBindingAndReportingRowSelectionOnlyPrefillsFormFields(): void
+    {
+        [$iid] = $this->createTestInstance('MixedLightSensor.json');
+        $endpoints = [
+            '1' => [
+                'id'                    => '1',
+                'clusters'              => ['input' => ['6'], 'output' => []],
+                'bindings'              => [
+                    ['cluster' => 8, 'target' => ['type' => 'endpoint', 'ieee_address' => '0x00124b0000000002', 'endpoint' => 2]],
+                    ['cluster' => 6, 'target' => ['type' => 'group', 'id' => 901]],
+                    ['cluster' => 6, 'target' => ['type' => 'group', 'id' => 27]]
+                ],
+                'configured_reportings' => [
+                    ['cluster' => 6, 'attribute' => 'onOff', 'minimumReportInterval' => 0, 'maximum_report_interval' => 300, 'reportableChange' => 0]
+                ]
+            ]
+        ];
+        $this->writeStubAttributeArray($iid, 'DeviceEndpoints', $endpoints);
+        $form = json_decode(IPS_GetConfigurationForm($iid), true, 512, JSON_THROW_ON_ERROR);
+        $binding = $this->findFormItemByName($form, 'BindingOverviewList');
+        $reporting = $this->findFormItemByName($form, 'ReportingOverviewList');
+        $this->assertStringContainsString("'SelectExistingBinding'", $binding['onSelectionChanged'] ?? '');
+        $this->assertStringContainsString("'SelectExistingReporting'", $reporting['onSelectionChanged'] ?? '');
+
+        $device = $this->createDeviceOptionFormTestDouble();
+        $device->setAttributeArrayForTest('DeviceEndpoints', $endpoints);
+        $device->RequestAction('SelectExistingBinding', $binding['values'][0]['selection']);
+        $this->assertSame('1', $device->updatedFields['BindingWizardEndpoint']['value']);
+        $this->assertSame('0x00124b0000000002', $device->updatedFields['BindingWizardTarget']['value']);
+        $this->assertSame('2', $device->updatedFields['BindingWizardTargetEndpoint']['value']);
+        $this->assertSame('genLevelCtrl', $device->updatedFields['BindingWizardCluster']['value']);
+        $this->assertSame('1', $device->updatedFields['BindingSourceEndpoint']['value']);
+        $this->assertSame('0x00124b0000000002', $device->updatedFields['BindingTarget']['value']);
+        $this->assertSame('2', $device->updatedFields['BindingTargetEndpoint']['value']);
+        $this->assertSame('genLevelCtrl', $device->updatedFields['BindingClusters']['value']);
+        $this->assertContains('genLevelCtrl', array_column(json_decode($device->updatedFields['BindingClusters']['options'], true), 'value'));
+        $this->assertContains('0x00124b0000000002', array_column(json_decode($device->updatedFields['BindingTarget']['options'], true), 'value'));
+
+        $device->RequestAction('SelectExistingBinding', $binding['values'][1]['selection']);
+        $this->assertSame('default_bind_group', $device->updatedFields['BindingTarget']['value']);
+        $this->assertSame('', $device->updatedFields['BindingTargetEndpoint']['value']);
+
+        $device->RequestAction('SelectExistingBinding', $binding['values'][2]['selection']);
+        $this->assertSame('', $device->updatedFields['BindingTarget']['value']);
+        $this->assertSame('genOnOff', $device->updatedFields['BindingClusters']['value']);
+
+        $device->RequestAction('SelectExistingReporting', $reporting['values'][0]['selection']);
+        $this->assertSame('1', $device->updatedFields['ReportingEndpoint']['value']);
+        $this->assertSame('genOnOff', $device->updatedFields['ReportingCluster']['value']);
+        $this->assertSame('onOff', $device->updatedFields['ReportingAttribute']['value']);
+        $this->assertSame(0, $device->updatedFields['ReportingMinimumInterval']['value']);
+        $this->assertSame(300, $device->updatedFields['ReportingMaximumInterval']['value']);
+        $this->assertSame('0', $device->updatedFields['ReportingReportableChange']['value']);
+        $this->assertSame('', $device->updatedFields['ReportingOptions']['value']);
+
+        $updatedFields = $device->updatedFields;
+        $device->RequestAction('SelectExistingBinding', '');
+        $device->RequestAction('SelectExistingReporting', '');
+        $this->assertSame($updatedFields, $device->updatedFields);
+        $this->assertSame('', $device->calledBridgeFunction);
+        $this->assertSame('', $device->sentTopic);
+    }
+
     public function testBindingFormProvidesEndpointAndTargetSelections(): void
     {
         [$iid] = $this->createTestInstance('MixedLightSensor.json');
@@ -2731,7 +2794,7 @@ class DevicesTest extends DumpInclude
         $this->assertArrayNotHasKey('onUndo', $sourceAndTarget);
         $this->assertArrayNotHasKey('onUndo', $clusters);
         $reviewCode = implode("\n", $review['items']);
-        foreach (['$BindingWizardEndpoint', '$BindingWizardTarget', '$BindingWizardCluster'] as $field) {
+        foreach (['$BindingWizardEndpoint', '$BindingWizardTarget', '$BindingWizardTargetEndpoint', '$BindingWizardCluster'] as $field) {
             $this->assertStringContainsString($field, $reviewCode);
             $this->assertStringContainsString($field, $review['onConfirm']);
         }
@@ -2742,13 +2805,14 @@ class DevicesTest extends DumpInclude
         $this->assertSame('', $device->calledBridgeFunction);
 
         $device->RequestAction('ApplyBinding', json_encode([
-            'endpoint' => '1',
-            'target'   => 'Binding/Target/Group',
-            'clusters' => 'genOnOff'
+            'endpoint'        => '1',
+            'target'          => 'Binding/Target/Device',
+            'target_endpoint' => '2',
+            'clusters'        => 'genOnOff'
         ], JSON_THROW_ON_ERROR));
 
         $this->assertSame('BindWithOptions', $device->calledBridgeFunction);
-        $this->assertSame(['Flur/Beleuchtung/Unten/1', 'Binding/Target/Group', 'genOnOff', false], $device->calledBridgeArguments);
+        $this->assertSame(['Flur/Beleuchtung/Unten', 'Binding/Target/Device', 'genOnOff', false, '1', '2'], $device->calledBridgeArguments);
         $this->assertTrue($device->updatedFields['BindingResult']['visible']);
     }
 

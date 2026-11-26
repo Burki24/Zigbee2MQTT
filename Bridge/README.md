@@ -519,10 +519,10 @@ Erstellt ein Binding zwischen Quelle und Ziel ohne zusätzliche Cluster-Auswahl.
 ### Z2M_BindWithOptions <!-- omit in toc -->
 
 ```php
-bool Z2M_BindWithOptions(int $InstanzID, string $SourceDevice, string $TargetDevice, string $ClustersJSON, bool $SkipDisableReporting);
+bool Z2M_BindWithOptions(int $InstanzID, string $SourceDevice, string $TargetDevice, string $ClustersJSON, bool $SkipDisableReporting, string $SourceEndpoint = '', string $TargetEndpoint = '');
 ```
 
-Erstellt ein Binding mit optionaler Cluster-Auswahl. `ClustersJSON` kann ein JSON-Array wie `["genOnOff"]` oder eine kommaseparierte Liste sein.
+Erstellt ein Binding mit optionaler Cluster-Auswahl. `ClustersJSON` kann ein JSON-Array wie `["genOnOff"]` oder eine kommaseparierte Liste sein. Die optionalen Endpoint-Parameter akzeptieren jeweils eine ID oder einen Namen.
 
 ---
 
@@ -539,10 +539,10 @@ Entfernt ein Binding zwischen Quelle und Ziel ohne zusätzliche Cluster-Auswahl.
 ### Z2M_UnbindWithOptions <!-- omit in toc -->
 
 ```php
-bool Z2M_UnbindWithOptions(int $InstanzID, string $SourceDevice, string $TargetDevice, string $ClustersJSON, bool $SkipDisableReporting);
+bool Z2M_UnbindWithOptions(int $InstanzID, string $SourceDevice, string $TargetDevice, string $ClustersJSON, bool $SkipDisableReporting, string $SourceEndpoint = '', string $TargetEndpoint = '');
 ```
 
-Entfernt ein Binding mit optionaler Cluster-Auswahl. Mit `SkipDisableReporting` kann verhindert werden, dass Zigbee2MQTT automatisch zugehöriges Reporting entfernt.
+Entfernt ein Binding mit optionaler Cluster- und Endpoint-Auswahl. Mit `SkipDisableReporting` kann verhindert werden, dass Zigbee2MQTT automatisch zugehöriges Reporting entfernt.
 
 ---
 

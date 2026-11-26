@@ -282,20 +282,40 @@ trait BridgeGroupSceneCommandHelper
     }
 
     /**
+     * Liefert den aus bridge/groups bekannten Namen einer Binding-Zielgruppe.
+     */
+    public function GetCachedBindingGroupName(int $GroupID): string
+    {
+        $cache = $this->ReadAttributeArray(self::ATTRIBUTE_NETWORK_GROUPS);
+        if (($cache['base_topic'] ?? '') !== $this->ReadPropertyString(self::MQTT_BASE_TOPIC)) {
+            return '';
+        }
+        foreach (($cache['groups'] ?? []) as $group) {
+            if (\is_array($group) && isset($group['id']) && (int) $group['id'] === $GroupID) {
+                return trim((string) ($group['friendly_name'] ?? ''));
+            }
+        }
+
+        return '';
+    }
+
+    /**
      * BindWithOptions
      *
-     * @param string $SourceDevice          Friendly Name oder IEEE-Adresse, optional mit Endpoint.
-     * @param string $TargetDevice          Friendly Name, Gruppenname oder IEEE-Adresse, optional mit Endpoint.
+     * @param string $SourceDevice          Friendly Name oder IEEE-Adresse.
+     * @param string $TargetDevice          Friendly Name, Gruppenname oder IEEE-Adresse.
      * @param string $ClustersJSON          JSON-Array oder kommaseparierte Clusterliste.
      * @param bool   $SkipDisableReporting  Reporting beim Unbind nicht automatisch entfernen.
+     * @param string $SourceEndpoint        Optionaler Name oder ID des Quell-Endpoints.
+     * @param string $TargetEndpoint        Optionaler Name oder ID des Ziel-Endpoints.
      *
      * @return bool
      */
-    public function BindWithOptions(string $SourceDevice, string $TargetDevice, string $ClustersJSON, bool $SkipDisableReporting): bool
+    public function BindWithOptions(string $SourceDevice, string $TargetDevice, string $ClustersJSON, bool $SkipDisableReporting, string $SourceEndpoint = '', string $TargetEndpoint = ''): bool
     {
         return $this->SendCheckedBridgeRequest(
             '/bridge/request/device/bind',
-            $this->BuildBindingPayload($SourceDevice, $TargetDevice, $ClustersJSON, $SkipDisableReporting),
+            $this->BuildBindingPayload($SourceDevice, $TargetDevice, $ClustersJSON, $SkipDisableReporting, $SourceEndpoint, $TargetEndpoint),
             self::TIMEOUT_ZIGBEE_BINDING_REQUEST
         ) !== false;
     }
@@ -320,18 +340,20 @@ trait BridgeGroupSceneCommandHelper
     /**
      * UnbindWithOptions
      *
-     * @param string $SourceDevice          Friendly Name oder IEEE-Adresse, optional mit Endpoint.
-     * @param string $TargetDevice          Friendly Name, Gruppenname oder IEEE-Adresse, optional mit Endpoint.
+     * @param string $SourceDevice          Friendly Name oder IEEE-Adresse.
+     * @param string $TargetDevice          Friendly Name, Gruppenname oder IEEE-Adresse.
      * @param string $ClustersJSON          JSON-Array oder kommaseparierte Clusterliste.
      * @param bool   $SkipDisableReporting  Reporting beim Unbind nicht automatisch entfernen.
+     * @param string $SourceEndpoint        Optionaler Name oder ID des Quell-Endpoints.
+     * @param string $TargetEndpoint        Optionaler Name oder ID des Ziel-Endpoints.
      *
      * @return bool
      */
-    public function UnbindWithOptions(string $SourceDevice, string $TargetDevice, string $ClustersJSON, bool $SkipDisableReporting): bool
+    public function UnbindWithOptions(string $SourceDevice, string $TargetDevice, string $ClustersJSON, bool $SkipDisableReporting, string $SourceEndpoint = '', string $TargetEndpoint = ''): bool
     {
         return $this->SendCheckedBridgeRequest(
             '/bridge/request/device/unbind',
-            $this->BuildBindingPayload($SourceDevice, $TargetDevice, $ClustersJSON, $SkipDisableReporting),
+            $this->BuildBindingPayload($SourceDevice, $TargetDevice, $ClustersJSON, $SkipDisableReporting, $SourceEndpoint, $TargetEndpoint),
             self::TIMEOUT_ZIGBEE_BINDING_REQUEST
         ) !== false;
     }

@@ -131,6 +131,68 @@ trait DeviceFormHelper
     }
 
     /**
+     * Uebernimmt ein bestehendes Binding in den Assistenten und den Loesen-Dialog.
+     */
+    protected function SelectExistingBindingFromForm(mixed $value): void
+    {
+        $selection = $this->DecodeDeviceOptionFormPayload($value);
+        $endpoint = $this->FormatFormTextValue($selection['endpoint'] ?? '');
+        $target = $this->FormatFormTextValue($selection['target'] ?? '');
+        $cluster = $this->NormalizeBindingClusterValue($selection['cluster'] ?? '');
+        if ($endpoint === '' || $target === '' || $cluster === '') {
+            return;
+        }
+
+        $group = ($selection['group'] ?? false) === true;
+        $targetEndpoint = $group ? '' : $this->FormatFormTextValue($selection['target_endpoint'] ?? '');
+        if ($group && ctype_digit($target)) {
+            $target = $this->ResolveBindingGroupTarget($target);
+        }
+
+        $targets = $this->BuildBindingTargetOptions();
+        if (!\in_array($target, array_column($targets, 'value'), true)) {
+            $targets[] = ['caption' => $target, 'value' => $target];
+        }
+        $clusters = $this->BuildBindingClusterOptions($endpoint);
+        if (!\in_array($cluster, array_column($clusters, 'value'), true)) {
+            $clusters[] = ['caption' => $cluster, 'value' => $cluster];
+        }
+
+        foreach ([
+            ['BindingWizardEndpoint', 'BindingWizardTarget', 'BindingWizardTargetEndpoint', 'BindingWizardCluster'],
+            ['BindingSourceEndpoint', 'BindingTarget', 'BindingTargetEndpoint', 'BindingClusters']
+        ] as [$endpointField, $targetField, $targetEndpointField, $clusterField]) {
+            $this->UpdateFormField($endpointField, 'value', $endpoint);
+            $this->UpdateFormField($targetField, 'options', json_encode($targets));
+            $this->UpdateFormField($targetField, 'value', $target);
+            $this->UpdateFormField($targetEndpointField, 'value', $targetEndpoint);
+            $this->UpdateFormField($clusterField, 'options', json_encode($clusters));
+            $this->UpdateFormField($clusterField, 'value', $cluster);
+        }
+    }
+
+    /**
+     * Uebernimmt ein bestehendes Reporting in den Assistenten.
+     */
+    protected function SelectExistingReportingFromForm(mixed $value): void
+    {
+        $selection = $this->DecodeDeviceOptionFormPayload($value);
+        $endpoint = $this->FormatFormTextValue($selection['endpoint'] ?? '');
+        $cluster = $this->NormalizeReportingClusterValue($selection['cluster'] ?? '');
+        $attribute = $this->FormatFormTextValue($selection['attribute'] ?? '');
+        if ($endpoint === '' || $cluster === '' || $attribute === '') {
+            return;
+        }
+
+        $this->UpdateFormField('ReportingEndpoint', 'value', $endpoint);
+        $this->UpdateReportingSelectionFields($endpoint, $cluster, $attribute);
+        $this->UpdateFormField('ReportingMinimumInterval', 'value', (int) ($selection['minimum'] ?? 0));
+        $this->UpdateFormField('ReportingMaximumInterval', 'value', (int) ($selection['maximum'] ?? 65535));
+        $this->UpdateFormField('ReportingReportableChange', 'value', $this->FormatReportingValue($selection['change'] ?? ''));
+        $this->UpdateFormField('ReportingOptions', 'value', '');
+    }
+
+    /**
      * Aktualisiert die Cluster-Auswahl bei Wechsel des Quell-Endpoints oder Ziels.
      */
     protected function UpdateBindingClustersFromForm(mixed $value, bool $wizard): bool
@@ -147,6 +209,9 @@ trait DeviceFormHelper
         $selectedCluster = $this->ResolveBindingClusterSelection($currentCluster, $options);
         $field = $wizard ? 'BindingWizardCluster' : 'BindingClusters';
 
+        if (($selection['targetChanged'] ?? false) === true) {
+            $this->UpdateFormField($wizard ? 'BindingWizardTargetEndpoint' : 'BindingTargetEndpoint', 'value', '');
+        }
         $this->UpdateFormField($field, 'options', json_encode($options));
         $this->UpdateFormField($field, 'value', $selectedCluster);
 
@@ -166,16 +231,7 @@ trait DeviceFormHelper
         $endpoint = $this->FormatFormTextValue($selection['endpoint'] ?? '');
         $currentCluster = $this->FormatFormTextValue($selection['cluster'] ?? '');
         $currentAttribute = $this->FormatFormTextValue($selection['attribute'] ?? '');
-
-        $clusterOptions = $this->BuildReportingClusterOptions($endpoint);
-        $selectedCluster = $this->ResolveSelectOptionValue($currentCluster, $clusterOptions);
-        $attributeOptions = $this->BuildReportingAttributeOptions($endpoint, $selectedCluster);
-        $selectedAttribute = $this->ResolveSelectOptionValue($currentAttribute, $attributeOptions);
-
-        $this->UpdateFormField('ReportingCluster', 'options', json_encode($clusterOptions));
-        $this->UpdateFormField('ReportingCluster', 'value', $selectedCluster);
-        $this->UpdateFormField('ReportingAttribute', 'options', json_encode($attributeOptions));
-        $this->UpdateFormField('ReportingAttribute', 'value', $selectedAttribute);
+        $this->UpdateReportingSelectionFields($endpoint, $currentCluster, $currentAttribute);
 
         return true;
     }
@@ -392,6 +448,22 @@ trait DeviceFormHelper
         }
 
         return false;
+    }
+
+    /**
+     * Aktualisiert die von Endpoint und Cluster abhaengigen Reporting-Felder.
+     */
+    private function UpdateReportingSelectionFields(string $endpoint, string $currentCluster, string $currentAttribute): void
+    {
+        $clusterOptions = $this->BuildReportingClusterOptions($endpoint);
+        $selectedCluster = $this->ResolveSelectOptionValue($currentCluster, $clusterOptions);
+        $attributeOptions = $this->BuildReportingAttributeOptions($endpoint, $selectedCluster);
+        $selectedAttribute = $this->ResolveSelectOptionValue($currentAttribute, $attributeOptions);
+
+        $this->UpdateFormField('ReportingCluster', 'options', json_encode($clusterOptions));
+        $this->UpdateFormField('ReportingCluster', 'value', $selectedCluster);
+        $this->UpdateFormField('ReportingAttribute', 'options', json_encode($attributeOptions));
+        $this->UpdateFormField('ReportingAttribute', 'value', $selectedAttribute);
     }
 
     /**
@@ -775,12 +847,22 @@ trait DeviceFormHelper
                 }
 
                 $target = $binding['target'] ?? $binding['to'] ?? $binding['destination'] ?? null;
+                $cluster = $this->FormatBindingClusterValue($binding['cluster'] ?? $binding['clusterName'] ?? '');
+                $targetValue = $this->FormatBindingTargetValue($target);
+                $targetEndpoint = $this->FormatBindingTargetEndpoint($target, $binding);
                 $values[] = [
                     'source_endpoint' => $sourceEndpoint,
-                    'cluster'         => $this->FormatBindingClusterValue($binding['cluster'] ?? $binding['clusterName'] ?? ''),
+                    'cluster'         => $cluster,
                     'target_type'     => $this->FormatBindingTargetType($target),
-                    'target'          => $this->FormatBindingTargetValue($target),
-                    'target_endpoint' => $this->FormatBindingTargetEndpoint($target, $binding)
+                    'target'          => $targetValue === '' && \is_array($target) ? $this->FormatBindingFallbackValue($target) : $targetValue,
+                    'target_endpoint' => $targetEndpoint,
+                    'selection'       => json_encode([
+                        'endpoint'        => $sourceEndpoint,
+                        'cluster'         => $cluster,
+                        'target'          => $targetValue,
+                        'target_endpoint' => $targetEndpoint,
+                        'group'           => \is_array($target) && $this->IsBindingGroupTarget($target)
+                    ])
                 ];
             }
         }
@@ -791,7 +873,8 @@ trait DeviceFormHelper
                 'cluster'         => '',
                 'target_type'     => '',
                 'target'          => $this->Translate('No bindings available'),
-                'target_endpoint' => ''
+                'target_endpoint' => '',
+                'selection'       => ''
             ]];
         }
 
@@ -815,13 +898,26 @@ trait DeviceFormHelper
                     continue;
                 }
 
+                $cluster = $this->FormatBindingClusterValue($reporting['cluster'] ?? $reporting['clusterName'] ?? '');
+                $attribute = $this->FormatFormTextValue($reporting['attribute'] ?? $reporting['attributeName'] ?? '');
+                $minimum = $this->ReadReportingMinimumInterval($reporting);
+                $maximum = $this->ReadReportingMaximumInterval($reporting);
+                $change = $this->FormatReportingValue($reporting['reportable_change'] ?? $reporting['reportableChange'] ?? $reporting['change'] ?? '');
                 $values[] = [
                     'endpoint'          => $sourceEndpoint,
-                    'cluster'           => $this->FormatBindingClusterValue($reporting['cluster'] ?? $reporting['clusterName'] ?? ''),
-                    'attribute'         => $this->FormatFormTextValue($reporting['attribute'] ?? $reporting['attributeName'] ?? ''),
-                    'minimum_interval'  => $this->FormatReportingIntervalValue($this->ReadReportingMinimumInterval($reporting)),
-                    'maximum_interval'  => $this->FormatReportingIntervalValue($this->ReadReportingMaximumInterval($reporting)),
-                    'reportable_change' => $this->FormatReportingValue($reporting['reportable_change'] ?? $reporting['reportableChange'] ?? $reporting['change'] ?? '')
+                    'cluster'           => $cluster,
+                    'attribute'         => $attribute,
+                    'minimum_interval'  => $this->FormatReportingIntervalValue($minimum),
+                    'maximum_interval'  => $this->FormatReportingIntervalValue($maximum),
+                    'reportable_change' => $change,
+                    'selection'         => json_encode([
+                        'endpoint'  => $sourceEndpoint,
+                        'cluster'   => $cluster,
+                        'attribute' => $attribute,
+                        'minimum'   => is_numeric($minimum) ? (int) $minimum : 0,
+                        'maximum'   => is_numeric($maximum) ? (int) $maximum : 65535,
+                        'change'    => $change
+                    ])
                 ];
             }
         }
@@ -833,7 +929,8 @@ trait DeviceFormHelper
                 'attribute'         => $this->Translate('No reportings available'),
                 'minimum_interval'  => '',
                 'maximum_interval'  => '',
-                'reportable_change' => ''
+                'reportable_change' => '',
+                'selection'         => ''
             ]];
         }
 
@@ -952,10 +1049,10 @@ trait DeviceFormHelper
         }
 
         $type = strtolower(trim((string) ($target['type'] ?? '')));
-        if ($type === 'group' || isset($target['groupID']) || isset($target['group_id'])) {
+        if ($this->IsBindingGroupTarget($target)) {
             return $this->Translate('Group');
         }
-        if (\in_array($type, ['device', 'endpoint'], true) || isset($target['deviceIeeeAddress']) || isset($target['ieeeAddr'])) {
+        if (\in_array($type, ['device', 'endpoint'], true) || isset($target['deviceIeeeAddress']) || isset($target['ieeeAddr']) || isset($target['ieee_address'])) {
             return $type === 'endpoint' ? $this->Translate('Endpoint') : $this->Translate('Device');
         }
 
@@ -971,8 +1068,7 @@ trait DeviceFormHelper
             return $this->FormatFormTextValue($target);
         }
 
-        $type = strtolower(trim((string) ($target['type'] ?? '')));
-        if ($type === 'group' || isset($target['groupID']) || isset($target['group_id'])) {
+        if ($this->IsBindingGroupTarget($target)) {
             return $this->FormatFormTextValue($target['friendly_name'] ?? $target['name'] ?? $target['groupID'] ?? $target['group_id'] ?? $target['ID'] ?? $target['id'] ?? '');
         }
 
@@ -984,12 +1080,7 @@ trait DeviceFormHelper
             }
         }
 
-        $value = $this->FormatFormTextValue($target['friendly_name'] ?? $target['name'] ?? $target['deviceIeeeAddress'] ?? $target['ieeeAddr'] ?? $target['ieee_address'] ?? '');
-        if ($value !== '') {
-            return $value;
-        }
-
-        return $this->FormatBindingFallbackValue($target);
+        return $this->FormatFormTextValue($target['friendly_name'] ?? $target['name'] ?? $target['deviceIeeeAddress'] ?? $target['ieeeAddr'] ?? $target['ieee_address'] ?? '');
     }
 
     /**
@@ -1002,12 +1093,37 @@ trait DeviceFormHelper
             return $endpoint;
         }
 
-        $type = strtolower(trim((string) ($target['type'] ?? '')));
-        if ($type === 'group' || isset($target['groupID']) || isset($target['group_id'])) {
+        if ($this->IsBindingGroupTarget($target)) {
             return '';
         }
 
         return $this->FormatFormTextValue($target['endpoint'] ?? $target['endpointID'] ?? $target['endpoint_id'] ?? $target['ID'] ?? $target['id'] ?? '');
+    }
+
+    private function IsBindingGroupTarget(array $target): bool
+    {
+        return strtolower(trim((string) ($target['type'] ?? ''))) === 'group' || isset($target['groupID']) || isset($target['group_id']);
+    }
+
+    /**
+     * Loest die Gruppen-ID nur im passenden Zigbee2MQTT-System auf.
+     */
+    private function ResolveBindingGroupTarget(string $groupID): string
+    {
+        $bridgeID = $this->FindMatchingBridgeInstanceID();
+        if ($bridgeID !== false && \function_exists('Z2M_GetCachedBindingGroupName')) {
+            $name = \Z2M_GetCachedBindingGroupName($bridgeID, (int) $groupID);
+            if ($name !== '') {
+                return $name;
+            }
+        }
+        foreach ($this->LoadBindingTargetGroupsFromInstances() as $group) {
+            if ($group['group_id'] === (int) $groupID) {
+                return $group['value'];
+            }
+        }
+
+        return $groupID === '901' ? 'default_bind_group' : '';
     }
 
     /**
@@ -1835,8 +1951,9 @@ trait DeviceFormHelper
             }
 
             $targets[] = [
-                'caption' => $this->BuildBindingTargetCaption('Group', $topic, @IPS_GetName($instanceID)),
-                'value'   => $topic
+                'caption'  => $this->BuildBindingTargetCaption('Group', $topic, @IPS_GetName($instanceID)),
+                'value'    => $topic,
+                'group_id' => (int) @IPS_GetProperty($instanceID, 'GroupId')
             ];
         }
 
@@ -2393,29 +2510,18 @@ trait DeviceFormHelper
         }
 
         $endpoint = trim((string) ($selection['endpoint'] ?? ''));
-        $source = $this->BuildEndpointQualifiedDeviceName($endpoint);
+        $targetEndpoint = $this->FormatFormTextValue($selection['target_endpoint'] ?? '');
         $clusters = trim((string) ($selection['clusters'] ?? ''));
         $skipDisableReporting = (bool) ($selection['skip_disable_reporting'] ?? false);
 
         return $this->CallMatchingBridgeFunction($unbind ? 'UnbindWithOptions' : 'BindWithOptions', [
-            $source,
+            $this->ReadPropertyString(self::MQTT_TOPIC),
             $target,
             $clusters,
-            $skipDisableReporting
+            $skipDisableReporting,
+            $endpoint,
+            $targetEndpoint
         ]) === true;
-    }
-
-    /**
-     * Baut einen Device-Namen mit optionalem Endpoint-Suffix.
-     */
-    private function BuildEndpointQualifiedDeviceName(string $endpoint): string
-    {
-        $deviceName = $this->ReadPropertyString(self::MQTT_TOPIC);
-        if ($endpoint === '') {
-            return $deviceName;
-        }
-
-        return $deviceName . '/' . $endpoint;
     }
 
     /**

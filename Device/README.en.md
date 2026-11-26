@@ -127,7 +127,9 @@ Binding sends selected clusters directly from a source endpoint to a target devi
 
 When endpoint data exists, the form displays endpoint names, input/output clusters, bindings and configured reporting entries. The overview reads the `bridge/devices` cache; there is no separate Zigbee2MQTT “read bindings” request. **Refresh endpoint data** re-reads that cache and is independent of the extension's `getDeviceInfo` request. Newly changed bindings may take time to appear.
 
-Targets are restricted to the same MQTT splitter and base topic, including devices/groups known by the matching Bridge without their own Symcon instance. **Bind** opens a three-step wizard. Select the source endpoint and target, choose a cluster, then review the selection. Leave the cluster unset to use Zigbee2MQTT's automatic selection. **OK** sends the binding request, and the result appears in the Binding section.
+Selecting an existing binding prefills **Bind** and **Unbind** with the source, target, target endpoint, and cluster. For group IDs, Symcon looks up the name in the Bridge data or a matching group instance. If the group name is unknown, the target stays empty. Selecting an existing reporting entry prefills the wizard with the endpoint, cluster, attribute, intervals, and reportable change. Open the relevant dialog and confirm there to apply changes.
+
+Targets are restricted to the same MQTT splitter and base topic, including devices/groups known by the matching Bridge without their own Symcon instance. **Bind** opens a three-step wizard. Select the source endpoint and target, optionally specify the target device's endpoint, choose a cluster, then review the selection. Leave the cluster unset to use Zigbee2MQTT's automatic selection. **OK** sends the binding request, and the result appears in the Binding section.
 
 **Unbind** opens a separate dialog for the source, target and cluster. **Keep reporting when unbinding** sends `skip_disable_reporting`. **Clear bindings** is a separate action.
 

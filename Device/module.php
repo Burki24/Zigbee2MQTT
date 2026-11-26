@@ -264,6 +264,14 @@ class Zigbee2MQTTDevice extends \Zigbee2MQTT\ModulBase
                 $this->RefreshBindingReportingInfoFromForm();
                 return;
 
+            case 'SelectExistingBinding':
+                $this->SelectExistingBindingFromForm($value);
+                return;
+
+            case 'SelectExistingReporting':
+                $this->SelectExistingReportingFromForm($value);
+                return;
+
             case 'UpdateBindingClusters':
             case 'UpdateBindingWizardClusters':
                 $this->UpdateBindingClustersFromForm($value, $ident === 'UpdateBindingWizardClusters');

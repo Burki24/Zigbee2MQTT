@@ -297,13 +297,15 @@ Binding und Reporting sind Zigbee-Funktionen, mit denen Geräte direkter und eff
 
 Wenn Zigbee2MQTT Endpoint-Daten liefert, zeigt die Instanz-Konfiguration unter **Erweiterte Geräteeinstellungen** den Bereich **Binding und Reporting**. Dort sind Endpoints, Eingangs-/Ausgangscluster sowie vorhandene Bindings und konfigurierte Reportings sichtbar. Bekannte Bindings werden zusätzlich als eigene Übersicht mit Quell-Endpoint, Cluster, Zieltyp, Ziel und Ziel-Endpoint aufgelistet. Konfigurierte Reportings werden separat mit Endpoint, Cluster, Attribut, Intervallen und Reportable Change angezeigt.
 
+Die Auswahl eines bestehenden Bindings füllt **Binden** und **Lösen** mit Quelle, Ziel, Ziel-Endpoint und Cluster. Bei einer Gruppen-ID übernimmt Symcon den Namen aus den Bridge-Daten oder einer passenden Gruppeninstanz. Ist der Gruppenname unbekannt, bleibt das Ziel leer. Die Auswahl eines bestehenden Reportings füllt den Assistenten mit Endpoint, Cluster, Attribut, Intervallen und Änderungsschwelle. Für Änderungen öffnen Sie den jeweiligen Dialog und bestätigen die Aktion dort.
+
 Vorhandene Bindings und Reportings werden aus dem von Zigbee2MQTT veröffentlichten `bridge/devices` Cache gelesen. Zigbee2MQTT stellt dafür keinen separaten "Binding lesen"-Request bereit. Wenn ein Binding gerade erst angelegt oder in Zigbee2MQTT geändert wurde, kann die Anzeige zunächst leer bleiben. Mit **Endpoint-Daten aktualisieren** liest die Device-Konfiguration den aktuellen Bridge-Cache erneut ein und baut die Übersichten neu auf. Der Button ruft keine Geräteinformationen über die Symcon-Extension ab und ist deshalb unabhängig vom `getDeviceInfo` Request.
 
 Über den Binding-Bereich können Geräte oder Gruppen direkt gebunden oder wieder gelöst werden. Der Quell-Endpoint wird aus den bekannten Endpoints des Geräts als Auswahl angeboten. Als Ziel können lokale Zigbee2MQTT-Geräte- und Gruppeninstanzen desselben MQTT-Splitters und MQTT-Basistopics sowie von der zugehörigen Bridge gemeldete Geräte und Gruppen ausgewählt werden. Die Cluster-Auswahl wird aus den bekannten Clustern des Quell-Endpoints aufgebaut und beim Wechsel von Endpoint oder Zielgerät aktualisiert. Bleibt der Quell-Endpoint leer, wird das Gerät ohne Endpoint-Suffix verwendet.
 
 Ein typisches Beispiel ist ein Zigbee-Taster, der eine Lampe oder eine Gruppe direkt schalten soll:
 
-1. Beim Taster **Binding → Binden** öffnen. Quell-Endpoint und Zielgerät oder Gruppe auswählen und **Weiter** wählen.
+1. Beim Taster **Binding → Binden** öffnen. Quell-Endpoint und Zielgerät oder Gruppe auswählen. Bei einem Zielgerät kann zusätzlich der Ziel-Endpoint angegeben werden. **Weiter** wählen.
 2. Einen Cluster auswählen, etwa `genOnOff` für Ein/Aus oder `genLevelCtrl` für Helligkeit. Ohne ausgewählten Cluster übernimmt Zigbee2MQTT die Auswahl.
 3. Die Zusammenfassung prüfen. Erst **OK** sendet den Binding-Befehl. Das Ergebnis erscheint im Binding-Bereich.
 

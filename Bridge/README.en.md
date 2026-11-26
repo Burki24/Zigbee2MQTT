@@ -340,10 +340,10 @@ Binds the source to the target without explicit cluster selection. Prefer `Z2M_B
 ### Z2M_BindWithOptions
 
 ```php
-bool Z2M_BindWithOptions(int $InstanceID, string $SourceDevice, string $TargetDevice, string $ClustersJSON, bool $SkipDisableReporting);
+bool Z2M_BindWithOptions(int $InstanceID, string $SourceDevice, string $TargetDevice, string $ClustersJSON, bool $SkipDisableReporting, string $SourceEndpoint = '', string $TargetEndpoint = '');
 ```
 
-Binds the source to the target with optional clusters. `ClustersJSON` accepts a JSON array such as `["genOnOff"]` or a comma-separated list.
+Binds the source to the target with optional clusters. `ClustersJSON` accepts a JSON array such as `["genOnOff"]` or a comma-separated list. Each optional endpoint parameter accepts an ID or a name.
 
 ### Z2M_Unbind
 
@@ -356,10 +356,10 @@ Removes the binding between source and target without explicit cluster selection
 ### Z2M_UnbindWithOptions
 
 ```php
-bool Z2M_UnbindWithOptions(int $InstanceID, string $SourceDevice, string $TargetDevice, string $ClustersJSON, bool $SkipDisableReporting);
+bool Z2M_UnbindWithOptions(int $InstanceID, string $SourceDevice, string $TargetDevice, string $ClustersJSON, bool $SkipDisableReporting, string $SourceEndpoint = '', string $TargetEndpoint = '');
 ```
 
-Removes bindings with an optional JSON/comma-separated cluster list. `SkipDisableReporting` can preserve associated reporting.
+Removes bindings with optional clusters and endpoints. `SkipDisableReporting` can preserve associated reporting.
 
 ### Z2M_ClearBinds
 

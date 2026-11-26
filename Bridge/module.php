@@ -106,6 +106,7 @@ class Zigbee2MQTTBridge extends IPSModuleStrict
     private const ATTRIBUTE_DIAGNOSTIC_INTERVIEW_DEVICES = 'DiagnosticInterviewDevices';
     private const ATTRIBUTE_TOUCHLINK_DEVICES = 'TouchlinkDevices';
     private const ATTRIBUTE_NETWORK_DEVICES = 'NetworkDevices';
+    private const ATTRIBUTE_NETWORK_GROUPS = 'NetworkGroups';
     private const ATTRIBUTE_CONFIG_BLOCKLIST = 'ConfigBlocklist';
     private const ATTRIBUTE_CONFIG_PASSLIST = 'ConfigPasslist';
     private const ATTRIBUTE_PENDING_PASSLIST_CHANGE = 'PendingPasslistChange';
@@ -178,6 +179,7 @@ class Zigbee2MQTTBridge extends IPSModuleStrict
         $this->RegisterAttributeArray(self::ATTRIBUTE_DIAGNOSTIC_INTERVIEW_DEVICES, []);
         $this->RegisterAttributeArray(self::ATTRIBUTE_TOUCHLINK_DEVICES, []);
         $this->RegisterAttributeArray(self::ATTRIBUTE_NETWORK_DEVICES, []);
+        $this->RegisterAttributeArray(self::ATTRIBUTE_NETWORK_GROUPS, []);
         $this->RegisterAttributeArray(self::ATTRIBUTE_CONFIG_BLOCKLIST, []);
         $this->RegisterAttributeArray(self::ATTRIBUTE_CONFIG_PASSLIST, []);
         $this->RegisterAttributeArray(self::ATTRIBUTE_PENDING_PASSLIST_CHANGE, []);
@@ -710,6 +712,11 @@ class Zigbee2MQTTBridge extends IPSModuleStrict
                     );
                 }
                 break;
+            case 'groups':
+                if ($ReceiveTopic === $BaseTopic . '/bridge/groups' && \is_array($Payload) && array_is_list($Payload)) {
+                    $this->WriteAttributeArray(self::ATTRIBUTE_NETWORK_GROUPS, ['base_topic' => $BaseTopic, 'groups' => $Payload]);
+                }
+                break;
             case 'request': //nothing
                 break;
             case 'response': //response from request
@@ -982,12 +989,18 @@ class Zigbee2MQTTBridge extends IPSModuleStrict
      *
      * @see \BridgeGroupSceneCommandHelper Binding-Befehle in `Bridge/Helper/BridgeGroupSceneCommandHelper.php`.
      */
-    private function BuildBindingPayload(string $SourceDevice, string $TargetDevice, string $ClustersJSON, bool $SkipDisableReporting): array
+    private function BuildBindingPayload(string $SourceDevice, string $TargetDevice, string $ClustersJSON, bool $SkipDisableReporting, string $SourceEndpoint, string $TargetEndpoint): array
     {
         $payload = [
             'from' => $SourceDevice,
             'to'   => $TargetDevice
         ];
+        if ($SourceEndpoint !== '') {
+            $payload['from_endpoint'] = $SourceEndpoint;
+        }
+        if ($TargetEndpoint !== '') {
+            $payload['to_endpoint'] = $TargetEndpoint;
+        }
 
         $clusters = $this->ParseStringList($ClustersJSON);
         if ($clusters !== []) {

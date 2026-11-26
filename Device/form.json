@@ -531,6 +531,7 @@
                             "type": "List",
                             "name": "BindingOverviewList",
                             "caption": "Existing bindings",
+                            "onSelectionChanged": "IPS_RequestAction($id, 'SelectExistingBinding', $BindingOverviewList['selection'] ?? '');",
                             "visible": false,
                             "add": false,
                             "delete": false,
@@ -561,6 +562,12 @@
                                     "caption": "Target endpoint",
                                     "name": "target_endpoint",
                                     "width": "120px"
+                                },
+                                {
+                                    "caption": "",
+                                    "name": "selection",
+                                    "width": "0px",
+                                    "visible": false
                                 }
                             ],
                             "values": []
@@ -569,6 +576,7 @@
                             "type": "List",
                             "name": "ReportingOverviewList",
                             "caption": "Existing reportings",
+                            "onSelectionChanged": "IPS_RequestAction($id, 'SelectExistingReporting', $ReportingOverviewList['selection'] ?? '');",
                             "visible": false,
                             "add": false,
                             "delete": false,
@@ -604,6 +612,12 @@
                                     "caption": "Reportable change",
                                     "name": "reportable_change",
                                     "width": "150px"
+                                },
+                                {
+                                    "caption": "",
+                                    "name": "selection",
+                                    "width": "0px",
+                                    "visible": false
                                 }
                             ],
                             "values": []
@@ -637,7 +651,12 @@
                                                                 "name": "BindingWizardTarget",
                                                                 "caption": "Target device or group",
                                                                 "options": [],
-                                                                "onChange": "IPS_RequestAction($id, 'UpdateBindingWizardClusters', json_encode(['endpoint' => $BindingWizardEndpoint, 'target' => $BindingWizardTarget, 'cluster' => $BindingWizardCluster]));"
+                                                                "onChange": "IPS_RequestAction($id, 'UpdateBindingWizardClusters', json_encode(['endpoint' => $BindingWizardEndpoint, 'target' => $BindingWizardTarget, 'cluster' => $BindingWizardCluster, 'targetChanged' => true]));"
+                                                            },
+                                                            {
+                                                                "type": "ValidationTextBox",
+                                                                "name": "BindingWizardTargetEndpoint",
+                                                                "caption": "Target endpoint"
                                                             }
                                                         ],
                                                         "validate": "return (string) $BindingWizardTarget === '' ? 'Target device or group is required.' : '';"
@@ -670,13 +689,17 @@
                                                             "        ['type' => 'Label', 'caption' => (string) $BindingWizardTarget]",
                                                             "    ]],",
                                                             "    ['type' => 'RowLayout', 'items' => [",
+                                                            "        ['type' => 'Label', 'caption' => 'Target endpoint'],",
+                                                            "        ['type' => 'Label', 'caption' => (string) $BindingWizardTargetEndpoint !== '' ? (string) $BindingWizardTargetEndpoint : '-']",
+                                                            "    ]],",
+                                                            "    ['type' => 'RowLayout', 'items' => [",
                                                             "        ['type' => 'Label', 'caption' => 'Cluster'],",
                                                             "        ['type' => 'Label', 'caption' => (string) $BindingWizardCluster !== '' ? (string) $BindingWizardCluster : 'Automatic cluster selection']",
                                                             "    ]],",
                                                             "    ['type' => 'Label', 'caption' => 'Confirm to send the binding request to Zigbee2MQTT.']",
                                                             "];"
                                                         ],
-                                                        "onConfirm": "IPS_RequestAction($id, 'ApplyBinding', json_encode(['endpoint' => $BindingWizardEndpoint, 'target' => $BindingWizardTarget, 'clusters' => $BindingWizardCluster]));"
+                                                        "onConfirm": "IPS_RequestAction($id, 'ApplyBinding', json_encode(['endpoint' => $BindingWizardEndpoint, 'target' => $BindingWizardTarget, 'target_endpoint' => $BindingWizardTargetEndpoint, 'clusters' => $BindingWizardCluster]));"
                                                     }
                                                 ]
                                             }
@@ -700,7 +723,12 @@
                                                         "name": "BindingTarget",
                                                         "caption": "Target device or group",
                                                         "options": [],
-                                                        "onChange": "IPS_RequestAction($id, 'UpdateBindingClusters', json_encode(['endpoint' => $BindingSourceEndpoint, 'target' => $BindingTarget, 'cluster' => $BindingClusters]));"
+                                                        "onChange": "IPS_RequestAction($id, 'UpdateBindingClusters', json_encode(['endpoint' => $BindingSourceEndpoint, 'target' => $BindingTarget, 'cluster' => $BindingClusters, 'targetChanged' => true]));"
+                                                    },
+                                                    {
+                                                        "type": "ValidationTextBox",
+                                                        "name": "BindingTargetEndpoint",
+                                                        "caption": "Target endpoint"
                                                     },
                                                     {
                                                         "type": "Select",
@@ -717,7 +745,7 @@
                                                 "buttons": [
                                                     {
                                                         "caption": "Unbind",
-                                                        "onClick": "IPS_RequestAction($id, 'ApplyUnbinding', json_encode(['endpoint' => $BindingSourceEndpoint, 'target' => $BindingTarget, 'clusters' => $BindingClusters, 'skip_disable_reporting' => $BindingSkipDisableReporting]));"
+                                                        "onClick": "IPS_RequestAction($id, 'ApplyUnbinding', json_encode(['endpoint' => $BindingSourceEndpoint, 'target' => $BindingTarget, 'target_endpoint' => $BindingTargetEndpoint, 'clusters' => $BindingClusters, 'skip_disable_reporting' => $BindingSkipDisableReporting]));"
                                                     }
                                                 ]
                                             }

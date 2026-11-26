@@ -752,6 +752,21 @@ class BridgeTest extends TestCase
         $this->assertTrue($bridge->readDiagnosticAttribute('NetworkDevices')[0]['supports_ota']);
     }
 
+    public function testBindingGroupNamesComeFromTheCurrentNetworkCache(): void
+    {
+        $bridge = $this->createBridgeTestDouble(true);
+        $bridge->setBaseTopicForTest('zigbee2mqtt');
+        $bridge->ReceiveData(json_encode([
+            'Topic'   => 'zigbee2mqtt/bridge/groups',
+            'Payload' => bin2hex(json_encode([['id' => 12, 'friendly_name' => 'Lights/Group']], JSON_THROW_ON_ERROR))
+        ], JSON_THROW_ON_ERROR));
+
+        $this->assertSame('Lights/Group', $bridge->GetCachedBindingGroupName(12));
+        $this->assertSame('', $bridge->GetCachedBindingGroupName(13));
+        $bridge->setBaseTopicForTest('different-network');
+        $this->assertSame('', $bridge->GetCachedBindingGroupName(12));
+    }
+
     public function testReceiveDataStoresAsyncOTAUpdateResult(): void
     {
         $bridge = $this->createBridgeTestDouble(true);
@@ -1325,12 +1340,14 @@ class BridgeTest extends TestCase
             'data'   => ['from' => 'remote/1', 'to' => 'lamp']
         ]);
 
-        $this->assertTrue($bridge->UnbindWithOptions('remote/1', 'lamp', 'genOnOff', false));
+        $this->assertTrue($bridge->UnbindWithOptions('remote/left', 'lamp/right', 'genOnOff', false, '1', '3'));
         $this->assertSame('/bridge/request/device/unbind', $bridge->lastTopic);
         $this->assertSame([
-            'from'     => 'remote/1',
-            'to'       => 'lamp',
-            'clusters' => ['genOnOff']
+            'from'          => 'remote/left',
+            'to'            => 'lamp/right',
+            'from_endpoint' => '1',
+            'to_endpoint'   => '3',
+            'clusters'      => ['genOnOff']
         ], $bridge->lastPayload);
         $this->assertSame(15000, $bridge->lastTimeout);
     }
