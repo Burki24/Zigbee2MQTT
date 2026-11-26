@@ -129,7 +129,7 @@ When endpoint data exists, the form displays endpoint names, input/output cluste
 
 Targets are restricted to the same MQTT splitter and base topic, including devices/groups known by the matching Bridge without their own Symcon instance. Select the correct source endpoint and supported clusters. **Keep reporting when unbinding** sends `skip_disable_reporting`.
 
-Reporting fields are endpoint, cluster, attribute, minimum interval, maximum interval, reportable change and optional options JSON. Small intervals increase radio traffic and battery consumption. **Configure reporting** writes the selected settings; **Read reporting** asks for the device's current configuration. Wake battery devices before either operation.
+**Configure reporting** opens a two-step wizard. Select the endpoint, cluster and attribute. Use **Read reporting** on this page to query the device's current configuration. Select **Next**, then enter the minimum and maximum intervals, the reportable change and any optional JSON object. **OK** sends the configuration to Zigbee2MQTT and the result appears in the Reporting section. Small intervals increase radio traffic and battery consumption. Wake battery devices before reading or confirming.
 
 ## Variables and maintenance
 

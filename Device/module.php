@@ -267,7 +267,13 @@ class Zigbee2MQTTDevice extends \Zigbee2MQTT\ModulBase
                 return;
 
             case 'ConfigureReporting':
-                $this->ConfigureReportingFromForm($value);
+                $configured = $this->ConfigureReportingFromForm($value);
+                $this->UpdateFormField(
+                    'ReportingConfigurationResult',
+                    'caption',
+                    $this->Translate($configured ? 'Zigbee2MQTT confirmed the reporting configuration.' : 'Zigbee2MQTT did not confirm the reporting configuration.')
+                );
+                $this->UpdateFormField('ReportingConfigurationResult', 'visible', true);
                 return;
 
             case 'ReadReporting':

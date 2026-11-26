@@ -197,6 +197,12 @@ trait DeviceFormHelper
             return false;
         }
 
+        $options = $selection['options'] ?? '';
+        if (!\is_string($options) || (trim($options) !== '' && !\is_object(json_decode($options)))) {
+            trigger_error($this->Translate('Options must be a JSON object.'), E_USER_NOTICE);
+            return false;
+        }
+
         return $this->CallMatchingBridgeFunction('ConfigureReporting', [
             $this->ReadPropertyString(self::MQTT_TOPIC),
             $endpoint,
@@ -205,7 +211,7 @@ trait DeviceFormHelper
             (int) ($selection['minimum'] ?? 0),
             (int) ($selection['maximum'] ?? 65535),
             (string) ($selection['change'] ?? ''),
-            (string) ($selection['options'] ?? '')
+            $options
         ]) === true;
     }
 

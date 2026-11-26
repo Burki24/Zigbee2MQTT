@@ -315,7 +315,8 @@ Nach einem erfolgreichen Binding kann der Taster das Zielgerät auch dann direkt
 
 Über den Reporting-Bereich kann Attribute Reporting gelesen oder konfiguriert werden. Endpoint, Cluster und Attribut werden als Auswahl angeboten und aus den bekannten Endpoint-Daten, bereits konfigurierten Reportings und typischen Zigbee-Clustern abgeleitet. Batteriebetriebene Geräte müssen dafür unter Umständen direkt vor dem Ausführen geweckt werden. Nicht jedes Gerät und nicht jedes Attribut unterstützt Reporting.
 
-![Reporting konfigurieren](imgs/reporting-editor.png)
+1. **Reporting konfigurieren** öffnet den Assistenten. Wählen Sie Endpoint, Cluster und Attribut. **Reporting lesen** fragt bei Bedarf die aktuelle Konfiguration vom Gerät ab.
+2. Wählen Sie **Weiter** und tragen Sie die Intervalle, die Änderungsschwelle und bei Bedarf Optionen als JSON-Objekt ein. Erst **OK** sendet die Konfiguration an Zigbee2MQTT. Das Ergebnis erscheint im Reporting-Bereich.
 
 Für die Bedienung sind vor allem diese Felder wichtig:
 
@@ -329,7 +330,7 @@ Für die Bedienung sind vor allem diese Felder wichtig:
 | `Reportable Change` | Änderungsschwelle, ab der ein neuer Wert gemeldet wird. Das Feld kann leer bleiben, wenn das Attribut keine Schwelle unterstützt. |
 | `Options-JSON` | Optionales Expertenfeld für zusätzliche Zigbee2MQTT-Optionen. Im Normalfall bleibt es leer. |
 
-`Reporting konfigurieren` schreibt die ausgewählten Einstellungen an Zigbee2MQTT. `Reporting lesen` fragt die aktuell im Gerät hinterlegte Reporting-Konfiguration ab. Wenn ein Gerät nicht antwortet oder ein Attribut nicht unterstützt, muss die Einstellung am Gerät selbst geprüft werden; bei Batteriegeräten hilft oft, das Gerät direkt vor dem Ausführen aufzuwecken.
+Wenn ein Gerät nicht antwortet oder ein Attribut nicht unterstützt, muss die Einstellung am Gerät selbst geprüft werden. Bei Batteriegeräten hilft es oft, das Gerät direkt vor dem Lesen oder Bestätigen aufzuwecken.
 
 Die Endpoint-Liste wird aus den von Zigbee2MQTT gelieferten Geräteinformationen aufgebaut. Sie zeigt Endpoint, Name, Eingangscluster, Ausgangscluster sowie die Anzahl bekannter Bindings und konfigurierter Reportings.
 

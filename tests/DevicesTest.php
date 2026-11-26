@@ -2784,6 +2784,79 @@ class DevicesTest extends DumpInclude
         $this->assertContains('activePower', $attributeValues);
         $this->assertContains('rmsVoltage', $attributeValues);
         $this->assertSame('activePower', $device->updatedFields['ReportingAttribute']['value']);
+        $this->assertSame('', $device->calledBridgeFunction);
+        $this->assertSame('', $device->sentTopic);
+    }
+
+    public function testReportingWizardConfiguresReportingOnFinalConfirmation(): void
+    {
+        [$iid] = $this->createTestInstance('MixedLightSensor.json');
+        $device = $this->createDeviceOptionFormTestDouble();
+        $device->bridgeFunctionResult = true;
+        $form = json_decode(IPS_GetConfigurationForm($iid), true, 512, JSON_THROW_ON_ERROR);
+        $wizard = $this->findFormItemByName($form, 'ReportingWizard');
+        $this->assertNotNull($wizard);
+        $this->assertSame('PopupButton', $wizard['type']);
+        $this->assertArrayNotHasKey('onClick', $wizard);
+        $this->assertCount(2, $wizard['popup']['pages']);
+
+        [$target, $settings] = $wizard['popup']['pages'];
+        $this->assertArrayNotHasKey('onConfirm', $target);
+        $this->assertStringNotContainsString('ConfigureReporting', json_encode($target, JSON_THROW_ON_ERROR));
+        $this->assertStringContainsString('ReadReporting', json_encode($target, JSON_THROW_ON_ERROR));
+        $this->assertNotNull($this->findFormItemByName($settings, 'ReportingOptions'));
+        $this->assertStringContainsString("IPS_RequestAction(\$id, 'ConfigureReporting'", $settings['onConfirm']);
+        $this->assertSame(1, substr_count(json_encode($form, JSON_THROW_ON_ERROR), "'ConfigureReporting'"));
+        $this->assertSame('', $device->calledBridgeFunction);
+
+        $device->RequestAction('ConfigureReporting', json_encode([
+            'endpoint'  => '1',
+            'cluster'   => 'haElectricalMeasurement',
+            'attribute' => 'activePower',
+            'minimum'   => 10,
+            'maximum'   => 300,
+            'change'    => '5',
+            'options'   => '{"timeout":1000}'
+        ], JSON_THROW_ON_ERROR));
+
+        $this->assertSame('ConfigureReporting', $device->calledBridgeFunction);
+        $this->assertSame([
+            'Flur/Beleuchtung/Unten', '1', 'haElectricalMeasurement', 'activePower', 10, 300, '5', '{"timeout":1000}'
+        ], $device->calledBridgeArguments);
+        $this->assertSame(true, $device->updatedFields['ReportingConfigurationResult']['visible']);
+        $this->assertSame(
+            $device->Translate('Zigbee2MQTT confirmed the reporting configuration.'),
+            $device->updatedFields['ReportingConfigurationResult']['caption']
+        );
+    }
+
+    public function testReportingConfigurationRejectsInvalidOptionsBeforeCallingBridge(): void
+    {
+        $device = $this->createDeviceOptionFormTestDouble();
+        $notices = [];
+        set_error_handler(static function (int $severity, string $message) use (&$notices): bool
+        {
+            $notices[] = $message;
+            return true;
+        }, E_USER_NOTICE);
+        try {
+            $device->RequestAction('ConfigureReporting', json_encode([
+                'endpoint'  => '1',
+                'cluster'   => 'haElectricalMeasurement',
+                'attribute' => 'activePower',
+                'options'   => '[]'
+            ], JSON_THROW_ON_ERROR));
+        } finally {
+            restore_error_handler();
+        }
+
+        $this->assertSame([$device->Translate('Options must be a JSON object.')], $notices);
+        $this->assertSame('', $device->calledBridgeFunction);
+        $this->assertSame('', $device->sentTopic);
+        $this->assertSame(
+            $device->Translate('Zigbee2MQTT did not confirm the reporting configuration.'),
+            $device->updatedFields['ReportingConfigurationResult']['caption']
+        );
     }
 
     public function testBindingAndReportingSectionShowsEndpointHintWhenEndpointDataIsMissing(): void

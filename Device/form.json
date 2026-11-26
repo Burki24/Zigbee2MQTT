@@ -671,81 +671,93 @@
                             "expanded": false,
                             "items": [
                                 {
-                                    "type": "RowLayout",
-                                    "items": [
-                                        {
-                                            "type": "Select",
-                                            "name": "ReportingEndpoint",
-                                            "caption": "Endpoint",
-                                            "options": [],
-                                            "onChange": "IPS_RequestAction($id, 'UpdateReportingSelection', json_encode(['endpoint' => $ReportingEndpoint, 'cluster' => $ReportingCluster, 'attribute' => $ReportingAttribute]));"
-                                        },
-                                        {
-                                            "type": "Select",
-                                            "name": "ReportingCluster",
-                                            "caption": "Cluster",
-                                            "options": [],
-                                            "onChange": "IPS_RequestAction($id, 'UpdateReportingSelection', json_encode(['endpoint' => $ReportingEndpoint, 'cluster' => $ReportingCluster, 'attribute' => $ReportingAttribute]));"
-                                        },
-                                        {
-                                            "type": "Select",
-                                            "name": "ReportingAttribute",
-                                            "caption": "Attribute",
-                                            "options": []
-                                        }
-                                    ]
-                                },
-                                {
-                                    "type": "RowLayout",
-                                    "items": [
-                                        {
-                                            "type": "NumberSpinner",
-                                            "name": "ReportingMinimumInterval",
-                                            "caption": "Minimum interval",
-                                            "minimum": 0,
-                                            "maximum": 65535,
-                                            "suffix": " s"
-                                        },
-                                        {
-                                            "type": "NumberSpinner",
-                                            "name": "ReportingMaximumInterval",
-                                            "caption": "Maximum interval",
-                                            "minimum": 0,
-                                            "maximum": 65535,
-                                            "suffix": " s"
-                                        },
-                                        {
-                                            "type": "ValidationTextBox",
-                                            "name": "ReportingReportableChange",
-                                            "caption": "Reportable change"
-                                        }
-                                    ]
-                                },
-                                {
-                                    "type": "ValidationTextBox",
-                                    "name": "ReportingOptions",
-                                    "caption": "Options JSON"
+                                    "type": "PopupButton",
+                                    "name": "ReportingWizard",
+                                    "caption": "Configure reporting",
+                                    "popup": {
+                                        "pages": [
+                                            {
+                                                "caption": "Reporting target (1/2)",
+                                                "items": [
+                                                    {
+                                                        "type": "Select",
+                                                        "name": "ReportingEndpoint",
+                                                        "caption": "Endpoint",
+                                                        "options": [],
+                                                        "onChange": "IPS_RequestAction($id, 'UpdateReportingSelection', json_encode(['endpoint' => $ReportingEndpoint, 'cluster' => $ReportingCluster, 'attribute' => $ReportingAttribute]));"
+                                                    },
+                                                    {
+                                                        "type": "Select",
+                                                        "name": "ReportingCluster",
+                                                        "caption": "Cluster",
+                                                        "options": [],
+                                                        "onChange": "IPS_RequestAction($id, 'UpdateReportingSelection', json_encode(['endpoint' => $ReportingEndpoint, 'cluster' => $ReportingCluster, 'attribute' => $ReportingAttribute]));"
+                                                    },
+                                                    {
+                                                        "type": "Select",
+                                                        "name": "ReportingAttribute",
+                                                        "caption": "Attribute",
+                                                        "options": []
+                                                    },
+                                                    {
+                                                        "type": "Button",
+                                                        "caption": "Read reporting",
+                                                        "onClick": "IPS_RequestAction($id, 'ReadReporting', json_encode(['endpoint' => $ReportingEndpoint, 'cluster' => $ReportingCluster, 'attribute' => $ReportingAttribute]));"
+                                                    },
+                                                    {
+                                                        "type": "Label",
+                                                        "name": "ReportingResult",
+                                                        "visible": false,
+                                                        "caption": ""
+                                                    }
+                                                ],
+                                                "validate": "return ((string) $ReportingCluster === '' || (string) $ReportingAttribute === '') ? 'Cluster and attribute are required.' : '';"
+                                            },
+                                            {
+                                                "caption": "Reporting settings (2/2)",
+                                                "items": [
+                                                    {
+                                                        "type": "NumberSpinner",
+                                                        "name": "ReportingMinimumInterval",
+                                                        "caption": "Minimum interval",
+                                                        "minimum": 0,
+                                                        "maximum": 65535,
+                                                        "suffix": " s"
+                                                    },
+                                                    {
+                                                        "type": "NumberSpinner",
+                                                        "name": "ReportingMaximumInterval",
+                                                        "caption": "Maximum interval",
+                                                        "minimum": 0,
+                                                        "maximum": 65535,
+                                                        "suffix": " s"
+                                                    },
+                                                    {
+                                                        "type": "ValidationTextBox",
+                                                        "name": "ReportingReportableChange",
+                                                        "caption": "Reportable change"
+                                                    },
+                                                    {
+                                                        "type": "ValidationTextBox",
+                                                        "name": "ReportingOptions",
+                                                        "caption": "Options JSON"
+                                                    },
+                                                    {
+                                                        "type": "Label",
+                                                        "caption": "Confirm to send these settings to Zigbee2MQTT."
+                                                    }
+                                                ],
+                                                "validate": "$options = trim((string) $ReportingOptions); return ($options !== '' && !is_object(json_decode($options))) ? 'Options must be a JSON object.' : '';",
+                                                "onConfirm": "IPS_RequestAction($id, 'ConfigureReporting', json_encode(['endpoint' => $ReportingEndpoint, 'cluster' => $ReportingCluster, 'attribute' => $ReportingAttribute, 'minimum' => $ReportingMinimumInterval, 'maximum' => $ReportingMaximumInterval, 'change' => $ReportingReportableChange, 'options' => $ReportingOptions]));"
+                                            }
+                                        ]
+                                    }
                                 },
                                 {
                                     "type": "Label",
-                                    "name": "ReportingResult",
+                                    "name": "ReportingConfigurationResult",
                                     "visible": false,
                                     "caption": ""
-                                },
-                                {
-                                    "type": "RowLayout",
-                                    "items": [
-                                        {
-                                            "type": "Button",
-                                            "caption": "Configure reporting",
-                                            "onClick": "IPS_RequestAction($id, 'ConfigureReporting', json_encode(['endpoint' => $ReportingEndpoint, 'cluster' => $ReportingCluster, 'attribute' => $ReportingAttribute, 'minimum' => $ReportingMinimumInterval, 'maximum' => $ReportingMaximumInterval, 'change' => $ReportingReportableChange, 'options' => $ReportingOptions]));"
-                                        },
-                                        {
-                                            "type": "Button",
-                                            "caption": "Read reporting",
-                                            "onClick": "IPS_RequestAction($id, 'ReadReporting', json_encode(['endpoint' => $ReportingEndpoint, 'cluster' => $ReportingCluster, 'attribute' => $ReportingAttribute]));"
-                                        }
-                                    ]
                                 }
                             ]
                         }
