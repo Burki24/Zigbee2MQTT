@@ -254,11 +254,11 @@ Zigbee2MQTT liefert je nach Gerät allgemeine und gerätespezifische Optionen. I
 
 ![Geräteoptionen](imgs/geraeteoptionen.png)
 
-Wird eine Option über `Bearbeiten` ausgewählt, passt sich der Editor an den Optionstyp an. Bei `Wahr/Falsch` erscheint z. B. ein Schalter, bei Listen eine JSON-/Attributauswahl und bei Zahlen oder Texten ein Eingabefeld.
+Beim Markieren einer Zeile übernimmt der Editor den aktuellen Wert und passt sich an den Optionstyp an. Bei `Wahr/Falsch` erscheint z. B. ein Schalter, bei Listen eine JSON-/Attributauswahl und bei Zahlen oder Texten ein Eingabefeld.
 
 ![Geräteoptionen Editor](imgs/geraeteoptionen-editor.png)
 
-Die Änderung wird über `bridge/request/device/options` an Zigbee2MQTT gesendet. Wenn eine passende Bridge-Instanz mit gleichem MQTT-Basistopic und demselben verbundenen MQTT-Splitter vorhanden ist, wird diese für die Anfrage genutzt und die Zigbee2MQTT-Antwort geprüft.
+**Option übernehmen** sendet die Änderung über `bridge/request/device/options` an Zigbee2MQTT. Wenn eine passende Bridge-Instanz mit gleichem MQTT-Basistopic und demselben verbundenen MQTT-Splitter vorhanden ist, wird diese für die Anfrage genutzt und die Zigbee2MQTT-Antwort geprüft.
 
 Soweit der Typ bekannt ist, zeigt das Formular passende Editoren:
 

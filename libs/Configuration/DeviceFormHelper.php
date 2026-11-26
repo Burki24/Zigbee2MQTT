@@ -696,8 +696,7 @@ trait DeviceFormHelper
                 'name'        => $name,
                 'type'        => $this->Translate($this->FormatDeviceOptionType($type)),
                 'current'     => \array_key_exists($name, $options) ? $this->FormatDeviceOptionValue($currentValue) : '',
-                'description' => $description === '' ? '' : $this->Translate($description),
-                'action'      => $this->Translate('Edit')
+                'description' => $description === '' ? '' : $this->Translate($description)
             ];
         }
 

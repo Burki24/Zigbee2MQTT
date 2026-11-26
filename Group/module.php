@@ -560,8 +560,7 @@ class Zigbee2MQTTGroup extends \Zigbee2MQTT\ModulBase
                 'type'          => $this->Translate($this->FormatGroupOptionType((string) $definition['type'])),
                 'current'       => $hasCurrentValue ? $this->FormatGroupFormValue($currentOptions[$name]) : '',
                 'default_value' => $this->FormatGroupFormValue($definition['default'] ?? ''),
-                'description'   => $this->Translate($definition['description']),
-                'action'        => $this->Translate('Edit')
+                'description'   => $this->Translate($definition['description'])
             ];
 
             unset($currentOptions[$name]);
@@ -573,8 +572,7 @@ class Zigbee2MQTTGroup extends \Zigbee2MQTT\ModulBase
                 'type'          => $this->Translate('Mixed'),
                 'current'       => $this->FormatGroupFormValue($currentValue),
                 'default_value' => '',
-                'description'   => $this->Translate('Option returned by Zigbee2MQTT.'),
-                'action'        => $this->Translate('Edit')
+                'description'   => $this->Translate('Option returned by Zigbee2MQTT.')
             ];
         }
 
@@ -594,9 +592,8 @@ class Zigbee2MQTTGroup extends \Zigbee2MQTT\ModulBase
             }
 
             $values[] = [
-                'id'     => (string) ($scene['id'] ?? $scene['ID'] ?? ''),
-                'name'   => (string) ($scene['name'] ?? ''),
-                'action' => $this->Translate('Edit')
+                'id'   => (string) ($scene['id'] ?? $scene['ID'] ?? ''),
+                'name' => (string) ($scene['name'] ?? '')
             ];
         }
 

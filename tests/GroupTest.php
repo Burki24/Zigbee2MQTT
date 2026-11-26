@@ -352,7 +352,26 @@ class GroupTest extends DumpInclude
         $this->assertSame('true', $retainOption['current']);
 
         $scenes = json_decode($group->updatedFields['GroupSceneList']['values'], true);
-        $this->assertSame([['id' => '1', 'name' => 'Abend', 'action' => 'Bearbeiten']], $scenes);
+        $this->assertSame([['id' => '1', 'name' => 'Abend']], $scenes);
+    }
+
+    public function testSelectingGroupScenePrefillsSceneFields(): void
+    {
+        $group = $this->createGroupFormTestDouble([]);
+        $group->setGroupInfoForRefreshTest(['scenes' => [['id' => 1, 'name' => 'Abend']]]);
+        $group->RequestAction('RefreshGroupInfo', true);
+        $group->updatedFields = [];
+
+        $form = json_decode($group->GetConfigurationForm(), true);
+        $list = $this->findFormItemByName($form, 'GroupSceneList');
+        $this->assertGroupSelectionAction($list, 'SelectGroupScene', 'id');
+        $group->RequestAction('SelectGroupScene', json_encode($list['values'][0]));
+
+        $this->assertSame([
+            'GroupSceneID'   => ['value' => 1],
+            'GroupSceneName' => ['value' => 'Abend'],
+            'GroupSceneJson' => ['value' => '{"ID":1,"name":"Abend"}']
+        ], $group->updatedFields);
     }
 
     public function testOfflineGroupMemberRequestShowsPopupInsteadOfNotice(): void
@@ -381,6 +400,8 @@ class GroupTest extends DumpInclude
         $list = $this->findFormItemByName($form, 'GroupOptionList');
 
         $this->assertNotNull($list);
+        $this->assertGroupSelectionAction($list, 'SelectGroupOption', 'current');
+        $this->assertStringContainsString("['default_value']", $list['onSelectionChanged']);
         $values = [];
         foreach ($list['values'] as $value) {
             $values[$value['name']] = $value;
@@ -779,15 +800,14 @@ class GroupTest extends DumpInclude
         return $group;
     }
 
-    private function assertGroupSelectionAction(array $list, string $action, string $deviceColumn): void
+    private function assertGroupSelectionAction(array $list, string $action, string $column): void
     {
         $this->assertNotContains('action', array_column($list['columns'], 'name'));
         $callback = $list['onSelectionChanged'] ?? '';
 
         $this->assertStringContainsString("IPS_RequestAction(\$id, '$action'", $callback);
-        $this->assertStringContainsString("['$deviceColumn']", $callback);
-        $this->assertStringNotContainsString('AddGroupMember', $callback);
-        $this->assertStringNotContainsString('RemoveGroupMember', $callback);
+        $this->assertStringContainsString("['$column']", $callback);
+        $this->assertSame(1, substr_count($callback, 'IPS_RequestAction('));
     }
 
     private function findFormItemByName(array $node, string $name): ?array

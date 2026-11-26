@@ -257,6 +257,7 @@
                         {
                             "type": "List",
                             "name": "DeviceOptionList",
+                            "onSelectionChanged": "IPS_RequestAction($id, 'SelectDeviceOption', json_encode(['name' => $DeviceOptionList['name'], 'value' => $DeviceOptionList['current']]));",
                             "add": false,
                             "delete": false,
                             "rowCount": 8,
@@ -292,13 +293,6 @@
                                     "caption": "Description",
                                     "name": "description",
                                     "width": "300px"
-                                },
-                                {
-                                    "caption": "Action",
-                                    "name": "action",
-                                    "width": "100px",
-                                    "align": "center",
-                                    "onClick": "IPS_RequestAction($id, 'SelectDeviceOption', json_encode(['name' => $DeviceOptionList['name'], 'value' => $DeviceOptionList['current']]));"
                                 }
                             ],
                             "values": []

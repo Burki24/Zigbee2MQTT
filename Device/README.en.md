@@ -105,7 +105,7 @@ These commands do not delete the Symcon instance or its variables. Use force rem
 
 ## Device options
 
-Known general options and device-specific `definition.options` appear under **Advanced device settings → Device options**, with current value, type and description. **Edit** selects a typed editor: Boolean switch, enumeration, number/text input, JSON array/object, or an attribute selector. Changes are sent to Zigbee2MQTT via `bridge/request/device/options`; a matching Bridge is used to check responses when available.
+Known general options and device-specific `definition.options` appear under **Advanced device settings → Device options**, with current value, type and description. Selecting a row fills in the current value and opens the appropriate editor for that option. **Apply option** sends the change via `bridge/request/device/options`. A matching Bridge checks the response when available.
 
 General options include `debounce`, `debounce_ignore`, `disable_automatic_update_check`, `disabled`, `filtered_attributes`, `filtered_cache`, `filtered_optimistic`, `homeassistant`, `icon`, `optimistic`, `qos`, `retain`, `retention`, `throttle` and `transition`.
 

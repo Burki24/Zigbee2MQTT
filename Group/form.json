@@ -147,6 +147,7 @@
                 {
                     "type": "List",
                     "name": "GroupSceneList",
+                    "onSelectionChanged": "IPS_RequestAction($id, 'SelectGroupScene', json_encode(['id' => $GroupSceneList['id'], 'name' => $GroupSceneList['name']]));",
                     "add": false,
                     "delete": false,
                     "rowCount": 4,
@@ -162,13 +163,6 @@
                             "name": "name",
                             "width": "auto",
                             "quickFilter": true
-                        },
-                        {
-                            "caption": "Action",
-                            "name": "action",
-                            "width": "100px",
-                            "align": "center",
-                            "onClick": "IPS_RequestAction($id, 'SelectGroupScene', json_encode(['id' => $GroupSceneList['id'], 'name' => $GroupSceneList['name']]));"
                         }
                     ],
                     "values": []
@@ -246,6 +240,7 @@
                 {
                     "type": "List",
                     "name": "GroupOptionList",
+                    "onSelectionChanged": "IPS_RequestAction($id, 'SelectGroupOption', json_encode(['name' => $GroupOptionList['name'], 'value' => ($GroupOptionList['current'] !== '' ? $GroupOptionList['current'] : $GroupOptionList['default_value'])]));",
                     "add": false,
                     "delete": false,
                     "rowCount": 4,
@@ -276,13 +271,6 @@
                             "caption": "Description",
                             "name": "description",
                             "width": "auto"
-                        },
-                        {
-                            "caption": "Action",
-                            "name": "action",
-                            "width": "100px",
-                            "align": "center",
-                            "onClick": "IPS_RequestAction($id, 'SelectGroupOption', json_encode(['name' => $GroupOptionList['name'], 'value' => ($GroupOptionList['current'] !== '' ? $GroupOptionList['current'] : $GroupOptionList['default_value'])]));"
                         }
                     ],
                     "values": []

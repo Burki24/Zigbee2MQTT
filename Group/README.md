@@ -129,11 +129,11 @@ Das Modul kennt die wichtigsten Zigbee2MQTT-Gruppenoptionen:
 | `filtered_attributes` | Array | Attribute, die Zigbee2MQTT für diese Gruppe nicht veröffentlichen soll |
 | `homeassistant` | Object | Home-Assistant-Discovery-Eigenschaften der Gruppe überschreiben |
 
-Für Boolean- und Enum-Optionen werden Schalter bzw. Auswahllisten angezeigt. Für `filtered_attributes` gibt es eine Attributauswahl aus bekannten Exposes, vorhandenen Variablen und bereits gesetzten Werten. Objektwerte wie `homeassistant` müssen als JSON-Objekt eingetragen werden.
+Beim Markieren einer Zeile übernimmt der passende Editor den aktuellen Wert oder den Standardwert. **Option übernehmen** sendet die neue Einstellung. Für Boolean- und Enum-Optionen werden Schalter bzw. Auswahllisten angezeigt. Für `filtered_attributes` gibt es eine Attributauswahl aus bekannten Exposes, vorhandenen Variablen und bereits gesetzten Werten. Objektwerte wie `homeassistant` müssen als JSON-Objekt eingetragen werden.
 
 **Szenen**
 
-Szenen können aus dem aktuellen Gruppenstatus gespeichert, als vollständige JSON-Definition hinzugefügt, abgerufen, umbenannt und gelöscht werden. `Scene ID` entspricht der Zigbee2MQTT-Szenen-ID. `Scene JSON` wird für erweiterte Szenendefinitionen verwendet, z. B. wenn zusätzliche Werte wie Helligkeit oder Farbe direkt mitgegeben werden sollen.
+Beim Markieren einer Szene werden ID und Name übernommen. Speichern, Hinzufügen, Abrufen, Umbenennen und Löschen erfolgen über die jeweiligen Schaltflächen. **Szenen-JSON** kann beim Hinzufügen eine erweiterte Szenendefinition mit Werten wie Helligkeit oder Farbe aufnehmen.
 
 > [!NOTE]
 > Im klassischen WebFront können neue Variablen zunächst Rohwerte und Eingabefelder zeigen. Nach dem Neuladen der Browserseite werden die nativen Darstellungen korrekt übernommen. Das Verhalten wurde unter Symcon 9.1 unabhängig vom Modul reproduziert und für 9.0 gemeldet; die Kachel-Visualisierung ist nicht betroffen.

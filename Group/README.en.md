@@ -47,11 +47,11 @@ Changes go through the Bridge to Zigbee2MQTT. An offline member produces a reada
 | `filtered_attributes` | Array | Attributes Zigbee2MQTT should omit from published payloads. |
 | `homeassistant` | Object | Override Home Assistant discovery properties. |
 
-The editor follows the option type: switches, choices, numeric/text input or JSON. Attribute lists combine exposes, existing variables and saved values. Objects must be valid JSON, e.g. `{"key":"value"}`. The Bridge reports when Zigbee2MQTT requires a restart.
+Selecting a row fills in the current or default value in the appropriate editor. **Apply option** sends the new setting. Attribute lists combine exposes, existing variables and saved values. Objects must be valid JSON, e.g. `{"key":"value"}`. The Bridge reports when Zigbee2MQTT requires a restart.
 
 ## Scenes
 
-Store the current group state as a scene, add an extended JSON scene, recall, rename or delete scenes. **Scene ID** is the Zigbee2MQTT scene ID; **Scene JSON** supplies extended values such as brightness/color when adding a scene. Recall sends the scene ID to the group, reducing traffic compared with individual state commands. A scene must exist before recall, and members must support Zigbee scenes.
+Selecting a scene fills in its ID and name. Use the corresponding buttons to store the current group state, add an extended JSON scene, recall, rename or delete a scene. **Scene JSON** supplies extended values such as brightness or color when adding a scene. Recall sends the scene ID to the group, reducing traffic compared with individual state commands. A scene must exist before recall, and members must support Zigbee scenes.
 
 ## Variables and visualization
 

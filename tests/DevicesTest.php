@@ -2269,11 +2269,16 @@ class DevicesTest extends DumpInclude
 
         $list = $this->findFormItemByName($form, 'DeviceOptionList');
         $this->assertNotNull($list);
+        $this->assertNotContains('action', array_column($list['columns'], 'name'));
+        $callback = $list['onSelectionChanged'] ?? '';
+        $this->assertStringContainsString("IPS_RequestAction(\$id, 'SelectDeviceOption'", $callback);
+        $this->assertStringContainsString("\$DeviceOptionList['current']", $callback);
+        $this->assertSame(1, substr_count($callback, 'IPS_RequestAction('));
 
         $filteredAttributes = $this->findDeviceOptionRow($list['values'], 'filtered_attributes');
         $this->assertNotNull($filteredAttributes);
         $this->assertSame('["battery"]', $filteredAttributes['current']);
-        $this->assertSame('Bearbeiten', $filteredAttributes['action']);
+        $this->assertArrayNotHasKey('action', $filteredAttributes);
 
         $temperaturePrecision = $this->findDeviceOptionRow($list['values'], 'temperature_precision');
         $this->assertNotNull($temperaturePrecision);
@@ -2310,6 +2315,8 @@ class DevicesTest extends DumpInclude
         $this->assertSame(true, $device->updatedFields['DeviceOptionBoolean']['visible']);
         $this->assertSame(true, $device->updatedFields['DeviceOptionBoolean']['value']);
         $this->assertSame(false, $device->updatedFields['DeviceOptionSelect']['visible']);
+        $this->assertSame('', $device->sentTopic);
+        $this->assertSame('', $device->calledBridgeFunction);
     }
 
     public function testSelectingDeviceOptionShowsSelectEditor(): void
