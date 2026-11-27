@@ -253,6 +253,82 @@ class NetworkMapTest extends TestCase
         $this->assertFalse($map->updatedFields['SelectedNodeLinksHeading']['visible']);
     }
 
+    public function testSelectingNetworkMapLinkShowsOnlyItsCachedRoutes(): void
+    {
+        $map = $this->createMapTestDouble();
+        $topology = [
+            'nodes' => [
+                ['ieeeAddr' => '0x01', 'friendlyName' => 'Router'],
+                ['ieeeAddr' => '0x02', 'friendlyName' => 'Router'],
+                ['ieeeAddr' => '0x03', 'friendlyName' => 'Lamp']
+            ],
+            'links' => [
+                [
+                    'source' => ['ieeeAddr' => '0x01'],
+                    'target' => ['ieeeAddr' => '0x02'],
+                    'routes' => [
+                        ['destinationAddress' => 10, 'nextHopAddress' => 1, 'status' => 0]
+                    ]
+                ],
+                [
+                    'sourceIeeeAddr' => '0x02',
+                    'targetIeeeAddr' => '0x01',
+                    'routes'         => [
+                        ['destinationAddress' => 20, 'nextHopAddress' => 2, 'status' => 3]
+                    ]
+                ],
+                ['sourceIeeeAddr' => '0x01', 'targetIeeeAddr' => '0x03']
+            ]
+        ];
+        $map->ReceiveData($this->buildRawResponse($topology, true));
+        $form = json_decode($map->GetConfigurationForm(), true, 512, JSON_THROW_ON_ERROR);
+        $links = $this->findFormField($form, 'LinkList');
+        $this->assertStringContainsString("'SelectNetworkMapLink'", $links['onSelectionChanged'] ?? '');
+        $this->assertFalse($this->findFormField($form, 'SelectedLinkRoutesHeading')['visible']);
+        $this->assertFalse($this->findFormField($form, 'SelectedLinkRoutes')['visible']);
+        $this->assertCount(2, $this->findFormField($form, 'RouteList')['values']);
+        $keys = array_column($links['values'], 'link_key');
+        $this->assertCount(3, array_unique($keys));
+
+        $storedTopology = $map->readMapAttribute('Topology');
+        $storedScan = $map->readMapAttribute('Scan');
+        $map->lastTopic = '';
+        $map->updatedFields = [];
+        $map->RequestAction('SelectNetworkMapLink', $keys[0]);
+        $this->assertTrue($map->updatedFields['SelectedLinkRoutesHeading']['visible']);
+        $this->assertTrue($map->updatedFields['SelectedLinkRoutes']['visible']);
+        $this->assertSame([
+            ['router' => 'Router', 'destination' => '0x000A', 'next_hop' => '0x0001', 'status' => $map->Translate('Active')]
+        ], json_decode($map->updatedFields['SelectedLinkRoutes']['values'], true, 512, JSON_THROW_ON_ERROR));
+
+        $map->RequestAction('SelectNetworkMapLink', $keys[1]);
+        $this->assertSame([
+            ['router' => 'Router', 'destination' => '0x0014', 'next_hop' => '0x0002', 'status' => $map->Translate('Inactive')]
+        ], json_decode($map->updatedFields['SelectedLinkRoutes']['values'], true, 512, JSON_THROW_ON_ERROR));
+        $map->RequestAction('SelectNetworkMapLink', $keys[2]);
+        $this->assertFalse($map->updatedFields['SelectedLinkRoutes']['visible']);
+        $this->assertTrue($map->updatedFields['SelectedLinkRoutesHeading']['visible']);
+        $this->assertSame(
+            \sprintf($map->Translate('No routes for %s → %s in the last scan.'), 'Router', 'Lamp'),
+            $map->updatedFields['SelectedLinkRoutesHeading']['caption']
+        );
+        $this->assertArrayNotHasKey('RouteList', $map->updatedFields);
+        $this->assertSame('', $map->lastTopic);
+        $this->assertSame($storedTopology, $map->readMapAttribute('Topology'));
+        $this->assertSame($storedScan, $map->readMapAttribute('Scan'));
+
+        $map->RequestAction('SelectNetworkMapLink', $keys[0]);
+        $map->ReceiveData($this->buildRawResponse([
+            'nodes' => $topology['nodes'],
+            'links' => array_reverse($topology['links'])
+        ], true));
+        $this->assertFalse($map->updatedFields['SelectedLinkRoutesHeading']['visible']);
+        $this->assertFalse($map->updatedFields['SelectedLinkRoutes']['visible']);
+        $map->RequestAction('SelectNetworkMapLink', $keys[0]);
+        $this->assertFalse($map->updatedFields['SelectedLinkRoutesHeading']['visible']);
+        $this->assertFalse($map->updatedFields['SelectedLinkRoutes']['visible']);
+    }
+
     #[RunInSeparateProcess]
     public function testNativeFullscreenKeepsTheInteractiveTileOnSymcon91(): void
     {

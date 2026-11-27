@@ -202,6 +202,7 @@
                 {
                     "type": "List",
                     "name": "LinkList",
+                    "onSelectionChanged": "IPS_RequestAction($id, 'SelectNetworkMapLink', (string) ($LinkList['link_key'] ?? ''));",
                     "add": false,
                     "delete": false,
                     "rowCount": 5,
@@ -238,6 +239,52 @@
                             "caption": "Routes",
                             "name": "routes",
                             "width": "80px"
+                        },
+                        {
+                            "caption": "",
+                            "name": "link_key",
+                            "width": "0px",
+                            "visible": false
+                        }
+                    ],
+                    "values": []
+                },
+                {
+                    "type": "Label",
+                    "name": "SelectedLinkRoutesHeading",
+                    "caption": "",
+                    "bold": true,
+                    "link": false,
+                    "visible": false
+                },
+                {
+                    "type": "List",
+                    "name": "SelectedLinkRoutes",
+                    "visible": false,
+                    "add": false,
+                    "delete": false,
+                    "rowCount": 3,
+                    "loadValuesFromConfiguration": false,
+                    "columns": [
+                        {
+                            "caption": "Router",
+                            "name": "router",
+                            "width": "auto"
+                        },
+                        {
+                            "caption": "Destination",
+                            "name": "destination",
+                            "width": "150px"
+                        },
+                        {
+                            "caption": "Next hop",
+                            "name": "next_hop",
+                            "width": "150px"
+                        },
+                        {
+                            "caption": "Status",
+                            "name": "status",
+                            "width": "180px"
                         }
                     ],
                     "values": []

@@ -298,6 +298,9 @@ class Zigbee2MQTTNetworkMap extends IPSModuleStrict
             case 'SelectNetworkMapNode':
                 $this->UpdateSelectedNodeConnections(\is_string($Value) ? $Value : '');
                 break;
+            case 'SelectNetworkMapLink':
+                $this->UpdateSelectedLinkRoutes(\is_string($Value) ? $Value : '');
+                break;
             case 'CreateExportFiles':
                 if (!$this->HasTopology()) {
                     $this->ShowMessage('No network analysis available yet', 'Start a network analysis before creating exports.');
@@ -401,6 +404,7 @@ class Zigbee2MQTTNetworkMap extends IPSModuleStrict
         $this->WriteAttributeArray(self::ATTRIBUTE_SCAN, $scan);
         $this->SetScanStatusTimerInterval(0);
         $this->UpdateSelectedNodeConnections('');
+        $this->UpdateSelectedLinkRoutes('');
         $this->UpdateVisibleData();
         return '';
     }
@@ -465,9 +469,30 @@ class Zigbee2MQTTNetworkMap extends IPSModuleStrict
     }
 
     /**
+     * Zeigt die gespeicherten Routen der ausgewaehlten Verbindung.
+     */
+    private function UpdateSelectedLinkRoutes(string $linkKey): void
+    {
+        $data = $linkKey === '' ? [] : $this->BuildFormData(selectedLinkKey: $linkKey);
+        $link = $data['links'][0] ?? null;
+        $routes = $data['routes'] ?? [];
+
+        if ($link !== null) {
+            $caption = $routes === [] ? 'No routes for %s → %s in the last scan.' : 'Routes for %s → %s';
+            $this->UpdateFormField('SelectedLinkRoutesHeading', 'caption', \sprintf($this->Translate($caption), $link['source'], $link['target']));
+        }
+        if ($routes !== []) {
+            $this->UpdateFormField('SelectedLinkRoutes', 'values', json_encode($routes));
+            $this->UpdateFormField('SelectedLinkRoutes', 'rowCount', min(8, max(3, \count($routes) + 1)));
+        }
+        $this->UpdateFormField('SelectedLinkRoutesHeading', 'visible', $link !== null);
+        $this->UpdateFormField('SelectedLinkRoutes', 'visible', $routes !== []);
+    }
+
+    /**
      * Erstellt normalisierte Formularwerte und filtert Verbindungen bei Bedarf.
      */
-    private function BuildFormData(string $selectedIeee = ''): array
+    private function BuildFormData(string $selectedIeee = '', string $selectedLinkKey = ''): array
     {
         $topology = $this->ReadAttributeArray(self::ATTRIBUTE_TOPOLOGY);
         $scan = $this->ReadAttributeArray(self::ATTRIBUTE_SCAN);
@@ -499,13 +524,17 @@ class Zigbee2MQTTNetworkMap extends IPSModuleStrict
 
         $links = [];
         $routes = [];
-        foreach ($topology['links'] ?? [] as $link) {
+        foreach ($topology['links'] ?? [] as $index => $link) {
             if (!\is_array($link)) {
                 continue;
             }
             $sourceIeee = (string) ($link['source']['ieeeAddr'] ?? $link['sourceIeeeAddr'] ?? '');
             $targetIeee = (string) ($link['target']['ieeeAddr'] ?? $link['targetIeeeAddr'] ?? '');
             if ($selectedIeee !== '' && $selectedIeee !== $sourceIeee && $selectedIeee !== $targetIeee) {
+                continue;
+            }
+            $linkKey = json_encode([$topology['captured_at'] ?? 0, $index, $sourceIeee, $targetIeee]);
+            if ($selectedLinkKey !== '' && $selectedLinkKey !== $linkKey) {
                 continue;
             }
             $lqi = (int) ($link['lqi'] ?? $link['linkquality'] ?? 0);
@@ -516,7 +545,8 @@ class Zigbee2MQTTNetworkMap extends IPSModuleStrict
                 'lqi'          => $lqi,
                 'relationship' => $this->FormatRelationship($link['relationship'] ?? ''),
                 'depth'        => (int) ($link['depth'] ?? 0),
-                'routes'       => \count($linkRoutes)
+                'routes'       => \count($linkRoutes),
+                'link_key'     => $linkKey
             ];
             foreach ($linkRoutes as $route) {
                 if (!\is_array($route)) {

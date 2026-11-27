@@ -50,6 +50,8 @@ Die Konfiguration zeigt:
 
 Wählen Sie unter **Geräte** eine Zeile aus, um direkt darunter die ein- und ausgehenden Verbindungen des Geräts aus der letzten Analyse zu sehen. Die Auswahl startet keinen neuen Scan. Wenn eine neue Analyse vorliegt, können Sie das Gerät erneut auswählen.
 
+Wählen Sie unter **Verbindungen** eine Zeile aus, um die gespeicherten Routen genau dieser Richtung zu sehen. Die Detailtabelle zeigt den Router, die Zieladresse, den nächsten Hop und den Status. Sie verwendet die letzte Analyse. Enthält diese für die ausgewählte Verbindung keine Routing-Einträge, erscheint ein Hinweis.
+
 LQI-Werte sind gerichtet und können für Hin- und Rückweg unterschiedlich sein. Ein niedriger LQI oder eine fehlende Verbindung ist ein Diagnosehinweis, aber nicht automatisch ein Gerätefehler.
 
 ## Visualisierung

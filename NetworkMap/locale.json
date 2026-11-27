@@ -33,6 +33,8 @@
             "Relationship": "Beziehung",
             "Depth": "Tiefe",
             "Routes": "Routen",
+            "Routes for %s → %s": "Routen für %s → %s",
+            "No routes for %s → %s in the last scan.": "Die letzte Analyse enthält keine Routen für %s → %s.",
             "Router": "Router",
             "Destination": "Zieladresse",
             "Next hop": "Nächster Hop",
