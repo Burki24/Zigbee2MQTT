@@ -732,6 +732,11 @@
                             "type": "List",
                             "name": "NetworkSecurityAvailableDeviceList",
                             "caption": "Available devices",
+                            "onSelectionChanged": [
+                                "if (!empty($NetworkSecurityAvailableDeviceList['ieee_address'])) {",
+                                "    IPS_RequestAction($id, 'SelectNetworkSecurityDevice', json_encode($NetworkSecurityAvailableDeviceList));",
+                                "}"
+                            ],
                             "add": false,
                             "delete": false,
                             "rowCount": 6,
@@ -748,13 +753,6 @@
                                     "name": "ieee_address",
                                     "width": "180px",
                                     "quickFilter": true
-                                },
-                                {
-                                    "caption": "Action",
-                                    "name": "action",
-                                    "width": "100px",
-                                    "align": "center",
-                                    "onClick": "IPS_RequestAction($id, 'SelectNetworkSecurityDevice', json_encode(['device' => $NetworkSecurityAvailableDeviceList['device'], 'ieee_address' => $NetworkSecurityAvailableDeviceList['ieee_address']]));"
                                 }
                             ],
                             "values": []

@@ -226,7 +226,6 @@
             "Touchlink factory reset": "Touchlink-Factory-Reset",
             "Touchlink scan results": "Touchlink-Scan-Ergebnisse",
             "Channel": "Kanal",
-            "Select": "Auswählen",
             "Touchlink IEEE address and channel are required.": "Touchlink-IEEE-Adresse und Kanal sind erforderlich.",
             "Zigbee2MQTT maintenance": "Zigbee2MQTT-Wartung",
             "Expert bridge action": "Bridge-Expertenaktion",

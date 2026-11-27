@@ -137,17 +137,15 @@ Für eine strukturierte Analyse mit Geräte-, Verbindungs-, Routen- und Fehlerli
 
 Die Netzwerksicherheit befindet sich unter **Erweiterte Administration**. Die `blocklist` blockiert Geräte anhand ihrer IEEE-Adresse. Die `passlist` ist restriktiver: Zigbee2MQTT entfernt Geräte aus dem Netzwerk, die nicht in der Passlist stehen. Deshalb verlangt die Bridge-Konfiguration vor Passlist-Änderungen eine Bestätigung. Die Geräteauswahl wird als filterbare Liste aus bereits empfangenen Zigbee2MQTT-Gerätedaten, vorhandenen Device-Instanzen mit demselben MQTT-Splitter und MQTT-Basistopic sowie bei Bedarf aus der Symcon-Extension aufgebaut. Über **Verfügbare Geräte aktualisieren** wird die geöffnete Liste neu aus diesen Datenquellen aufgebaut.
 
-![Netzwerksicherheit](imgs/network-security.png)
-
-| Nr. | Bereich | Bedeutung |
-| --- | --- | --- |
-| **1** | Verfügbare Geräte aktualisieren | Baut die Auswahlliste aus den aktuell bekannten Zigbee2MQTT-Geräten und passenden Symcon-Instanzen neu auf. |
-| **2** | Verfügbare Geräte | Zeigt bekannte Geräte mit IEEE-Adresse. Über **Auswählen** wird ein Gerät für die nächste Aktion übernommen. |
-| **3** | Ausgewähltes Gerät / Manuelle IEEE-Adresse | Zeigt das ausgewählte Gerät und dessen IEEE-Adresse. Alternativ kann eine IEEE-Adresse im Format `0x` gefolgt von 16 Hexadezimalzeichen manuell eingegeben werden. |
-| **4** | Zur Blocklist hinzufügen | Fügt das ausgewählte oder manuell eingegebene Gerät unmittelbar zur Zigbee2MQTT-Blocklist hinzu. |
-| **5** | Zur Passlist hinzufügen | Fügt das Gerät nach einer Sicherheitsabfrage zur restriktiven Zigbee2MQTT-Passlist hinzu. |
-| **6** | Blocklist | Zeigt alle aktuell blockierten IEEE-Adressen. Vorhandene Einträge können über die Aktion in der jeweiligen Zeile entfernt werden. |
-| **7** | Passlist | Zeigt alle ausdrücklich zugelassenen IEEE-Adressen. Das Entfernen eines Eintrags erfordert ebenfalls eine Sicherheitsabfrage. |
+| Bereich | Bedeutung |
+| --- | --- |
+| Verfügbare Geräte aktualisieren | Baut die Auswahlliste aus den aktuell bekannten Zigbee2MQTT-Geräten und passenden Symcon-Instanzen neu auf. |
+| Verfügbare Geräte | Der Schnellfilter durchsucht Gerätenamen und IEEE-Adressen. Die Auswahl einer Zeile übernimmt das Gerät für die nächste Aktion. |
+| Ausgewähltes Gerät / Manuelle IEEE-Adresse | Zeigt das ausgewählte Gerät und dessen IEEE-Adresse. Alternativ kann eine IEEE-Adresse im Format `0x` gefolgt von 16 Hexadezimalzeichen manuell eingegeben werden. |
+| Zur Blocklist hinzufügen | Fügt das ausgewählte oder manuell eingegebene Gerät unmittelbar zur Zigbee2MQTT-Blocklist hinzu. |
+| Zur Passlist hinzufügen | Fügt das Gerät nach einer Sicherheitsabfrage zur restriktiven Zigbee2MQTT-Passlist hinzu. |
+| Blocklist | Zeigt alle aktuell blockierten IEEE-Adressen. Vorhandene Einträge können über die Aktion in der jeweiligen Zeile entfernt werden. |
+| Passlist | Zeigt alle ausdrücklich zugelassenen IEEE-Adressen. Das Entfernen eines Eintrags erfordert ebenfalls eine Sicherheitsabfrage. |
 
 > [!WARNING]
 > Die Passlist ist restriktiv. Sobald sie verwendet wird, entfernt Zigbee2MQTT Geräte aus dem Netzwerk, deren IEEE-Adresse nicht in der Passlist enthalten ist. Vor dem Hinzufügen oder Entfernen von Einträgen sollte deshalb geprüft werden, ob alle weiterhin benötigten Geräte enthalten sind.

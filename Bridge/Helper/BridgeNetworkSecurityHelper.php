@@ -208,8 +208,7 @@ trait BridgeNetworkSecurityHelper
 
             $values[] = [
                 'device'       => $caption,
-                'ieee_address' => $ieeeAddress,
-                'action'       => $this->Translate('Select')
+                'ieee_address' => $ieeeAddress
             ];
         }
 

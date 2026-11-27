@@ -1304,6 +1304,14 @@ class BridgeTest extends TestCase
     public function testSelectNetworkSecurityDeviceUpdatesSelectedFields(): void
     {
         $bridge = $this->createBridgeTestDouble(true);
+        $form = json_decode($bridge->GetConfigurationForm(), true, 512, JSON_THROW_ON_ERROR);
+        $availableDevices = $this->findFormField($form, 'NetworkSecurityAvailableDeviceList');
+        $this->assertStringContainsString("'SelectNetworkSecurityDevice'", implode("\n", $availableDevices['onSelectionChanged'] ?? []));
+        $this->assertSame(['device', 'ieee_address'], array_column($availableDevices['columns'], 'name'));
+        $this->assertTrue($availableDevices['columns'][1]['quickFilter']);
+        $this->assertStringContainsString("'AddBlocklistDevice'", json_encode($form, JSON_THROW_ON_ERROR));
+        $this->assertStringContainsString("'RequestPasslistChange'", json_encode($form, JSON_THROW_ON_ERROR));
+        $this->assertStringContainsString("'ConfirmPendingPasslistChange'", json_encode($form, JSON_THROW_ON_ERROR));
 
         $bridge->RequestAction('SelectNetworkSecurityDevice', json_encode([
             'device'       => 'Kitchen/Light',
@@ -1313,6 +1321,11 @@ class BridgeTest extends TestCase
         $this->assertSame('Kitchen/Light', $bridge->updatedFields['NetworkSecuritySelectedDevice']['value']);
         $this->assertSame('0x000b57fffec6a5b2', $bridge->updatedFields['NetworkSecuritySelectedIeeeAddress']['value']);
         $this->assertSame('', $bridge->updatedFields['NetworkSecurityIeeeAddress']['value']);
+        $this->assertSame('', $bridge->lastTopic);
+        $this->assertSame([], $bridge->lastPayload);
+        $this->assertSame([], $bridge->readDiagnosticAttribute('ConfigBlocklist'));
+        $this->assertSame([], $bridge->readDiagnosticAttribute('ConfigPasslist'));
+        $this->assertSame([], $bridge->readDiagnosticAttribute('PendingPasslistChange'));
     }
 
     public function testBindWithOptionsUsesClustersAndSkipDisableReporting(): void

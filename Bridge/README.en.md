@@ -55,9 +55,7 @@ An unavailable installation is reported with a readable message in the form.
 
 ### Network security
 
-![Network security](imgs/network-security.png)
-
-Under **Advanced administration**, select a known device or enter an IEEE address (`0x` and 16 hexadecimal digits). **Refresh available devices** combines cached Zigbee2MQTT data, matching Symcon device instances and, when needed, the extension. Only the same MQTT splitter and base topic are considered.
+Under **Advanced administration**, select a row in **Available devices** to prefill the device and its IEEE address. The quick filter matches device names and IEEE addresses. You can also enter an IEEE address manually (`0x` and 16 hexadecimal digits). **Refresh available devices** combines cached Zigbee2MQTT data, matching Symcon device instances and, when needed, the extension. Only the same MQTT splitter and base topic are considered.
 
 The **blocklist** blocks specific IEEE addresses. The **passlist** restricts which devices may remain in the network. Lists show existing entries and provide removal controls. The form requests confirmation before passlist changes.
 
