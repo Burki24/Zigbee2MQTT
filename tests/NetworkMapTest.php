@@ -264,6 +264,7 @@ class NetworkMapTest extends TestCase
         IPS_ConnectInstance($mapID, $splitter);
 
         $address = '0x00124b00abcdef01';
+        $unobservedAddress = '0x00124b00abcdef02';
         $makeDevice = static function (string $ieee, string $baseTopic, int $parent): int
         {
             $id = IPS_CreateInstance('{E5BB36C6-A70B-EB23-3716-9151A09AC8A2}');
@@ -280,8 +281,14 @@ class NetworkMapTest extends TestCase
         $makeDevice($address, 'other-network', $splitter);
         $makeDevice($address, 'zigbee2mqtt', 0);
         $matching = $makeDevice(strtoupper($address), 'zigbee2mqtt', $splitter);
+        $makeDevice($unobservedAddress, 'zigbee2mqtt', $splitter);
+        $device = IPS\InstanceManager::getInstanceInterface($matching);
+        $device->BUFFER_MQTT_SUSPENDED = false;
         $map->ReceiveData($this->buildRawResponse([
-            'nodes' => [['ieeeAddr' => $address, 'friendlyName' => 'Cached device name']],
+            'nodes' => [
+                ['ieeeAddr' => $address, 'friendlyName' => 'Cached device name'],
+                ['ieeeAddr' => $unobservedAddress, 'friendlyName' => 'Unobserved device']
+            ],
             'links' => []
         ], false));
 
@@ -291,15 +298,40 @@ class NetworkMapTest extends TestCase
         $this->assertFalse($button['visible']);
         $this->assertSame(0, $button['objectID']);
         $this->assertArrayNotHasKey('onClick', $button);
+        $this->assertFalse($this->findFormField($form, 'SelectedNodeObservedRoutePanel')['visible']);
         $map->lastTopic = '';
         $map->RequestAction('SelectNetworkMapNode', $address);
         $this->assertSame(['objectID' => $matching, 'visible' => true], $map->updatedFields['OpenSelectedNetworkDevice']);
+        $this->assertTrue($map->updatedFields['SelectedNodeObservedRoutePanel']['visible']);
+        $this->assertFalse($map->updatedFields['SelectedNodeObservedRouteTime']['visible']);
+
+        $device->ReceiveData(json_encode([
+            'Topic'   => 'zigbee2mqtt/SymconExtension/route/' . $address,
+            'Payload' => bin2hex(json_encode([
+                'ieee_address' => $address,
+                'observed_at'  => 1795767600000,
+                'hops'         => [['network_address' => 0x2222, 'name' => 'Hall/Router']]
+            ]))
+        ]));
+        $map->RequestAction('SelectNetworkMapNode', $address);
+        $this->assertSame('Configured/Device → Hall/Router → Koordinator', $map->updatedFields['SelectedNodeObservedRoute']['caption']);
+        $this->assertSame([
+            'caption' => 'Beobachtet am ' . date('d.m.Y H:i:s', 1795767600),
+            'visible' => true
+        ], $map->updatedFields['SelectedNodeObservedRouteTime']);
+        $map->RequestAction('SelectNetworkMapNode', $unobservedAddress);
+        $this->assertTrue($map->updatedFields['SelectedNodeObservedRoutePanel']['visible']);
+        $this->assertSame('No path observed yet.', $map->updatedFields['SelectedNodeObservedRoute']['caption']);
+        $this->assertFalse($map->updatedFields['SelectedNodeObservedRouteTime']['visible']);
         $map->RequestAction('SelectNetworkMapNode', '0x00124b00abcdef99');
         $this->assertSame(['objectID' => 0, 'visible' => false], $map->updatedFields['OpenSelectedNetworkDevice']);
+        $this->assertFalse($map->updatedFields['SelectedNodeObservedRoutePanel']['visible']);
+        $this->assertFalse($map->updatedFields['SelectedNodeObservedRouteTime']['visible']);
 
         $duplicate = $makeDevice($address, 'zigbee2mqtt', $splitter);
         $map->RequestAction('SelectNetworkMapNode', $address);
         $this->assertSame(['objectID' => 0, 'visible' => false], $map->updatedFields['OpenSelectedNetworkDevice']);
+        $this->assertFalse($map->updatedFields['SelectedNodeObservedRoutePanel']['visible']);
         IPS_DisconnectInstance($duplicate);
         $map->RequestAction('SelectNetworkMapNode', $address);
         $this->assertSame($matching, $map->updatedFields['OpenSelectedNetworkDevice']['objectID']);

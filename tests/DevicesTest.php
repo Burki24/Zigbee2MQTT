@@ -3032,15 +3032,15 @@ class DevicesTest extends DumpInclude
         $send($topic, ['observed_at' => $payload['observed_at'] - 1, 'hops' => []] + $payload);
         $send($topic, ['observed_at' => $payload['observed_at'] + 1, 'hops' => [$payload['hops'][0], $payload['hops'][0]]] + $payload);
         $form = json_decode($device->GetConfigurationForm(), true, 512, JSON_THROW_ON_ERROR);
-        $this->assertSame('Kitchen/Sensor → Kitchen/Plug → 0x3333 → Coordinator', $this->findFormItemByName($form, 'DeviceObservedRoute')['caption']);
+        $this->assertSame('Kitchen/Sensor → Kitchen/Plug → 0x3333 → Koordinator', $this->findFormItemByName($form, 'DeviceObservedRoute')['caption']);
         $this->assertSame(
-            sprintf('Observed on %s', date('d.m.Y H:i:s', 1795767600)),
+            sprintf('Beobachtet am %s', date('d.m.Y H:i:s', 1795767600)),
             $this->findFormItemByName($form, 'DeviceObservedRouteTime')['caption']
         );
 
         $send($topic, ['observed_at' => $payload['observed_at'] + 1, 'hops' => []] + $payload);
         $form = json_decode($device->GetConfigurationForm(), true, 512, JSON_THROW_ON_ERROR);
-        $this->assertSame('Kitchen/Sensor → Coordinator', $this->findFormItemByName($form, 'DeviceObservedRoute')['caption']);
+        $this->assertSame('Kitchen/Sensor → Koordinator', $this->findFormItemByName($form, 'DeviceObservedRoute')['caption']);
 
         IPS_SetProperty($id, 'IEEE', '0x00124b0000000999');
         IPS_ApplyChanges($id);

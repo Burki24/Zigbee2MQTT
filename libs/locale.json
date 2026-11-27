@@ -9,6 +9,8 @@
             "Device information unavailable": "Geräteinformationen nicht verfügbar",
             "Zigbee2MQTT did not answer the device information request. Please check whether Zigbee2MQTT is online and the Symcon extension is current, then try again.": "Zigbee2MQTT hat nicht auf die Geräteinformations-Anfrage geantwortet. Bitte prüfen Sie, ob Zigbee2MQTT online ist und die Symcon-Extension aktuell ist, und versuchen Sie es erneut.",
             "Device information loaded": "Geräteinformationen geladen",
+            "Observed on %s": "Beobachtet am %s",
+            "Coordinator": "Koordinator",
             "The device information was loaded successfully from Zigbee2MQTT. If an IEEE address was inserted into the form, verify it and apply the configuration.": "Die Geräteinformationen wurden erfolgreich von Zigbee2MQTT geladen. Falls eine IEEE-Adresse in das Formular eingetragen wurde, prüfen Sie diese und übernehmen Sie anschließend die Konfiguration.",
             "Refresh device information": "Geräteinformationen aktualisieren",
             "Change Group Id": "Gruppen-ID ändern",

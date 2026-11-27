@@ -18,8 +18,6 @@
             "Device maintenance": "Gerätewartung",
             "Path to the coordinator": "Weg zum Koordinator",
             "No path observed yet.": "Noch kein Pfad beobachtet.",
-            "Observed on %s": "Beobachtet am %s",
-            "Coordinator": "Koordinator",
             "Routing table": "Routing-Tabelle",
             "Refresh routing table": "Routing-Tabelle aktualisieren",
             "Reading the router's routing table…": "Routing-Tabelle des Routers wird gelesen …",

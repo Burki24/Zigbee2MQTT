@@ -20,6 +20,8 @@
             "Devices": "Geräte",
             "Device": "Gerät",
             "Open selected device": "Ausgewähltes Gerät öffnen",
+            "Path to the coordinator": "Weg zum Koordinator",
+            "No path observed yet.": "Noch kein Pfad beobachtet.",
             "Type": "Typ",
             "Model": "Modell",
             "Network address": "Netzwerkadresse",

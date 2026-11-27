@@ -319,6 +319,19 @@ class Zigbee2MQTTDevice extends \Zigbee2MQTT\ModulBase
     }
 
     /**
+     * Liefert die Anzeigetexte der letzten Beobachtung im aktuellen MQTT-Netz.
+     */
+    public function GetObservedRouteView(): array
+    {
+        $route = $this->ReadAttributeArray(self::DEVICE_OBSERVED_ROUTE);
+        if ($this->ReadPropertyString(self::MQTT_TOPIC) === '' || ($route['scope'] ?? null) !== $this->GetObservedRouteScope()) {
+            return [];
+        }
+
+        return $this->FormatObservedRouteView($route);
+    }
+
+    /**
      * UpdateDeviceInfo
      *
      * Exposes von der Erweiterung in Z2M anfordern und verarbeiten.
@@ -493,10 +506,10 @@ class Zigbee2MQTTDevice extends \Zigbee2MQTT\ModulBase
             return;
         }
         $this->SetDeviceFormField($form, 'DeviceObservedRoutePanel', 'visible', true);
-        $route = $this->ReadAttributeArray(self::DEVICE_OBSERVED_ROUTE);
-        if (($route['scope'] ?? null) === $this->GetObservedRouteScope()) {
-            $this->SetDeviceFormField($form, 'DeviceObservedRoute', 'caption', $this->FormatObservedRoute($route['hops']));
-            $this->SetDeviceFormField($form, 'DeviceObservedRouteTime', 'caption', $this->FormatObservedRouteTime($route['observed_at']));
+        $view = $this->GetObservedRouteView();
+        if ($view !== []) {
+            $this->SetDeviceFormField($form, 'DeviceObservedRoute', 'caption', $view['path']);
+            $this->SetDeviceFormField($form, 'DeviceObservedRouteTime', 'caption', $view['time']);
             $this->SetDeviceFormField($form, 'DeviceObservedRouteTime', 'visible', true);
         }
     }
@@ -530,24 +543,23 @@ class Zigbee2MQTTDevice extends \Zigbee2MQTT\ModulBase
             if (($previous['scope'] ?? null) === $scope && $previous['observed_at'] >= $observedAt) {
                 return;
             }
-            $names = array_values($names);
-            $this->WriteAttributeArray(self::DEVICE_OBSERVED_ROUTE, ['scope' => $scope, 'observed_at' => $observedAt, 'hops' => $names]);
-            $this->UpdateFormField('DeviceObservedRoute', 'caption', $this->FormatObservedRoute($names));
-            $this->UpdateFormField('DeviceObservedRouteTime', 'caption', $this->FormatObservedRouteTime($observedAt));
+            $route = ['scope' => $scope, 'observed_at' => $observedAt, 'hops' => array_values($names)];
+            $this->WriteAttributeArray(self::DEVICE_OBSERVED_ROUTE, $route);
+            $view = $this->FormatObservedRouteView($route);
+            $this->UpdateFormField('DeviceObservedRoute', 'caption', $view['path']);
+            $this->UpdateFormField('DeviceObservedRouteTime', 'caption', $view['time']);
             $this->UpdateFormField('DeviceObservedRouteTime', 'visible', true);
         } finally {
             IPS_SemaphoreLeave($lock);
         }
     }
 
-    private function FormatObservedRoute(array $hops): string
+    private function FormatObservedRouteView(array $route): array
     {
-        return implode(' → ', [$this->ReadPropertyString(self::MQTT_TOPIC), ...$hops, $this->Translate('Coordinator')]);
-    }
-
-    private function FormatObservedRouteTime(int $observedAt): string
-    {
-        return \sprintf($this->Translate('Observed on %s'), date('d.m.Y H:i:s', intdiv($observedAt, 1000)));
+        return [
+            'path' => implode(' → ', [$this->ReadPropertyString(self::MQTT_TOPIC), ...$route['hops'], $this->Translate('Coordinator')]),
+            'time' => \sprintf($this->Translate('Observed on %s'), date('d.m.Y H:i:s', intdiv($route['observed_at'], 1000)))
+        ];
     }
 
     private function GetDeviceRoutingTableTarget(): ?array

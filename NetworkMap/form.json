@@ -156,6 +156,28 @@
                     "visible": false
                 },
                 {
+                    "type": "ExpansionPanel",
+                    "name": "SelectedNodeObservedRoutePanel",
+                    "caption": "Path to the coordinator",
+                    "expanded": true,
+                    "visible": false,
+                    "items": [
+                        {
+                            "type": "Label",
+                            "name": "SelectedNodeObservedRoute",
+                            "caption": "",
+                            "link": false
+                        },
+                        {
+                            "type": "Label",
+                            "name": "SelectedNodeObservedRouteTime",
+                            "caption": "",
+                            "link": false,
+                            "visible": false
+                        }
+                    ]
+                },
+                {
                     "type": "Label",
                     "name": "SelectedNodeLinksHeading",
                     "caption": "",

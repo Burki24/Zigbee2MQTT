@@ -548,6 +548,17 @@ class Zigbee2MQTTNetworkMap extends IPSModuleStrict
         $instanceID = $name !== null ? $this->FindSelectedNetworkDevice($ieee) : 0;
         $this->UpdateFormField('OpenSelectedNetworkDevice', 'objectID', $instanceID);
         $this->UpdateFormField('OpenSelectedNetworkDevice', 'visible', $instanceID !== 0);
+        $this->UpdateSelectedNodeObservedRoute($instanceID);
+    }
+
+    private function UpdateSelectedNodeObservedRoute(int $instanceID): void
+    {
+        $available = $instanceID !== 0 && \function_exists('Z2M_GetObservedRouteView');
+        $view = $available ? Z2M_GetObservedRouteView($instanceID) : [];
+        $this->UpdateFormField('SelectedNodeObservedRoute', 'caption', $view['path'] ?? $this->Translate('No path observed yet.'));
+        $this->UpdateFormField('SelectedNodeObservedRouteTime', 'caption', $view['time'] ?? '');
+        $this->UpdateFormField('SelectedNodeObservedRouteTime', 'visible', isset($view['time']));
+        $this->UpdateFormField('SelectedNodeObservedRoutePanel', 'visible', $available);
     }
 
     /**
