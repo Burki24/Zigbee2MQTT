@@ -451,18 +451,17 @@ class Zigbee2MQTTNetworkMap extends IPSModuleStrict
         $name = $names[$ieee] ?? null;
         $links = $data['links'] ?? [];
         $hasLinks = $name !== null && $links !== [];
-        $showEmpty = $name !== null && $links === [];
 
+        if ($name !== null) {
+            $caption = $hasLinks ? 'Connections for %s' : 'No connections for %s in the last scan.';
+            $this->UpdateFormField('SelectedNodeLinksHeading', 'caption', \sprintf($this->Translate($caption), $name));
+        }
         if ($hasLinks) {
-            $this->UpdateFormField('SelectedNodeLinks', 'caption', \sprintf($this->Translate('Connections for %s'), $name));
             $this->UpdateFormField('SelectedNodeLinks', 'values', json_encode($links));
             $this->UpdateFormField('SelectedNodeLinks', 'rowCount', min(8, max(3, \count($links) + 1)));
         }
-        if ($showEmpty) {
-            $this->UpdateFormField('SelectedNodeNoLinks', 'caption', \sprintf($this->Translate('No connections for %s in the last scan.'), $name));
-        }
+        $this->UpdateFormField('SelectedNodeLinksHeading', 'visible', $name !== null);
         $this->UpdateFormField('SelectedNodeLinks', 'visible', $hasLinks);
-        $this->UpdateFormField('SelectedNodeNoLinks', 'visible', $showEmpty);
     }
 
     /**

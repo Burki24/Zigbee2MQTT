@@ -143,9 +143,16 @@
                     "values": []
                 },
                 {
+                    "type": "Label",
+                    "name": "SelectedNodeLinksHeading",
+                    "caption": "",
+                    "bold": true,
+                    "link": false,
+                    "visible": false
+                },
+                {
                     "type": "List",
                     "name": "SelectedNodeLinks",
-                    "caption": "Connections",
                     "visible": false,
                     "add": false,
                     "delete": false,
@@ -184,12 +191,6 @@
                         }
                     ],
                     "values": []
-                },
-                {
-                    "type": "Label",
-                    "name": "SelectedNodeNoLinks",
-                    "caption": "",
-                    "visible": false
                 }
             ]
         },

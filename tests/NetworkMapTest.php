@@ -211,7 +211,11 @@ class NetworkMapTest extends TestCase
         $form = json_decode($map->GetConfigurationForm(), true, 512, JSON_THROW_ON_ERROR);
         $nodeList = $this->findFormField($form, 'NodeList');
         $this->assertStringContainsString("'SelectNetworkMapNode'", $nodeList['onSelectionChanged'] ?? '');
+        $heading = $this->findFormField($form, 'SelectedNodeLinksHeading');
+        $this->assertSame('Label', $heading['type'] ?? null);
+        $this->assertFalse($heading['visible']);
         $this->assertFalse($this->findFormField($form, 'SelectedNodeLinks')['visible']);
+        $this->assertArrayNotHasKey('caption', $this->findFormField($form, 'SelectedNodeLinks'));
         $this->assertCount(3, $this->findFormField($form, 'LinkList')['values']);
 
         $storedTopology = $map->readMapAttribute('Topology');
@@ -221,21 +225,24 @@ class NetworkMapTest extends TestCase
         $map->RequestAction('SelectNetworkMapNode', '0x01');
         $details = $map->updatedFields['SelectedNodeLinks'];
         $this->assertTrue($details['visible']);
-        $this->assertStringContainsString('Router', $details['caption']);
+        $this->assertTrue($map->updatedFields['SelectedNodeLinksHeading']['visible']);
+        $this->assertSame(\sprintf($map->Translate('Connections for %s'), 'Router'), $map->updatedFields['SelectedNodeLinksHeading']['caption']);
         $links = json_decode($details['values'], true, 512, JSON_THROW_ON_ERROR);
         $this->assertSame([120, 88], array_column($links, 'lqi'));
         $this->assertSame(['Router', 'Lamp'], array_column($links, 'source'));
         $this->assertSame(['Lamp', 'Router'], array_column($links, 'target'));
         $this->assertArrayNotHasKey('LinkList', $map->updatedFields);
-        $this->assertFalse($map->updatedFields['SelectedNodeNoLinks']['visible']);
+
+        $map->RequestAction('SelectNetworkMapNode', '0x03');
+        $this->assertSame(\sprintf($map->Translate('Connections for %s'), 'Lamp'), $map->updatedFields['SelectedNodeLinksHeading']['caption']);
 
         $map->RequestAction('SelectNetworkMapNode', '0x04');
         $this->assertFalse($map->updatedFields['SelectedNodeLinks']['visible']);
-        $this->assertTrue($map->updatedFields['SelectedNodeNoLinks']['visible']);
-        $this->assertStringContainsString('Sensor', $map->updatedFields['SelectedNodeNoLinks']['caption']);
+        $this->assertTrue($map->updatedFields['SelectedNodeLinksHeading']['visible']);
+        $this->assertSame(\sprintf($map->Translate('No connections for %s in the last scan.'), 'Sensor'), $map->updatedFields['SelectedNodeLinksHeading']['caption']);
         $map->RequestAction('SelectNetworkMapNode', '0x99');
         $this->assertFalse($map->updatedFields['SelectedNodeLinks']['visible']);
-        $this->assertFalse($map->updatedFields['SelectedNodeNoLinks']['visible']);
+        $this->assertFalse($map->updatedFields['SelectedNodeLinksHeading']['visible']);
         $this->assertSame('', $map->lastTopic);
         $this->assertSame($storedTopology, $map->readMapAttribute('Topology'));
         $this->assertSame($storedScan, $map->readMapAttribute('Scan'));
@@ -243,7 +250,7 @@ class NetworkMapTest extends TestCase
         $map->RequestAction('SelectNetworkMapNode', '0x01');
         $map->ReceiveData($this->buildRawResponse(['nodes' => [], 'links' => []], false));
         $this->assertFalse($map->updatedFields['SelectedNodeLinks']['visible']);
-        $this->assertFalse($map->updatedFields['SelectedNodeNoLinks']['visible']);
+        $this->assertFalse($map->updatedFields['SelectedNodeLinksHeading']['visible']);
     }
 
     #[RunInSeparateProcess]
