@@ -35,7 +35,7 @@ Select a row under **Devices** to see its incoming and outgoing connections from
 
 **Open selected device** opens the device configuration when exactly one device instance matches the IEEE address on the same MQTT splitter and base topic.
 
-Select a row under **Connections** to see the cached routing entries for that direction. The details show the router, destination, next hop, and status. If the last scan has no routing entries for the selected link, the form shows a message.
+Select a row under **Connections for \<device name\>** or in the **Connections** overview to see the cached routing entries for that direction. The details show the router, destination, next hop, and status. If the last scan has no routing entries for the selected link, the form shows a message. Selecting another device clears the device route details.
 
 LQI is directional; outgoing and incoming values can differ. A low LQI, a missing edge or one failed query is a diagnostic hint, not proof that a device is broken or offline. Only responses matching the current scan transaction are accepted; old or unsolicited responses do not replace the current result.
 

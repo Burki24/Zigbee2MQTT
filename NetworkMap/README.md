@@ -52,7 +52,7 @@ Wählen Sie unter **Geräte** eine Zeile aus, um direkt darunter die ein- und au
 
 **Ausgewähltes Gerät öffnen** führt direkt zur Gerätekonfiguration. Die Schaltfläche erscheint, wenn die IEEE-Adresse auf demselben MQTT-Splitter und Basistopic genau einer Geräteinstanz zugeordnet ist.
 
-Wählen Sie unter **Verbindungen** eine Zeile aus, um die gespeicherten Routen genau dieser Richtung zu sehen. Die Detailtabelle zeigt den Router, die Zieladresse, den nächsten Hop und den Status. Sie verwendet die letzte Analyse. Enthält diese für die ausgewählte Verbindung keine Routing-Einträge, erscheint ein Hinweis.
+Wählen Sie unter **Verbindungen für \<Gerätename\>** oder in der Übersicht **Verbindungen** eine Zeile aus, um die gespeicherten Routen genau dieser Richtung zu sehen. Die Detailtabelle zeigt den Router, die Zieladresse, den nächsten Hop und den Status. Enthält die letzte Analyse für die ausgewählte Verbindung keine Routing-Einträge, erscheint ein Hinweis. Beim Wechsel zu einem anderen Gerät wird die Routentabelle ausgeblendet.
 
 LQI-Werte sind gerichtet und können für Hin- und Rückweg unterschiedlich sein. Ein niedriger LQI oder eine fehlende Verbindung ist ein Diagnosehinweis, aber nicht automatisch ein Gerätefehler.
 

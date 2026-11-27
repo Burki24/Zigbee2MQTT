@@ -301,7 +301,8 @@ class Zigbee2MQTTNetworkMap extends IPSModuleStrict
                 $this->UpdateSelectedNodeConnections(\is_string($Value) ? $Value : '');
                 break;
             case 'SelectNetworkMapLink':
-                $this->UpdateSelectedLinkRoutes(\is_string($Value) ? $Value : '');
+            case 'SelectNetworkMapNodeLink':
+                $this->UpdateSelectedLinkRoutes(\is_string($Value) ? $Value : '', $Ident === 'SelectNetworkMapNodeLink');
                 break;
             case 'CreateExportFiles':
                 if (!$this->HasTopology()) {
@@ -458,6 +459,10 @@ class Zigbee2MQTTNetworkMap extends IPSModuleStrict
         $links = $data['links'] ?? [];
         $hasLinks = $name !== null && $links !== [];
 
+        $this->UpdateSelectedLinkRoutes('', forSelectedNode: true);
+        // Symcon retains the selected row position when replacing list values.
+        $this->UpdateFormField('SelectedNodeLinks', 'values', '[]');
+
         if ($name !== null) {
             $caption = $hasLinks ? 'Connections for %s' : 'No connections for %s in the last scan.';
             $this->UpdateFormField('SelectedNodeLinksHeading', 'caption', \sprintf($this->Translate($caption), $name));
@@ -503,22 +508,24 @@ class Zigbee2MQTTNetworkMap extends IPSModuleStrict
     /**
      * Zeigt die gespeicherten Routen der ausgewaehlten Verbindung.
      */
-    private function UpdateSelectedLinkRoutes(string $linkKey): void
+    private function UpdateSelectedLinkRoutes(string $linkKey, bool $forSelectedNode = false): void
     {
+        $routesField = $forSelectedNode ? 'SelectedNodeLinkRoutes' : 'SelectedLinkRoutes';
+        $headingField = $routesField . 'Heading';
         $data = $linkKey === '' ? [] : $this->BuildFormData(selectedLinkKey: $linkKey);
         $link = $data['links'][0] ?? null;
         $routes = $data['routes'] ?? [];
 
         if ($link !== null) {
             $caption = $routes === [] ? 'No routes for %s → %s in the last scan.' : 'Routes for %s → %s';
-            $this->UpdateFormField('SelectedLinkRoutesHeading', 'caption', \sprintf($this->Translate($caption), $link['source'], $link['target']));
+            $this->UpdateFormField($headingField, 'caption', \sprintf($this->Translate($caption), $link['source'], $link['target']));
         }
         if ($routes !== []) {
-            $this->UpdateFormField('SelectedLinkRoutes', 'values', json_encode($routes));
-            $this->UpdateFormField('SelectedLinkRoutes', 'rowCount', min(8, max(3, \count($routes) + 1)));
+            $this->UpdateFormField($routesField, 'values', json_encode($routes));
+            $this->UpdateFormField($routesField, 'rowCount', min(8, max(3, \count($routes) + 1)));
         }
-        $this->UpdateFormField('SelectedLinkRoutesHeading', 'visible', $link !== null);
-        $this->UpdateFormField('SelectedLinkRoutes', 'visible', $routes !== []);
+        $this->UpdateFormField($headingField, 'visible', $link !== null);
+        $this->UpdateFormField($routesField, 'visible', $routes !== []);
     }
 
     /**
