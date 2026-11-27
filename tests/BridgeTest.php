@@ -937,6 +937,13 @@ class BridgeTest extends TestCase
         $bridge = $this->createBridgeTestDouble(true);
         $bridge->setBaseTopicForTest('zigbee2mqtt');
         $deviceID = $this->createConfiguredOTACapableDevice($bridge);
+        IPS_SetName($deviceID, 'Kitchen light');
+        foreach (['update__installed_version' => 10, 'update__latest_version' => 12] as $ident => $version) {
+            $variableID = IPS_CreateVariable(VARIABLETYPE_INTEGER);
+            IPS_SetParent($variableID, $deviceID);
+            IPS_SetIdent($variableID, $ident);
+            SetValue($variableID, $version);
+        }
         $bridge->writeDiagnosticAttribute('OTACheckResults', [
             'Kitchen/Light' => [
                 'checked_at'       => time(),
@@ -944,15 +951,35 @@ class BridgeTest extends TestCase
             ]
         ]);
 
-        $bridge->RequestAction('RequestOTAUpdate', json_encode(['instance_id' => $deviceID]));
-        $this->assertTrue($bridge->updatedFields['OTAUpdateWarning']['visible']);
+        $popup = $this->findFormField(json_decode($bridge->GetConfigurationForm(), true, 512, JSON_THROW_ON_ERROR), 'OTAUpdateConfirmation');
+        $this->assertSame('Cancel', $popup['popup']['closeCaption']);
+        $this->assertCount(1, $popup['popup']['buttons']);
+        $this->assertStringContainsString("'ConfirmOTAUpdate'", $popup['popup']['buttons'][0]['onClick']);
+        $this->assertStringContainsString('$OTAConfirmationToken', $popup['popup']['buttons'][0]['onClick']);
+
+        $selection = json_encode(['instance_id' => $deviceID]);
+        $bridge->RequestAction('RequestOTAUpdate', $selection);
+        $this->assertTrue($bridge->updatedFields['OTAUpdateConfirmation']['visible']);
+        $this->assertSame('Action: Start update now', $bridge->updatedFields['OTAConfirmationAction']['caption']);
+        $this->assertStringContainsString('Kitchen light', $bridge->updatedFields['OTAConfirmationDevice']['caption']);
+        $this->assertSame('Installed version: 10', $bridge->updatedFields['OTAConfirmationInstalledVersion']['caption']);
+        $this->assertSame('Target version: 12', $bridge->updatedFields['OTAConfirmationTargetVersion']['caption']);
+        $firstToken = $bridge->updatedFields['OTAConfirmationToken']['value'];
+        $bridge->RequestAction('RequestOTAUpdate', $selection);
+        $secondToken = $bridge->updatedFields['OTAConfirmationToken']['value'];
+        $this->assertNotSame($firstToken, $secondToken);
+        $bridge->RequestAction('ConfirmOTAUpdate', $firstToken);
+        $bridge->RequestAction('ConfirmOTAUpdate', true);
         $this->assertSame('', $bridge->lastTopic);
 
-        $bridge->RequestAction('ConfirmOTAUpdate', true);
+        $bridge->RequestAction('ConfirmOTAUpdate', $secondToken);
         $this->assertSame('/bridge/request/device/ota_update/update', $bridge->lastTopic);
         $this->assertSame(['id' => 'Kitchen/Light'], $bridge->lastPayload);
         $this->assertSame(0, $bridge->lastTimeout);
         $this->assertTrue($bridge->updatedFields['OTAMessage']['visible']);
+        $bridge->lastTopic = '';
+        $bridge->RequestAction('ConfirmOTAUpdate', $secondToken);
+        $this->assertSame('', $bridge->lastTopic);
     }
 
     public function testBridgeOTAScheduleActionsRefreshCachedStateImmediately(): void
@@ -971,7 +998,22 @@ class BridgeTest extends TestCase
             ]
         ]);
 
-        $bridge->RequestAction('ScheduleOTAUpdate', json_encode(['instance_id' => $deviceID]));
+        $selection = json_encode(['instance_id' => $deviceID]);
+        $bridge->RequestAction('ScheduleOTAUpdate', $selection);
+        $this->assertTrue($bridge->updatedFields['OTAUpdateConfirmation']['visible']);
+        $this->assertSame('Action: Schedule update', $bridge->updatedFields['OTAConfirmationAction']['caption']);
+        $this->assertSame('', $bridge->lastTopic);
+        $this->assertSame('available', $this->readOTADeviceState($bridge));
+
+        $versionID = IPS_CreateVariable(VARIABLETYPE_INTEGER);
+        IPS_SetParent($versionID, $deviceID);
+        IPS_SetIdent($versionID, 'update__latest_version');
+        SetValue($versionID, 12);
+        $bridge->RequestAction('ConfirmOTAUpdate', $bridge->updatedFields['OTAConfirmationToken']['value']);
+        $this->assertSame('', $bridge->lastTopic);
+
+        $bridge->RequestAction('ScheduleOTAUpdate', $selection);
+        $bridge->RequestAction('ConfirmOTAUpdate', $bridge->updatedFields['OTAConfirmationToken']['value']);
         $this->assertSame('/bridge/request/device/ota_update/schedule', $bridge->lastTopic);
         $this->assertSame('scheduled', $this->readOTADeviceState($bridge));
 

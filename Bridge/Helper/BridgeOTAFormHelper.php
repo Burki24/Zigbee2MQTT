@@ -454,61 +454,128 @@ trait BridgeOTAFormHelper
     }
 
     /**
-     * Oeffnet die Sicherheitsabfrage fuer ein OTA-Update.
+     * Serialisiert das Öffnen und Bestätigen des OTA-Dialogs.
      */
-    private function RequestOTAUpdateFromForm(mixed $value): bool
+    private function HandleOTAConfirmationAction(string $ident, mixed $value): void
     {
-        $row = $this->ResolveOTADeviceRow($value);
-        if ($row === null) {
-            return false;
+        if (!$this->lock(self::ATTRIBUTE_PENDING_OTA_UPDATE)) {
+            return;
         }
-
-        if (($row['state'] ?? '') !== 'available') {
-            $this->ShowOTAMessage('OTA update cannot be started', 'The selected device does not currently report an available OTA update.');
-            return false;
+        try {
+            if ($ident === 'ConfirmOTAUpdate') {
+                $this->ConfirmPendingOTAUpdate($value);
+            } else {
+                $this->RequestOTAUpdateFromForm($value, $ident === 'ScheduleOTAUpdate');
+            }
+        } finally {
+            $this->unlock(self::ATTRIBUTE_PENDING_OTA_UPDATE);
         }
-        if ($this->HasRunningOTAUpdate()) {
-            $this->ShowOTAMessage('OTA update cannot be started', 'Another OTA update is already running. Please wait until it has finished.');
-            return false;
-        }
-
-        $this->WriteAttributeArray(self::ATTRIBUTE_PENDING_OTA_UPDATE, $row);
-        $this->TryUpdateFormField(
-            'OTAUpdateWarningText',
-            'caption',
-            sprintf(
-                $this->Translate('Start OTA update for %s? The device can be unavailable for a longer period and may restart.'),
-                $row['instance']
-            )
-        );
-        $this->TryUpdateFormField('OTAUpdateWarning', 'visible', true);
-        return true;
     }
 
     /**
-     * Startet das zuvor bestaetigte OTA-Update.
+     * Öffnet die gemeinsame Bestätigung für Start und Planung.
      */
-    private function ConfirmPendingOTAUpdate(): bool
+    private function RequestOTAUpdateFromForm(mixed $value, bool $schedule): void
     {
-        $pending = $this->ReadAttributeArray(self::ATTRIBUTE_PENDING_OTA_UPDATE);
-        $this->WriteAttributeArray(self::ATTRIBUTE_PENDING_OTA_UPDATE, []);
-        $this->TryUpdateFormField('OTAUpdateWarning', 'visible', false);
-        $row = $this->ResolveOTADeviceRow($pending);
-        if ($row === null) {
-            return false;
+        $row = $this->ResolveOTADeviceRow($value);
+        if ($row === null || !$this->CanSubmitOTAUpdate($row, $schedule)) {
+            return;
         }
 
+        $this->WriteAttributeArray(self::ATTRIBUTE_PENDING_OTA_UPDATE, []);
+        $token = bin2hex(random_bytes(16));
+        $captions = [
+            'OTAConfirmationAction'           => sprintf($this->Translate('Action: %s'), $this->Translate($schedule ? 'Schedule update' : 'Start update now')),
+            'OTAConfirmationDevice'           => sprintf($this->Translate('Device: %s'), $row['instance']),
+            'OTAConfirmationInstalledVersion' => sprintf($this->Translate('Installed version: %s'), $row['installed_version']),
+            'OTAConfirmationTargetVersion'    => sprintf($this->Translate('Target version: %s'), $row['latest_version'])
+        ];
+        foreach ($captions as $field => $caption) {
+            if (!$this->TryUpdateFormField($field, 'caption', $caption)) {
+                return;
+            }
+        }
+        if (!$this->TryUpdateFormField('OTAConfirmationToken', 'value', $token)) {
+            return;
+        }
+
+        $this->WriteAttributeArray(self::ATTRIBUTE_PENDING_OTA_UPDATE, [
+            'token'    => $token,
+            'schedule' => $schedule,
+            'target'   => $this->BuildOTAConfirmationTarget($row)
+        ]);
+        if (!$this->TryUpdateFormField('OTAUpdateConfirmation', 'visible', true)) {
+            $this->WriteAttributeArray(self::ATTRIBUTE_PENDING_OTA_UPDATE, []);
+        }
+    }
+
+    /**
+     * Bindet die Bestätigung an die angezeigte Firmware und das MQTT-Ziel.
+     */
+    private function BuildOTAConfirmationTarget(array $row): array
+    {
+        $instanceID = $row['instance_id'];
+        return [
+            'instance_id'       => $instanceID,
+            'device_name'       => $row['device_name'],
+            'ieee'              => strtolower((string) @IPS_GetProperty($instanceID, 'IEEE')),
+            'base_topic'        => $this->ReadPropertyString(self::MQTT_BASE_TOPIC),
+            'splitter_id'       => (int) IPS_GetInstance($instanceID)['ConnectionID'],
+            'installed_version' => $row['installed_version'],
+            'latest_version'    => $row['latest_version']
+        ];
+    }
+
+    /**
+     * Verbraucht die Bestätigung und sendet den ausgewählten Auftrag einmalig.
+     */
+    private function ConfirmPendingOTAUpdate(mixed $token): void
+    {
+        $pending = $this->ReadAttributeArray(self::ATTRIBUTE_PENDING_OTA_UPDATE);
+        if (!\is_string($token) || $token === '' || ($pending['token'] ?? null) !== $token) {
+            return;
+        }
+        $this->WriteAttributeArray(self::ATTRIBUTE_PENDING_OTA_UPDATE, []);
+        $this->TryUpdateFormField('OTAUpdateConfirmation', 'visible', false);
+        $row = $this->ResolveOTADeviceRow($pending['target']);
+        if ($row === null) {
+            return;
+        }
+        if ($this->BuildOTAConfirmationTarget($row) !== $pending['target']) {
+            $this->ShowOTAMessage('OTA update details changed', 'Open the OTA confirmation again to review the current device and firmware versions.');
+            return;
+        }
+        if (!$this->CanSubmitOTAUpdate($row, $pending['schedule'])) {
+            return;
+        }
+        if ($pending['schedule']) {
+            $this->SubmitOTASchedule($row);
+        } else {
+            $this->SubmitOTAUpdate($row);
+        }
+    }
+
+    private function CanSubmitOTAUpdate(array $row, bool $schedule): bool
+    {
         if (($row['state'] ?? '') !== 'available') {
-            $this->ShowOTAMessage('OTA update cannot be started', 'The selected device does not currently report an available OTA update.');
+            $this->ShowOTAMessage(
+                $schedule ? 'OTA update could not be scheduled' : 'OTA update cannot be started',
+                'The selected device does not currently report an available OTA update.'
+            );
             return false;
         }
-        if ($this->HasRunningOTAUpdate()) {
+        if (!$schedule && $this->HasRunningOTAUpdate()) {
             $this->ShowOTAMessage('OTA update cannot be started', 'Another OTA update is already running. Please wait until it has finished.');
             return false;
         }
+        return true;
+    }
+
+    private function SubmitOTAUpdate(array $row): void
+    {
         if (!$this->PerformOTAUpdate($row['device_name'])) {
             $this->ShowOTAMessage('OTA update could not be submitted', 'Zigbee2MQTT did not accept the OTA update request.');
-            return false;
+            return;
         }
 
         $requests = $this->ReadActiveOTAPendingRequests();
@@ -519,31 +586,18 @@ trait BridgeOTAFormHelper
         $this->WriteAttributeArray(self::ATTRIBUTE_OTA_PENDING_REQUESTS, $requests);
         $this->UpdateOTAFormLists();
         $this->ShowOTAMessage('OTA update submitted', 'The OTA update was submitted to Zigbee2MQTT. Use Refresh status to read the current progress.');
-        return true;
     }
 
-    /**
-     * Plant ein OTA-Update fuer das ausgewaehlte Geraet.
-     */
-    private function ScheduleOTAUpdateFromForm(mixed $value): bool
+    private function SubmitOTASchedule(array $row): void
     {
-        $row = $this->ResolveOTADeviceRow($value);
-        if ($row === null) {
-            return false;
-        }
-        if (($row['state'] ?? '') !== 'available') {
-            $this->ShowOTAMessage('OTA update could not be scheduled', 'The selected device does not currently report an available OTA update.');
-            return false;
-        }
         if (!$this->ScheduleOTAUpdate($row['device_name'])) {
             $this->ShowOTAMessage('OTA update could not be scheduled', 'Zigbee2MQTT did not accept the OTA schedule request. Battery devices may need to be woken up first.');
-            return false;
+            return;
         }
 
         $this->StoreOTACheckResult($row['device_name'], false, 'scheduled');
         $this->UpdateOTAFormLists();
         $this->ShowOTAMessage('OTA update scheduled', 'The OTA update was scheduled for the selected device.');
-        return true;
     }
 
     /**

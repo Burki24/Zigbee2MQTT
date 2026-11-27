@@ -519,13 +519,9 @@ class Zigbee2MQTTBridge extends IPSModuleStrict
                     $this->CheckOTAUpdateFromForm($value);
                     break;
                 case 'RequestOTAUpdate':
-                    $this->RequestOTAUpdateFromForm($value);
-                    break;
                 case 'ConfirmOTAUpdate':
-                    $this->ConfirmPendingOTAUpdate();
-                    break;
                 case 'ScheduleOTAUpdate':
-                    $this->ScheduleOTAUpdateFromForm($value);
+                    $this->HandleOTAConfirmationAction($ident, $value);
                     break;
                 case 'UnscheduleOTAUpdate':
                     $this->UnscheduleOTAUpdateFromForm($value);

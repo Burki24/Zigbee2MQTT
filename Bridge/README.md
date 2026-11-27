@@ -161,7 +161,7 @@ Die OTA-Verwaltung bietet nur Geräte desselben MQTT-Splitters und MQTT-Basistop
 | **1** | Status aktualisieren | Liest OTA-Fähigkeiten und den aktuellen Zustand erneut aus den bekannten Geräteinstanzen ein und aktualisiert alle OTA-Listen. |
 | **2** | Zusammenfassung | Zeigt die Anzahl bekannter OTA-Geräte, verfügbarer Updates sowie aktiver oder geplanter Updates. |
 | **3** | Bekannte OTA-Geräte | Zeigt alle Geräte, die Zigbee2MQTT ausdrücklich als OTA-fähig meldet. Über **Update prüfen** wird ein einzelnes Gerät aktiv auf eine neuere Firmware geprüft. |
-| **4** | Verfügbare OTA-Updates | Zeigt geprüfte Geräte mit einer verfügbaren neueren Firmware. Updates können sofort gestartet oder für die nächste OTA-Anfrage des Geräts geplant werden. |
+| **4** | Verfügbare OTA-Updates | Zeigt geprüfte Geräte mit einer verfügbaren neueren Firmware. Beim Starten und Planen zeigt der Bestätigungsdialog das Gerät, die Aktion sowie die installierte und die angebotene Firmware-Version. Erst die Bestätigung sendet den Auftrag. |
 | **5** | Aktive und geplante OTA-Updates | Zeigt laufende und geplante Updates mit Status, Fortschritt und Restzeit. Geplante Updates können aufgehoben und angeforderte oder laufende Updates abgebrochen werden. |
 | **6** | Letzte OTA-Update-Ergebnisse | Zeigt den Ergebnisverlauf abgeschlossener, abgebrochener oder fehlgeschlagener OTA-Vorgänge. |
 

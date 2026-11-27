@@ -572,27 +572,54 @@
             }
         },
         {
-            "name": "OTAUpdateWarning",
+            "name": "OTAUpdateConfirmation",
             "type": "PopupAlert",
             "visible": false,
             "popup": {
+                "caption": "Confirm OTA update",
                 "closeCaption": "Cancel",
                 "buttons": [
                     {
-                        "caption": "Start update",
-                        "onClick": "IPS_RequestAction($id, 'ConfirmOTAUpdate', true);"
+                        "caption": "Confirm",
+                        "onClick": "IPS_RequestAction($id, 'ConfirmOTAUpdate', (string) ($OTAConfirmationToken ?? ''));"
                     }
                 ],
                 "items": [
                     {
                         "type": "Label",
+                        "name": "OTAConfirmationAction",
                         "bold": true,
-                        "caption": "Start OTA update?"
+                        "caption": "",
+                        "link": false
                     },
                     {
-                        "name": "OTAUpdateWarningText",
                         "type": "Label",
-                        "caption": "The device may be unavailable during the OTA update."
+                        "name": "OTAConfirmationDevice",
+                        "caption": "",
+                        "link": false
+                    },
+                    {
+                        "type": "Label",
+                        "name": "OTAConfirmationInstalledVersion",
+                        "caption": "",
+                        "link": false
+                    },
+                    {
+                        "type": "Label",
+                        "name": "OTAConfirmationTargetVersion",
+                        "caption": "",
+                        "link": false
+                    },
+                    {
+                        "type": "Label",
+                        "caption": "The device may be unavailable for a while and may restart during the OTA update."
+                    },
+                    {
+                        "type": "ValidationTextBox",
+                        "name": "OTAConfirmationToken",
+                        "caption": "",
+                        "value": "",
+                        "visible": false
                     }
                 ]
             }
