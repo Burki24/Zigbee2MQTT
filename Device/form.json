@@ -245,6 +245,58 @@
                 },
                 {
                     "type": "ExpansionPanel",
+                    "name": "DeviceRoutingTablePanel",
+                    "caption": "Routing table",
+                    "expanded": false,
+                    "visible": false,
+                    "items": [
+                        {
+                            "type": "Button",
+                            "name": "RefreshDeviceRoutingTable",
+                            "caption": "Refresh routing table",
+                            "onClick": "IPS_RequestAction($id, 'RefreshDeviceRoutingTable', true);"
+                        },
+                        {
+                            "type": "Label",
+                            "name": "DeviceRoutingTableProgress",
+                            "caption": "Reading the router's routing table…",
+                            "visible": false
+                        },
+                        {
+                            "type": "Label",
+                            "name": "DeviceRoutingTableStatus",
+                            "caption": ""
+                        },
+                        {
+                            "type": "List",
+                            "name": "DeviceRoutingTableList",
+                            "add": false,
+                            "delete": false,
+                            "rowCount": 5,
+                            "loadValuesFromConfiguration": false,
+                            "columns": [
+                                {
+                                    "caption": "Destination address",
+                                    "name": "destination",
+                                    "width": "auto"
+                                },
+                                {
+                                    "caption": "Next hop",
+                                    "name": "next_hop",
+                                    "width": "160px"
+                                },
+                                {
+                                    "caption": "Route status",
+                                    "name": "status",
+                                    "width": "200px"
+                                }
+                            ],
+                            "values": []
+                        }
+                    ]
+                },
+                {
+                    "type": "ExpansionPanel",
                     "name": "DeviceOptionsSettings",
                     "caption": "Device options",
                     "expanded": false,

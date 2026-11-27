@@ -452,6 +452,48 @@ trait DeviceFormHelper
     }
 
     /**
+     * Liest bekannte Geraete aus dem Bridge-Cache.
+     */
+    protected function ReadBridgeCachedNetworkDevices(): array
+    {
+        $bridgeID = $this->FindMatchingBridgeInstanceID();
+        if ($bridgeID === false || !\function_exists('Z2M_GetCachedNetworkDevices')) {
+            return [];
+        }
+
+        $result = \Z2M_GetCachedNetworkDevices($bridgeID);
+        if (!\is_string($result) || $result === '') {
+            return [];
+        }
+
+        $decoded = json_decode($result, true);
+        return \is_array($decoded) ? $decoded : [];
+    }
+
+    /**
+     * Setzt ein Feld in der verschachtelten Symcon-Form anhand seines Namens.
+     */
+    protected function SetDeviceFormField(array &$node, string $name, string $field, mixed $value): bool
+    {
+        if (($node['name'] ?? null) === $name) {
+            $node[$field] = $value;
+            return true;
+        }
+
+        foreach ($node as &$child) {
+            if (!\is_array($child)) {
+                continue;
+            }
+
+            if ($this->SetDeviceFormField($child, $name, $field, $value)) {
+                return true;
+            }
+        }
+
+        return false;
+    }
+
+    /**
      * Aktualisiert die von Endpoint und Cluster abhaengigen Reporting-Felder.
      */
     private function UpdateReportingSelectionFields(string $endpoint, string $currentCluster, string $currentAttribute): void
@@ -1385,7 +1427,7 @@ trait DeviceFormHelper
      */
     private function ReadBindingTargetDeviceList(): array
     {
-        $cachedDevices = $this->ReadBindingTargetCachedDeviceList();
+        $cachedDevices = $this->ReadBridgeCachedNetworkDevices();
         if ($cachedDevices !== []) {
             return $cachedDevices;
         }
@@ -1968,7 +2010,7 @@ trait DeviceFormHelper
     {
         $currentTopic = $this->ReadPropertyString(self::MQTT_TOPIC);
         $targets = [];
-        foreach ($this->ReadBindingTargetCachedDeviceList() as $device) {
+        foreach ($this->ReadBridgeCachedNetworkDevices() as $device) {
             if (!\is_array($device) || ($device['type'] ?? '') === 'Coordinator') {
                 continue;
             }
@@ -1985,25 +2027,6 @@ trait DeviceFormHelper
         }
 
         return $targets;
-    }
-
-    /**
-     * Liest bekannte Geraete aus dem Bridge-Cache.
-     */
-    private function ReadBindingTargetCachedDeviceList(): array
-    {
-        $bridgeID = $this->FindMatchingBridgeInstanceID();
-        if ($bridgeID === false || !\function_exists('Z2M_GetCachedNetworkDevices')) {
-            return [];
-        }
-
-        $result = \Z2M_GetCachedNetworkDevices($bridgeID);
-        if (!\is_string($result) || $result === '') {
-            return [];
-        }
-
-        $decoded = json_decode($result, true);
-        return \is_array($decoded) ? $decoded : [];
     }
 
     /**
@@ -2873,28 +2896,5 @@ trait DeviceFormHelper
         }
 
         return $this->Translate('Standard visualization');
-    }
-
-    /**
-     * Setzt ein Feld in der verschachtelten Symcon-Form anhand seines Namens.
-     */
-    private function SetDeviceFormField(array &$node, string $name, string $field, mixed $value): bool
-    {
-        if (($node['name'] ?? null) === $name) {
-            $node[$field] = $value;
-            return true;
-        }
-
-        foreach ($node as &$child) {
-            if (!\is_array($child)) {
-                continue;
-            }
-
-            if ($this->SetDeviceFormField($child, $name, $field, $value)) {
-                return true;
-            }
-        }
-
-        return false;
     }
 }

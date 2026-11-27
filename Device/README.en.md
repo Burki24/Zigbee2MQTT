@@ -93,6 +93,8 @@ Under **Advanced device settings → Device maintenance**:
 
 Both require confirmation and may take up to two minutes. Wake battery devices immediately beforehand. After an interview refresh device information; after configuration refresh endpoint data as needed. Configure is not a factory reset or re-pairing operation and does not rename the device, but may replace manually tuned binding/reporting settings with the definition's defaults.
 
+Under **Advanced device settings → Routing table**, **Refresh routing table** reads the selected router's routing table on Zigbee2MQTT 2.7.0 or later. The panel appears when the matching Bridge knows the router and its network address. The table shows all destinations, next hops, and route statuses for that router.
+
 Under **Expert tools → Advanced device removal**, every action requires separate confirmation:
 
 | Action | Behavior |

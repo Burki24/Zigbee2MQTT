@@ -2999,6 +2999,54 @@ class DevicesTest extends DumpInclude
         $this->assertSame([], $list['values']);
     }
 
+    public function testDeviceRoutingTableUsesTheMatchingRouterAndDisplaysAllEntries(): void
+    {
+        $device = $this->createDeviceOptionFormTestDouble(IPS_CreateInstance('{E5BB36C6-A70B-EB23-3716-9151A09AC8A2}'));
+        $device->deviceIeee = '0x00124b0000000123';
+        $device->BUFFER_MQTT_SUSPENDED = false;
+        $device->cachedNetworkDevices = [[
+            'ieee_address' => $device->deviceIeee, 'type' => 'EndDevice', 'networkAddress' => 0x1234
+        ]];
+        $form = json_decode($device->GetConfigurationForm(), true, 512, JSON_THROW_ON_ERROR);
+        $this->assertFalse($this->findFormItemByName($form, 'DeviceRoutingTablePanel')['visible']);
+        $device->RequestAction('RefreshDeviceRoutingTable', true);
+        $this->assertSame('', $device->sentTopic);
+
+        $device->cachedNetworkDevices[0]['type'] = 'Router';
+        $form = json_decode($device->GetConfigurationForm(), true, 512, JSON_THROW_ON_ERROR);
+        $this->assertTrue($this->findFormItemByName($form, 'DeviceRoutingTablePanel')['visible']);
+        $this->assertSame('', $device->sentTopic);
+        $device->RequestAction('RefreshDeviceRoutingTable', true);
+        $this->assertSame('/bridge/request/action', $device->sentTopic);
+        $this->assertSame($device->deviceIeee, $device->sentPayload['params']['ieee_address']);
+        $this->assertSame(0x1234, $device->sentPayload['params']['network_address']);
+        $this->assertFalse($device->updatedFields['RefreshDeviceRoutingTable']['enabled']);
+
+        $response = [
+            'transaction' => $device->sentPayload['transaction'],
+            'status'      => 'ok',
+            'data'        => [0, ['routingTableEntries' => 2, 'startIndex' => 0, 'entryList' => [
+                ['destinationAddress' => 0x91, 'nextHopAddress' => 0x1357, 'status' => 'INACTIVE'],
+                ['destinationAddress' => 0x92, 'nextHopAddress' => 0x2468, 'status' => 'ACTIVE']
+            ]]]
+        ];
+        $frame = ['Topic' => 'different-network/bridge/response/action', 'Payload' => bin2hex(json_encode($response))];
+        $device->ReceiveData(json_encode($frame));
+        $this->assertArrayNotHasKey('DeviceRoutingTableList', $device->updatedFields);
+        $frame['Topic'] = 'zigbee2mqtt/bridge/response/action';
+        $device->ReceiveData(json_encode($frame));
+
+        $rows = [
+            ['destination' => '0x0091', 'next_hop' => '0x1357', 'status' => $device->Translate('Inactive')],
+            ['destination' => '0x0092', 'next_hop' => '0x2468', 'status' => $device->Translate('Active')]
+        ];
+        $this->assertSame($rows, json_decode($device->updatedFields['DeviceRoutingTableList']['values'], true, 512, JSON_THROW_ON_ERROR));
+        $this->assertTrue($device->updatedFields['RefreshDeviceRoutingTable']['enabled']);
+        $form = json_decode($device->GetConfigurationForm(), true, 512, JSON_THROW_ON_ERROR);
+        $this->assertSame($rows, $this->findFormItemByName($form, 'DeviceRoutingTableList')['values']);
+        $this->assertFalse($device->updateDeviceInfoCalled);
+    }
+
     public function testRefreshBindingReportingUsesBridgeCacheWithoutDeviceInfoRequest(): void
     {
         $device = $this->createDeviceOptionFormTestDouble();
@@ -3594,14 +3642,16 @@ class DevicesTest extends DumpInclude
         return null;
     }
 
-    private function createDeviceOptionFormTestDouble(): Zigbee2MQTTDevice
+    private function createDeviceOptionFormTestDouble(int $instanceID = 990004): Zigbee2MQTTDevice
     {
-        $device = new class(990004) extends Zigbee2MQTTDevice {
+        $device = new class($instanceID) extends Zigbee2MQTTDevice {
             public array $updatedFields = [];
             public string $sentTopic = '';
             public array $sentPayload = [];
             public array $sendDataResponses = [];
             public array $cachedEndpoints = [];
+            public ?array $cachedNetworkDevices = null;
+            public ?string $deviceIeee = null;
             public bool $updateDeviceInfoCalled = false;
             public string $calledBridgeFunction = '';
             public array $calledBridgeArguments = [];
@@ -3624,6 +3674,7 @@ class DevicesTest extends DumpInclude
                 return match ($Name) {
                     self::MQTT_TOPIC      => 'Flur/Beleuchtung/Unten',
                     self::MQTT_BASE_TOPIC => 'zigbee2mqtt',
+                    'IEEE'                => $this->deviceIeee ?? parent::ReadPropertyString($Name),
                     default               => parent::ReadPropertyString($Name)
                 };
             }
@@ -3637,6 +3688,11 @@ class DevicesTest extends DumpInclude
             protected function HasActiveParent(): bool
             {
                 return true;
+            }
+
+            protected function GetStatus(): int
+            {
+                return $this->deviceIeee !== null ? IS_ACTIVE : parent::GetStatus();
             }
 
             protected function SendDebug(string $Message, string $Data, int $Format): bool
@@ -3668,6 +3724,11 @@ class DevicesTest extends DumpInclude
             protected function ReadBridgeCachedDeviceEndpoints(): array
             {
                 return $this->cachedEndpoints;
+            }
+
+            protected function ReadBridgeCachedNetworkDevices(): array
+            {
+                return $this->cachedNetworkDevices ?? parent::ReadBridgeCachedNetworkDevices();
             }
 
             protected function CallMatchingBridgeFunction(string $function, array $arguments): mixed

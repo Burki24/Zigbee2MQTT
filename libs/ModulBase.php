@@ -87,6 +87,7 @@ abstract class ModulBase extends \IPSModuleStrict
     use WindowHandleTileHelper;
     use ActionTileHelper;
     use SendData;
+    protected const ADDITIONAL_MQTT_RESPONSE_TOPICS = [];
     private const MINIMAL_MODUL_VERSION = 5.1;
 
     /**
@@ -570,8 +571,13 @@ abstract class ModulBase extends \IPSModuleStrict
         $Filter1 = preg_quote('"Topic":"' . $BaseTopic . '/' . $MQTTTopic . '/' . self::AVAILABILITY_TOPIC . '"');
         $Filter2 = preg_quote('"Topic":"' . $BaseTopic . '/' . $MQTTTopic . '"');
         $Filter3 = preg_quote('"Topic":"' . $BaseTopic . self::SYMCON_EXTENSION_RESPONSE . static::$ExtensionTopic . $MQTTTopic . '"');
-        $this->SendDebug('Filter', '.*(' . $Filter1 . '|' . $Filter2 . '|' . $Filter3 . ').*', 0);
-        $this->SetReceiveDataFilter('.*(' . $Filter1 . '|' . $Filter2 . '|' . $Filter3 . ').*');
+        $filters = [$Filter1, $Filter2, $Filter3];
+        foreach (static::ADDITIONAL_MQTT_RESPONSE_TOPICS as $suffix) {
+            $filters[] = preg_quote('"Topic":"' . $BaseTopic . $suffix . '"');
+        }
+        $filter = '.*(' . implode('|', $filters) . ').*';
+        $this->SendDebug('Filter', $filter, 0);
+        $this->SetReceiveDataFilter($filter);
         $this->SetStatus(IS_ACTIVE);
         $this->TraceHelperCall(
             'VariableCatalogHelper',
@@ -1053,6 +1059,10 @@ abstract class ModulBase extends \IPSModuleStrict
         return $this->Translate('Native presentation');
     }
 
+    protected function HandleAdditionalMqttResponse(array $payload): void
+    {
+    }
+
     /**
      * Verarbeitet MQTT-Daten nach Aktivierung des Reload-Schutzes.
      */
@@ -1086,6 +1096,10 @@ abstract class ModulBase extends \IPSModuleStrict
         }
         // Leere Payloads werden nur fuer handleAvailability benoetigt.
         if (\is_null($payload)) {
+            return '';
+        }
+        if (\in_array('/' . implode('/', $topics), static::ADDITIONAL_MQTT_RESPONSE_TOPICS, true)) {
+            $this->HandleAdditionalMqttResponse($payload);
             return '';
         }
 

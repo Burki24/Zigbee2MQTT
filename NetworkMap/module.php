@@ -5,6 +5,7 @@ declare(strict_types=1);
 require_once dirname(__DIR__) . '/libs/AttributeArrayHelper.php';
 require_once dirname(__DIR__) . '/libs/InstanceConnectionHelper.php';
 require_once dirname(__DIR__) . '/libs/MQTTHelper.php';
+require_once dirname(__DIR__) . '/libs/RoutingTableRefresh.php';
 
 /**
  * Visualisiert und analysiert eine von Zigbee2MQTT gelieferte RAW-Netzwerkkarte.
@@ -13,6 +14,7 @@ class Zigbee2MQTTNetworkMap extends IPSModuleStrict
 {
     use \Zigbee2MQTT\AttributeArrayHelper;
     use \Zigbee2MQTT\InstanceConnectionHelper;
+    use \Zigbee2MQTT\RoutingTableRefresh;
     use \Zigbee2MQTT\SendData;
 
     private const ATTRIBUTE_TOPOLOGY = 'Topology';
@@ -34,6 +36,7 @@ class Zigbee2MQTTNetworkMap extends IPSModuleStrict
         $this->RegisterAttributeArray(self::ATTRIBUTE_TOPOLOGY, []);
         $this->RegisterAttributeArray(self::ATTRIBUTE_SCAN, []);
         $this->RegisterScanStatusTimer();
+        $this->RegisterRoutingTableRefresh();
     }
 
     /**
@@ -46,6 +49,7 @@ class Zigbee2MQTTNetworkMap extends IPSModuleStrict
         $baseTopic = trim($this->ReadPropertyString(self::MQTT_BASE_TOPIC), '/');
         $this->SetSummary($baseTopic);
         $this->SetVisualizationType(INSTANCE_VISUALIZATION_TYPE_HTML_FULLSCREEN);
+        $this->WithRoutingTableLock(fn () => $this->ClearRoutingTableRefresh());
 
         if ($baseTopic === '') {
             $this->SetStatus(IS_INACTIVE);
@@ -55,7 +59,7 @@ class Zigbee2MQTTNetworkMap extends IPSModuleStrict
         }
 
         $this->SetStatus(IS_ACTIVE);
-        $this->SetReceiveDataFilter('.*"Topic":"' . preg_quote($baseTopic, '/') . '/bridge/response/networkmap".*');
+        $this->SetReceiveDataFilter('.*"Topic":"' . preg_quote($baseTopic, '/') . '/bridge/response/(networkmap|action)".*');
         $this->UpdateScanTimer();
     }
 
@@ -118,42 +122,7 @@ class Zigbee2MQTTNetworkMap extends IPSModuleStrict
      */
     public function StartNetworkScan(bool $IncludeRoutes): bool
     {
-        if ($this->IsScanRunning()) {
-            $this->ShowMessage('Network scan already running', 'Wait for the current scan to finish or reset its status.');
-            return false;
-        }
-
-        $previousScan = $this->ReadAttributeArray(self::ATTRIBUTE_SCAN);
-        do {
-            $transaction = mt_rand(10000, 999999);
-        } while ($transaction === ($previousScan['transaction'] ?? null));
-        $scan = [
-            'running'     => true,
-            'routes'      => $IncludeRoutes,
-            'started_at'  => time(),
-            'finished_at' => 0,
-            'transaction' => $transaction,
-            'error'       => ''
-        ];
-        $this->WriteAttributeArray(self::ATTRIBUTE_SCAN, $scan);
-        $this->SetScanStatusTimerInterval(self::SCAN_TIMER_INTERVAL);
-        $this->UpdateVisibleData();
-
-        $sent = $this->SendData('/bridge/request/networkmap', [
-            'type'        => 'raw',
-            'routes'      => $IncludeRoutes,
-            'transaction' => $transaction
-        ], 0);
-        if ($sent !== true) {
-            $scan['running'] = false;
-            $scan['error'] = 'Request could not be sent';
-            $this->WriteAttributeArray(self::ATTRIBUTE_SCAN, $scan);
-            $this->SetScanStatusTimerInterval(0);
-            $this->UpdateVisibleData();
-            return false;
-        }
-
-        return true;
+        return $this->WithRoutingTableLock(fn (): bool => $this->SendNetworkScan($IncludeRoutes)) === true;
     }
 
     /**
@@ -298,11 +267,17 @@ class Zigbee2MQTTNetworkMap extends IPSModuleStrict
                 $this->ResetNetworkScanStatus();
                 break;
             case 'SelectNetworkMapNode':
-                $this->UpdateSelectedNodeConnections(\is_string($Value) ? $Value : '');
+                $this->WithRoutingTableLock(fn () => $this->UpdateSelectedNodeConnections(\is_string($Value) ? $Value : ''));
                 break;
             case 'SelectNetworkMapLink':
             case 'SelectNetworkMapNodeLink':
-                $this->UpdateSelectedLinkRoutes(\is_string($Value) ? $Value : '', $Ident === 'SelectNetworkMapNodeLink');
+                $this->WithRoutingTableLock(fn () => $this->UpdateSelectedLinkRoutes(\is_string($Value) ? $Value : '', $Ident === 'SelectNetworkMapNodeLink'));
+                break;
+            case 'RefreshNetworkMapLinkRoutes':
+                $this->WithRoutingTableLock(fn () => $this->RefreshNetworkMapLinkRoutes(\is_string($Value) ? $Value : ''));
+                break;
+            case 'CheckRoutingTableRefresh':
+                $this->CheckRoutingTableRefresh();
                 break;
             case 'CreateExportFiles':
                 if (!$this->HasTopology()) {
@@ -341,6 +316,90 @@ class Zigbee2MQTTNetworkMap extends IPSModuleStrict
         );
     }
 
+    protected function RoutingTableRefreshStateChanged(bool $running): void
+    {
+        $enabled = !$running && !$this->IsScanRunning();
+        $this->UpdateFormField('LinkRouteRefreshStatus', 'visible', $running);
+        $this->UpdateFormField('RefreshSelectedNodeLinkRoutes', 'enabled', $enabled);
+        $this->UpdateFormField('RefreshSelectedLinkRoutes', 'enabled', $enabled);
+        $this->UpdateFormField('StartQuickScan', 'enabled', $enabled);
+        $this->UpdateFormField('RequestFullScan', 'enabled', $enabled);
+    }
+
+    protected function RoutingTableRefreshCompleted(string $context, array $routes): void
+    {
+        $topology = $this->ReadAttributeArray(self::ATTRIBUTE_TOPOLOGY);
+        $target = $this->GetLinkRoutingTarget($topology, $context);
+        if ($target === null) {
+            return;
+        }
+        $index = $target['index'];
+        $topology['links'][$index]['routes'] = array_values(array_filter(
+            $routes,
+            static fn (array $route): bool => (int) $route['nextHopAddress'] === $target['next_hop']
+        ));
+        $topology['links'][$index]['routes_refreshed_at'] = time();
+        $this->WriteAttributeArray(self::ATTRIBUTE_TOPOLOGY, $topology);
+        $this->UpdateVisibleData();
+
+        $selectedNode = $this->GetBuffer('SelectedNetworkMapNode');
+        if ($selectedNode !== '') {
+            $links = $this->BuildFormData($selectedNode)['links'];
+            $this->UpdateFormField('SelectedNodeLinks', 'values', json_encode($links));
+        }
+        $this->UpdateSelectedLinkRoutes($this->GetBuffer('SelectedLinkRoutes'));
+        $this->UpdateSelectedLinkRoutes($this->GetBuffer('SelectedNodeLinkRoutes'), forSelectedNode: true);
+    }
+
+    protected function RoutingTableRefreshFailed(string $message): void
+    {
+        $this->ShowMessage('Route refresh failed', $message);
+    }
+
+    private function SendNetworkScan(bool $IncludeRoutes): bool
+    {
+        if ($this->IsScanRunning()) {
+            $this->ShowMessage('Network scan already running', 'Wait for the current scan to finish or reset its status.');
+            return false;
+        }
+        if ($this->HasRoutingTableRefresh()) {
+            $this->ShowMessage('Route refresh in progress', 'Wait for the routing table refresh to finish.');
+            return false;
+        }
+
+        $previousScan = $this->ReadAttributeArray(self::ATTRIBUTE_SCAN);
+        do {
+            $transaction = mt_rand(10000, 999999);
+        } while ($transaction === ($previousScan['transaction'] ?? null));
+        $scan = [
+            'running'     => true,
+            'routes'      => $IncludeRoutes,
+            'started_at'  => time(),
+            'finished_at' => 0,
+            'transaction' => $transaction,
+            'error'       => ''
+        ];
+        $this->WriteAttributeArray(self::ATTRIBUTE_SCAN, $scan);
+        $this->SetScanStatusTimerInterval(self::SCAN_TIMER_INTERVAL);
+        $this->UpdateVisibleData();
+
+        $sent = $this->SendData('/bridge/request/networkmap', [
+            'type'        => 'raw',
+            'routes'      => $IncludeRoutes,
+            'transaction' => $transaction
+        ], 0);
+        if ($sent !== true) {
+            $scan['running'] = false;
+            $scan['error'] = 'Request could not be sent';
+            $this->WriteAttributeArray(self::ATTRIBUTE_SCAN, $scan);
+            $this->SetScanStatusTimerInterval(0);
+            $this->UpdateVisibleData();
+            return false;
+        }
+
+        return true;
+    }
+
     /**
      * Baut das Netzwerkkartenformular nach Aktivierung des Reload-Schutzes auf.
      */
@@ -367,7 +426,8 @@ class Zigbee2MQTTNetworkMap extends IPSModuleStrict
         }
 
         $baseTopic = trim($this->ReadPropertyString(self::MQTT_BASE_TOPIC), '/');
-        if ((string) $buffer['Topic'] !== $baseTopic . '/bridge/response/networkmap') {
+        $topic = $buffer['Topic'];
+        if ($topic !== $baseTopic . '/bridge/response/networkmap' && $topic !== $baseTopic . self::ROUTING_TABLE_RESPONSE_TOPIC) {
             return '';
         }
 
@@ -375,28 +435,39 @@ class Zigbee2MQTTNetworkMap extends IPSModuleStrict
         if (!\is_array($payload)) {
             return '';
         }
+        if ($topic === $baseTopic . self::ROUTING_TABLE_RESPONSE_TOPIC) {
+            $this->ReceiveRoutingTableResponse($payload);
+        } else {
+            $this->WithRoutingTableLock(fn () => $this->HandleNetworkScanResponse($payload, $baseTopic));
+        }
+        return '';
+    }
 
+    private function HandleNetworkScanResponse(array $payload, string $baseTopic): void
+    {
         $scan = $this->ReadAttributeArray(self::ATTRIBUTE_SCAN);
         $transaction = $payload['transaction'] ?? null;
         if (!($scan['running'] ?? false)
             || !(\is_int($transaction) || (\is_string($transaction) && ctype_digit($transaction)))
             || (string) $transaction !== (string) ($scan['transaction'] ?? '')
+            || $baseTopic !== trim($this->ReadPropertyString(self::MQTT_BASE_TOPIC), '/')
         ) {
-            return '';
+            return;
         }
 
         $data = \is_array($payload['data'] ?? null) ? $payload['data'] : [];
         if (($payload['status'] ?? '') !== 'ok') {
             $this->FinishScanWithError((string) ($payload['error'] ?? 'Network scan failed'));
-            return '';
+            return;
         }
         if (($data['type'] ?? '') !== 'raw' || !\is_array($data['value'] ?? null)) {
-            return '';
+            return;
         }
 
         $topology = $this->NormalizeTopology($data['value']);
         $topology['captured_at'] = time();
         $topology['routes_included'] = (bool) ($data['routes'] ?? false);
+        $topology['base_topic'] = $baseTopic;
         $this->WriteAttributeArray(self::ATTRIBUTE_TOPOLOGY, $topology);
 
         $scan = $this->ReadAttributeArray(self::ATTRIBUTE_SCAN);
@@ -409,7 +480,6 @@ class Zigbee2MQTTNetworkMap extends IPSModuleStrict
         $this->UpdateSelectedNodeConnections('');
         $this->UpdateSelectedLinkRoutes('');
         $this->UpdateVisibleData();
-        return '';
     }
 
     /**
@@ -418,10 +488,12 @@ class Zigbee2MQTTNetworkMap extends IPSModuleStrict
     private function PopulateConfigurationForm(array &$form): void
     {
         $data = $this->BuildFormData();
+        $refreshingRoutes = $this->HasRoutingTableRefresh();
         $this->SetFormField($form, 'ScanStatus', 'caption', $data['status']);
-        $this->SetFormField($form, 'StartQuickScan', 'enabled', !$data['running']);
-        $this->SetFormField($form, 'RequestFullScan', 'enabled', !$data['running']);
+        $this->SetFormField($form, 'StartQuickScan', 'enabled', !$data['running'] && !$refreshingRoutes);
+        $this->SetFormField($form, 'RequestFullScan', 'enabled', !$data['running'] && !$refreshingRoutes);
         $this->SetFormField($form, 'ResetScanStatus', 'visible', $data['running']);
+        $this->SetFormField($form, 'LinkRouteRefreshStatus', 'visible', $refreshingRoutes);
         foreach (['NodeList' => 'nodes', 'LinkList' => 'links', 'RouteList' => 'routes', 'FailureList' => 'failures'] as $field => $key) {
             $this->SetFormField($form, $field, 'values', $data[$key]);
             $this->SetFormField($form, $field, 'rowCount', min(12, max(3, \count($data[$key]) + 1)));
@@ -435,9 +507,8 @@ class Zigbee2MQTTNetworkMap extends IPSModuleStrict
     {
         $data = $this->BuildFormData();
         $this->UpdateFormField('ScanStatus', 'caption', $data['status']);
-        $this->UpdateFormField('StartQuickScan', 'enabled', !$data['running']);
-        $this->UpdateFormField('RequestFullScan', 'enabled', !$data['running']);
         $this->UpdateFormField('ResetScanStatus', 'visible', $data['running']);
+        $this->RoutingTableRefreshStateChanged($this->HasRoutingTableRefresh());
         foreach (['NodeList' => 'nodes', 'LinkList' => 'links', 'RouteList' => 'routes', 'FailureList' => 'failures'] as $field => $key) {
             $this->UpdateFormField($field, 'values', json_encode($data[$key]));
             $this->UpdateFormField($field, 'rowCount', min(12, max(3, \count($data[$key]) + 1)));
@@ -459,6 +530,7 @@ class Zigbee2MQTTNetworkMap extends IPSModuleStrict
         $links = $data['links'] ?? [];
         $hasLinks = $name !== null && $links !== [];
 
+        $this->SetBuffer('SelectedNetworkMapNode', $name !== null ? $ieee : '');
         $this->UpdateSelectedLinkRoutes('', forSelectedNode: true);
         // Symcon retains the selected row position when replacing list values.
         $this->UpdateFormField('SelectedNodeLinks', 'values', '[]');
@@ -515,10 +587,18 @@ class Zigbee2MQTTNetworkMap extends IPSModuleStrict
         $data = $linkKey === '' ? [] : $this->BuildFormData(selectedLinkKey: $linkKey);
         $link = $data['links'][0] ?? null;
         $routes = $data['routes'] ?? [];
+        $this->SetBuffer($routesField, $link !== null ? $linkKey : '');
+        $canRefresh = $link !== null && $this->GetLinkRoutingTarget($this->ReadAttributeArray(self::ATTRIBUTE_TOPOLOGY), $linkKey) !== null;
+        $this->UpdateFormField('Refresh' . $routesField, 'visible', $canRefresh);
+        $this->UpdateFormField('Refresh' . $routesField, 'enabled', !$this->HasRoutingTableRefresh() && !$this->IsScanRunning());
 
         if ($link !== null) {
             $caption = $routes === [] ? 'No routes for %s → %s in the last scan.' : 'Routes for %s → %s';
-            $this->UpdateFormField($headingField, 'caption', \sprintf($this->Translate($caption), $link['source'], $link['target']));
+            $refreshedAt = $data['routes_refreshed_at'];
+            if ($refreshedAt !== 0) {
+                $caption = $routes === [] ? 'No routes for %s → %s (updated %s).' : 'Routes for %s → %s (updated %s)';
+            }
+            $this->UpdateFormField($headingField, 'caption', \sprintf($this->Translate($caption), $link['source'], $link['target'], self::FormatTimestamp($refreshedAt)));
         }
         if ($routes !== []) {
             $this->UpdateFormField($routesField, 'values', json_encode($routes));
@@ -526,6 +606,57 @@ class Zigbee2MQTTNetworkMap extends IPSModuleStrict
         }
         $this->UpdateFormField($headingField, 'visible', $link !== null);
         $this->UpdateFormField($routesField, 'visible', $routes !== []);
+    }
+
+    private function RefreshNetworkMapLinkRoutes(string $linkKey): void
+    {
+        if ($this->HasRoutingTableRefresh()) {
+            return;
+        }
+        if ($this->IsScanRunning()) {
+            $this->ShowMessage('Network scan already running', 'Wait for the current scan to finish or reset its status.');
+            return;
+        }
+        $target = $this->GetLinkRoutingTarget($this->ReadAttributeArray(self::ATTRIBUTE_TOPOLOGY), $linkKey);
+        if ($target === null) {
+            $this->RoutingTableRefreshFailed('Select a connection with a known router and network addresses.');
+            return;
+        }
+        $this->StartRoutingTableRefresh($target['router'], $linkKey);
+    }
+
+    private function GetLinkRoutingTarget(array $topology, string $linkKey): ?array
+    {
+        $parts = json_decode($linkKey, true);
+        $baseTopic = trim($this->ReadPropertyString(self::MQTT_BASE_TOPIC), '/');
+        if (!\is_array($parts) || !\is_int($parts[1] ?? null) || $baseTopic === ''
+            || ($topology['base_topic'] ?? $baseTopic) !== $baseTopic) {
+            return null;
+        }
+        $index = $parts[1];
+        $link = $topology['links'][$index] ?? null;
+        if (!\is_array($link)) {
+            return null;
+        }
+        $source = (string) ($link['source']['ieeeAddr'] ?? $link['sourceIeeeAddr'] ?? '');
+        $target = (string) ($link['target']['ieeeAddr'] ?? $link['targetIeeeAddr'] ?? '');
+        if ($source === '' || $source === $target || $linkKey !== self::BuildLinkKey($topology, $index, $source, $target)) {
+            return null;
+        }
+        $nodes = array_column($topology['nodes'] ?? [], null, 'ieeeAddr');
+        $routerNode = $nodes[$target] ?? [];
+        $routerNode['networkAddress'] ??= $link['target']['networkAddress'] ?? null;
+        $router = self::RoutingTableTarget($routerNode);
+        $nextHop = self::RoutingNetworkAddress($link['source']['networkAddress'] ?? $link['sourceNwkAddr'] ?? $nodes[$source]['networkAddress'] ?? null);
+        if ($router === null || $nextHop === null || $nextHop === $router['address']) {
+            return null;
+        }
+        return ['index' => $index, 'router' => $router, 'next_hop' => $nextHop];
+    }
+
+    private static function BuildLinkKey(array $topology, int $index, string $source, string $target): string
+    {
+        return json_encode([$topology['captured_at'] ?? 0, $index, $source, $target]);
     }
 
     /**
@@ -563,6 +694,7 @@ class Zigbee2MQTTNetworkMap extends IPSModuleStrict
 
         $links = [];
         $routes = [];
+        $routesRefreshedAt = 0;
         foreach ($topology['links'] ?? [] as $index => $link) {
             if (!\is_array($link)) {
                 continue;
@@ -572,9 +704,12 @@ class Zigbee2MQTTNetworkMap extends IPSModuleStrict
             if ($selectedIeee !== '' && $selectedIeee !== $sourceIeee && $selectedIeee !== $targetIeee) {
                 continue;
             }
-            $linkKey = json_encode([$topology['captured_at'] ?? 0, $index, $sourceIeee, $targetIeee]);
+            $linkKey = self::BuildLinkKey($topology, $index, $sourceIeee, $targetIeee);
             if ($selectedLinkKey !== '' && $selectedLinkKey !== $linkKey) {
                 continue;
+            }
+            if ($selectedLinkKey !== '') {
+                $routesRefreshedAt = (int) ($link['routes_refreshed_at'] ?? 0);
             }
             $lqi = (int) ($link['lqi'] ?? $link['linkquality'] ?? 0);
             $linkRoutes = \is_array($link['routes'] ?? null) ? $link['routes'] : [];
@@ -601,12 +736,13 @@ class Zigbee2MQTTNetworkMap extends IPSModuleStrict
         }
 
         return [
-            'running'  => (bool) ($scan['running'] ?? false),
-            'status'   => $this->BuildScanStatus($scan, $topology),
-            'nodes'    => $nodes,
-            'links'    => $links,
-            'routes'   => $routes,
-            'failures' => $failures
+            'running'             => (bool) ($scan['running'] ?? false),
+            'status'              => $this->BuildScanStatus($scan, $topology),
+            'nodes'               => $nodes,
+            'links'               => $links,
+            'routes'              => $routes,
+            'failures'            => $failures,
+            'routes_refreshed_at' => $routesRefreshedAt
         ];
     }
 
@@ -893,17 +1029,6 @@ class Zigbee2MQTTNetworkMap extends IPSModuleStrict
     }
 
     /**
-     * Formatiert eine Zigbee-Netzwerkadresse als vierstelligen Hexadezimalwert.
-     */
-    private static function FormatNetworkAddress(mixed $address): string
-    {
-        if ($address === '' || $address === null) {
-            return '';
-        }
-        return \sprintf('0x%04X', (int) $address);
-    }
-
-    /**
      * Übersetzt den numerischen Zigbee-Beziehungstyp für die Darstellung.
      */
     private function FormatRelationship(mixed $relationship): string
@@ -914,22 +1039,6 @@ class Zigbee2MQTTNetworkMap extends IPSModuleStrict
             2       => 'Sibling',
             3       => 'Previous child',
             default => (string) $relationship
-        };
-        return $this->Translate($value);
-    }
-
-    /**
-     * Übersetzt den numerischen Zigbee-Routenstatus für die Darstellung.
-     */
-    private function FormatRouteStatus(mixed $status): string
-    {
-        $value = match ((int) $status) {
-            0       => 'Active',
-            1       => 'Discovery underway',
-            2       => 'Discovery failed',
-            3       => 'Inactive',
-            4       => 'Validation underway',
-            default => (string) $status
         };
         return $this->Translate($value);
     }

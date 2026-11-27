@@ -215,6 +215,8 @@ Unter **Erweiterte Geräteeinstellungen** steht für konfigurierte Geräte der B
 | **Gerät erneut interviewen** | Liest Endpoints, Cluster und Basisattribute erneut vom Gerät ein. Dies ist besonders nach Firmwareupdates oder bei unvollständigen Endpoint- und Geräteinformationen sinnvoll. |
 | **Gerät neu konfigurieren** | Führt die in der Zigbee2MQTT-Gerätedefinition hinterlegte Konfiguration erneut aus. Dies kann fehlende Bindings oder Reporting-Einstellungen wiederherstellen. Nicht jedes Gerät besitzt eine solche Configure-Definition. |
 
+Unter **Erweiterte Geräteeinstellungen → Routing-Tabelle** liest **Routing-Tabelle aktualisieren** ab Zigbee2MQTT 2.7.0 die Tabelle des ausgewählten Zigbee-Routers. Der Bereich erscheint, sobald die passende Bridge den Router samt Netzwerkadresse kennt. Die Tabelle zeigt alle Zieladressen, nächsten Hops und Routenstatus dieses Routers.
+
 #### Was bedeutet „Gerät neu konfigurieren“?
 
 Zigbee2MQTT-Gerätedefinitionen können eine gerätespezifische `configure`-Funktion enthalten. Diese wird normalerweise nach dem Anlernen eines Geräts ausgeführt und richtet das Gerät so ein, wie es der jeweilige Zigbee2MQTT-Gerätetreiber erwartet. Über **Gerät neu konfigurieren** wird genau diese Funktion erneut ausgeführt.

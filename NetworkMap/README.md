@@ -52,7 +52,9 @@ Wählen Sie unter **Geräte** eine Zeile aus, um direkt darunter die ein- und au
 
 **Ausgewähltes Gerät öffnen** führt direkt zur Gerätekonfiguration. Die Schaltfläche erscheint, wenn die IEEE-Adresse auf demselben MQTT-Splitter und Basistopic genau einer Geräteinstanz zugeordnet ist.
 
-Wählen Sie unter **Verbindungen für \<Gerätename\>** oder in der Übersicht **Verbindungen** eine Zeile aus, um die gespeicherten Routen genau dieser Richtung zu sehen. Die Detailtabelle zeigt den Router, die Zieladresse, den nächsten Hop und den Status. Enthält die letzte Analyse für die ausgewählte Verbindung keine Routing-Einträge, erscheint ein Hinweis. Beim Wechsel zu einem anderen Gerät wird die Routentabelle ausgeblendet.
+Wählen Sie unter **Verbindungen für \<Gerätename\>** oder in der Übersicht **Verbindungen** eine Zeile aus, um die gespeicherten Routen genau dieser Richtung zu sehen. Die Detailtabelle zeigt den Router, die Zieladresse, den nächsten Hop und den Status. Sind für die ausgewählte Verbindung keine Routing-Einträge gespeichert, erscheint ein Hinweis. Beim Wechsel zu einem anderen Gerät wird die Routentabelle ausgeblendet.
+
+**Routen dieser Verbindung aktualisieren** liest ab Zigbee2MQTT 2.7.0 gezielt die Routing-Tabelle des Routers oder Koordinators in der Spalte **Ziel**. Die Anfrage verwendet die Netzwerkadressen aus der gespeicherten Topologie. Symcon übernimmt nur Einträge, deren nächster Hop der **Quelle** entspricht, und zeigt den Zeitpunkt der Einzelabfrage im Routendetail an. Nach einem Wechsel der Netzwerkadresse lässt sich die Verbindung mit **Verbindungen analysieren** neu erfassen.
 
 LQI-Werte sind gerichtet und können für Hin- und Rückweg unterschiedlich sein. Ein niedriger LQI oder eine fehlende Verbindung ist ein Diagnosehinweis, aber nicht automatisch ein Gerätefehler.
 
@@ -75,7 +77,7 @@ Die Buttons der Kachel haben folgende Aufgaben:
 |---|---|
 | **Einpassen** | Zentriert die aktuell sichtbaren Geräte und Verbindungen und passt sie an die verfügbare Kachelfläche an. |
 | **Schwache LQI** | Zeigt ausschließlich Verbindungen, deren LQI unterhalb des in der Instanz konfigurierten Warnwerts liegt. |
-| **Routen** | Zeigt ausschließlich Verbindungen an, für die in der letzten Analyse Routing-Einträge vorhanden waren. Routing-Daten stehen nur nach einer Analyse mit Routen zur Verfügung. |
+| **Routen** | Zeigt Verbindungen an, für die Routing-Einträge gespeichert sind. |
 | **Ansicht** | Öffnet die Werkzeuge für Layoutwechsel, Gerätesuche, Umfeldfokus und das Ein- oder Ausblenden der Beschriftungen. |
 
 Im Abschnitt **Ansicht** der Instanzkonfiguration werden das beim Öffnen verwendete Standardlayout und die anfängliche Sichtbarkeit der Beschriftungen festgelegt. Änderungen über den Button **Ansicht** innerhalb der Kachel gelten nur für die aktuell geöffnete Darstellung und verändern diese gespeicherten Vorgaben nicht.
@@ -100,7 +102,7 @@ Der Vergrößern-Pfeil der Kachel öffnet die interaktive Netzwerkkarte in der g
 
 ### Routing-Ansicht
 
-Der Button **Routen** reduziert die Darstellung auf Verbindungen, denen Zigbee2MQTT während der letzten Analyse mindestens einen Routing-Eintrag zuordnen konnte. Diese Ansicht steht deshalb nur sinnvoll zur Verfügung, wenn zuvor **Verbindungen und Routen analysieren** ausgeführt wurde.
+Der Button **Routen** reduziert die Darstellung auf Verbindungen mit mindestens einem gespeicherten Routing-Eintrag. Routing-Einträge lassen sich über **Verbindungen und Routen analysieren** oder für eine einzelne Verbindung über **Routen dieser Verbindung aktualisieren** laden.
 
 ![Routing-Ansicht der Netzwerkkarte](imgs/routing-ansicht.png)
 
@@ -131,7 +133,7 @@ Für die lokale Graphdarstellung wird [Cytoscape.js](https://js.cytoscape.org/) 
 
 ## Exporte
 
-Aus der gespeicherten RAW-Analyse erzeugt Symcon lokal:
+Aus der gespeicherten Topologie und ihren Routing-Einträgen erzeugt Symcon lokal:
 
 - JSON-Rohdaten
 - Graphviz-DOT

@@ -3,12 +3,17 @@
 declare(strict_types=1);
 
 require_once dirname(__DIR__) . '/libs/ModulBase.php';
+require_once dirname(__DIR__) . '/libs/RoutingTableRefresh.php';
 
 /**
  * Repräsentiert ein einzelnes Zigbee2MQTT-Gerät in Symcon.
  */
 class Zigbee2MQTTDevice extends \Zigbee2MQTT\ModulBase
 {
+    use \Zigbee2MQTT\RoutingTableRefresh;
+
+    protected const ADDITIONAL_MQTT_RESPONSE_TOPICS = [self::ROUTING_TABLE_RESPONSE_TOPIC];
+    private const DEVICE_ROUTING_TABLE = 'DeviceRoutingTable';
     private const ICON_CACHE_DIRECTORY = 'icons';
     private const ICON_DOWNLOAD_MAX_BYTES = 2 * 1024 * 1024;
     private const ICON_DOWNLOAD_TIMEOUT_SECONDS = 5;
@@ -34,6 +39,8 @@ class Zigbee2MQTTDevice extends \Zigbee2MQTT\ModulBase
         $this->RegisterAttributeString('IEEE', '');
         $this->RegisterAttributeString('Model', '');
         $this->RegisterAttributeString('Icon', '');
+        $this->RegisterAttributeArray(self::DEVICE_ROUTING_TABLE, []);
+        $this->RegisterRoutingTableRefresh();
         $this->RegisterMessage($this->InstanceID, IM_CHANGEATTRIBUTE);
     }
 
@@ -58,6 +65,7 @@ class Zigbee2MQTTDevice extends \Zigbee2MQTT\ModulBase
 
         // Führe parent::ApplyChanges zuerst aus
         parent::ApplyChanges();
+        $this->WithRoutingTableLock(fn () => $this->ClearRoutingTableRefresh());
         $this->MigratePersistedDeviceIconToCache();
     }
 
@@ -139,6 +147,14 @@ class Zigbee2MQTTDevice extends \Zigbee2MQTT\ModulBase
     public function RequestAction(string $ident, mixed $value): void
     {
         switch ($ident) {
+            case 'RefreshDeviceRoutingTable':
+                $this->WithRoutingTableLock(fn () => $this->RefreshDeviceRoutingTable());
+                return;
+
+            case 'CheckRoutingTableRefresh':
+                $this->CheckRoutingTableRefresh();
+                return;
+
             case 'UpdateInfo':
                 if (!$this->UpdateDeviceInfo()) {
                     $this->ShowDeviceInfoRequestError();
@@ -386,14 +402,101 @@ class Zigbee2MQTTDevice extends \Zigbee2MQTT\ModulBase
             : '';
     }
 
+    protected function HandleAdditionalMqttResponse(array $payload): void
+    {
+        $this->ReceiveRoutingTableResponse($payload);
+    }
+
+    protected function RoutingTableRefreshStateChanged(bool $running): void
+    {
+        $this->UpdateFormField('RefreshDeviceRoutingTable', 'enabled', !$running);
+        $this->UpdateFormField('DeviceRoutingTableProgress', 'visible', $running);
+    }
+
+    protected function RoutingTableRefreshCompleted(string $context, array $routes): void
+    {
+        if ($context !== strtolower(trim($this->ReadPropertyString('IEEE')))) {
+            return;
+        }
+        $snapshot = [
+            'ieee'         => $context,
+            'base_topic'   => $this->ReadPropertyString(self::MQTT_BASE_TOPIC),
+            'refreshed_at' => time(),
+            'routes'       => $routes
+        ];
+        $this->WriteAttributeArray(self::DEVICE_ROUTING_TABLE, $snapshot);
+        [$rows, $caption] = $this->BuildDeviceRoutingTableView($snapshot);
+        $this->UpdateFormField('DeviceRoutingTableList', 'values', json_encode($rows));
+        $this->UpdateFormField('DeviceRoutingTableStatus', 'caption', $caption);
+    }
+
+    protected function RoutingTableRefreshFailed(string $message): void
+    {
+        $this->ShowDeviceMaintenanceMessage('Route refresh failed', $message);
+    }
+
     /**
      * Baut das Geraeteformular nach Aktivierung des Reload-Schutzes auf.
      */
     private function GetConfigurationFormWithAvailableInstanceInterface(): string
     {
-        $form = json_decode(file_get_contents(__DIR__ . '/form.json'), true);
+        $form = $this->BuildDeviceConfigurationForm(json_decode(file_get_contents(__DIR__ . '/form.json'), true));
+        $target = $this->GetDeviceRoutingTableTarget();
+        if ($target !== null) {
+            $this->SetDeviceFormField($form, 'DeviceRoutingTablePanel', 'visible', true);
+            $refreshing = $this->HasRoutingTableRefresh();
+            $this->SetDeviceFormField($form, 'RefreshDeviceRoutingTable', 'enabled', !$refreshing);
+            $this->SetDeviceFormField($form, 'DeviceRoutingTableProgress', 'visible', $refreshing);
+            $snapshot = $this->ReadAttributeArray(self::DEVICE_ROUTING_TABLE);
+            if (($snapshot['ieee'] ?? '') === $target['ieee']
+                && ($snapshot['base_topic'] ?? '') === $this->ReadPropertyString(self::MQTT_BASE_TOPIC)) {
+                [$rows, $caption] = $this->BuildDeviceRoutingTableView($snapshot);
+                $this->SetDeviceFormField($form, 'DeviceRoutingTableList', 'values', $rows);
+                $this->SetDeviceFormField($form, 'DeviceRoutingTableStatus', 'caption', $caption);
+            }
+        }
 
-        return json_encode($this->PrepareLocalVariableMaintenanceForm($this->BuildDeviceConfigurationForm($form)));
+        return json_encode($this->PrepareLocalVariableMaintenanceForm($form));
+    }
+
+    private function GetDeviceRoutingTableTarget(): ?array
+    {
+        $ieee = strtolower(trim($this->ReadPropertyString('IEEE')));
+        if ($ieee === '' || $this->ReadPropertyString(self::MQTT_TOPIC) === '') {
+            return null;
+        }
+        foreach ($this->ReadBridgeCachedNetworkDevices() as $device) {
+            if (\is_array($device) && strtolower((string) ($device['ieee_address'] ?? $device['ieeeAddr'] ?? '')) === $ieee) {
+                return self::RoutingTableTarget($device);
+            }
+        }
+        return null;
+    }
+
+    private function RefreshDeviceRoutingTable(): void
+    {
+        if ($this->HasRoutingTableRefresh()) {
+            return;
+        }
+        $target = $this->GetDeviceRoutingTableTarget();
+        if ($target === null) {
+            $this->RoutingTableRefreshFailed('The matching Bridge has no routing-capable device with a known network address.');
+            return;
+        }
+        $this->StartRoutingTableRefresh($target, $target['ieee']);
+    }
+
+    private function BuildDeviceRoutingTableView(array $snapshot): array
+    {
+        $rows = array_map(fn (array $route): array => [
+            'destination' => self::FormatNetworkAddress($route['destinationAddress']),
+            'next_hop'    => self::FormatNetworkAddress($route['nextHopAddress']),
+            'status'      => $this->FormatRouteStatus($route['status'])
+        ], $snapshot['routes']);
+        return [
+            $rows,
+            \sprintf($this->Translate('Routing table updated %s. Entries: %d.'), date('d.m.Y H:i:s', $snapshot['refreshed_at']), \count($rows))
+        ];
     }
 
     /**

@@ -35,7 +35,9 @@ Select a row under **Devices** to see its incoming and outgoing connections from
 
 **Open selected device** opens the device configuration when exactly one device instance matches the IEEE address on the same MQTT splitter and base topic.
 
-Select a row under **Connections for \<device name\>** or in the **Connections** overview to see the cached routing entries for that direction. The details show the router, destination, next hop, and status. If the last scan has no routing entries for the selected link, the form shows a message. Selecting another device clears the device route details.
+Select a row under **Connections for \<device name\>** or in the **Connections** overview to see the cached routing entries for that direction. The details show the router, destination, next hop, and status. If there are no cached routing entries for the selected link, the form shows a message. Selecting another device clears the device route details.
+
+On Zigbee2MQTT 2.7.0 or later, **Refresh routes for this connection** reads the routing table of the router or coordinator in the **Target** column. It uses the network addresses from the stored topology. Symcon keeps only entries whose next hop matches the **Source** and shows the refresh time in the route details. Use **Analyze connections** to update the link if a network address has changed.
 
 LQI is directional; outgoing and incoming values can differ. A low LQI, a missing edge or one failed query is a diagnostic hint, not proof that a device is broken or offline. Only responses matching the current scan transaction are accepted; old or unsolicited responses do not replace the current result.
 
@@ -49,7 +51,7 @@ Coordinator, routers and end devices use distinct styling. Click a node for deta
 | --- | --- |
 | Fit | Centers the visible nodes/edges and fits them to the tile area. |
 | Weak LQI | Displays only links below the configured warning threshold. |
-| Routes | Displays only links with routing entries from the last scan. Requires a scan including routes to be meaningful. |
+| Routes | Displays links with stored routing entries. |
 | View | Opens layout, search, neighborhood focus and label controls. |
 
 ### Layouts and search

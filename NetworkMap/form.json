@@ -61,6 +61,12 @@
         },
         {
             "type": "Label",
+            "name": "LinkRouteRefreshStatus",
+            "caption": "Reading the router's routing table…",
+            "visible": false
+        },
+        {
+            "type": "Label",
             "caption": "A network scan queries every router and can noticeably load the Zigbee network. For large networks, a scan without routes may take several minutes and a scan with routes may take considerably longer."
         },
         {
@@ -215,6 +221,13 @@
                     "visible": false
                 },
                 {
+                    "type": "Button",
+                    "name": "RefreshSelectedNodeLinkRoutes",
+                    "caption": "Refresh routes for this connection",
+                    "visible": false,
+                    "onClick": "IPS_RequestAction($id, 'RefreshNetworkMapLinkRoutes', (string) ($SelectedNodeLinks['link_key'] ?? ''));"
+                },
+                {
                     "type": "List",
                     "name": "SelectedNodeLinkRoutes",
                     "visible": false,
@@ -310,6 +323,13 @@
                     "bold": true,
                     "link": false,
                     "visible": false
+                },
+                {
+                    "type": "Button",
+                    "name": "RefreshSelectedLinkRoutes",
+                    "caption": "Refresh routes for this connection",
+                    "visible": false,
+                    "onClick": "IPS_RequestAction($id, 'RefreshNetworkMapLinkRoutes', (string) ($LinkList['link_key'] ?? ''));"
                 },
                 {
                     "type": "List",
@@ -420,7 +440,7 @@
             "items": [
                 {
                     "type": "Label",
-                    "caption": "Exports are generated locally from the last RAW analysis and do not start another network scan. They are stored on the Symcon server to avoid output buffer limits."
+                    "caption": "Exports use the stored topology and routes. They are stored on the Symcon server to avoid output buffer limits."
                 },
                 {
                     "type": "Button",

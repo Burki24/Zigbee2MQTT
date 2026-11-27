@@ -75,7 +75,8 @@ trait PayloadProcessingHelper
             [
                 $deviceTopic,
                 $deviceTopic . '/' . self::AVAILABILITY_TOPIC,
-                $baseTopic . self::SYMCON_EXTENSION_RESPONSE . static::$ExtensionTopic . $mqttTopic
+                $baseTopic . self::SYMCON_EXTENSION_RESPONSE . static::$ExtensionTopic . $mqttTopic,
+                ...array_map(static fn (string $suffix): string => $baseTopic . $suffix, static::ADDITIONAL_MQTT_RESPONSE_TOPICS)
             ],
             true
         )) {

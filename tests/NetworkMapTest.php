@@ -421,6 +421,129 @@ class NetworkMapTest extends TestCase
         $this->assertFalse($map->updatedFields['SelectedLinkRoutes']['visible']);
     }
 
+    public function testRefreshingNetworkMapLinkReadsOneRouterAndUpdatesOnlyThatDirection(): void
+    {
+        $map = $this->createMapTestDouble();
+        $source = '0x00124b0000000101';
+        $target = '0x00124b0000000202';
+        $map->ReceiveData($this->buildRawResponse([
+            'nodes' => [
+                ['ieeeAddr' => $source, 'type' => 'Router', 'networkAddress' => 0x1234],
+                ['ieeeAddr' => $target, 'type' => 'Coordinator', 'networkAddress' => 0]
+            ],
+            'links' => [
+                ['sourceIeeeAddr' => $source, 'targetIeeeAddr' => $target],
+                ['sourceIeeeAddr' => $target, 'targetIeeeAddr' => $source, 'routes' => [
+                    ['destinationAddress' => 0x1234, 'nextHopAddress' => 0, 'status' => 0]
+                ]]
+            ]
+        ], false));
+        $scan = $map->readMapAttribute('Scan');
+        $original = $map->readMapAttribute('Topology');
+        $form = json_decode($map->GetConfigurationForm(), true, 512, JSON_THROW_ON_ERROR);
+        $button = $this->findFormField($form, 'RefreshSelectedNodeLinkRoutes');
+        $this->assertStringContainsString("'RefreshNetworkMapLinkRoutes'", $button['onClick'] ?? '');
+        $this->assertFalse($button['visible']);
+        $linkKey = $this->findFormField($form, 'LinkList')['values'][0]['link_key'];
+        $map->lastTopic = '';
+        $map->RequestAction('SelectNetworkMapNode', $source);
+        $map->RequestAction('SelectNetworkMapNodeLink', $linkKey);
+        $this->assertSame('', $map->lastTopic);
+        $this->assertTrue($map->updatedFields['RefreshSelectedNodeLinkRoutes']['visible']);
+
+        $map->RequestAction('RefreshNetworkMapLinkRoutes', $linkKey);
+        $this->assertSame('/bridge/request/action', $map->lastTopic);
+        $this->assertSame(0, $map->lastTimeout);
+        $this->assertSame('raw', $map->lastPayload['action']);
+        $this->assertSame([
+            'ieee_address'    => $target,
+            'network_address' => 0,
+            'profile_id'      => 0,
+            'cluster_key'     => 0x0032,
+            'zdo_params'      => [0]
+        ], $map->lastPayload['params']);
+        $first = $map->lastPayload['transaction'];
+        $map->RequestAction('RefreshNetworkMapLinkRoutes', $linkKey);
+        $this->assertSame($first, $map->lastPayload['transaction']);
+        $this->assertFalse($map->StartNetworkScan(true));
+        $this->assertSame('/bridge/request/action', $map->lastTopic);
+
+        $page = ['routingTableEntries' => 2, 'startIndex' => 0, 'entryList' => [
+            ['destinationAddress' => 0x5555, 'nextHopAddress' => 0x4321, 'status' => 'ACTIVE']
+        ]];
+        $map->ReceiveData($this->buildRouteResponse('unrelated', [0, $page]));
+        $this->assertSame($first, $map->lastPayload['transaction']);
+        $map->ReceiveData($this->buildRouteResponse($first, [0, $page]));
+        $second = $map->lastPayload['transaction'];
+        $this->assertNotSame($first, $second);
+        $this->assertSame('/bridge/request/action', $map->lastTopic);
+        $this->assertSame($target, $map->lastPayload['params']['ieee_address']);
+        $this->assertSame([1], $map->lastPayload['params']['zdo_params']);
+        $this->assertSame($original, $map->readMapAttribute('Topology'));
+
+        $map->ReceiveData($this->buildRouteResponse($first, [0, $page]));
+        $this->assertSame($second, $map->lastPayload['transaction']);
+        $route = ['destinationAddress' => 0x6666, 'nextHopAddress' => 0x1234, 'status' => 'INACTIVE'];
+        $map->ReceiveData($this->buildRouteResponse($second, [0, [
+            'routingTableEntries' => 2, 'startIndex' => 1, 'entryList' => [$route]
+        ]]));
+        $topology = $map->readMapAttribute('Topology');
+        $this->assertSame([$route], $topology['links'][0]['routes']);
+        $this->assertSame($original['links'][1], $topology['links'][1]);
+        $this->assertSame($original['captured_at'], $topology['captured_at']);
+        $this->assertSame($scan, $map->readMapAttribute('Scan'));
+        $rows = json_decode($map->updatedFields['SelectedNodeLinkRoutes']['values'], true, 512, JSON_THROW_ON_ERROR);
+        $this->assertSame([[
+            'router' => $target, 'destination' => '0x6666', 'next_hop' => '0x1234', 'status' => $map->Translate('Inactive')
+        ]], $rows);
+        $this->assertTrue($map->updatedFields['RefreshSelectedNodeLinkRoutes']['enabled']);
+    }
+
+    public function testFailedLinkRefreshPreservesTheCachedRoutesAndCanBeRetried(): void
+    {
+        $map = $this->createMapTestDouble();
+        $source = '0x00124b0000000101';
+        $target = '0x00124b0000000202';
+        $map->ReceiveData($this->buildRawResponse([
+            'nodes' => [
+                ['ieeeAddr' => $source, 'type' => 'Router', 'networkAddress' => 0x1234],
+                ['ieeeAddr' => $target, 'type' => 'Router', 'networkAddress' => 0x2345]
+            ],
+            'links' => [[
+                'sourceIeeeAddr' => $source, 'targetIeeeAddr' => $target, 'routes' => [
+                    ['destinationAddress' => 0x3456, 'nextHopAddress' => 0x1234, 'status' => 0]
+                ]
+            ]]
+        ], true));
+        $original = $map->readMapAttribute('Topology');
+        $form = json_decode($map->GetConfigurationForm(), true, 512, JSON_THROW_ON_ERROR);
+        $linkKey = $this->findFormField($form, 'LinkList')['values'][0]['link_key'];
+        $map->RequestAction('SelectNetworkMapLink', $linkKey);
+        $map->RequestAction('RefreshNetworkMapLinkRoutes', $linkKey);
+        $map->ReceiveData($this->buildRouteResponse($map->lastPayload['transaction'], [0x84, null]));
+        $this->assertTrue($map->updatedFields['MessagePopup']['visible']);
+        $this->assertSame($original, $map->readMapAttribute('Topology'));
+        $this->assertTrue($map->updatedFields['RefreshSelectedLinkRoutes']['enabled']);
+
+        $map->RequestAction('RefreshNetworkMapLinkRoutes', $linkKey);
+        $expired = $map->readMapAttribute('RoutingTableRefresh');
+        $expired['deadline'] = time() - 1;
+        $map->writeMapAttribute('RoutingTableRefresh', $expired);
+        $map->RequestAction('CheckRoutingTableRefresh', true);
+        $this->assertFalse($map->updatedFields['LinkRouteRefreshStatus']['visible']);
+        $this->assertTrue($map->updatedFields['RefreshSelectedLinkRoutes']['enabled']);
+        $this->assertSame($original, $map->readMapAttribute('Topology'));
+
+        $map->RequestAction('RefreshNetworkMapLinkRoutes', $linkKey);
+        $emptyPage = [0, ['routingTableEntries' => 0, 'startIndex' => 0, 'entryList' => []]];
+        $map->ReceiveData($this->buildRouteResponse($expired['transaction'], $emptyPage));
+        $this->assertSame($original, $map->readMapAttribute('Topology'));
+        $map->ReceiveData($this->buildRouteResponse($map->lastPayload['transaction'], $emptyPage));
+        $this->assertSame([], $map->readMapAttribute('Topology')['links'][0]['routes']);
+        $this->assertFalse($map->updatedFields['SelectedLinkRoutes']['visible']);
+        $this->assertTrue($map->updatedFields['SelectedLinkRoutesHeading']['visible']);
+    }
+
     #[RunInSeparateProcess]
     public function testNativeFullscreenKeepsTheInteractiveTileOnSymcon91(): void
     {
@@ -585,6 +708,11 @@ class NetworkMapTest extends TestCase
             {
                 return $this->ReadAttributeArray($name);
             }
+
+            public function writeMapAttribute(string $name, array $value): void
+            {
+                $this->WriteAttributeArray($name, $value);
+            }
         };
         $map->Create();
         $this->currentMap = $map;
@@ -607,6 +735,14 @@ class NetworkMapTest extends TestCase
                     'value'  => $topology
                 ]
             ]))
+        ]);
+    }
+
+    private function buildRouteResponse(string $transaction, array $data): string
+    {
+        return json_encode([
+            'Topic'   => 'zigbee2mqtt/bridge/response/action',
+            'Payload' => bin2hex(json_encode(['transaction' => $transaction, 'status' => 'ok', 'data' => $data]))
         ]);
     }
 
