@@ -143,6 +143,13 @@
                     "values": []
                 },
                 {
+                    "type": "OpenObjectButton",
+                    "name": "OpenSelectedNetworkDevice",
+                    "caption": "Open selected device",
+                    "objectID": 0,
+                    "visible": false
+                },
+                {
                     "type": "Label",
                     "name": "SelectedNodeLinksHeading",
                     "caption": "",

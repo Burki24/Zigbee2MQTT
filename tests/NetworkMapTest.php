@@ -253,6 +253,62 @@ class NetworkMapTest extends TestCase
         $this->assertFalse($map->updatedFields['SelectedNodeLinksHeading']['visible']);
     }
 
+    #[RunInSeparateProcess]
+    public function testSelectingNetworkMapNodeOffersOnlyAnUnambiguousDeviceOnTheSameNetwork(): void
+    {
+        define('INSTANCE_VISUALIZATION_TYPE_HTML_FULLSCREEN', 2);
+        $mapID = IPS_CreateInstance('{C07834E7-9821-218C-C3EC-A4A87FFB8D7D}');
+        $map = $this->createMapTestDouble($mapID);
+        $splitter = IPS_CreateInstance('{6179ED6A-FC31-413C-BB8E-1204150CF376}');
+        $otherSplitter = IPS_CreateInstance('{6179ED6A-FC31-413C-BB8E-1204150CF376}');
+        IPS_ConnectInstance($mapID, $splitter);
+
+        $address = '0x00124b00abcdef01';
+        $makeDevice = static function (string $ieee, string $baseTopic, int $parent): int
+        {
+            $id = IPS_CreateInstance('{E5BB36C6-A70B-EB23-3716-9151A09AC8A2}');
+            if ($parent !== 0) {
+                IPS_ConnectInstance($id, $parent);
+            }
+            IPS_SetProperty($id, 'IEEE', $ieee);
+            IPS_SetProperty($id, 'MQTTBaseTopic', $baseTopic);
+            IPS_SetProperty($id, 'MQTTTopic', 'Configured/Device');
+            IPS_ApplyChanges($id);
+            return $id;
+        };
+        $makeDevice($address, 'zigbee2mqtt', $otherSplitter);
+        $makeDevice($address, 'other-network', $splitter);
+        $makeDevice($address, 'zigbee2mqtt', 0);
+        $matching = $makeDevice(strtoupper($address), 'zigbee2mqtt', $splitter);
+        $map->ReceiveData($this->buildRawResponse([
+            'nodes' => [['ieeeAddr' => $address, 'friendlyName' => 'Cached device name']],
+            'links' => []
+        ], false));
+
+        $form = json_decode($map->GetConfigurationForm(), true, 512, JSON_THROW_ON_ERROR);
+        $button = $this->findFormField($form, 'OpenSelectedNetworkDevice');
+        $this->assertSame('OpenObjectButton', $button['type'] ?? null);
+        $this->assertFalse($button['visible']);
+        $this->assertSame(0, $button['objectID']);
+        $this->assertArrayNotHasKey('onClick', $button);
+        $map->lastTopic = '';
+        $map->RequestAction('SelectNetworkMapNode', $address);
+        $this->assertSame(['objectID' => $matching, 'visible' => true], $map->updatedFields['OpenSelectedNetworkDevice']);
+        $map->RequestAction('SelectNetworkMapNode', '0x00124b00abcdef99');
+        $this->assertSame(['objectID' => 0, 'visible' => false], $map->updatedFields['OpenSelectedNetworkDevice']);
+
+        $duplicate = $makeDevice($address, 'zigbee2mqtt', $splitter);
+        $map->RequestAction('SelectNetworkMapNode', $address);
+        $this->assertSame(['objectID' => 0, 'visible' => false], $map->updatedFields['OpenSelectedNetworkDevice']);
+        IPS_DisconnectInstance($duplicate);
+        $map->RequestAction('SelectNetworkMapNode', $address);
+        $this->assertSame($matching, $map->updatedFields['OpenSelectedNetworkDevice']['objectID']);
+        IPS_DisconnectInstance($mapID);
+        $map->RequestAction('SelectNetworkMapNode', $address);
+        $this->assertSame(['objectID' => 0, 'visible' => false], $map->updatedFields['OpenSelectedNetworkDevice']);
+        $this->assertSame('', $map->lastTopic);
+    }
+
     public function testSelectingNetworkMapLinkShowsOnlyItsCachedRoutes(): void
     {
         $map = $this->createMapTestDouble();
@@ -443,9 +499,9 @@ class NetworkMapTest extends TestCase
         $this->assertSame(1, $visualizationData['summary']['omitted_links']);
     }
 
-    private function createMapTestDouble(): Zigbee2MQTTNetworkMap
+    private function createMapTestDouble(int $instanceID = 900002): Zigbee2MQTTNetworkMap
     {
-        $map = new class(900002) extends Zigbee2MQTTNetworkMap {
+        $map = new class($instanceID) extends Zigbee2MQTTNetworkMap {
             public string $lastTopic = '';
             public array $lastPayload = [];
             public int $lastTimeout = -1;

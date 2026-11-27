@@ -3,6 +3,7 @@
 declare(strict_types=1);
 
 require_once dirname(__DIR__) . '/libs/AttributeArrayHelper.php';
+require_once dirname(__DIR__) . '/libs/InstanceConnectionHelper.php';
 require_once dirname(__DIR__) . '/libs/MQTTHelper.php';
 
 /**
@@ -11,6 +12,7 @@ require_once dirname(__DIR__) . '/libs/MQTTHelper.php';
 class Zigbee2MQTTNetworkMap extends IPSModuleStrict
 {
     use \Zigbee2MQTT\AttributeArrayHelper;
+    use \Zigbee2MQTT\InstanceConnectionHelper;
     use \Zigbee2MQTT\SendData;
 
     private const ATTRIBUTE_TOPOLOGY = 'Topology';
@@ -466,6 +468,36 @@ class Zigbee2MQTTNetworkMap extends IPSModuleStrict
         }
         $this->UpdateFormField('SelectedNodeLinksHeading', 'visible', $name !== null);
         $this->UpdateFormField('SelectedNodeLinks', 'visible', $hasLinks);
+        $instanceID = $name !== null ? $this->FindSelectedNetworkDevice($ieee) : 0;
+        $this->UpdateFormField('OpenSelectedNetworkDevice', 'objectID', $instanceID);
+        $this->UpdateFormField('OpenSelectedNetworkDevice', 'visible', $instanceID !== 0);
+    }
+
+    /**
+     * Sucht eine eindeutige Geraeteinstanz im selben MQTT-Netz.
+     */
+    private function FindSelectedNetworkDevice(string $ieee): int
+    {
+        $baseTopic = trim($this->ReadPropertyString(self::MQTT_BASE_TOPIC), '/');
+        if ($baseTopic === '' || !IPS_InstanceExists($this->InstanceID) || (int) IPS_GetInstance($this->InstanceID)['ConnectionID'] === 0) {
+            return 0;
+        }
+
+        $match = 0;
+        foreach (IPS_GetInstanceListByModuleID(self::GUID_MODULE_DEVICE) as $instanceID) {
+            if (strcasecmp(trim((string) @IPS_GetProperty($instanceID, 'IEEE')), $ieee) !== 0
+                || @IPS_GetProperty($instanceID, self::MQTT_BASE_TOPIC) !== $baseTopic
+                || !$this->IsInstanceConnectedToSameSplitter($instanceID)
+            ) {
+                continue;
+            }
+            if ($match !== 0) {
+                return 0;
+            }
+            $match = $instanceID;
+        }
+
+        return $match;
     }
 
     /**
