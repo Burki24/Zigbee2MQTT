@@ -95,6 +95,7 @@
                 {
                     "type": "List",
                     "name": "NodeList",
+                    "onSelectionChanged": "IPS_RequestAction($id, 'SelectNetworkMapNode', (string) ($NodeList['ieee'] ?? ''));",
                     "add": false,
                     "delete": false,
                     "rowCount": 5,
@@ -140,6 +141,55 @@
                         }
                     ],
                     "values": []
+                },
+                {
+                    "type": "List",
+                    "name": "SelectedNodeLinks",
+                    "caption": "Connections",
+                    "visible": false,
+                    "add": false,
+                    "delete": false,
+                    "rowCount": 3,
+                    "loadValuesFromConfiguration": false,
+                    "columns": [
+                        {
+                            "caption": "Source",
+                            "name": "source",
+                            "width": "230px"
+                        },
+                        {
+                            "caption": "Target",
+                            "name": "target",
+                            "width": "auto"
+                        },
+                        {
+                            "caption": "LQI",
+                            "name": "lqi",
+                            "width": "80px"
+                        },
+                        {
+                            "caption": "Relationship",
+                            "name": "relationship",
+                            "width": "140px"
+                        },
+                        {
+                            "caption": "Depth",
+                            "name": "depth",
+                            "width": "80px"
+                        },
+                        {
+                            "caption": "Routes",
+                            "name": "routes",
+                            "width": "80px"
+                        }
+                    ],
+                    "values": []
+                },
+                {
+                    "type": "Label",
+                    "name": "SelectedNodeNoLinks",
+                    "caption": "",
+                    "visible": false
                 }
             ]
         },

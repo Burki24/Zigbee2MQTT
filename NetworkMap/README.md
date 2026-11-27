@@ -48,6 +48,8 @@ Die Konfiguration zeigt:
 - Routing-Einträge mit Zieladresse, nächstem Hop und Status
 - fehlgeschlagene LQI- oder Routing-Abfragen
 
+Wählen Sie unter **Geräte** eine Zeile aus, um direkt darunter die ein- und ausgehenden Verbindungen des Geräts aus der letzten Analyse zu sehen. Die Auswahl startet keinen neuen Scan. Wenn eine neue Analyse vorliegt, können Sie das Gerät erneut auswählen.
+
 LQI-Werte sind gerichtet und können für Hin- und Rückweg unterschiedlich sein. Ein niedriger LQI oder eine fehlende Verbindung ist ein Diagnosehinweis, aber nicht automatisch ein Gerätefehler.
 
 ## Visualisierung

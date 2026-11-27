@@ -191,6 +191,61 @@ class NetworkMapTest extends TestCase
         $this->assertStringNotContainsString('__THEME_SUPPORT__', $tile);
     }
 
+    public function testSelectingNetworkMapDeviceShowsOnlyItsCachedConnections(): void
+    {
+        $map = $this->createMapTestDouble();
+        $topology = [
+            'nodes' => [
+                ['ieeeAddr' => '0x01', 'friendlyName' => 'Router'],
+                ['ieeeAddr' => '0x02', 'friendlyName' => 'Router'],
+                ['ieeeAddr' => '0x03', 'friendlyName' => 'Lamp'],
+                ['ieeeAddr' => '0x04', 'friendlyName' => 'Sensor']
+            ],
+            'links' => [
+                ['source' => ['ieeeAddr' => '0x01'], 'target' => ['ieeeAddr' => '0x03'], 'lqi' => 120],
+                ['sourceIeeeAddr' => '0x03', 'targetIeeeAddr' => '0x01', 'linkquality' => 88],
+                ['source' => ['ieeeAddr' => '0x02'], 'target' => ['ieeeAddr' => '0x03'], 'lqi' => 200]
+            ]
+        ];
+        $map->ReceiveData($this->buildRawResponse($topology, false));
+        $form = json_decode($map->GetConfigurationForm(), true, 512, JSON_THROW_ON_ERROR);
+        $nodeList = $this->findFormField($form, 'NodeList');
+        $this->assertStringContainsString("'SelectNetworkMapNode'", $nodeList['onSelectionChanged'] ?? '');
+        $this->assertFalse($this->findFormField($form, 'SelectedNodeLinks')['visible']);
+        $this->assertCount(3, $this->findFormField($form, 'LinkList')['values']);
+
+        $storedTopology = $map->readMapAttribute('Topology');
+        $storedScan = $map->readMapAttribute('Scan');
+        $map->lastTopic = '';
+        $map->updatedFields = [];
+        $map->RequestAction('SelectNetworkMapNode', '0x01');
+        $details = $map->updatedFields['SelectedNodeLinks'];
+        $this->assertTrue($details['visible']);
+        $this->assertStringContainsString('Router', $details['caption']);
+        $links = json_decode($details['values'], true, 512, JSON_THROW_ON_ERROR);
+        $this->assertSame([120, 88], array_column($links, 'lqi'));
+        $this->assertSame(['Router', 'Lamp'], array_column($links, 'source'));
+        $this->assertSame(['Lamp', 'Router'], array_column($links, 'target'));
+        $this->assertArrayNotHasKey('LinkList', $map->updatedFields);
+        $this->assertFalse($map->updatedFields['SelectedNodeNoLinks']['visible']);
+
+        $map->RequestAction('SelectNetworkMapNode', '0x04');
+        $this->assertFalse($map->updatedFields['SelectedNodeLinks']['visible']);
+        $this->assertTrue($map->updatedFields['SelectedNodeNoLinks']['visible']);
+        $this->assertStringContainsString('Sensor', $map->updatedFields['SelectedNodeNoLinks']['caption']);
+        $map->RequestAction('SelectNetworkMapNode', '0x99');
+        $this->assertFalse($map->updatedFields['SelectedNodeLinks']['visible']);
+        $this->assertFalse($map->updatedFields['SelectedNodeNoLinks']['visible']);
+        $this->assertSame('', $map->lastTopic);
+        $this->assertSame($storedTopology, $map->readMapAttribute('Topology'));
+        $this->assertSame($storedScan, $map->readMapAttribute('Scan'));
+
+        $map->RequestAction('SelectNetworkMapNode', '0x01');
+        $map->ReceiveData($this->buildRawResponse(['nodes' => [], 'links' => []], false));
+        $this->assertFalse($map->updatedFields['SelectedNodeLinks']['visible']);
+        $this->assertFalse($map->updatedFields['SelectedNodeNoLinks']['visible']);
+    }
+
     #[RunInSeparateProcess]
     public function testNativeFullscreenKeepsTheInteractiveTileOnSymcon91(): void
     {
@@ -312,6 +367,7 @@ class NetworkMapTest extends TestCase
             public array $lastPayload = [];
             public int $lastTimeout = -1;
             public mixed $lastVisualizationValue = null;
+            public array $updatedFields = [];
             private string $baseTopic = 'zigbee2mqtt';
 
             protected function SendData(string $Topic, array $Payload = [], int $Timeout = 5000): array|bool
@@ -340,6 +396,7 @@ class NetworkMapTest extends TestCase
 
             protected function UpdateFormField(string $Field, string $Parameter, mixed $Value): bool
             {
+                $this->updatedFields[$Field][$Parameter] = $Value;
                 return true;
             }
 

@@ -295,6 +295,9 @@ class Zigbee2MQTTNetworkMap extends IPSModuleStrict
             case 'ResetScanStatus':
                 $this->ResetNetworkScanStatus();
                 break;
+            case 'SelectNetworkMapNode':
+                $this->UpdateSelectedNodeConnections(\is_string($Value) ? $Value : '');
+                break;
             case 'CreateExportFiles':
                 if (!$this->HasTopology()) {
                     $this->ShowMessage('No network analysis available yet', 'Start a network analysis before creating exports.');
@@ -397,6 +400,7 @@ class Zigbee2MQTTNetworkMap extends IPSModuleStrict
         $scan['error'] = '';
         $this->WriteAttributeArray(self::ATTRIBUTE_SCAN, $scan);
         $this->SetScanStatusTimerInterval(0);
+        $this->UpdateSelectedNodeConnections('');
         $this->UpdateVisibleData();
         return '';
     }
@@ -438,9 +442,33 @@ class Zigbee2MQTTNetworkMap extends IPSModuleStrict
     }
 
     /**
-     * Erstellt normalisierte Formularwerte.
+     * Zeigt die gespeicherten Verbindungen des ausgewaehlten Geraets.
      */
-    private function BuildFormData(): array
+    private function UpdateSelectedNodeConnections(string $ieee): void
+    {
+        $data = $ieee === '' ? [] : $this->BuildFormData($ieee);
+        $names = array_column($data['nodes'] ?? [], 'name', 'ieee');
+        $name = $names[$ieee] ?? null;
+        $links = $data['links'] ?? [];
+        $hasLinks = $name !== null && $links !== [];
+        $showEmpty = $name !== null && $links === [];
+
+        if ($hasLinks) {
+            $this->UpdateFormField('SelectedNodeLinks', 'caption', \sprintf($this->Translate('Connections for %s'), $name));
+            $this->UpdateFormField('SelectedNodeLinks', 'values', json_encode($links));
+            $this->UpdateFormField('SelectedNodeLinks', 'rowCount', min(8, max(3, \count($links) + 1)));
+        }
+        if ($showEmpty) {
+            $this->UpdateFormField('SelectedNodeNoLinks', 'caption', \sprintf($this->Translate('No connections for %s in the last scan.'), $name));
+        }
+        $this->UpdateFormField('SelectedNodeLinks', 'visible', $hasLinks);
+        $this->UpdateFormField('SelectedNodeNoLinks', 'visible', $showEmpty);
+    }
+
+    /**
+     * Erstellt normalisierte Formularwerte und filtert Verbindungen bei Bedarf.
+     */
+    private function BuildFormData(string $selectedIeee = ''): array
     {
         $topology = $this->ReadAttributeArray(self::ATTRIBUTE_TOPOLOGY);
         $scan = $this->ReadAttributeArray(self::ATTRIBUTE_SCAN);
@@ -478,6 +506,9 @@ class Zigbee2MQTTNetworkMap extends IPSModuleStrict
             }
             $sourceIeee = (string) ($link['source']['ieeeAddr'] ?? $link['sourceIeeeAddr'] ?? '');
             $targetIeee = (string) ($link['target']['ieeeAddr'] ?? $link['targetIeeeAddr'] ?? '');
+            if ($selectedIeee !== '' && $selectedIeee !== $sourceIeee && $selectedIeee !== $targetIeee) {
+                continue;
+            }
             $lqi = (int) ($link['lqi'] ?? $link['linkquality'] ?? 0);
             $linkRoutes = \is_array($link['routes'] ?? null) ? $link['routes'] : [];
             $links[] = [

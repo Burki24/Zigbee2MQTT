@@ -26,6 +26,8 @@
             "Last seen": "Zuletzt gesehen",
             "Scan status": "Scanstatus",
             "Connections": "Verbindungen",
+            "Connections for %s": "Verbindungen für %s",
+            "No connections for %s in the last scan.": "Die letzte Analyse enthält keine Verbindungen für %s.",
             "Source": "Quelle",
             "Target": "Ziel",
             "Relationship": "Beziehung",
