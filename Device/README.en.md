@@ -95,7 +95,7 @@ Both require confirmation and may take up to two minutes. Wake battery devices i
 
 Under **Advanced device settings → Routing table**, **Refresh routing table** reads the selected router's routing table on Zigbee2MQTT 2.7.0 or later. The panel appears when the matching Bridge knows the router and its network address. The table shows all destinations, next hops, and route statuses for that router.
 
-**Path to the coordinator** shows the last observed device path and its timestamp. It requires Zigbee2MQTT 2.x, Z-Stack firmware that reports route records, and Symcon extension **6.10** or later. The extension collects these reports during normal operation. The form shows **No path observed yet** until the device has a record and uses Zigbee short addresses for unknown relays.
+**Path to the coordinator** shows the last observed device path and its timestamp. It requires Zigbee2MQTT 2.x and a coordinator that reports route records. The Symcon extension collects these reports during normal operation for Z-Stack starting with **6.10** and for Ember starting with **6.11**. The form shows **No path observed yet** until the device has a record and uses Zigbee short addresses for unknown relays.
 
 Under **Expert tools → Advanced device removal**, every action requires separate confirmation:
 

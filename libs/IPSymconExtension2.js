@@ -1,6 +1,6 @@
 /*
  IPSymconExtension
- Version: 6.10
+ Version: 6.11
 */
 
 class MyLogger {
@@ -38,11 +38,11 @@ class MyLogger {
 
 class IPSymconExtension {
     #znp;
+    #detachEmberRouteHandler;
     #onZnpMessage = (message) => {
-        if (message?.command?.name === 'srcRtgInd') {
-            this.#publishObservedRoute(message.payload).catch((error) => {
-                this.logger.error('Symcon: could not publish observed route', error.message);
-            });
+        if (message?.command?.name === 'srcRtgInd' && message.payload) {
+            const {dstaddr, relaycount, relaylist} = message.payload;
+            this.#reportObservedRoute(dstaddr, relaycount, relaylist);
         }
     };
 
@@ -63,29 +63,71 @@ class IPSymconExtension {
     async start() {
         // Zigbee2MQTT already subscribes to <base_topic>/#, including SymconExtension requests.
         // Extra subscriptions are combined on reconnect and can trigger invalid broker SUBACKs.
-        const znp = this.zigbee.zhController?.adapter?.znp;
-        if (!this.#znp && typeof znp?.on === 'function' && typeof znp?.off === 'function'
-            && typeof this.zigbee.deviceByNetworkAddress === 'function') {
+        if (typeof this.zigbee.deviceByNetworkAddress !== 'function') {
+            return;
+        }
+        const adapter = this.zigbee.zhController?.adapter;
+        const znp = adapter?.znp;
+        if (!this.#znp && typeof znp?.on === 'function' && typeof znp?.off === 'function') {
             this.#znp = znp;
             this.#znp.on('received', this.#onZnpMessage);
         }
+        this.#attachEmberRouteHandler(adapter?.ezsp);
     }
 
-    async #publishObservedRoute(payload) {
+    #attachEmberRouteHandler(ezsp) {
+        const property = 'ezspIncomingRouteRecordHandler';
+        const original = ezsp?.[property];
+        if (this.#detachEmberRouteHandler || typeof original !== 'function') {
+            return;
+        }
+        const previous = Object.getOwnPropertyDescriptor(ezsp, property);
+        const observe = (address, ieee, _lastHopLqi, _lastHopRssi, count, relays) =>
+            this.#reportObservedRoute(address, count, relays, ieee ?? '');
+        let active = true;
+
+        // Herdsman handles the callback internally, so preserve its original receiver and return value.
+        function handler(...args) {
+            const result = original.apply(this, args);
+            if (active) {
+                observe(...args);
+            }
+            return result;
+        }
+        if (!Reflect.set(ezsp, property, handler)) {
+            return;
+        }
+        this.#detachEmberRouteHandler = () => {
+            active = false;
+            if (ezsp[property] === handler) {
+                if (previous) {
+                    Object.defineProperty(ezsp, property, previous);
+                } else {
+                    Reflect.deleteProperty(ezsp, property);
+                }
+            }
+        };
+    }
+
+    #reportObservedRoute(sourceAddress, relayCount, relays, sourceIeee) {
+        this.#publishObservedRoute(sourceAddress, relayCount, relays, sourceIeee).catch((error) => {
+            this.logger.error('Symcon: could not publish observed route', error.message);
+        });
+    }
+
+    async #publishObservedRoute(sourceAddress, relayCount, relays, sourceIeee) {
         const validAddress = (address) => Number.isInteger(address) && address > 0 && address <= 0xfff7;
-        const sourceAddress = payload?.dstaddr;
-        const relays = payload?.relaylist;
-        if (!validAddress(sourceAddress) || !Array.isArray(relays) || payload.relaycount !== relays.length
+        if (!validAddress(sourceAddress) || !Array.isArray(relays) || relayCount !== relays.length
             || relays.length > 32 || new Set(relays).size !== relays.length
             || relays.some((address) => !validAddress(address) || address === sourceAddress)) {
             return;
         }
 
-        const ieee = this.zigbee.deviceByNetworkAddress(sourceAddress)?.ieeeAddr;
+        const ieee = sourceIeee ?? this.zigbee.deviceByNetworkAddress(sourceAddress)?.ieeeAddr;
         if (typeof ieee !== 'string' || !/^0x(?!0{16}$)[a-f0-9]{16}$/i.test(ieee)) {
             return;
         }
-        // ZNP supplies the route record in its incoming order, from the device toward the coordinator.
+        // Both callbacks carry the incoming relay order, from the device toward the coordinator.
         const route = {
             ieee_address: ieee.toLowerCase(),
             observed_at: Date.now(),
@@ -186,6 +228,8 @@ class IPSymconExtension {
     async stop() {
         this.#znp?.off('received', this.#onZnpMessage);
         this.#znp = undefined;
+        this.#detachEmberRouteHandler?.();
+        this.#detachEmberRouteHandler = undefined;
         this.eventBus.removeListeners(this);
     }
 

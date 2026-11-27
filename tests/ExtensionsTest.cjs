@@ -4,7 +4,7 @@ const {test} = require('node:test');
 const fs = require('node:fs');
 const path = require('node:path');
 
-function createHarness(filename, baseTopic, devices = [], znp) {
+function createHarness(filename, baseTopic, devices = [], adapter = {}) {
     const Extension = require(path.join(__dirname, '..', 'libs', filename));
     const published = [], errors = [], resolved = [];
     const mqtt = {
@@ -17,7 +17,7 @@ function createHarness(filename, baseTopic, devices = [], znp) {
     group.devices = devices.map(device => `${device.ieeeAddr}/1`);
     group.zh.members = devices.map(device => ({deviceIeeeAddress: device.ieeeAddr, ID: 1}));
     const zigbee = {
-        zhController: {adapter: znp ? {znp} : {}},
+        zhController: {adapter},
         deviceByNetworkAddress(address) { return devices.find(device => device.zh.networkAddress === address); },
         devicesIterator() { return devices; },
         groupsIterator() { return []; },
@@ -41,7 +41,7 @@ test('IPSymconExtension2.js publishes Z-Stack paths in device-to-coordinator ord
     const h = createHarness('IPSymconExtension2.js', 'house/z2m', [
         {ieeeAddr: ieee, name: 'Kitchen/Sensor', zh: {networkAddress: 0x1111}},
         {name: 'Kitchen/Plug', zh: {networkAddress: 0x2222}}
-    ], znp);
+    ], {znp});
     const notify = (relaylist, fields = {}, command = 'srcRtgInd') => znp.emit('received', {
         command: {name: command},
         payload: {dstaddr: 0x1111, relaycount: relaylist.length, relaylist, ...fields}
@@ -73,6 +73,49 @@ test('IPSymconExtension2.js publishes Z-Stack paths in device-to-coordinator ord
     await h.extension.stop();
     assert.equal(znp.listenerCount('received'), 0);
     notify([0x2222]);
+    assert.equal(h.published.length, 2);
+});
+
+test('IPSymconExtension2.js observes Ember route records and restores the original handler', async () => {
+    const handled = [];
+    const ieee = '0x00124B0000000123';
+    const original = function (...args) {
+        handled.push({receiver: this, args});
+        return 'original';
+    };
+    const ezsp = Object.create({ezspIncomingRouteRecordHandler: original});
+    const h = createHarness('IPSymconExtension2.js', 'house/z2m', [
+        {name: 'Router closer to coordinator', zh: {networkAddress: 0x2222}},
+        {name: 'Router closer to device', zh: {networkAddress: 0x3333}}
+    ], {ezsp});
+    const notify = (relays, sourceIeee = ieee, count = relays.length) =>
+        ezsp.ezspIncomingRouteRecordHandler(0x1111, sourceIeee, 240, -63, count, relays);
+
+    await h.extension.start();
+    await h.extension.start();
+
+    notify([0x3333], '0x0000000000000000');
+    notify([0x3333], ieee, 2);
+    assert.equal(h.published.length, 0);
+    assert.equal(notify([0x3333, 0x2222]), 'original');
+    assert.equal(handled[2].receiver, ezsp);
+    assert.deepEqual(handled[2].args, [0x1111, ieee, 240, -63, 2, [0x3333, 0x2222]]);
+    assert.equal(h.published.length, 1);
+    assert.equal(h.published[0].topic, `SymconExtension/route/${ieee.toLowerCase()}`);
+    assert.equal(h.published[0].payload.ieee_address, ieee.toLowerCase());
+    assert.deepEqual(h.published[0].payload.hops, [
+        {network_address: 0x3333, name: 'Router closer to device'},
+        {network_address: 0x2222, name: 'Router closer to coordinator'}
+    ]);
+    assert.equal(h.published[0].options.clientOptions.retain, true);
+    notify([]);
+    assert.deepEqual(h.published[1].payload.hops, []);
+
+    await h.extension.stop();
+    assert.equal(ezsp.ezspIncomingRouteRecordHandler, original);
+    assert.equal(Object.hasOwn(ezsp, 'ezspIncomingRouteRecordHandler'), false);
+    notify([0x3333]);
+    assert.equal(handled.length, 5);
     assert.equal(h.published.length, 2);
 });
 
@@ -350,7 +393,7 @@ for (const filename of ['IPSymconExtension.js', 'IPSymconExtension2.js']) {
             topic: 'SymconExtension/lists/response/getDevicesLight',
             payload: {list: [], transaction: 42}
         }]);
-        const expectedVersion = filename === 'IPSymconExtension2.js' ? /Version: 6\.10\r?\n/ : /Version: 6\.09\r?\n/;
+        const expectedVersion = filename === 'IPSymconExtension2.js' ? /Version: 6\.11\r?\n/ : /Version: 6\.09\r?\n/;
         assert.match(fs.readFileSync(path.join(__dirname, '..', 'libs', filename), 'utf8'), expectedVersion);
     });
 }

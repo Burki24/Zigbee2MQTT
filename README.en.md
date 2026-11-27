@@ -33,7 +33,7 @@ Connect [Zigbee2MQTT](https://www.zigbee2mqtt.io) to Symcon. The library discove
 - Symcon **9.1 or newer**.
 - A working Zigbee2MQTT installation and a Zigbee coordinator compatible with it.
 - An MQTT broker, either Symcon's MQTT Server or an external broker such as Mosquitto.
-- The matching Symcon extension installed in Zigbee2MQTT. The library bundles **6.10 for Zigbee2MQTT 2.x** and **6.09 for Zigbee2MQTT 1.x**. Confirm installation or update manually in the bridge. Features that use newer extension responses require the current extension. The general minimum remains 6.05.
+- The matching Symcon extension installed in Zigbee2MQTT. The library bundles **6.11 for Zigbee2MQTT 2.x** and **6.09 for Zigbee2MQTT 1.x**. Confirm installation or update manually in the bridge. Features that use newer extension responses require the current extension. The general minimum remains 6.05.
 
 For Symcon 9.0, use the [dev_V6 branch](https://github.com/Burki24/Zigbee2MQTT/tree/dev_V6).
 
