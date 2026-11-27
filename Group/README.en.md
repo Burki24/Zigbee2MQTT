@@ -8,7 +8,7 @@ Represents a Zigbee2MQTT group as one Symcon instance. Group control sends comma
 
 - Symcon 9.1 or newer, a working Zigbee2MQTT installation and an internal or external MQTT broker.
 - Install the [library](../README.en.md), then create the group using the [Configurator](../Configurator/README.en.md).
-- Install/update the Symcon extension manually through the matching [Bridge](../Bridge/README.en.md). The library bundles **6.09**; installing a module update alone does not update the Zigbee2MQTT extension.
+- Install or update the matching Symcon extension manually through the [Bridge](../Bridge/README.en.md).
 
 ![Groups in Zigbee2MQTT](imgs/groups.jpg)
 

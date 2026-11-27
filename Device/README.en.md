@@ -21,7 +21,7 @@ Represents one Zigbee2MQTT device in Symcon. The instance derives variables, act
 
 - Symcon 9.1 or newer, a working Zigbee2MQTT installation and an internal or external MQTT broker.
 - Install this module as part of the [Zigbee2MQTT library](../README.en.md), then create devices using the [Configurator](../Configurator/README.en.md).
-- Install/update the Symcon extension manually from the matching [Bridge](../Bridge/README.en.md). The library bundles extension **6.09**. A module update alone does not update the extension in Zigbee2MQTT.
+- Install or update the Symcon extension manually from the matching [Bridge](../Bridge/README.en.md).
 
 ## Configuration and first use
 
@@ -94,6 +94,8 @@ Under **Advanced device settings → Device maintenance**:
 Both require confirmation and may take up to two minutes. Wake battery devices immediately beforehand. After an interview refresh device information; after configuration refresh endpoint data as needed. Configure is not a factory reset or re-pairing operation and does not rename the device, but may replace manually tuned binding/reporting settings with the definition's defaults.
 
 Under **Advanced device settings → Routing table**, **Refresh routing table** reads the selected router's routing table on Zigbee2MQTT 2.7.0 or later. The panel appears when the matching Bridge knows the router and its network address. The table shows all destinations, next hops, and route statuses for that router.
+
+**Path to the coordinator** shows the last observed device path and its timestamp. It requires Zigbee2MQTT 2.x, Z-Stack firmware that reports route records, and Symcon extension **6.10** or later. The extension collects these reports during normal operation. The form shows **No path observed yet** until the device has a record and uses Zigbee short addresses for unknown relays.
 
 Under **Expert tools → Advanced device removal**, every action requires separate confirmation:
 

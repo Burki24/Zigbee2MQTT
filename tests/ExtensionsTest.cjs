@@ -1,19 +1,24 @@
 const assert = require('node:assert/strict');
+const {EventEmitter} = require('node:events');
 const {test} = require('node:test');
 const fs = require('node:fs');
 const path = require('node:path');
 
-function createHarness(filename, baseTopic, devices = []) {
+function createHarness(filename, baseTopic, devices = [], znp) {
     const Extension = require(path.join(__dirname, '..', 'libs', filename));
     const published = [], errors = [], resolved = [];
     const mqtt = {
         subscribe() { throw new Error('No additional MQTT subscriptions allowed'); },
-        async publish(topic, payload) { published.push({topic, payload: JSON.parse(payload)}); }
+        async publish(topic, payload, options) {
+            published.push({topic, payload: JSON.parse(payload), ...(options?.clientOptions ? {options} : {})});
+        }
     };
     const group = {friendly_name: 'Floor/Lights', ID: 3, devices: [], options: {friendly_name: 'Floor/Lights'}, zh: {groupID: 3, members: []}};
     group.devices = devices.map(device => `${device.ieeeAddr}/1`);
     group.zh.members = devices.map(device => ({deviceIeeeAddress: device.ieeeAddr, ID: 1}));
     const zigbee = {
+        zhController: {adapter: znp ? {znp} : {}},
+        deviceByNetworkAddress(address) { return devices.find(device => device.zh.networkAddress === address); },
         devicesIterator() { return devices; },
         groupsIterator() { return []; },
         resolveEntity(name) {
@@ -23,12 +28,53 @@ function createHarness(filename, baseTopic, devices = []) {
     };
     const settings = {get() { return {mqtt: {base_topic: baseTopic}}; }, getGroups() { return [group]; }};
     const logger = {info() {}, error(message) { errors.push(message); }};
-    const events = {on() {}, onMQTTMessage() {}};
+    const events = {on() {}, onMQTTMessage() {}, removeListeners() {}};
     const extension = filename === 'IPSymconExtension.js'
         ? new Extension(zigbee, mqtt, {}, () => {}, events, settings, logger)
         : new Extension(zigbee, mqtt, {}, () => {}, events, null, null, null, settings, logger);
     return {extension, published, errors, resolved};
 }
+
+test('IPSymconExtension2.js publishes Z-Stack paths in device-to-coordinator order', async () => {
+    const znp = new EventEmitter();
+    const ieee = '0x00124b0000000123';
+    const h = createHarness('IPSymconExtension2.js', 'house/z2m', [
+        {ieeeAddr: ieee, name: 'Kitchen/Sensor', zh: {networkAddress: 0x1111}},
+        {name: 'Kitchen/Plug', zh: {networkAddress: 0x2222}}
+    ], znp);
+    const notify = (relaylist, fields = {}, command = 'srcRtgInd') => znp.emit('received', {
+        command: {name: command},
+        payload: {dstaddr: 0x1111, relaycount: relaylist.length, relaylist, ...fields}
+    });
+
+    await h.extension.start();
+    await h.extension.start();
+    notify([0x2222], {}, 'other');
+    notify([0x2222], {dstaddr: 0xDEAD});
+    notify([0x2222], {relaycount: 2});
+    notify([0x2222, 0x2222]);
+    notify([0x0000]);
+    assert.equal(h.published.length, 0);
+
+    const since = Date.now();
+    notify([0x2222, 0x3333]);
+    assert.equal(h.published.length, 1);
+    assert.equal(h.published[0].topic, `SymconExtension/route/${ieee}`);
+    assert.equal(h.published[0].payload.ieee_address, ieee);
+    assert.ok(h.published[0].payload.observed_at >= since);
+    assert.deepEqual(h.published[0].payload.hops, [
+        {network_address: 0x2222, name: 'Kitchen/Plug'},
+        {network_address: 0x3333, name: ''}
+    ]);
+    assert.equal(h.published[0].options.clientOptions.retain, true);
+    notify([]);
+    assert.deepEqual(h.published[1].payload.hops, []);
+
+    await h.extension.stop();
+    assert.equal(znp.listenerCount('received'), 0);
+    notify([0x2222]);
+    assert.equal(h.published.length, 2);
+});
 
 function createGroupDevice(ieeeAddr, definition) {
     return {
@@ -304,7 +350,8 @@ for (const filename of ['IPSymconExtension.js', 'IPSymconExtension2.js']) {
             topic: 'SymconExtension/lists/response/getDevicesLight',
             payload: {list: [], transaction: 42}
         }]);
-        assert.match(fs.readFileSync(path.join(__dirname, '..', 'libs', filename), 'utf8'), /Version: 6\.09\r?\n/);
+        const expectedVersion = filename === 'IPSymconExtension2.js' ? /Version: 6\.10\r?\n/ : /Version: 6\.09\r?\n/;
+        assert.match(fs.readFileSync(path.join(__dirname, '..', 'libs', filename), 'utf8'), expectedVersion);
     });
 }
 

@@ -45,6 +45,28 @@
         },
         {
             "type": "ExpansionPanel",
+            "name": "DeviceObservedRoutePanel",
+            "caption": "Path to the coordinator",
+            "expanded": false,
+            "visible": false,
+            "items": [
+                {
+                    "type": "Label",
+                    "name": "DeviceObservedRoute",
+                    "caption": "No path observed yet.",
+                    "link": false
+                },
+                {
+                    "type": "Label",
+                    "name": "DeviceObservedRouteTime",
+                    "caption": "",
+                    "link": false,
+                    "visible": false
+                }
+            ]
+        },
+        {
+            "type": "ExpansionPanel",
             "name": "VisualizationSettings",
             "caption": "Visualization",
             "expanded": false,

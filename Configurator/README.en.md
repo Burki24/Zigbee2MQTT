@@ -9,7 +9,7 @@ The configurator reads Zigbee2MQTT devices and groups and lets you create the co
 - Symcon 9.1 or newer.
 - A running [Zigbee2MQTT](https://www.zigbee2mqtt.io) installation and an MQTT broker, either Symcon's MQTT Server or an external broker such as Mosquitto.
 - A configurator connected to the matching Symcon MQTT Client or MQTT Server and configured with the installation's MQTT base topic.
-- A matching [Bridge instance](../Bridge/README.en.md) and the Symcon extension installed in Zigbee2MQTT. The bundled extension is 6.09; install or update it manually from the Bridge.
+- A matching [Bridge instance](../Bridge/README.en.md) and the Symcon extension installed in Zigbee2MQTT. Install or update the extension manually from the Bridge.
 
 Create the configurator through [Discovery](../Discovery/README.en.md), then apply its configuration. An MQTT configurator for generic MQTT devices is not required.
 

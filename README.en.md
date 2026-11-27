@@ -33,7 +33,7 @@ Connect [Zigbee2MQTT](https://www.zigbee2mqtt.io) to Symcon. The library discove
 - Symcon **9.1 or newer**.
 - A working Zigbee2MQTT installation and a Zigbee coordinator compatible with it.
 - An MQTT broker, either Symcon's MQTT Server or an external broker such as Mosquitto.
-- The matching Symcon extension installed in Zigbee2MQTT. The library bundles **6.09**; confirm installation/update manually in the bridge. Features requiring newer extension responses need the current extension, not just the minimum 6.05.
+- The matching Symcon extension installed in Zigbee2MQTT. The library bundles **6.10 for Zigbee2MQTT 2.x** and **6.09 for Zigbee2MQTT 1.x**. Confirm installation or update manually in the bridge. Features that use newer extension responses require the current extension. The general minimum remains 6.05.
 
 For Symcon 9.0, use the [dev_V6 branch](https://github.com/Burki24/Zigbee2MQTT/tree/dev_V6).
 
@@ -94,7 +94,7 @@ Most values retain Zigbee2MQTT's scale; presentations can display brightness as 
 2. Confirm that the correct bridge, MQTT connection and Zigbee2MQTT installation are reachable.
 3. Review the [beta notes](docs/BETA_RELEASE_NOTES.md#english), identify callers and profile-dependent scripts.
 4. Perform the library update in the Module Store. Watch Symcon's message window during the update. Transient unavailable-instance warnings may occur when another module accesses an instance while it reloads; persistent errors require investigation and reopening/applying the affected configuration.
-5. Open the bridge and review the extension status. The current bundled extension is **6.09**. Its update is a separate manual action; installing the library does not silently replace the extension in Zigbee2MQTT. Remove obsolete duplicate extensions manually.
+5. Open the bridge, review the extension status and confirm the extension update manually. Remove obsolete duplicate extensions manually.
 6. Check representative devices/groups, their actions, temperatures, colors, Kelvin ranges and profile-dependent scripts. If an automatically chosen custom tile is unsuitable, disable that tile in the instance configuration.
 7. Review new variables and variable-catalog choices. Deliberately deleted known variables stay suppressed until explicitly re-enabled or created.
 

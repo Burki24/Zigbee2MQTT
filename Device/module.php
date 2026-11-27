@@ -12,8 +12,9 @@ class Zigbee2MQTTDevice extends \Zigbee2MQTT\ModulBase
 {
     use \Zigbee2MQTT\RoutingTableRefresh;
 
-    protected const ADDITIONAL_MQTT_RESPONSE_TOPICS = [self::ROUTING_TABLE_RESPONSE_TOPIC];
     private const DEVICE_ROUTING_TABLE = 'DeviceRoutingTable';
+    private const DEVICE_OBSERVED_ROUTE = 'DeviceObservedRoute';
+    private const OBSERVED_ROUTE_TOPIC = '/SymconExtension/route/';
     private const ICON_CACHE_DIRECTORY = 'icons';
     private const ICON_DOWNLOAD_MAX_BYTES = 2 * 1024 * 1024;
     private const ICON_DOWNLOAD_TIMEOUT_SECONDS = 5;
@@ -40,6 +41,7 @@ class Zigbee2MQTTDevice extends \Zigbee2MQTT\ModulBase
         $this->RegisterAttributeString('Model', '');
         $this->RegisterAttributeString('Icon', '');
         $this->RegisterAttributeArray(self::DEVICE_ROUTING_TABLE, []);
+        $this->RegisterAttributeArray(self::DEVICE_OBSERVED_ROUTE, []);
         $this->RegisterRoutingTableRefresh();
         $this->RegisterMessage($this->InstanceID, IM_CHANGEATTRIBUTE);
     }
@@ -402,9 +404,19 @@ class Zigbee2MQTTDevice extends \Zigbee2MQTT\ModulBase
             : '';
     }
 
-    protected function HandleAdditionalMqttResponse(array $payload): void
+    protected function GetAdditionalMqttResponseTopics(): array
     {
-        $this->ReceiveRoutingTableResponse($payload);
+        $topic = $this->GetObservedRouteTopic();
+        return $topic === '' ? [self::ROUTING_TABLE_RESPONSE_TOPIC] : [self::ROUTING_TABLE_RESPONSE_TOPIC, $topic];
+    }
+
+    protected function HandleAdditionalMqttResponse(string $topic, array $payload): void
+    {
+        if ($topic === self::ROUTING_TABLE_RESPONSE_TOPIC) {
+            $this->ReceiveRoutingTableResponse($payload);
+            return;
+        }
+        $this->ReceiveObservedRoute($topic, $payload);
     }
 
     protected function RoutingTableRefreshStateChanged(bool $running): void
@@ -441,6 +453,7 @@ class Zigbee2MQTTDevice extends \Zigbee2MQTT\ModulBase
     private function GetConfigurationFormWithAvailableInstanceInterface(): string
     {
         $form = $this->BuildDeviceConfigurationForm(json_decode(file_get_contents(__DIR__ . '/form.json'), true));
+        $this->PopulateObservedRouteForm($form);
         $target = $this->GetDeviceRoutingTableTarget();
         if ($target !== null) {
             $this->SetDeviceFormField($form, 'DeviceRoutingTablePanel', 'visible', true);
@@ -457,6 +470,84 @@ class Zigbee2MQTTDevice extends \Zigbee2MQTT\ModulBase
         }
 
         return json_encode($this->PrepareLocalVariableMaintenanceForm($form));
+    }
+
+    private function GetObservedRouteTopic(): string
+    {
+        $ieee = strtolower(trim($this->ReadPropertyString('IEEE')));
+        return preg_match('/^0x(?!0{16}$)[a-f0-9]{16}$/D', $ieee) ? self::OBSERVED_ROUTE_TOPIC . $ieee : '';
+    }
+
+    private function GetObservedRouteScope(): array
+    {
+        return [
+            'topic'       => $this->ReadPropertyString(self::MQTT_BASE_TOPIC) . $this->GetObservedRouteTopic(),
+            'splitter_id' => IPS_InstanceExists($this->InstanceID) ? (int) IPS_GetInstance($this->InstanceID)['ConnectionID'] : 0
+        ];
+    }
+
+    private function PopulateObservedRouteForm(array &$form): void
+    {
+        if ($this->GetObservedRouteTopic() === '' || $this->ReadPropertyString(self::MQTT_BASE_TOPIC) === ''
+            || $this->ReadPropertyString(self::MQTT_TOPIC) === '') {
+            return;
+        }
+        $this->SetDeviceFormField($form, 'DeviceObservedRoutePanel', 'visible', true);
+        $route = $this->ReadAttributeArray(self::DEVICE_OBSERVED_ROUTE);
+        if (($route['scope'] ?? null) === $this->GetObservedRouteScope()) {
+            $this->SetDeviceFormField($form, 'DeviceObservedRoute', 'caption', $this->FormatObservedRoute($route['hops']));
+            $this->SetDeviceFormField($form, 'DeviceObservedRouteTime', 'caption', $this->FormatObservedRouteTime($route['observed_at']));
+            $this->SetDeviceFormField($form, 'DeviceObservedRouteTime', 'visible', true);
+        }
+    }
+
+    private function ReceiveObservedRoute(string $topic, array $payload): void
+    {
+        $ieee = $payload['ieee_address'] ?? null;
+        $observedAt = $payload['observed_at'] ?? null;
+        $hops = $payload['hops'] ?? null;
+        if (!\is_string($ieee) || $topic !== self::OBSERVED_ROUTE_TOPIC . $ieee || $this->GetObservedRouteTopic() !== $topic
+            || !\is_int($observedAt) || $observedAt < 1000 || !\is_array($hops) || !array_is_list($hops) || \count($hops) > 32) {
+            return;
+        }
+        $names = [];
+        foreach ($hops as $hop) {
+            $address = $hop['network_address'] ?? null;
+            $name = $hop['name'] ?? null;
+            if (!\is_int($address) || $address <= 0 || $address > 0xFFF7 || isset($names[$address]) || !\is_string($name)) {
+                return;
+            }
+            $names[$address] = trim($name) !== '' ? trim($name) : self::FormatNetworkAddress($address);
+        }
+
+        $lock = 'Zigbee2MQTT.DeviceObservedRoute.' . $this->InstanceID;
+        if (!IPS_SemaphoreEnter($lock, 1000)) {
+            return;
+        }
+        try {
+            $scope = $this->GetObservedRouteScope();
+            $previous = $this->ReadAttributeArray(self::DEVICE_OBSERVED_ROUTE);
+            if (($previous['scope'] ?? null) === $scope && $previous['observed_at'] >= $observedAt) {
+                return;
+            }
+            $names = array_values($names);
+            $this->WriteAttributeArray(self::DEVICE_OBSERVED_ROUTE, ['scope' => $scope, 'observed_at' => $observedAt, 'hops' => $names]);
+            $this->UpdateFormField('DeviceObservedRoute', 'caption', $this->FormatObservedRoute($names));
+            $this->UpdateFormField('DeviceObservedRouteTime', 'caption', $this->FormatObservedRouteTime($observedAt));
+            $this->UpdateFormField('DeviceObservedRouteTime', 'visible', true);
+        } finally {
+            IPS_SemaphoreLeave($lock);
+        }
+    }
+
+    private function FormatObservedRoute(array $hops): string
+    {
+        return implode(' → ', [$this->ReadPropertyString(self::MQTT_TOPIC), ...$hops, $this->Translate('Coordinator')]);
+    }
+
+    private function FormatObservedRouteTime(int $observedAt): string
+    {
+        return \sprintf($this->Translate('Observed on %s'), date('d.m.Y H:i:s', intdiv($observedAt, 1000)));
     }
 
     private function GetDeviceRoutingTableTarget(): ?array

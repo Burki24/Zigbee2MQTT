@@ -53,7 +53,7 @@
 
 - mindestens Symcon Version 9.1
 - MQTT-Broker (interner MQTT-Server von Symcon oder externer z.B. Mosquitto)
-- installiertes und lauffähiges [Zigbee2MQTT](https://www.zigbee2mqtt.io) mit installierter Symcon-Extension; die Library liefert Version **6.09** mit. Installation und Update müssen in der Bridge manuell bestätigt werden.
+- installiertes und lauffähiges [Zigbee2MQTT](https://www.zigbee2mqtt.io) mit installierter Symcon-Extension. Installation und Update müssen in der Bridge manuell bestätigt werden.
   
 ## 3. Software-Installation
 
@@ -216,6 +216,8 @@ Unter **Erweiterte Geräteeinstellungen** steht für konfigurierte Geräte der B
 | **Gerät neu konfigurieren** | Führt die in der Zigbee2MQTT-Gerätedefinition hinterlegte Konfiguration erneut aus. Dies kann fehlende Bindings oder Reporting-Einstellungen wiederherstellen. Nicht jedes Gerät besitzt eine solche Configure-Definition. |
 
 Unter **Erweiterte Geräteeinstellungen → Routing-Tabelle** liest **Routing-Tabelle aktualisieren** ab Zigbee2MQTT 2.7.0 die Tabelle des ausgewählten Zigbee-Routers. Der Bereich erscheint, sobald die passende Bridge den Router samt Netzwerkadresse kennt. Die Tabelle zeigt alle Zieladressen, nächsten Hops und Routenstatus dieses Routers.
+
+**Weg zum Koordinator** zeigt den zuletzt beobachteten Pfad des Geräts mit Zeitstempel. Die Anzeige benötigt Zigbee2MQTT 2.x mit Z-Stack-Firmware, die Route Records meldet, und Symcon-Extension **6.10** oder neuer. Die Extension erfasst die Meldungen im laufenden Betrieb. Bis eine Meldung für das Gerät vorliegt, steht dort **Noch kein Pfad beobachtet**. Bei unbekannten Zwischenstationen zeigt Symcon die Zigbee-Kurzadresse an.
 
 #### Was bedeutet „Gerät neu konfigurieren“?
 

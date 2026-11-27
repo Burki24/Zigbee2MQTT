@@ -39,7 +39,7 @@
 
 - mindestens Symcon Version 9.1
 - MQTT-Broker (interner MQTT-Server von Symcon oder externer z.B. Mosquitto)
-- installiertes und lauffähiges [Zigbee2MQTT](https://www.zigbee2mqtt.io) mit installierter Symcon-Extension; die Library liefert Version **6.09** mit. Installation und Update müssen in der Bridge manuell bestätigt werden.
+- installiertes und lauffähiges [Zigbee2MQTT](https://www.zigbee2mqtt.io) mit passender Symcon-Extension. Installation und Update müssen in der Bridge manuell bestätigt werden.
   
 ## 3. Software-Installation
 

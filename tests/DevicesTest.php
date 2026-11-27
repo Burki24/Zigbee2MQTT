@@ -2999,6 +2999,55 @@ class DevicesTest extends DumpInclude
         $this->assertSame([], $list['values']);
     }
 
+    public function testObservedRouteShowsOnlyTheLatestMatchingDevicePath(): void
+    {
+        $id = IPS_CreateInstance('{E5BB36C6-A70B-EB23-3716-9151A09AC8A2}');
+        $ieee = '0x00124b0000000123';
+        IPS_SetConfiguration($id, json_encode(['MQTTBaseTopic' => 'house/z2m', 'MQTTTopic' => 'Kitchen/Sensor', 'IEEE' => $ieee]));
+        IPS_ApplyChanges($id);
+        $device = IPS\InstanceManager::getInstanceInterface($id);
+        $device->BUFFER_MQTT_SUSPENDED = false;
+        $form = json_decode($device->GetConfigurationForm(), true, 512, JSON_THROW_ON_ERROR);
+        $this->assertTrue($this->findFormItemByName($form, 'DeviceObservedRoutePanel')['visible']);
+        $this->assertSame('No path observed yet.', $this->findFormItemByName($form, 'DeviceObservedRoute')['caption']);
+
+        $topic = 'house/z2m/SymconExtension/route/' . $ieee;
+        $payload = [
+            'ieee_address' => $ieee,
+            'observed_at'  => 1795767600000,
+            'hops'         => [
+                ['network_address' => 0x2222, 'name' => 'Kitchen/Plug'],
+                ['network_address' => 0x3333, 'name' => '']
+            ]
+        ];
+        $send = static function (string $topic, array $payload) use ($device): void
+        {
+            $device->ReceiveData(json_encode(['Topic' => $topic, 'Payload' => bin2hex(json_encode($payload))]));
+        };
+        $send('other/z2m/SymconExtension/route/' . $ieee, $payload);
+        $send($topic, ['ieee_address' => '0x00124b0000000999'] + $payload);
+        $form = json_decode($device->GetConfigurationForm(), true, 512, JSON_THROW_ON_ERROR);
+        $this->assertSame('No path observed yet.', $this->findFormItemByName($form, 'DeviceObservedRoute')['caption']);
+        $send($topic, $payload);
+        $send($topic, ['observed_at' => $payload['observed_at'] - 1, 'hops' => []] + $payload);
+        $send($topic, ['observed_at' => $payload['observed_at'] + 1, 'hops' => [$payload['hops'][0], $payload['hops'][0]]] + $payload);
+        $form = json_decode($device->GetConfigurationForm(), true, 512, JSON_THROW_ON_ERROR);
+        $this->assertSame('Kitchen/Sensor → Kitchen/Plug → 0x3333 → Coordinator', $this->findFormItemByName($form, 'DeviceObservedRoute')['caption']);
+        $this->assertSame(
+            sprintf('Observed on %s', date('d.m.Y H:i:s', 1795767600)),
+            $this->findFormItemByName($form, 'DeviceObservedRouteTime')['caption']
+        );
+
+        $send($topic, ['observed_at' => $payload['observed_at'] + 1, 'hops' => []] + $payload);
+        $form = json_decode($device->GetConfigurationForm(), true, 512, JSON_THROW_ON_ERROR);
+        $this->assertSame('Kitchen/Sensor → Coordinator', $this->findFormItemByName($form, 'DeviceObservedRoute')['caption']);
+
+        IPS_SetProperty($id, 'IEEE', '0x00124b0000000999');
+        IPS_ApplyChanges($id);
+        $form = json_decode($device->GetConfigurationForm(), true, 512, JSON_THROW_ON_ERROR);
+        $this->assertSame('No path observed yet.', $this->findFormItemByName($form, 'DeviceObservedRoute')['caption']);
+    }
+
     public function testDeviceRoutingTableUsesTheMatchingRouterAndDisplaysAllEntries(): void
     {
         $device = $this->createDeviceOptionFormTestDouble(IPS_CreateInstance('{E5BB36C6-A70B-EB23-3716-9151A09AC8A2}'));

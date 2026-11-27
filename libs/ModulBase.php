@@ -87,7 +87,6 @@ abstract class ModulBase extends \IPSModuleStrict
     use WindowHandleTileHelper;
     use ActionTileHelper;
     use SendData;
-    protected const ADDITIONAL_MQTT_RESPONSE_TOPICS = [];
     private const MINIMAL_MODUL_VERSION = 5.1;
 
     /**
@@ -572,7 +571,7 @@ abstract class ModulBase extends \IPSModuleStrict
         $Filter2 = preg_quote('"Topic":"' . $BaseTopic . '/' . $MQTTTopic . '"');
         $Filter3 = preg_quote('"Topic":"' . $BaseTopic . self::SYMCON_EXTENSION_RESPONSE . static::$ExtensionTopic . $MQTTTopic . '"');
         $filters = [$Filter1, $Filter2, $Filter3];
-        foreach (static::ADDITIONAL_MQTT_RESPONSE_TOPICS as $suffix) {
+        foreach ($this->GetAdditionalMqttResponseTopics() as $suffix) {
             $filters[] = preg_quote('"Topic":"' . $BaseTopic . $suffix . '"');
         }
         $filter = '.*(' . implode('|', $filters) . ').*';
@@ -1059,7 +1058,12 @@ abstract class ModulBase extends \IPSModuleStrict
         return $this->Translate('Native presentation');
     }
 
-    protected function HandleAdditionalMqttResponse(array $payload): void
+    protected function GetAdditionalMqttResponseTopics(): array
+    {
+        return [];
+    }
+
+    protected function HandleAdditionalMqttResponse(string $topic, array $payload): void
     {
     }
 
@@ -1098,8 +1102,9 @@ abstract class ModulBase extends \IPSModuleStrict
         if (\is_null($payload)) {
             return '';
         }
-        if (\in_array('/' . implode('/', $topics), static::ADDITIONAL_MQTT_RESPONSE_TOPICS, true)) {
-            $this->HandleAdditionalMqttResponse($payload);
+        $topic = '/' . implode('/', $topics);
+        if (\in_array($topic, $this->GetAdditionalMqttResponseTopics(), true)) {
+            $this->HandleAdditionalMqttResponse($topic, $payload);
             return '';
         }
 
