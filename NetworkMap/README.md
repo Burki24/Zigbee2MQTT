@@ -56,6 +56,8 @@ Wählen Sie unter **Verbindungen für \<Gerätename\>** oder in der Übersicht *
 
 **Routen dieser Verbindung aktualisieren** liest ab Zigbee2MQTT 2.7.0 gezielt die Routing-Tabelle des Routers oder Koordinators in der Spalte **Ziel**. Die Anfrage verwendet die Netzwerkadressen aus der gespeicherten Topologie. Symcon übernimmt nur Einträge, deren nächster Hop der **Quelle** entspricht, und zeigt den Zeitpunkt der Einzelabfrage im Routendetail an. Nach einem Wechsel der Netzwerkadresse lässt sich die Verbindung mit **Verbindungen analysieren** neu erfassen.
 
+Der Koordinator sendet die Funkabfrage an das ausgewählte Zielgerät. Ob eine Routing-Tabelle zurückkommt, hängt vom Zielgerät ab. Manche Router beantworten Nachbarschaftsabfragen (LQI), liefern aber auf die separate Routing-Tabellenabfrage keine Antwort.
+
 LQI-Werte sind gerichtet und können für Hin- und Rückweg unterschiedlich sein. Ein niedriger LQI oder eine fehlende Verbindung ist ein Diagnosehinweis, aber nicht automatisch ein Gerätefehler.
 
 ## Visualisierung

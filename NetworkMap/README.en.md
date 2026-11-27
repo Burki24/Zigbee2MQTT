@@ -39,6 +39,8 @@ Select a row under **Connections for \<device name\>** or in the **Connections**
 
 On Zigbee2MQTT 2.7.0 or later, **Refresh routes for this connection** reads the routing table of the router or coordinator in the **Target** column. It uses the network addresses from the stored topology. Symcon keeps only entries whose next hop matches the **Source** and shows the refresh time in the route details. Use **Analyze connections** to update the link if a network address has changed.
 
+The coordinator sends the Zigbee request to the selected target. Some routers answer neighbor table queries (LQI) but do not respond to the separate routing table query.
+
 LQI is directional; outgoing and incoming values can differ. A low LQI, a missing edge or one failed query is a diagnostic hint, not proof that a device is broken or offline. Only responses matching the current scan transaction are accepted; old or unsolicited responses do not replace the current result.
 
 ## Interactive tile

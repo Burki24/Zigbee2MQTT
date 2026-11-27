@@ -12,6 +12,7 @@ trait RoutingTableRefresh
     protected const ROUTING_TABLE_RESPONSE_TOPIC = '/bridge/response/action';
     private const ROUTING_TABLE_REFRESH = 'RoutingTableRefresh';
     private const ROUTING_TABLE_TIMEOUT = 60;
+    private const ROUTING_TABLE_NO_RESPONSE = 'Zigbee2MQTT did not answer the routing table request.';
 
     abstract protected function RoutingTableRefreshStateChanged(bool $running): void;
     abstract protected function RoutingTableRefreshCompleted(string $context, array $routes): void;
@@ -109,17 +110,33 @@ trait RoutingTableRefresh
             return;
         }
         if ($request['deadline'] <= time()) {
-            $this->FinishRoutingTableRefresh('The routing table request timed out. Check that the router is reachable and Zigbee2MQTT supports the raw action.');
+            $this->FinishRoutingTableRefresh(self::ROUTING_TABLE_NO_RESPONSE);
+            return;
+        }
+
+        if (($payload['status'] ?? '') !== 'ok') {
+            $error = \is_string($payload['error'] ?? null) ? trim($payload['error']) : '';
+            $this->SendLimitedDebug('RoutingTableRefresh:Zigbee2MQTT', $error, 0, 1024);
+            $message = match (true) {
+                preg_match('/\b(?:timed out|timeout)\b/i', $error) === 1 => 'The router did not respond to the routing table request.',
+                strcasecmp($error, 'Invalid action') === 0               => 'This Zigbee2MQTT version does not support the raw action.',
+                default                                                  => 'Zigbee2MQTT rejected the routing table request.'
+            };
+            $this->FinishRoutingTableRefresh($message);
             return;
         }
 
         $data = $payload['data'] ?? [];
-        if (($payload['status'] ?? '') !== 'ok' || (\is_array($data) && isset($data[0]) && $data[0] !== 0)) {
-            $this->FinishRoutingTableRefresh('Zigbee2MQTT could not read the routing table. Check that the router is reachable and Zigbee2MQTT supports the raw action.');
+        $status = \is_array($data) ? ($data[0] ?? null) : null;
+        if (\is_int($status) && $status !== 0) {
+            $this->SendDebug('RoutingTableRefresh:ZDO', \sprintf('Status 0x%02X', $status), 0);
+            $this->FinishRoutingTableRefresh($status === 0x84
+                ? 'The router does not support routing table requests.'
+                : 'The router rejected the routing table request.');
             return;
         }
 
-        $page = \is_array($data) && ($data[0] ?? null) === 0 ? ($data[1] ?? null) : null;
+        $page = $status === 0 ? ($data[1] ?? null) : null;
         $total = $page['routingTableEntries'] ?? null;
         $entries = $page['entryList'] ?? null;
         if (!\is_int($total) || $total < 0 || $total > 255
@@ -160,7 +177,7 @@ trait RoutingTableRefresh
         {
             $request = $this->ReadAttributeArray(self::ROUTING_TABLE_REFRESH);
             if ($request !== [] && $request['deadline'] <= time()) {
-                $this->FinishRoutingTableRefresh('The routing table request timed out. Check that the router is reachable and Zigbee2MQTT supports the raw action.');
+                $this->FinishRoutingTableRefresh(self::ROUTING_TABLE_NO_RESPONSE);
             }
         });
     }

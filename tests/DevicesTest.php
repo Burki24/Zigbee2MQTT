@@ -3045,6 +3045,22 @@ class DevicesTest extends DumpInclude
         $form = json_decode($device->GetConfigurationForm(), true, 512, JSON_THROW_ON_ERROR);
         $this->assertSame($rows, $this->findFormItemByName($form, 'DeviceRoutingTableList')['values']);
         $this->assertFalse($device->updateDeviceInfoCalled);
+
+        $device->RequestAction('RefreshDeviceRoutingTable', true);
+        $frame['Payload'] = bin2hex(json_encode([
+            'transaction' => $device->sentPayload['transaction'],
+            'status'      => 'error',
+            'error'       => '{"target":4660,"zdoResponseClusterId":32818} timed out after 15000ms',
+            'data'        => []
+        ]));
+        $device->ReceiveData(json_encode($frame));
+        $this->assertSame(
+            $device->Translate('The router did not respond to the routing table request.'),
+            $device->updatedFields['DeviceMaintenanceMessageText']['caption']
+        );
+        $this->assertTrue($device->updatedFields['RefreshDeviceRoutingTable']['enabled']);
+        $form = json_decode($device->GetConfigurationForm(), true, 512, JSON_THROW_ON_ERROR);
+        $this->assertSame($rows, $this->findFormItemByName($form, 'DeviceRoutingTableList')['values']);
     }
 
     public function testRefreshBindingReportingUsesBridgeCacheWithoutDeviceInfoRequest(): void

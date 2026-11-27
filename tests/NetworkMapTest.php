@@ -522,8 +522,22 @@ class NetworkMapTest extends TestCase
         $map->RequestAction('RefreshNetworkMapLinkRoutes', $linkKey);
         $map->ReceiveData($this->buildRouteResponse($map->lastPayload['transaction'], [0x84, null]));
         $this->assertTrue($map->updatedFields['MessagePopup']['visible']);
+        $this->assertSame(
+            $map->Translate('The router does not support routing table requests.'),
+            $map->updatedFields['MessageText']['caption']
+        );
         $this->assertSame($original, $map->readMapAttribute('Topology'));
         $this->assertTrue($map->updatedFields['RefreshSelectedLinkRoutes']['enabled']);
+
+        $map->RequestAction('RefreshNetworkMapLinkRoutes', $linkKey);
+        $transaction = $map->lastPayload['transaction'];
+        $map->ReceiveData($this->buildRouteResponse($transaction, [], '{"target":9029,"zdoResponseClusterId":32818} timed out after 15000ms'));
+        $this->assertSame(
+            $map->Translate('The router did not respond to the routing table request.'),
+            $map->updatedFields['MessageText']['caption']
+        );
+        $this->assertSame($transaction, $map->lastPayload['transaction']);
+        $this->assertSame($original, $map->readMapAttribute('Topology'));
 
         $map->RequestAction('RefreshNetworkMapLinkRoutes', $linkKey);
         $expired = $map->readMapAttribute('RoutingTableRefresh');
@@ -531,6 +545,10 @@ class NetworkMapTest extends TestCase
         $map->writeMapAttribute('RoutingTableRefresh', $expired);
         $map->RequestAction('CheckRoutingTableRefresh', true);
         $this->assertFalse($map->updatedFields['LinkRouteRefreshStatus']['visible']);
+        $this->assertSame(
+            $map->Translate('Zigbee2MQTT did not answer the routing table request.'),
+            $map->updatedFields['MessageText']['caption']
+        );
         $this->assertTrue($map->updatedFields['RefreshSelectedLinkRoutes']['enabled']);
         $this->assertSame($original, $map->readMapAttribute('Topology'));
 
@@ -738,11 +756,16 @@ class NetworkMapTest extends TestCase
         ]);
     }
 
-    private function buildRouteResponse(string $transaction, array $data): string
+    private function buildRouteResponse(string $transaction, array $data, string $error = ''): string
     {
+        $response = ['transaction' => $transaction, 'status' => 'ok', 'data' => $data];
+        if ($error !== '') {
+            $response['status'] = 'error';
+            $response['error'] = $error;
+        }
         return json_encode([
             'Topic'   => 'zigbee2mqtt/bridge/response/action',
-            'Payload' => bin2hex(json_encode(['transaction' => $transaction, 'status' => 'ok', 'data' => $data]))
+            'Payload' => bin2hex(json_encode($response))
         ]);
     }
 
