@@ -2267,6 +2267,14 @@ class DevicesTest extends DumpInclude
         $this->assertFormItemVisible($form, 'AdvancedDeviceSettings');
         $this->assertFormItemVisible($form, 'DeviceOptionsSettings');
 
+        $editor = $this->findFormItemByName($form, 'DeviceOptionEditor');
+        $this->assertSame('Select', $editor['type']);
+        $byType = array_column($editor['options'], 'items', 'value');
+        $this->assertSame('NumberSpinner', $byType['number'][0]['type']);
+        $this->assertSame('CheckBox', $byType['boolean'][0]['type']);
+        $this->assertSame('Select', $byType['select'][0]['type']);
+        $this->assertSame('ValidationTextBox', $byType['text'][0]['type']);
+
         $list = $this->findFormItemByName($form, 'DeviceOptionList');
         $this->assertNotNull($list);
         $this->assertNotContains('action', array_column($list['columns'], 'name'));
@@ -2311,10 +2319,8 @@ class DevicesTest extends DumpInclude
 
         $this->assertSame('disabled', $device->updatedFields['DeviceOptionName']['value']);
         $this->assertSame('boolean', $device->updatedFields['DeviceOptionEditor']['value']);
-        $this->assertSame(false, $device->updatedFields['DeviceOptionValue']['visible']);
-        $this->assertSame(true, $device->updatedFields['DeviceOptionBoolean']['visible']);
+        $this->assertArrayNotHasKey('DeviceOptionValue', $device->updatedFields);
         $this->assertSame(true, $device->updatedFields['DeviceOptionBoolean']['value']);
-        $this->assertSame(false, $device->updatedFields['DeviceOptionSelect']['visible']);
         $this->assertSame('', $device->sentTopic);
         $this->assertSame('', $device->calledBridgeFunction);
     }
@@ -2329,9 +2335,6 @@ class DevicesTest extends DumpInclude
         ]));
 
         $this->assertSame('select', $device->updatedFields['DeviceOptionEditor']['value']);
-        $this->assertSame(false, $device->updatedFields['DeviceOptionValue']['visible']);
-        $this->assertSame(false, $device->updatedFields['DeviceOptionBoolean']['visible']);
-        $this->assertSame(true, $device->updatedFields['DeviceOptionSelect']['visible']);
         $this->assertSame('1', $device->updatedFields['DeviceOptionSelect']['value']);
 
         $options = json_decode($device->updatedFields['DeviceOptionSelect']['options'], true);
@@ -2358,10 +2361,7 @@ class DevicesTest extends DumpInclude
         ]));
 
         $this->assertSame('attributes', $device->updatedFields['DeviceOptionEditor']['value']);
-        $this->assertSame(false, $device->updatedFields['DeviceOptionValue']['visible']);
-        $this->assertSame(true, $device->updatedFields['DeviceOptionAttributeList']['visible']);
-        $this->assertSame(true, $device->updatedFields['DeviceOptionAttributeEditor']['visible']);
-        $this->assertSame('["brightness"]', $device->updatedFields['DeviceOptionValue']['value']);
+        $this->assertSame('["brightness"]', $device->updatedFields['DeviceOptionAttributeValue']['value']);
 
         $listValues = json_decode($device->updatedFields['DeviceOptionAttributeList']['values'], true);
         $this->assertSame(['brightness'], array_column($listValues, 'attribute'));
@@ -2388,14 +2388,14 @@ class DevicesTest extends DumpInclude
             'value'     => '["brightness"]'
         ]));
 
-        $this->assertSame(['brightness', 'state'], json_decode($device->updatedFields['DeviceOptionValue']['value'], true));
+        $this->assertSame(['brightness', 'state'], json_decode($device->updatedFields['DeviceOptionAttributeValue']['value'], true));
 
         $device->RequestAction('RemoveDeviceOptionAttribute', json_encode([
             'attribute' => 'brightness',
-            'value'     => $device->updatedFields['DeviceOptionValue']['value']
+            'value'     => $device->updatedFields['DeviceOptionAttributeValue']['value']
         ]));
 
-        $this->assertSame(['state'], json_decode($device->updatedFields['DeviceOptionValue']['value'], true));
+        $this->assertSame(['state'], json_decode($device->updatedFields['DeviceOptionAttributeValue']['value'], true));
     }
 
     public function testApplyingTypedDeviceOptionsSendsTypedValues(): void
@@ -2421,10 +2421,23 @@ class DevicesTest extends DumpInclude
 
         $device->RequestAction('ApplyDeviceOption', json_encode([
             'name'  => 'transition',
-            'value' => '1.5'
+            'value' => 1.5
         ]));
 
         $this->assertSame(['transition' => 1.5], $device->sentPayload['options']);
+    }
+
+    public function testSelectingDeviceOptionPrefillsDecimalNumber(): void
+    {
+        $device = $this->createDeviceOptionFormTestDouble();
+        $device->RequestAction('SelectDeviceOption', json_encode([
+            'name'  => 'transition',
+            'value' => '2.75'
+        ], JSON_THROW_ON_ERROR));
+
+        $this->assertSame('number', $device->updatedFields['DeviceOptionEditor']['value']);
+        $this->assertSame(2.75, $device->updatedFields['DeviceOptionNumber']['value']);
+        $this->assertArrayNotHasKey('DeviceOptionValue', $device->updatedFields);
     }
 
     public function testBindingAndReportingEndpointsAreShownInConfigurationForm(): void
@@ -2773,6 +2786,39 @@ class DevicesTest extends DumpInclude
         $this->assertSame(['BindingWizardCluster'], array_keys($device->updatedFields));
         $this->assertSame($options, json_decode($device->updatedFields['BindingWizardCluster']['options'], true));
         $this->assertSame('genLevelCtrl', $device->updatedFields['BindingWizardCluster']['value']);
+        $this->assertSame('', $device->calledBridgeFunction);
+        $this->assertSame('', $device->sentTopic);
+    }
+
+    public function testBindingWizardDisablesOnlyProvenClusterMismatches(): void
+    {
+        $device = $this->createDeviceOptionFormTestDouble();
+        $device->setAttributeArrayForTest('DeviceEndpoints', [
+            '1' => ['clusters' => ['input' => ['genLevelCtrl'], 'output' => ['genOnOff']]]
+        ]);
+        $device->cachedNetworkDevices = [[
+            'friendly_name' => 'Binding/Target/Device',
+            'type'          => 'Router',
+            'endpoints'     => [
+                '1' => ['clusters' => ['input' => ['genOnOff'], 'output' => ['genLevelCtrl']]],
+                '2' => ['clusters' => ['input' => [], 'output' => ['genOnOff']]],
+                '3' => ['clusters' => ['input' => []]]
+            ]
+        ]];
+
+        $selection = ['endpoint' => '1', 'target' => 'Binding/Target/Device', 'cluster' => 'genOnOff'];
+        foreach (['1' => [], '2' => ['genLevelCtrl', 'genOnOff'], '3' => ['genOnOff'], '' => []] as $endpoint => $disabled) {
+            $device->RequestAction('UpdateBindingWizardClusters', json_encode($selection + ['target_endpoint' => (string) $endpoint], JSON_THROW_ON_ERROR));
+            $options = json_decode($device->updatedFields['BindingWizardCluster']['options'], true, 512, JSON_THROW_ON_ERROR);
+            $this->assertSame(['', 'genLevelCtrl', 'genOnOff'], array_column($options, 'value'));
+            $this->assertSame($disabled, array_column(array_filter($options, static fn (array $option): bool => ($option['enabled'] ?? true) === false), 'value'));
+            $this->assertNotContains($device->updatedFields['BindingWizardCluster']['value'], $disabled);
+        }
+
+        $device->cachedNetworkDevices[0]['type'] = 'Coordinator';
+        $device->RequestAction('UpdateBindingWizardClusters', json_encode($selection + ['target_endpoint' => '2'], JSON_THROW_ON_ERROR));
+        $options = json_decode($device->updatedFields['BindingWizardCluster']['options'], true, 512, JSON_THROW_ON_ERROR);
+        $this->assertSame([], array_column($options, 'enabled'));
         $this->assertSame('', $device->calledBridgeFunction);
         $this->assertSame('', $device->sentTopic);
     }

@@ -397,6 +397,14 @@ class GroupTest extends DumpInclude
         $groupOptions = $this->findFormItemByName($form, 'GroupOptionsSettings');
         $this->assertNotNull($groupOptions);
         $this->assertTrue($groupOptions['visible']);
+
+        $editor = $this->findFormItemByName($form, 'GroupOptionEditor');
+        $this->assertSame('Select', $editor['type']);
+        $byType = array_column($editor['options'], 'items', 'value');
+        $this->assertSame('NumberSpinner', $byType['number'][0]['type']);
+        $this->assertSame('CheckBox', $byType['boolean'][0]['type']);
+        $this->assertSame('Select', $byType['select'][0]['type']);
+        $this->assertSame('ValidationTextBox', $byType['text'][0]['type']);
         $list = $this->findFormItemByName($form, 'GroupOptionList');
 
         $this->assertNotNull($list);
@@ -450,10 +458,8 @@ class GroupTest extends DumpInclude
 
         $this->assertSame('retain', $group->updatedFields['GroupOptionName']['value']);
         $this->assertSame('boolean', $group->updatedFields['GroupOptionEditor']['value']);
-        $this->assertSame(false, $group->updatedFields['GroupOptionValue']['visible']);
-        $this->assertSame(true, $group->updatedFields['GroupOptionBoolean']['visible']);
+        $this->assertArrayNotHasKey('GroupOptionValue', $group->updatedFields);
         $this->assertSame(true, $group->updatedFields['GroupOptionBoolean']['value']);
-        $this->assertSame(false, $group->updatedFields['GroupOptionSelect']['visible']);
     }
 
     public function testSelectingGroupOptionShowsSelectEditor(): void
@@ -466,9 +472,6 @@ class GroupTest extends DumpInclude
         ]));
 
         $this->assertSame('select', $group->updatedFields['GroupOptionEditor']['value']);
-        $this->assertSame(false, $group->updatedFields['GroupOptionValue']['visible']);
-        $this->assertSame(false, $group->updatedFields['GroupOptionBoolean']['visible']);
-        $this->assertSame(true, $group->updatedFields['GroupOptionSelect']['visible']);
         $this->assertSame('last_member_state', $group->updatedFields['GroupOptionSelect']['value']);
 
         $options = json_decode($group->updatedFields['GroupOptionSelect']['options'], true);
@@ -495,10 +498,7 @@ class GroupTest extends DumpInclude
         ]));
 
         $this->assertSame('filtered_attributes', $group->updatedFields['GroupOptionEditor']['value']);
-        $this->assertSame(false, $group->updatedFields['GroupOptionValue']['visible']);
-        $this->assertSame(true, $group->updatedFields['GroupFilteredAttributeList']['visible']);
-        $this->assertSame(true, $group->updatedFields['GroupFilteredAttributeEditor']['visible']);
-        $this->assertSame('["brightness"]', $group->updatedFields['GroupOptionValue']['value']);
+        $this->assertSame('["brightness"]', $group->updatedFields['GroupOptionAttributeValue']['value']);
 
         $listValues = json_decode($group->updatedFields['GroupFilteredAttributeList']['values'], true);
         $this->assertSame(['brightness'], array_column($listValues, 'attribute'));
@@ -525,14 +525,27 @@ class GroupTest extends DumpInclude
             'value'     => '["brightness"]'
         ]));
 
-        $this->assertSame(['brightness', 'state'], json_decode($group->updatedFields['GroupOptionValue']['value'], true));
+        $this->assertSame(['brightness', 'state'], json_decode($group->updatedFields['GroupOptionAttributeValue']['value'], true));
 
         $group->RequestAction('RemoveGroupFilteredAttribute', json_encode([
             'attribute' => 'brightness',
-            'value'     => $group->updatedFields['GroupOptionValue']['value']
+            'value'     => $group->updatedFields['GroupOptionAttributeValue']['value']
         ]));
 
-        $this->assertSame(['state'], json_decode($group->updatedFields['GroupOptionValue']['value'], true));
+        $this->assertSame(['state'], json_decode($group->updatedFields['GroupOptionAttributeValue']['value'], true));
+    }
+
+    public function testSelectingGroupOptionPrefillsDecimalNumber(): void
+    {
+        $group = $this->createGroupFormTestDouble([]);
+        $group->RequestAction('SelectGroupOption', json_encode([
+            'name'  => 'transition',
+            'value' => '2.75'
+        ], JSON_THROW_ON_ERROR));
+
+        $this->assertSame('number', $group->updatedFields['GroupOptionEditor']['value']);
+        $this->assertSame(2.75, $group->updatedFields['GroupOptionNumber']['value']);
+        $this->assertArrayNotHasKey('GroupOptionValue', $group->updatedFields);
     }
 
     public function testApplyingTypedGroupOptionsSendsTypedValues(): void

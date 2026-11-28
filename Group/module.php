@@ -747,8 +747,17 @@ class Zigbee2MQTTGroup extends \Zigbee2MQTT\ModulBase
             return false;
         }
 
-        $this->UpdateFormField('GroupOptionName', 'value', (string) ($selection['name'] ?? ''));
-        $this->ConfigureGroupOptionEditor((string) ($selection['name'] ?? ''), (string) ($selection['value'] ?? ''));
+        $name = trim((string) ($selection['name'] ?? ''));
+        if (\array_key_exists('value', $selection)) {
+            $this->UpdateFormField('GroupOptionName', 'value', $name);
+            $rawValue = (string) $selection['value'];
+        } else {
+            $options = $this->ReadAttributeArray(self::ATTRIBUTE_GROUP_OPTIONS);
+            $definition = $this->GetGroupOptionDefinition($name);
+            $rawValue = $this->FormatGroupFormValue(\array_key_exists($name, $options) ? $options[$name] : $definition['default']);
+        }
+
+        $this->ConfigureGroupOptionEditor($name, $rawValue);
 
         return true;
     }
@@ -856,7 +865,7 @@ class Zigbee2MQTTGroup extends \Zigbee2MQTT\ModulBase
     }
 
     /**
-     * Schaltet den passenden Editor fuer eine Gruppenoption sichtbar.
+     * Befuellt das zum Optionstyp gehoerende Formularfeld.
      */
     private function ConfigureGroupOptionEditor(string $name, string $rawValue): void
     {
@@ -864,11 +873,6 @@ class Zigbee2MQTTGroup extends \Zigbee2MQTT\ModulBase
         $editor = $this->GetGroupOptionEditor($definition);
 
         $this->UpdateFormField('GroupOptionEditor', 'value', $editor);
-        $this->UpdateFormField('GroupOptionValue', 'visible', $editor === 'text');
-        $this->UpdateFormField('GroupOptionBoolean', 'visible', $editor === 'boolean');
-        $this->UpdateFormField('GroupOptionSelect', 'visible', $editor === 'select');
-        $this->UpdateFormField('GroupFilteredAttributeList', 'visible', $editor === 'filtered_attributes');
-        $this->UpdateFormField('GroupFilteredAttributeEditor', 'visible', $editor === 'filtered_attributes');
 
         if ($editor === 'boolean') {
             $this->UpdateFormField('GroupOptionBoolean', 'value', $this->ParseGroupOptionBooleanValue($rawValue));
@@ -879,6 +883,11 @@ class Zigbee2MQTTGroup extends \Zigbee2MQTT\ModulBase
             $options = $this->BuildGroupOptionSelectOptions($definition);
             $this->UpdateFormField('GroupOptionSelect', 'options', json_encode($options));
             $this->UpdateFormField('GroupOptionSelect', 'value', $this->NormalizeGroupOptionSelectValue($rawValue, $definition));
+            return;
+        }
+
+        if ($editor === 'number') {
+            $this->UpdateFormField('GroupOptionNumber', 'value', (float) ($rawValue === '' ? $definition['default'] : $rawValue));
             return;
         }
 
@@ -902,7 +911,7 @@ class Zigbee2MQTTGroup extends \Zigbee2MQTT\ModulBase
     private function ResolveGroupOptionRawValue(string $name, array $selection): mixed
     {
         $definition = $this->GetGroupOptionDefinition($name);
-        $editor = (string) ($selection['editor'] ?? $this->GetGroupOptionEditor($definition));
+        $editor = $this->GetGroupOptionEditor($definition);
 
         return match ($editor) {
             'boolean'             => $selection['boolean'] ?? $selection['value'] ?? false,
@@ -938,6 +947,9 @@ class Zigbee2MQTTGroup extends \Zigbee2MQTT\ModulBase
         $type = $this->NormalizeGroupOptionType((string) ($definition['type'] ?? 'mixed'));
         if ($type === 'boolean') {
             return 'boolean';
+        }
+        if ($type === 'numeric') {
+            return 'number';
         }
         if ($type === 'enum' && \is_array($definition['values'] ?? null)) {
             return 'select';
@@ -1015,7 +1027,7 @@ class Zigbee2MQTTGroup extends \Zigbee2MQTT\ModulBase
         $listValues = $this->BuildGroupFilteredAttributeFormValues($selected);
         $candidateOptions = $this->BuildGroupFilteredAttributeCandidateOptions($selected);
 
-        $this->UpdateFormField('GroupOptionValue', 'value', $this->FormatGroupFormValue($selected));
+        $this->UpdateFormField('GroupOptionAttributeValue', 'value', $this->FormatGroupFormValue($selected));
         $this->UpdateFormField('GroupFilteredAttributeList', 'values', json_encode($listValues));
         $this->UpdateFormField('GroupFilteredAttributeList', 'rowCount', min(8, max(3, \count($listValues) + 1)));
         $this->UpdateFormField('GroupFilteredAttributeCandidate', 'options', json_encode($candidateOptions));

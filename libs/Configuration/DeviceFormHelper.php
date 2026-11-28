@@ -45,8 +45,16 @@ trait DeviceFormHelper
             return false;
         }
 
-        $this->UpdateFormField('DeviceOptionName', 'value', $selection['name'] ?? '');
-        $this->ConfigureDeviceOptionEditor((string) ($selection['name'] ?? ''), (string) ($selection['value'] ?? ''));
+        $name = trim((string) ($selection['name'] ?? ''));
+        if (\array_key_exists('value', $selection)) {
+            $this->UpdateFormField('DeviceOptionName', 'value', $name);
+            $rawValue = (string) $selection['value'];
+        } else {
+            $options = $this->ReadAttributeArray(self::ATTRIBUTE_DEVICE_OPTIONS);
+            $rawValue = $this->FormatDeviceOptionValue($options[$name] ?? '');
+        }
+
+        $this->ConfigureDeviceOptionEditor($name, $rawValue);
 
         return true;
     }
@@ -162,12 +170,21 @@ trait DeviceFormHelper
             ['BindingWizardEndpoint', 'BindingWizardTarget', 'BindingWizardTargetEndpoint', 'BindingWizardCluster'],
             ['BindingSourceEndpoint', 'BindingTarget', 'BindingTargetEndpoint', 'BindingClusters']
         ] as [$endpointField, $targetField, $targetEndpointField, $clusterField]) {
+            $clusterOptions = $clusters;
+            $selectedCluster = $cluster;
+            if ($clusterField === 'BindingWizardCluster' && !$group) {
+                $clusterOptions = $this->BuildBindingWizardClusterOptions($endpoint, $target, $targetEndpoint, $this->ReadBridgeCachedNetworkDevices());
+                if (!\in_array($cluster, array_column($clusterOptions, 'value'), true)) {
+                    $clusterOptions[] = ['caption' => $cluster, 'value' => $cluster];
+                }
+                $selectedCluster = $this->ResolveBindingClusterSelection($cluster, $clusterOptions);
+            }
             $this->UpdateFormField($endpointField, 'value', $endpoint);
             $this->UpdateFormField($targetField, 'options', json_encode($targets));
             $this->UpdateFormField($targetField, 'value', $target);
             $this->UpdateFormField($targetEndpointField, 'value', $targetEndpoint);
-            $this->UpdateFormField($clusterField, 'options', json_encode($clusters));
-            $this->UpdateFormField($clusterField, 'value', $cluster);
+            $this->UpdateFormField($clusterField, 'options', json_encode($clusterOptions));
+            $this->UpdateFormField($clusterField, 'value', $selectedCluster);
         }
     }
 
@@ -206,11 +223,15 @@ trait DeviceFormHelper
         $endpoint = $this->FormatFormTextValue($selection['endpoint'] ?? '');
         $target = $this->FormatFormTextValue($selection['target'] ?? '');
         $currentCluster = $this->FormatFormTextValue($selection['cluster'] ?? '');
-        $options = $this->BuildBindingClusterOptions($endpoint, $target);
+        $targetChanged = ($selection['targetChanged'] ?? false) === true;
+        $targetEndpoint = $targetChanged ? '' : $this->FormatFormTextValue($selection['target_endpoint'] ?? '');
+        $options = $wizard && $target !== '' && $this->HasActiveParent()
+            ? $this->BuildBindingWizardClusterOptions($endpoint, $target, $targetEndpoint)
+            : $this->BuildBindingClusterOptions($endpoint, $target);
         $selectedCluster = $this->ResolveBindingClusterSelection($currentCluster, $options);
         $field = $wizard ? 'BindingWizardCluster' : 'BindingClusters';
 
-        if (($selection['targetChanged'] ?? false) === true) {
+        if ($targetChanged) {
             $this->UpdateFormField($wizard ? 'BindingWizardTargetEndpoint' : 'BindingTargetEndpoint', 'value', '');
         }
         $this->UpdateFormField($field, 'options', json_encode($options));
@@ -1246,10 +1267,10 @@ trait DeviceFormHelper
     /**
      * Baut die Cluster-Auswahl fuer Binding-Requests.
      */
-    private function BuildBindingClusterOptions(string $sourceEndpoint = '', string $target = ''): array
+    private function BuildBindingClusterOptions(string $sourceEndpoint = '', string $target = '', ?array $devices = null): array
     {
         $sourceClusters = $this->BuildBindingSourceClusterValues($sourceEndpoint);
-        $targetClusters = $this->BuildBindingTargetClusterValues($target);
+        $targetClusters = $this->BuildBindingTargetClusterValues($target, $devices);
 
         if ($sourceClusters !== [] && $targetClusters !== []) {
             $matchingClusters = array_values(array_intersect($sourceClusters, $targetClusters));
@@ -1277,6 +1298,81 @@ trait DeviceFormHelper
         }
 
         return array_values($options);
+    }
+
+    private function BuildBindingWizardClusterOptions(string $sourceEndpoint, string $target, string $targetEndpoint, ?array $cachedDevices = null): array
+    {
+        $devices = $cachedDevices ?? $this->ReadBindingTargetDeviceList();
+        $device = $this->FindIndexedBindingDevice($this->IndexBindingDevices($devices), $target);
+        if ($device === null) {
+            return $this->BuildBindingClusterOptions($sourceEndpoint, $cachedDevices === null ? $target : '', $devices);
+        }
+
+        $options = $this->BuildBindingClusterOptions($sourceEndpoint);
+        $source = $this->ReadBindingEndpointDirections($this->ReadAttributeArray(self::ATTRIBUTE_DEVICE_ENDPOINTS), $sourceEndpoint);
+        $destination = $this->ReadBindingEndpointDirections($device['endpoints'] ?? [], $targetEndpoint);
+        $coordinator = ($device['type'] ?? '') === 'Coordinator';
+
+        if (\count($options) === 1 && ($source['input'] === null || $source['output'] === null)) {
+            foreach ($this->FilterSupportedBindingClusterValues(array_merge($destination['input'] ?? [], $destination['output'] ?? [])) as $cluster) {
+                $options[] = ['caption' => $cluster, 'value' => $cluster];
+            }
+        }
+
+        foreach ($options as &$option) {
+            $cluster = $option['value'];
+            if ($cluster !== '' && !$this->CanBindCluster($cluster, $source, $destination, $coordinator)) {
+                $option['enabled'] = false;
+            }
+        }
+        unset($option);
+
+        return $options;
+    }
+
+    /** Null means the cached data cannot rule out support in that direction. */
+    private function ReadBindingEndpointDirections(mixed $endpoints, string $selected): array
+    {
+        $directions = ['input' => null, 'output' => null];
+        $matched = [];
+        foreach (\is_array($endpoints) ? $endpoints : [] as $key => $endpoint) {
+            if (!\is_array($endpoint)) {
+                continue;
+            }
+
+            $id = (string) ($endpoint['id'] ?? $endpoint['ID'] ?? $key);
+            if ($selected === '' || $selected === $id || $selected === ($endpoint['name'] ?? null)) {
+                $matched[] = $endpoint;
+            }
+        }
+
+        foreach (array_keys($directions) as $direction) {
+            $values = [];
+            foreach ($matched as $endpoint) {
+                $clusters = $endpoint['clusters'][$direction] ?? null;
+                if (!\is_array($clusters)) {
+                    continue 2;
+                }
+
+                $values = array_merge($values, $clusters);
+            }
+            if ($matched !== []) {
+                $directions[$direction] = $this->NormalizeBindingClusterValues($values);
+            }
+        }
+
+        return $directions;
+    }
+
+    /** Zigbee2MQTT accepts both client-to-server and server-to-client bindings. */
+    private function CanBindCluster(string $cluster, array $source, array $target, bool $coordinator): bool
+    {
+        $sourceInput = $source['input'] === null || \in_array($cluster, $source['input'], true);
+        $sourceOutput = $source['output'] === null || \in_array($cluster, $source['output'], true);
+        $targetInput = $coordinator || $target['input'] === null || \in_array($cluster, $target['input'], true);
+        $targetOutput = $coordinator || $target['output'] === null || \in_array($cluster, $target['output'], true);
+
+        return ($sourceOutput && $targetInput) || ($sourceInput && $targetOutput);
     }
 
     /**
@@ -1396,13 +1492,13 @@ trait DeviceFormHelper
     /**
      * Liefert bekannte Cluster eines ausgewaehlten Binding-Ziels.
      */
-    private function BuildBindingTargetClusterValues(string $target): array
+    private function BuildBindingTargetClusterValues(string $target, ?array $devices = null): array
     {
         if ($target === '' || !$this->HasActiveParent()) {
             return [];
         }
 
-        $devices = $this->ReadBindingTargetDeviceList();
+        $devices ??= $this->ReadBindingTargetDeviceList();
         foreach ($devices as $device) {
             if (!\is_array($device) || trim((string) ($device['friendly_name'] ?? '')) !== $target) {
                 continue;
@@ -1904,7 +2000,7 @@ trait DeviceFormHelper
      */
     private function ResolveBindingClusterSelection(string $currentCluster, array $options): string
     {
-        $values = array_column($options, 'value');
+        $values = array_column(array_filter($options, static fn (array $option): bool => $option['enabled'] ?? true), 'value');
         if ($currentCluster !== '' && \in_array($currentCluster, $values, true)) {
             return $currentCluster;
         }
@@ -2197,7 +2293,7 @@ trait DeviceFormHelper
     }
 
     /**
-     * Schaltet den passenden Editor fuer eine Geraeteoption sichtbar.
+     * Befuellt das zum Optionstyp gehoerende Formularfeld.
      */
     private function ConfigureDeviceOptionEditor(string $name, string $rawValue): void
     {
@@ -2205,11 +2301,6 @@ trait DeviceFormHelper
         $editor = $this->GetDeviceOptionEditor($definition);
 
         $this->UpdateFormField('DeviceOptionEditor', 'value', $editor);
-        $this->UpdateFormField('DeviceOptionValue', 'visible', $editor === 'text');
-        $this->UpdateFormField('DeviceOptionBoolean', 'visible', $editor === 'boolean');
-        $this->UpdateFormField('DeviceOptionSelect', 'visible', $editor === 'select');
-        $this->UpdateFormField('DeviceOptionAttributeList', 'visible', $editor === 'attributes');
-        $this->UpdateFormField('DeviceOptionAttributeEditor', 'visible', $editor === 'attributes');
 
         if ($editor === 'boolean') {
             $this->UpdateFormField('DeviceOptionBoolean', 'value', $this->ParseDeviceOptionBoolean($rawValue));
@@ -2220,6 +2311,11 @@ trait DeviceFormHelper
             $options = $this->BuildDeviceOptionSelectOptions($definition);
             $this->UpdateFormField('DeviceOptionSelect', 'options', json_encode($options));
             $this->UpdateFormField('DeviceOptionSelect', 'value', $this->NormalizeDeviceOptionSelectValue($rawValue, $definition));
+            return;
+        }
+
+        if ($editor === 'number') {
+            $this->UpdateFormField('DeviceOptionNumber', 'value', (float) ($rawValue === '' ? ($definition['default'] ?? 0) : $rawValue));
             return;
         }
 
@@ -2238,10 +2334,7 @@ trait DeviceFormHelper
     private function ResolveDeviceOptionRawValue(string $name, array $selection): mixed
     {
         $definition = $this->GetDeviceOptionDefinition($name);
-        $editor = trim((string) ($selection['editor'] ?? ''));
-        if ($editor === '') {
-            $editor = $this->GetDeviceOptionEditor($definition);
-        }
+        $editor = $this->GetDeviceOptionEditor($definition);
 
         return match ($editor) {
             'boolean'    => $selection['boolean'] ?? $selection['value'] ?? false,
@@ -2274,6 +2367,9 @@ trait DeviceFormHelper
         $type = $this->NormalizeDeviceOptionType((string) ($definition['type'] ?? 'mixed'));
         if ($type === 'binary') {
             return 'boolean';
+        }
+        if ($type === 'numeric') {
+            return 'number';
         }
         if ($type === 'enum' && \is_array($definition['values'] ?? null)) {
             return 'select';
@@ -2333,7 +2429,7 @@ trait DeviceFormHelper
         $listValues = $this->BuildDeviceOptionAttributeFormValues($selected);
         $candidateOptions = $this->BuildDeviceOptionAttributeCandidateOptions($selected);
 
-        $this->UpdateFormField('DeviceOptionValue', 'value', $this->FormatDeviceOptionValue($selected));
+        $this->UpdateFormField('DeviceOptionAttributeValue', 'value', $this->FormatDeviceOptionValue($selected));
         $this->UpdateFormField('DeviceOptionAttributeList', 'values', json_encode($listValues));
         $this->UpdateFormField('DeviceOptionAttributeList', 'rowCount', min(8, max(3, \count($listValues) + 1)));
         $this->UpdateFormField('DeviceOptionAttributeCandidate', 'options', json_encode($candidateOptions));
@@ -2537,6 +2633,17 @@ trait DeviceFormHelper
         $targetEndpoint = $this->FormatFormTextValue($selection['target_endpoint'] ?? '');
         $clusters = trim((string) ($selection['clusters'] ?? ''));
         $skipDisableReporting = (bool) ($selection['skip_disable_reporting'] ?? false);
+
+        if (!$unbind && $clusters !== '') {
+            $cluster = $this->NormalizeBindingClusterValue($clusters);
+            $options = $this->BuildBindingWizardClusterOptions($endpoint, $target, $targetEndpoint, $this->ReadBridgeCachedNetworkDevices());
+            foreach ($options as $option) {
+                if ($option['value'] === $cluster && ($option['enabled'] ?? true) === false) {
+                    trigger_error($this->Translate('This cluster is incompatible with the selected endpoints.'), E_USER_NOTICE);
+                    return false;
+                }
+            }
+        }
 
         return $this->CallMatchingBridgeFunction($unbind ? 'UnbindWithOptions' : 'BindWithOptions', [
             $this->ReadPropertyString(self::MQTT_TOPIC),
