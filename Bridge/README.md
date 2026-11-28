@@ -317,10 +317,10 @@ Aktiviert oder deaktiviert den Netzwerkbeitritt zur Laufzeit. Bei `true` wird Zi
 ### Z2M_SetPermitJoinTarget <!-- omit in toc -->
 
 ```php
-bool Z2M_SetPermitJoinTarget(int $InstanzID, int $Duration, string $Device = '');
+bool Z2M_SetPermitJoinTarget(int $InstanzID, int $Duration, string $Device);
 ```
 
-Öffnet den Netzwerkbeitritt für `Duration` Sekunden. Erlaubt sind Werte von `1` bis `254`; mit `0` wird der Netzwerkbeitritt beendet. Ohne `Device` wird das gesamte Netzwerk geöffnet. Für gezieltes Anlernen kann `Device` den Wert `coordinator`, einen Friendly Name oder eine IEEE-Adresse eines Routers enthalten.
+Öffnet den Netzwerkbeitritt für `Duration` Sekunden. Erlaubt sind Werte von `1` bis `254`. Mit `0` wird der Netzwerkbeitritt beendet. Geben Sie `Device` beim Aufruf immer an. Der leere String `''` öffnet den Netzwerkbeitritt für das gesamte Netzwerk, zum Beispiel `Z2M_SetPermitJoinTarget($bridgeID, 60, '')`. Für gezieltes Anlernen verwenden Sie `coordinator`, den Friendly Name oder die IEEE-Adresse eines Routers.
 
 ---
 

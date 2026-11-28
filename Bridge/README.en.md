@@ -178,10 +178,10 @@ Enables temporary network joining globally for 254 seconds when true, or stops i
 ### Z2M_SetPermitJoinTarget
 
 ```php
-bool Z2M_SetPermitJoinTarget(int $InstanceID, int $Duration, string $Device = '');
+bool Z2M_SetPermitJoinTarget(int $InstanceID, int $Duration, string $Device);
 ```
 
-Opens joining for 1–254 seconds; 0 stops joining. Empty `Device` targets the whole network. Use `coordinator`, a router friendly name or router IEEE address for a specific target.
+Opens joining for 1–254 seconds. Use `0` to stop joining. Always supply `Device`. Pass the empty string `''` to open joining across the whole network, for example `Z2M_SetPermitJoinTarget($bridgeID, 60, '')`. Use `coordinator`, a router friendly name or a router IEEE address for a specific target.
 
 ### Z2M_SetBlocklist
 

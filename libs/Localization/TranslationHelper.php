@@ -10,7 +10,7 @@ namespace Zigbee2MQTT;
 trait TranslationHelper
 {
     /**
-     * Ueberschreibt Translate, um die globalen Moduluebersetzungen zu nutzen.
+     * Nutzt globale Uebersetzungen und faellt auf die Modul-Lokalisierung zurueck.
      */
     public function Translate(string $Text): string
     {
@@ -33,7 +33,7 @@ trait TranslationHelper
             }
         }
 
-        return $Text;
+        return parent::Translate($Text);
     }
 
     /**
