@@ -20,7 +20,7 @@ Create the configurator through [Discovery](../Discovery/README.en.md), then app
 | Control | Meaning |
 | --- | --- |
 | MQTT Base Topic | The base topic used by this Zigbee2MQTT installation. Different installations on the same broker need different base topics. |
-| Devices | Devices and existing matching [Device instances](../Device/README.en.md). A missing Bridge is offered here as a normal configurator entry. |
+| Devices | Devices and existing matching [Device instances](../Device/README.en.md). |
 | Groups | Groups and existing matching [Group instances](../Group/README.en.md). |
 | Configure gateway | Opens the connected MQTT Client or Server. |
 | Change gateway | Selects another MQTT splitter. Check that it belongs to the intended Zigbee2MQTT installation. |
@@ -31,7 +31,7 @@ Create the configurator through [Discovery](../Discovery/README.en.md), then app
 
 The Devices list is initially expanded; Groups is initially collapsed. Technical columns such as network address, description and power source are hidden by default. The screenshot shows both lists expanded for explanation. The row colors follow the [standard Symcon configurator conventions](https://www.symcon.de/en/service/documentation/basics/instances/configurators/).
 
-If no device data are available, the Symcon extension may be missing or outdated. The missing Bridge can be created through the standard configurator mechanism. This supplies its MQTT connection and base topic. Open the Bridge to install or update the extension, then refresh the lists.
+During initial setup, create the Bridge as a separate instance in the Symcon object tree and use it to install or update the Symcon extension. Then refresh the configurator lists.
 
 ### Topic hierarchy
 
@@ -47,14 +47,14 @@ The form builds its lists from the most recently available Bridge and Zigbee2MQT
 
 Instances are matched using both the connected MQTT splitter and the base topic. An instance on another splitter is never automatically adopted or changed. If the same physical device exists only as an instance on another connection, this configurator offers a separate instance on its own connection. Correct accidentally connected instances manually using normal Symcon configuration.
 
-Existing instances on this configurator's splitter and base topic remain listed even if the physical device or group is absent from the current Zigbee2MQTT list. This allows you to inspect the existing configuration without confusing it with devices from another installation.
+Existing device and group instances on this configurator's splitter and base topic remain listed even when Zigbee2MQTT returns an empty device list.
 
 ### Status messages
 
 | Message or symptom | What to check |
 | --- | --- |
 | Instance has no active parent | Use Configure/Change gateway to select an active MQTT connection. |
-| No devices found | Create/open the matching Bridge; check extension installation and incoming device information. |
+| Zigbee2MQTT returned no device data | Check in the separate Bridge instance whether the Symcon extension is installed and up to date. |
 | Zigbee2MQTT does not respond | Check the Zigbee2MQTT service, broker, connection and base topic. |
 | An existing device/group appears as new | Check both the MQTT splitter and base topic of the existing instance. Different installations are intentionally isolated. |
 

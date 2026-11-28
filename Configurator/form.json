@@ -72,6 +72,11 @@
                         }
                     ],
                     "values": []
+                },
+                {
+                    "type": "Label",
+                    "caption": "Zigbee2MQTT returned no device data. Check whether the Symcon extension is installed and up to date.",
+                    "visible": false
                 }
             ]
         },
@@ -116,34 +121,6 @@
                     "values": []
                 }
             ]
-        },
-        {
-            "name": "ErrorPopup",
-            "type": "PopupAlert",
-            "visible": false,
-            "popup": {
-                "closeCaption": "Close",
-                "items": [
-                    {
-                        "name": "ErrorTitle",
-                        "type": "Label",
-                        "bold": true,
-                        "color": 16711680,
-                        "caption": "No devices found!"
-                    },
-                    {
-                        "name": "ErrorText",
-                        "type": "Label",
-                        "caption": "The Symcon extension in Zigbee2MQTT is not installed or not up to date.\r\nCreate or open the matching Bridge instance in the device list, then install or update the extension within its configuration."
-                    },
-                    {
-                        "type": "OpenObjectButton",
-                        "caption": "Open bridge instance",
-                        "objectID": 0,
-                        "visible": false
-                    }
-                ]
-            }
         },
         {
             "type": "Label",

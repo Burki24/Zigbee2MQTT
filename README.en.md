@@ -55,7 +55,7 @@ For Symcon 9.0, use the [dev_V6 branch](https://github.com/Burki24/Zigbee2MQTT/t
 2. Configure an MQTT Server or MQTT Client in Symcon. An additional generic MQTT Configurator is not required for this library.
 3. Install the library through the Symcon Module Store and create its Discovery instance when prompted.
 4. Use [Discovery](Discovery/README.en.md) to create the configurator belonging to the intended broker and MQTT base topic.
-5. Open the configurator, create/open the matching bridge and install the extension after reviewing the request.
+5. Create the [Bridge](Bridge/README.en.md) separately in the Symcon object tree. Set its MQTT connection and base topic, then install the extension from the Bridge.
 6. Refresh the configurator and create the desired device/group instances. Follow the module-specific setup instructions.
 
 ![Module Store](imgs/store.png)

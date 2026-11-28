@@ -240,72 +240,24 @@ class Zigbee2MQTTConfigurator extends IPSModuleStrict
             return json_encode($Form);
         }
 
-        $Devices = [];
-        $Groups = [];
         $Devices = $this->getDevices(); // Alle Geräte von Z2M laden
+        $Form['actions'][0]['items'][1]['visible'] = $Devices === [];
         $this->SendDebug('NetworkDevices', 'Count: ' . \count($Devices), 0);
         $IPSDevicesByIEEE = $this->GetIPSInstancesByIEEE(); // ALLE Device-Instanzen mit IEEE holen
         $this->SendDebug('IPS Devices IEEE', json_encode($IPSDevicesByIEEE), 0);
         $IPSDevicesByTopic = $this->GetIPSInstancesByBaseTopic(self::GUID_MODULE_DEVICE, $BaseTopic); // Nur Device-Instanzen mit gleichem BaseTopic holen
         $this->SendDebug('IPS Devices Topic', json_encode($IPSDevicesByTopic), 0);
-        $IPSBridgeIDs = $this->GetIPSInstancesByBaseTopic(self::GUID_MODULE_BRIDGE, $BaseTopic); // Bridge-Instanzen mit gleichem BaseTopic holen
-        $this->SendDebug('IPS Bridge Instances', json_encode($IPSBridgeIDs), 0);
-        if (!count($Devices)) {
-            // Gruppen ausblenden, die Bridge aber ueber den regulaeren Konfigurator-Mechanismus anbieten.
-            $Form['actions'][1]['expanded'] = false;
-
-            $bridgeValue = self::$DeviceValues;
-            $bridgeValue['id'] = 1;
-            $bridgeValue['name'] = 'Zigbee2MQTT Bridge';
-            $bridgeValue['topic'] = 'bridge';
-            $bridgeValue['type'] = 'Bridge';
-            $bridgeValue['vendor'] = 'Zigbee2MQTT';
-            $bridgeValue['description'] = 'Zigbee2MQTT Bridge';
-            if (count($IPSBridgeIDs)) {
-                $bridgeID = array_key_first($IPSBridgeIDs);
-                $bridgeValue['name'] = IPS_GetName($bridgeID);
-                $bridgeValue['instanceID'] = $bridgeID;
-                $Form['actions'][2]['popup']['items'][2]['objectID'] = $bridgeID;
-                $Form['actions'][2]['popup']['items'][2]['visible'] = true;
-            } else {
-                $bridgeValue['create'] = $this->BuildBridgeCreateDescriptor($BaseTopic);
-            }
-
-            $Form['actions'][0]['items'][0]['values'] = [$bridgeValue];
-            $Form['actions'][0]['items'][0]['rowCount'] = 2;
-            $Form['actions'][2]['visible'] = true;
-            return json_encode($Form);
-        }
-        // Devices
-        $CoordinatorFound = false;
         $valuesDevices = [];
         $valueId = 1;
 
         foreach ($Devices as $device) { // Geräte von Z2M durchgehen
+            if ($device['type'] === 'Coordinator') {
+                continue;
+            }
+
             $value = self::$DeviceValues; // Array leeren
             $Location = explode('/', $device['friendly_name']);
             $Name = array_pop($Location);
-            /** Coordinator Sonderbehandlung */
-            if (($device['type'] == 'Coordinator') && !$CoordinatorFound) { //Coordinator Eintrag wird für die Bridge benutzt
-                if (count($IPSBridgeIDs)) {
-                    $BridgeId = array_key_first($IPSBridgeIDs);
-                    unset($IPSBridgeIDs[$BridgeId]);
-                    $value['name'] = IPS_GetName($BridgeId);
-                    $value['instanceID'] = $BridgeId;
-                } else {
-                    $value['name'] = 'Zigbee2MQTT Bridge';
-                }
-                $value['parent'] = $this->AddParentElement($valueId, $valuesDevices, $Location, self::$DeviceValues);
-                $value['id'] = $valueId++;
-                $value['topic'] = 'bridge';
-                $value['type'] = 'Bridge';
-                $value['vendor'] = 'Zigbee2MQTT';
-                $value['description'] = 'Zigbee2MQTT Bridge';
-                $value['create'] = $this->BuildBridgeCreateDescriptor($BaseTopic, $Location);
-                array_push($valuesDevices, $value);
-                $CoordinatorFound = true;
-                continue;
-            }
             // erst nach IEEE suchen
             $instanceID = array_search($device['ieeeAddr'], $IPSDevicesByIEEE);
             if ($instanceID) {
@@ -352,25 +304,6 @@ class Zigbee2MQTTConfigurator extends IPSModuleStrict
             ];
             array_push($valuesDevices, $value);
         }
-        /** Coordinator Sonderbehandlung */
-        foreach ($IPSBridgeIDs as $instanceID => $Topic) { // Alle restlichen Bridge Instanzen mit gleichem BaseTopic anzeigen
-            $valuesDevices[] = [
-                'name'               => IPS_GetName($instanceID),
-                'id'                 => $valueId++,
-                'parent'             => $this->AddParentElement($valueId, $valuesDevices, [], self::$DeviceValues),
-                'instanceID'         => $instanceID,
-                'ieee_address'       => '',
-                'topic'              => 'bridge',
-                'networkAddress'     => '',
-                'type'               => '',
-                'vendor'             => 'Zigbee2MQTT',
-                'modelID'            => '',
-                'description'        => 'Zigbee2MQTT Bridge',
-                'power_source'       => ''
-
-            ];
-        }
-
         foreach ($IPSDevicesByIEEE as $instanceID => $IEEE) { // Nur die restlichen IEEE Einträge anzeigen welche an unserem Splitter hängen
             if ((IPS_GetInstance($instanceID)['ConnectionID'] != IPS_GetInstance($this->InstanceID)['ConnectionID']) ||
             (IPS_GetProperty($instanceID, self::MQTT_BASE_TOPIC) != $BaseTopic)) {
@@ -573,25 +506,6 @@ class Zigbee2MQTTConfigurator extends IPSModuleStrict
     }
 
     /**
-     * Erstellt den regulären Symcon-Erstellungsdeskriptor für eine fehlende Bridge-Instanz.
-     *
-     * @param string   $BaseTopic
-     * @param string[] $Location
-     *
-     * @return array<string, mixed>
-     */
-    private function BuildBridgeCreateDescriptor(string $BaseTopic, array $Location = []): array
-    {
-        return [
-            'moduleID'      => self::GUID_MODULE_BRIDGE,
-            'location'      => $Location,
-            'configuration' => [
-                self::MQTT_BASE_TOPIC => $BaseTopic
-            ]
-        ];
-    }
-
-    /**
      * getDevices
      *
      * @return array
@@ -725,16 +639,14 @@ class Zigbee2MQTTConfigurator extends IPSModuleStrict
      */
     private function FindMatchingBridgeInstanceID(): int|false
     {
-        $BridgeIDs = $this->GetIPSInstancesByBaseTopic(
-            self::GUID_MODULE_BRIDGE,
-            $this->ReadPropertyString(self::MQTT_BASE_TOPIC)
-        );
-
-        if ($BridgeIDs === []) {
-            return false;
+        $baseTopic = $this->ReadPropertyString(self::MQTT_BASE_TOPIC);
+        foreach (IPS_GetInstanceListByModuleID(self::GUID_MODULE_BRIDGE) as $bridgeID) {
+            if ($this->FilterInstancesByConnection($bridgeID) && @IPS_GetProperty($bridgeID, self::MQTT_BASE_TOPIC) === $baseTopic) {
+                return $bridgeID;
+            }
         }
 
-        return (int) array_key_first($BridgeIDs);
+        return false;
     }
 
     /**

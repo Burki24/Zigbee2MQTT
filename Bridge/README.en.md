@@ -10,7 +10,7 @@ The Bridge provides installation-wide Zigbee2MQTT settings, extension management
 - A Symcon MQTT Client connected to the external broker, or a Symcon MQTT Server used by Zigbee2MQTT.
 - The correct MQTT base topic. Each Zigbee2MQTT installation on a shared broker needs a distinct base topic.
 
-Create the Bridge through the [Configurator](../Configurator/README.en.md). This supplies its MQTT connection and base topic. Install or update the Symcon extension in Zigbee2MQTT manually from the Bridge; a module update does not install it automatically. Follow the [library installation and migration instructions](../README.en.md) and create a complete Symcon backup before upgrading from 5.x or an earlier testing version.
+Create **Zigbee2MQTT Bridge** as a separate instance in the Symcon object tree. Select the MQTT splitter and base topic used by the Zigbee2MQTT installation. Install or update the Symcon extension manually from the Bridge. Follow the [library installation and migration instructions](../README.en.md) and create a complete Symcon backup before upgrading from 5.x or an earlier testing version.
 
 ## Configuration
 

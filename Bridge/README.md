@@ -61,11 +61,13 @@
 
 ## 4. Konfiguration
 
+Legen Sie die **Zigbee2MQTT Bridge** als eigene Instanz im Symcon-Objektbaum an. Wählen Sie denselben MQTT-Splitter und dasselbe Basistopic wie für die zugehörige Zigbee2MQTT-Installation aus.
+
 ![Konfiguration der Bridge](imgs/config.png)
 
 | **Nummer** | **Bereich** | **Beschreibung** |
 | ---------- | ----------- | ---------------- |
-| **1** | **MQTT Base Topic** | Basistopic der zugehörigen Zigbee2MQTT-Installation. Es wird vom [Konfigurator](../Configurator/README.md) beim Anlegen der Instanz automatisch gesetzt und sollte nur geändert werden, wenn auch Zigbee2MQTT ein anderes Basistopic verwendet. |
+| **1** | **MQTT Base Topic** | Basistopic der zugehörigen Zigbee2MQTT-Installation. Ändern Sie es bei einer bestehenden Instanz nur, wenn auch Zigbee2MQTT ein anderes Basistopic verwendet. |
 | **2** | **Symcon-Erweiterung** | Zeigt, ob die Symcon-Erweiterung in Zigbee2MQTT installiert und aktuell ist. Bei einer fehlenden oder veralteten Erweiterung kann sie über dieselbe Schaltfläche installiert beziehungsweise aktualisiert werden. |
 | **3** | **last_seen-Einstellung** | Prüft, ob Zigbee2MQTT `last_seen` im benötigten Format `epoch` veröffentlicht. Ist die Einstellung nicht korrekt, kann sie über dieselbe Schaltfläche angepasst werden. |
 | **4** | **Anlernen** | Öffnet den Netzwerkbeitritt für eine wählbare Dauer über das gesamte Netzwerk, den Coordinator oder einen bestimmten Router. |
