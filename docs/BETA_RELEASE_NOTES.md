@@ -17,6 +17,7 @@ Diese Texte sind für die nächste Beta vorgesehen. Diese Datei veröffentlicht 
 - Die Zeilenauswahl übernimmt Angaben für Gruppenzugehörigkeit, Szenen, Optionen, Bindings, Reportings und Netzwerksicherheit. Die jeweiligen Aktionen übernehmen Änderungen separat. Binding und Reporting bieten Assistenten, die erst bei der letzten Bestätigung senden.
 - Die Netzwerkkarte zeigt Verbindungen zum ausgewählten Gerät, öffnet dessen Symcon-Instanz und bietet einen nativen Vollbildmodus. Bei unterstützten Z-Stack- und Ember-Koordinatoren mit Zigbee2MQTT 2.x zeigen Netzwerkkarte und Geräteinstanz den zuletzt beobachteten Weg zum Koordinator mit Zeitstempel.
 - Die OTA-Aktionen zum Starten und Planen zeigen vor dem Senden eine Bestätigung mit Gerät, Aktion, installierter Firmware und Zielversion.
+- Die Bridge speichert ZIP-Backups außerhalb des WebServer-Verzeichnisses und verschiebt vorhandene Modul-Backups beim Anwenden der Konfiguration dorthin.
 
 Die [deutsche Moduldokumentation](https://github.com/Burki24/Zigbee2MQTT/blob/Symcon-9.1/README.md) beschreibt das Update. Der [Changelog](../CHANGELOG.md#61-gegenüber-dev_v6) führt die Änderungen gegenüber `dev_V6` und der veröffentlichten Beta 5.43 auf.
 
@@ -35,5 +36,6 @@ Die [deutsche Moduldokumentation](https://github.com/Burki24/Zigbee2MQTT/blob/Sy
 - Selecting a row fills in fields for group members, scenes, options, bindings, reports, and network security. Each change has a separate action. The binding and reporting wizards send their requests only after final confirmation.
 - The network map shows connections for the selected device, opens its Symcon instance, and offers native fullscreen. With supported Z-Stack and Ember coordinators on Zigbee2MQTT 2.x, the map and device form show the last observed path to the coordinator with a timestamp.
 - The OTA start and schedule actions display the device, action, installed firmware, and target version for confirmation before sending the request.
+- The bridge stores ZIP backups outside the WebServer directory and moves existing module backups there when applying its configuration.
 
 See the [English module documentation](https://github.com/Burki24/Zigbee2MQTT/blob/Symcon-9.1/README.en.md) for upgrade instructions and the [changelog](../CHANGELOG.en.md#61-compared-with-dev_v6) for changes since `dev_V6` and the published 5.43 beta.

@@ -17,6 +17,7 @@ Variables hidden or custom actions removed by earlier testing versions are not r
 - The network map uses native fullscreen and lists connections in both directions for the selected device. It can open the corresponding device instance and query the routing table of a supported router on demand. Selecting a device reads cached data without starting a scan.
 - The device form and network map show the last observed path to the coordinator with a timestamp after the extension captures a path. Z-Stack requires extension 6.10 or later, and Ember requires 6.11 or later. The library bundles 6.11 for Zigbee2MQTT 2.x and 6.09 for 1.x.
 - Starting and scheduling OTA updates use a shared confirmation dialog with the device, action, and both firmware versions. The request is sent after confirmation.
+- The bridge stores Zigbee2MQTT backups outside the WebServer directory. Applying the bridge configuration moves existing module backups and preserves files with matching names.
 
 ## New
 

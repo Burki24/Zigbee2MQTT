@@ -219,7 +219,7 @@ Die folgenden Funktionen werden durch das Update nur bereitgestellt und verände
 - **Variablen-Wartung:** Die Bridge kann verwaiste Variablen zentral suchen und zeigt betroffene Instanzen kompakt an. Die Prüfung und ein mögliches Löschen erfolgen ausschließlich in der jeweils zuständigen Geräte- oder Gruppeninstanz. Es wird nichts automatisch gelöscht.
 - **Binding und Reporting:** Bestehende Bindings bleiben erhalten. Für eine aktuelle Anzeige in einer Geräteinstanz zunächst **Endpoint-Daten aktualisieren** verwenden. Batteriegeräte müssen gegebenenfalls aufgeweckt werden.
 - **Blocklist und Passlist:** Die Passlist ist restriktiv und kann Geräte aus dem Zigbee-Netz entfernen, wenn diese nicht enthalten sind. Änderungen deshalb nur mit Bedacht durchführen.
-- **Zigbee2MQTT-Backup:** Erstellte ZIP-Dateien werden unter `user/IPSZigbee2MQTT/backups` auf dem Symcon-Server gespeichert und nicht direkt im Browser heruntergeladen.
+- **Zigbee2MQTT-Backup:** Die Bridge speichert ZIP-Dateien unter `IPSZigbee2MQTT/backups` im privaten Symcon-Datenverzeichnis.
 - **Install-Code-Katalog:** Gespeicherte Install-Codes werden maskiert dargestellt, liegen aber nicht verschlüsselt in einem Bridge-Attribut und können deshalb auch Bestandteil von Symcon-Backups sein.
 - **OTA-Updates:** Zum Schutz des Zigbee-Netzes immer nur ein aktives OTA-Update gleichzeitig durchführen. Batteriegeräte müssen eventuell vor einer Prüfung oder Planung aufgeweckt werden.
 
@@ -340,9 +340,9 @@ Details stehen in der [Dokumentation der Zigbee2MQTT Actions](actions/README.md)
 
 ### 4.6 Lokale Datenspeicherung und instanzübergreifende Prüfungen
 
-Das Modul greift nur für die nachfolgend beschriebenen Funktionen auf lokale Dateien zu. Dauerhaft erzeugte Dateien werden ausschließlich innerhalb des Symcon-Verzeichnisses unter `user/IPSZigbee2MQTT` gespeichert:
+Das Modul greift für die nachfolgend beschriebenen Funktionen auf Dateien im Symcon-Datenverzeichnis zu.
 
-- Zigbee2MQTT-Backups werden nach einer ausdrücklich gestarteten Backup-Aktion unter `user/IPSZigbee2MQTT/backups` abgelegt.
+- Die Bridge speichert Zigbee2MQTT-Backups nach einer ausdrücklich gestarteten Backup-Aktion unter `IPSZigbee2MQTT/backups` außerhalb des WebServer-Verzeichnisses. Beim Anwenden der Bridge-Konfiguration übernimmt sie vorhandene Modul-Backups aus `user/IPSZigbee2MQTT/backups` und vergibt bei Namenskonflikten einen freien Dateinamen. Bei Fehlern bleibt die Quelldatei erhalten und Symcon protokolliert eine Warnung.
 - Exportierte Netzwerkkarten werden nach einer ausdrücklich gestarteten Export-Aktion unter `user/IPSZigbee2MQTT/networkmaps` gespeichert.
 - Heruntergeladene Gerätebilder werden gemeinsam unter `user/IPSZigbee2MQTT/icons` zwischengespeichert. Downloads verwenden geprüftes TLS sowie feste Zeit-, Größen-, Format- und Abmessungsgrenzen.
 - Große Backup-Antworten werden während der Verarbeitung kurzfristig im System-Temp-Verzeichnis unter `IPSZigbee2MQTT` ausgelagert. Die zugehörige temporäre Datei wird nach der Übernahme in das Backup-Verzeichnis wieder entfernt.

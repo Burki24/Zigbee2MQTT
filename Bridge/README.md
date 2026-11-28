@@ -185,6 +185,8 @@ Der unter **Erweiterte Administration** einsortierte Bereich **Zigbee2MQTT-Wartu
 
 Über **Backup-Datei erstellen** wird ein Backup des Zigbee2MQTT-Datenordners erstellt und als ZIP-Datei auf dem Symcon-Server gespeichert. Bei großen Datenordnern kann die Erstellung bis zu fünf Minuten dauern.
 
+Die ZIPs liegen im privaten Symcon-Datenverzeichnis unter `IPSZigbee2MQTT/backups`. Beim Anwenden der Bridge-Konfiguration werden vorhandene Modul-Backups aus `user/IPSZigbee2MQTT/backups` dorthin verschoben. Bei gleichen Namen bleiben beide Dateien erhalten. Meldet Symcon beim Verschieben einen Fehler, liegt die betroffene Datei weiter am alten Ort.
+
 #### 5.6.2 Install-Codes
 
 Install-Codes können einmalig gesendet oder mit einer frei wählbaren Bezeichnung lokal in der Bridge-Instanz gespeichert und später erneut gesendet werden. An Zigbee2MQTT wird dabei ausschließlich der eigentliche Install-Code übertragen. Die Liste zeigt gespeicherte Codes nur maskiert an. Beim Bearbeiten kann das Code-Feld leer bleiben, wenn lediglich die Bezeichnung geändert werden soll.
@@ -645,7 +647,7 @@ Leert die gesammelten Bridge-Events, Warnungen/Fehler und Gerätediagnosen. Die 
 string Z2M_CreateBackupFile(int $InstanzID);
 ```
 
-Erstellt ein Zigbee2MQTT-Backup und speichert es als ZIP-Datei auf dem Symcon-Server unter `user/IPSZigbee2MQTT/backups`. Der Rückgabewert ist der absolute Dateipfad oder ein leerer String bei Fehler.
+Erstellt ein Zigbee2MQTT-Backup und speichert es als ZIP-Datei unter `IPSZigbee2MQTT/backups` im privaten Symcon-Datenverzeichnis. Der Rückgabewert ist der absolute Dateipfad oder ein leerer String bei Fehler.
 
 Der Bridge-Wartungsbereich nutzt diese Funktion über die Schaltfläche **Backup-Datei erstellen**. Nach erfolgreicher Erstellung zeigt ein Popup den vollständigen Speicherpfad der ZIP-Datei an.
 

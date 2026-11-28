@@ -217,6 +217,7 @@ class Zigbee2MQTTBridge extends IPSModuleStrict
 
         //Never delete this line!
         parent::ApplyChanges();
+        $this->MigrateLegacyBackupFiles();
 
         $BaseTopic = $this->ReadPropertyString(self::MQTT_BASE_TOPIC);
         if (empty($BaseTopic)) {

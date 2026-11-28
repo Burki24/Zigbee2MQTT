@@ -8,29 +8,39 @@ declare(strict_types=1);
 trait BridgeBackupHelper
 {
     /**
-     * Erstellt ein Zigbee2MQTT-Backup und speichert es als ZIP-Datei im Symcon-Benutzerverzeichnis.
+     * Erstellt ein Zigbee2MQTT-Backup im privaten Symcon-Datenverzeichnis.
      *
      * @return string Absoluter Dateipfad oder leer bei Fehler.
      */
     public function CreateBackupFile(): string
     {
-        $data = $this->RequestBackupData();
-        if ($data === false) {
-            return '';
-        }
-
         $directory = $this->GetBackupDirectory();
-        if (!$this->EnsureDirectory($directory)) {
+        if (!$this->EnsureBackupDirectory($directory)) {
             return '';
         }
 
-        $filename = $directory . DIRECTORY_SEPARATOR . 'zigbee2mqtt-backup-' . date('Ymd-His') . '.zip';
-        if (!$this->WriteBackupZipFile($data, $filename)) {
-            @unlink($filename);
+        $temporaryFile = @tempnam($directory, 'backup-');
+        if ($temporaryFile === false) {
             return '';
         }
+        try {
+            if (dirname($temporaryFile) !== realpath($directory)) {
+                return '';
+            }
+            $data = $this->RequestBackupData();
+            if ($data === false || !$this->WriteBackupZipFile($data, $temporaryFile)) {
+                return '';
+            }
+            $filename = $directory . DIRECTORY_SEPARATOR . 'zigbee2mqtt-backup-' . date('Ymd-His') . '-' . bin2hex(random_bytes(8)) . '.zip';
+            return @rename($temporaryFile, $filename) ? $filename : '';
+        } finally {
+            @unlink($temporaryFile);
+        }
+    }
 
-        return $filename;
+    protected function GetBackupKernelDirectory(): string
+    {
+        return rtrim(IPS_GetKernelDir(), '\\/');
     }
 
     /**
@@ -221,15 +231,70 @@ trait BridgeBackupHelper
      */
     private function GetBackupDirectory(): string
     {
-        return rtrim(IPS_GetKernelDir(), '\\/') . DIRECTORY_SEPARATOR . 'user' . DIRECTORY_SEPARATOR . 'IPSZigbee2MQTT' . DIRECTORY_SEPARATOR . 'backups';
+        return $this->GetBackupKernelDirectory() . DIRECTORY_SEPARATOR . 'IPSZigbee2MQTT' . DIRECTORY_SEPARATOR . 'backups';
     }
 
     /**
-     * Legt ein Verzeichnis bei Bedarf an.
+     * Übernimmt vorhandene ZIPs aus dem bisherigen WebServer-Verzeichnis.
      */
-    private function EnsureDirectory(string $directory): bool
+    private function MigrateLegacyBackupFiles(): void
     {
-        return is_dir($directory) || @mkdir($directory, 0777, true);
+        $legacy = $this->GetBackupKernelDirectory() . DIRECTORY_SEPARATOR . 'user' . DIRECTORY_SEPARATOR . 'IPSZigbee2MQTT' . DIRECTORY_SEPARATOR . 'backups';
+        if (!is_dir($legacy)) {
+            return;
+        }
+
+        $lock = 'Zigbee2MQTT.LegacyBackupMigration';
+        if (!IPS_SemaphoreEnter($lock, 1000)) {
+            return;
+        }
+        try {
+            if (!$this->MoveLegacyBackupFiles($legacy)) {
+                $this->LogMessage($this->Translate('Some Zigbee2MQTT backups could not be moved to the private directory. Check the diagnostic log and the old backup directory.'), KL_WARNING);
+            }
+        } finally {
+            IPS_SemaphoreLeave($lock);
+        }
+    }
+
+    private function MoveLegacyBackupFiles(string $legacy): bool
+    {
+        if (is_link($legacy) || is_link(dirname($legacy))) {
+            return false;
+        }
+        $entries = @scandir($legacy);
+        if ($entries === false) {
+            return false;
+        }
+
+        $directory = $this->GetBackupDirectory();
+        $success = true;
+        foreach (preg_grep('/\Azigbee2mqtt-backup-\d{8}-\d{6}\.zip\z/', $entries) as $entry) {
+            $source = $legacy . DIRECTORY_SEPARATOR . $entry;
+            if (is_link($source) || !is_file($source)) {
+                continue;
+            }
+            if (!$this->EnsureBackupDirectory($directory)) {
+                return false;
+            }
+            $target = $directory . DIRECTORY_SEPARATOR . $entry;
+            $stem = substr($target, 0, -4);
+            for ($suffix = 1; file_exists($target) || is_link($target); $suffix++) {
+                $target = $stem . '-' . $suffix . '.zip';
+            }
+            if (@rename($source, $target)) {
+                @chmod($target, 0600);
+            } else {
+                $success = false;
+            }
+        }
+        return $success;
+    }
+
+    private function EnsureBackupDirectory(string $directory): bool
+    {
+        return !is_link($directory) && !is_link(dirname($directory))
+            && (is_dir($directory) || @mkdir($directory, 0700, true) || is_dir($directory));
     }
 
 }

@@ -176,11 +176,11 @@ Public PHP APIs, parameter semantics, return values and examples are documented 
 
 ## Local data and cross-instance checks
 
-Persistent generated files are confined to `user/IPSZigbee2MQTT` below the Symcon directory:
+The module uses files in the Symcon data directory for the following features.
 
-- `backups`: ZIP files created by an explicit bridge backup action.
-- `networkmaps`: user-requested map exports.
-- `icons`: shared model-based PNG cache with TLS, size, format and dimension checks.
+- `IPSZigbee2MQTT/backups`: ZIP files created by an explicit bridge backup action and stored outside the WebServer directory. When applying the bridge configuration, the bridge moves existing module backups from `user/IPSZigbee2MQTT/backups`. It picks a free filename on collision and preserves the source and logs a warning if a move fails.
+- `user/IPSZigbee2MQTT/networkmaps`: user-requested map exports.
+- `user/IPSZigbee2MQTT/icons`: shared model-based PNG cache with TLS, size, format and dimension checks.
 
 Large backup responses may temporarily use the system temp directory under `IPSZigbee2MQTT`; temporary files are removed after finalization. Legacy expose JSON may be read as upgrade recovery data.
 

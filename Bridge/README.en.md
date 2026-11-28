@@ -82,7 +82,7 @@ The Bridge never deletes another instance's variables. Deletion is local, requir
 
 ### Backup
 
-**Advanced administration → Zigbee2MQTT maintenance → Create backup file** requests a ZIP backup of Zigbee2MQTT's data and stores it on the Symcon server in `user/IPSZigbee2MQTT/backups`. The popup shows the absolute destination path. Large backups may take up to five minutes. Temporary file-based processing avoids returning a large Base64 value through Symcon's output buffer. There is no direct form-download/Base64 API. This is a Zigbee2MQTT backup; it does not replace the complete Symcon backup required before a module migration.
+**Advanced administration → Zigbee2MQTT maintenance → Create backup file** requests a ZIP backup of Zigbee2MQTT's data and stores it in `IPSZigbee2MQTT/backups` in the private Symcon data directory. Applying the bridge configuration moves existing module backups from `user/IPSZigbee2MQTT/backups`. The bridge keeps both files if their names collide and leaves a source file in place if the move fails. The popup shows the absolute destination path. Large backups may take up to five minutes. Temporary file-based processing avoids returning a large Base64 value through Symcon's output buffer. Create a separate full Symcon backup before a module migration.
 
 ### Install codes
 
@@ -437,7 +437,7 @@ Clears collected Bridge events, warnings/errors and device-diagnostic lists. Ret
 string Z2M_CreateBackupFile(int $InstanceID);
 ```
 
-Requests a ZIP backup and saves it under `user/IPSZigbee2MQTT/backups` on the Symcon server. Returns the absolute path, or an empty string on error. Waits up to five minutes; data are processed via files, without a public Base64 result or direct form download.
+Requests a ZIP backup and saves it under `IPSZigbee2MQTT/backups` in the private Symcon data directory. Returns the absolute path, or an empty string on error. Waits up to five minutes; data are processed via files, without a public Base64 result or direct form download.
 
 ### Z2M_AddInstallCode
 

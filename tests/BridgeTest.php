@@ -1684,11 +1684,64 @@ class BridgeTest extends TestCase
         $file = $bridge->CreateBackupFile();
         $this->assertFileExists($file);
         $this->assertSame('ZIP-CONTENT', file_get_contents($file));
-        $this->assertStringContainsString('IPSZigbee2MQTT', $file);
+        $expectedDirectory = str_replace('\\', '/', rtrim(IPS_GetKernelDir(), '/\\')) . '/IPSZigbee2MQTT/backups';
+        $this->assertSame($expectedDirectory, str_replace('\\', '/', dirname($file)));
         $this->assertSame('/bridge/request/backup', $bridge->lastTopic);
         $this->assertSame([], $bridge->lastPayload);
         $this->assertSame(300000, $bridge->lastTimeout);
         @unlink($file);
+    }
+
+    public function testApplyChangesMovesLegacyBackupsIntoPrivateStorage(): void
+    {
+        $root = sys_get_temp_dir() . '/Z2MBackupTest-' . bin2hex(random_bytes(8));
+        $legacy = $root . '/user/IPSZigbee2MQTT/backups';
+        $private = $root . '/IPSZigbee2MQTT/backups';
+        $existing = 'zigbee2mqtt-backup-20261127-123456.zip';
+        $renamed = 'zigbee2mqtt-backup-20261127-123456-1.zip';
+        $second = 'zigbee2mqtt-backup-20261127-123457.zip';
+        $bridge = $this->createBridgeTestDouble(false, IPS_CreateInstance('{00160D82-9E2F-D1BD-6D0B-952F945332C5}'));
+        $bridge->backupKernelDirectory = $root;
+        mkdir($legacy, 0700, true);
+
+        try {
+            file_put_contents($legacy . '/' . $existing, 'FIRST');
+            file_put_contents($legacy . '/' . $second, 'SECOND');
+            file_put_contents($legacy . '/other.zip', 'UNRELATED');
+            file_put_contents(dirname($private), 'BLOCKED');
+            $bridge->ApplyChanges();
+            $this->assertSame('FIRST', file_get_contents($legacy . '/' . $existing));
+            $this->assertSame('SECOND', file_get_contents($legacy . '/' . $second));
+            unlink(dirname($private));
+            mkdir($private, 0700, true);
+            file_put_contents($private . '/' . $existing, 'EXISTING');
+
+            $bridge->ApplyChanges();
+            $bridge->ApplyChanges();
+
+            $this->assertFileDoesNotExist($legacy . '/' . $existing);
+            $this->assertFileDoesNotExist($legacy . '/' . $second);
+            $this->assertSame('UNRELATED', file_get_contents($legacy . '/other.zip'));
+            $this->assertSame('EXISTING', file_get_contents($private . '/' . $existing));
+            $this->assertSame('FIRST', file_get_contents($private . '/' . $renamed));
+            $this->assertSame('SECOND', file_get_contents($private . '/' . $second));
+            $this->assertCount(3, glob($private . '/*.zip'));
+            $this->assertSame('', $bridge->lastTopic);
+        } finally {
+            foreach ([$legacy . '/' . $existing, $legacy . '/' . $second, $legacy . '/other.zip', $private . '/' . $existing, $private . '/' . $renamed, $private . '/' . $second] as $file) {
+                if (is_file($file)) {
+                    unlink($file);
+                }
+            }
+            if (is_file(dirname($private))) {
+                unlink(dirname($private));
+            }
+            foreach ([$legacy, dirname($legacy), $root . '/user', $private, dirname($private), $root] as $directory) {
+                if (is_dir($directory)) {
+                    rmdir($directory);
+                }
+            }
+        }
     }
 
     public function testCreateBackupFileStreamsTemporaryBase64FileAndRemovesIt(): void
@@ -2021,11 +2074,16 @@ class BridgeTest extends TestCase
     {
         $bridge = new class($instanceID, $result) extends Zigbee2MQTTBridge {
             public bool $parentActive = false;
+            public string $backupKernelDirectory = '';
             public array $registeredMessages = [];
             public array $unregisteredMessages = [];
             protected function HasActiveParent(): bool
             {
                 return $this->parentActive;
+            }
+            protected function GetBackupKernelDirectory(): string
+            {
+                return $this->backupKernelDirectory !== '' ? $this->backupKernelDirectory : parent::GetBackupKernelDirectory();
             }
             protected function RegisterMessage(int $SenderID, int $Message): bool
             {

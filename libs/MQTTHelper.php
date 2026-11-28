@@ -581,12 +581,18 @@ trait SendData
     private function WriteTransactionDataFile(string $Prefix, string $Data): string
     {
         $Directory = sys_get_temp_dir() . DIRECTORY_SEPARATOR . 'IPSZigbee2MQTT';
-        if (!is_dir($Directory)) {
-            @mkdir($Directory, 0777, true);
+        if (is_link($Directory) || (!is_dir($Directory) && !@mkdir($Directory, 0700, true) && !is_dir($Directory))) {
+            return '';
         }
 
-        $Filename = $Directory . DIRECTORY_SEPARATOR . $Prefix . '-' . uniqid('', true) . '.tmp';
-        file_put_contents($Filename, $Data, LOCK_EX);
+        $Filename = @tempnam($Directory, $Prefix . '-');
+        if ($Filename === false) {
+            return '';
+        }
+        if (dirname($Filename) !== realpath($Directory) || @file_put_contents($Filename, $Data, LOCK_EX) !== \strlen($Data)) {
+            @unlink($Filename);
+            return '';
+        }
         return $Filename;
     }
 

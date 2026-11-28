@@ -197,6 +197,7 @@
             "Backup created": "Backup erstellt",
             "Backup failed": "Backup fehlgeschlagen",
             "Backup saved to:": "Backup gespeichert unter:",
+            "Some Zigbee2MQTT backups could not be moved to the private directory. Check the diagnostic log and the old backup directory.": "Einige Zigbee2MQTT-Backups konnten nicht in das private Verzeichnis verschoben werden. Prüfen Sie das Meldungsfenster und das bisherige Backup-Verzeichnis.",
             "No backup could be created. Please check the bridge debug log.": "Es konnte kein Backup erstellt werden. Bitte prüfen Sie das Bridge-Debugprotokoll.",
             "Add an install code for Zigbee 3.0 devices. The code is sent once and not stored in Symcon.": "Fügt einen Install-Code für Zigbee-3.0-Geräte hinzu. Der Code wird einmalig gesendet und nicht in Symcon gespeichert.",
             "Send a Zigbee 3.0 install code once or store it locally for later reuse. Only the install code is sent to Zigbee2MQTT.": "Senden Sie einen Zigbee-3.0-Install-Code einmalig oder speichern Sie ihn lokal zur späteren Wiederverwendung. An Zigbee2MQTT wird ausschließlich der Install-Code gesendet.",

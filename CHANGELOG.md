@@ -17,6 +17,7 @@ Bereits durch ältere Testing-Versionen ausgeblendete Variablen oder entfernte B
 - Die Netzwerkkarte nutzt natives Vollbild und zeigt die Verbindungen des ausgewählten Geräts in beiden Richtungen. Sie kann die zugehörige Geräteinstanz öffnen und bei unterstützten Routern eine Routing-Tabelle gezielt abfragen. Die Geräteauswahl verwendet gespeicherte Daten und startet keinen Scan.
 - Der zuletzt beobachtete Weg zum Koordinator erscheint mit Zeitstempel in Gerätedetails und Netzwerkkarte, sobald die Extension einen Pfad erfasst hat. Z-Stack wird ab Extension 6.10 und Ember ab 6.11 unterstützt. Mitgeliefert sind 6.11 für Zigbee2MQTT 2.x und 6.09 für 1.x.
 - Start und Planung eines OTA-Updates zeigen im selben Bestätigungsdialog das Gerät, die Aktion und die beiden Firmware-Versionen. Der Auftrag wird erst nach Bestätigung übertragen.
+- Die Bridge speichert Zigbee2MQTT-Backups außerhalb des WebServer-Verzeichnisses. Sie übernimmt die bisherigen Modul-Backups beim Anwenden der Konfiguration und erhält gleichnamige Dateien.
 
 ## Neu
 
