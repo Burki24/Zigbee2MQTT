@@ -20,6 +20,7 @@ Anbindung von [zigbee2mqtt](https://www.zigbee2mqtt.io) an Symcon.
   - [3.2 Update von Modul Version 4.5 auf 5.x](#32-update-von-modul-version-45-auf-5x)
   - [3.3 Update von Modul Version 5.x auf 6.0](#33-update-von-modul-version-5x-auf-60)
   - [3.4 Installation der Symcon-Extension in Zigbee2MQTT](#34-installation-der-symcon-extension-in-zigbee2mqtt)
+  - [3.5 Wechsel von dev_V6 auf 6.1](#35-wechsel-von-dev_v6-auf-61)
 - [4. Konfiguration in Symcon](#4-konfiguration-in-symcon)
   - [4.1 Begriffe: Kacheln, Darstellungen und Profile](#41-begriffe-kacheln-darstellungen-und-profile)
   - [4.2 Tile-Visualisierung](#42-tile-visualisierung)
@@ -267,6 +268,15 @@ Extension-Dateien und Pfade innerhalb Z2M:
 **zu 3.** Sollte nur von versierten Usern gemacht werden, da es aufgrund der vielzahl an Systemen unter welchen Z2M laufen kann, keine global gültige Anleitung gibt.
 
 <a id="4-konfiguration-in-ip-symcon"></a>
+
+### 3.5 Wechsel von dev_V6 auf 6.1
+
+1. Ein vollständiges Backup der Symcon-9.0-Installation erstellen.
+2. Symcon auf 9.1 aktualisieren und prüfen, ob die bestehenden Instanzen geladen sind.
+3. In der vorhandenen Modulbibliothek den Zweig von `dev_V6` auf `Symcon-9.1` umstellen und die Bibliothek aktualisieren.
+4. In der Bridge den Extension-Stand prüfen. Die Aktualisierung auf 6.11 für Zigbee2MQTT 2.x oder 6.09 für 1.x bei Bedarf manuell bestätigen. Danach die Bridge sowie bestehende Geräte und Gruppen kontrollieren.
+
+Die [Versionshinweise für 6.1](docs/BETA_RELEASE_NOTES.md) fassen die Änderungen zusammen. Für einen Rückwechsel zu Symcon 9.0 das vor dem Upgrade erstellte Backup wiederherstellen.
 
 ## 4. Konfiguration in Symcon
 

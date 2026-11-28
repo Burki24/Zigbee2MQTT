@@ -2,12 +2,21 @@
 
 [Deutsch](CHANGELOG.md) | [English](CHANGELOG.en.md)
 
-Comparison baseline: the most recently published beta, **5.43**, commit `ce8aba0de27c8e9a6ffbaa91759009fb34d11806`. The following entries summarize the user-visible changes in the 6.0 branch relative to that baseline. Features added and subsequently removed during development are not announced as new features. This document does not change the version, build or release date.
+This changelog covers version **6.1** for Symcon 9.1. The published **5.43** beta (`ce8aba0de27c8e9a6ffbaa91759009fb34d11806`) is the baseline for changes shared across the 6.x series.
 
 > [!CAUTION]
-> **BETA 6.0 – IDENTIFY IS CREATED AS A NEW VARIABLE!** The new string variable expects `identify` instead of `true`. Review existing scripts, links and automations and point them to the new variable ID where necessary. The old Boolean variable retains its ID, value, existing visibility and user customizations; only its obsolete module default action is disabled. Custom actions are retained. Old module commands are not forwarded automatically.
+> **Upgrading from 5.x creates a new string Identify variable.** The new variable expects `identify` instead of `true`. Review existing scripts, links and automations and point them to the new variable ID where necessary. The old Boolean variable retains its ID, value, existing visibility and user customizations; only its obsolete module default action is disabled. Custom actions are retained. Old module commands are not forwarded automatically.
 
 Variables hidden or custom actions removed by earlier testing versions are not restored automatically: the previous settings were not recorded and must be checked against a backup where necessary.
+
+## 6.1 compared with dev_V6
+
+- `Symcon-9.1` requires Symcon 9.1. The `dev_V6` branch remains available for Symcon 9.0. Upgrade Symcon first, then switch the existing module library to the new branch.
+- Row selection fills in the device and endpoint for group members and the fields for group scenes, group options, device options, bindings, reports, and network security. Changes have separate actions.
+- The binding and reporting wizards send their requests only after final confirmation. Advanced reporting JSON parameters are included only when the advanced options are visible.
+- The network map uses native fullscreen and lists connections in both directions for the selected device. It can open the corresponding device instance and query the routing table of a supported router on demand. Selecting a device reads cached data without starting a scan.
+- The device form and network map show the last observed path to the coordinator with a timestamp after the extension captures a path. Z-Stack requires extension 6.10 or later, and Ember requires 6.11 or later. The library bundles 6.11 for Zigbee2MQTT 2.x and 6.09 for 1.x.
+- Starting and scheduling OTA updates use a shared confirmation dialog with the device, action, and both firmware versions. The request is sent after confirmation.
 
 ## New
 
@@ -48,7 +57,7 @@ Variables hidden or custom actions removed by earlier testing versions are not r
 - Additional German device, energy, protection, weather and mode translations have been added. Missing enum/preset translations are detected again; diagnostic reports include the necessary information without exposing the secrets intended to be protected.
 - The extension installation path has been corrected; read failures abort installation. Additional MQTT subscriptions by the extension have been removed. Installation and updates occur only following a user action.
 
-- Both Symcon extensions have been updated to version 6.09. Missing device definitions and errors while resolving an individual member's group exposes no longer abort the group query. Group metadata and available features of the remaining members are still returned; affected devices are logged and tried again on the next query.
+- Since extension 6.09, missing device definitions and errors while resolving an individual member's group exposes no longer abort the group query. Group metadata and available features of the remaining members are still returned; affected devices are logged and tried again on the next query.
 
 - Both Symcon extensions have been updated to version 6.08. Group queries use the exposes resolved by Zigbee2MQTT for the current device and its options. Dynamic features are no longer missing from groups; older definitions remain supported.
 - OTA detection in both extensions considers the current definition field `ota`, including explicitly disabled support. The older `supports_ota` field is used only when `ota` is absent. Extension updates continue to be initiated manually through the Bridge.

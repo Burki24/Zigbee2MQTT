@@ -1,6 +1,22 @@
 # Dokumentations- und Migrationsnachweis / Verification
 
-Stand: **16.11.2026**. Diese Datei dokumentiert Prüfungen und deren Grenzen, keine Veröffentlichung oder Freigabe durch Symcon.
+Stand **28.11.2026**. Diese Datei dokumentiert Prüfungen und deren Grenzen.
+
+## Upgrade von Symcon 9.0 und dev_V6 auf Symcon 9.1 und Modul 6.1
+
+Am 28.11.2026 wurden die offiziellen Symcon-Images `symcon/symcon:9.0-806-amd64` und `symcon/symcon:9.1-813-amd64` mit einem gemeinsamen Datenverzeichnis nacheinander in einer isolierten WSL2-Umgebung ausgeführt. JSON-RPC und der interne MQTT-Server waren ausschließlich im lokalen Testnetz erreichbar. Als Testdaten dienten eine Bridge, eine Geräteinstanz, eine Gruppe und eine Netzwerkkarte am selben MQTT-Server. Ein vollständiges Backup des Testdatenverzeichnisses entstand nach dem regulären Stopp von Symcon 9.0.
+
+| Schritt | Stand | Ergebnis |
+| --- | --- | --- |
+| Ausgangszustand | Symcon 9.0 (`10f3497`), `dev_V6` (`f2ac71d`), Modul 6.00 Build 2479 | Sechs Instanzen inklusive MQTT-Server und Server Socket waren aktiv. Gerät und Gruppe verarbeiteten MQTT-Werte. |
+| Kernel-Upgrade | Symcon 9.1 (`26bde7c`), weiterhin `dev_V6` | Instanz-IDs, Datenflussverbindungen und Einstellungen der Zigbee2MQTT-Instanzen blieben erhalten. |
+| Zweigwechsel im Module Control | Symcon 9.1, `Symcon-9.1` (`6564f40`), Modul 6.1 Build 2518 | Dieselbe Bibliothek wurde aktualisiert. Bei beiden Schritten blieben die beiden Helligkeitsvariablen mit IDs, Werten und Darstellungen, beide Linkziele, das benutzerdefinierte Profil und die Skriptzuordnung erhalten. |
+
+- Nach dem Zweigwechsel aktualisierten neue MQTT-Nachrichten die vorhandenen Geräte- und Gruppenvariablen. Die benutzerdefinierte Aktion schrieb unter beiden Kernel-Versionen den erwarteten Wert in eine separate Testvariable. Die Konfigurationsformulare von Bridge, Gerät, Gruppe und Netzwerkkarte lieferten gültige Daten mit den erwarteten Bedienelementen für 6.1.
+- Die Bridge meldete 6.09 als veraltet. Die manuelle Aktion übertrug den mitgelieferten Code 6.11 bytegenau per MQTT und erkannte die simulierte Rückmeldung. Ein eingespeister Pfad zum Koordinator erschien mit deutschem Zeitstempel in den Gerätedetails.
+- Der eingebaute MQTT-Server ersetzte bereits beim Kernel-Upgrade die Eigenschaft `RetainedMessageExpiration` (Standardwert 604800 Sekunden) durch `RetainedMessageLimit` (Standardwert 10000). Die Prüfung verwendete diese Standardwerte.
+
+Die Prüfung erfolgte per API mit echten Symcon-Kerneln und simuliertem Zigbee2MQTT. Ein Hardwaretest mit Z-Stack und ein Upgrade mit Produktionsdaten stehen aus. Die Pfadanzeige mit Ember wurde zuvor auf einer echten Installation bestätigt.
 
 ## MQTT-Transaktionskorrektur vom 16.11.2026
 

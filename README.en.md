@@ -17,6 +17,7 @@ Connect [Zigbee2MQTT](https://www.zigbee2mqtt.io) to Symcon. The library discove
 - [Included modules](#included-modules)
 - [New installation](#new-installation)
 - [Upgrading from 5.x to 6.0](#upgrading-from-5x-to-60)
+- [Upgrading from dev_V6 to 6.1](#upgrading-from-dev_v6-to-61)
 - [Earlier 4.x installations](#earlier-4x-installations)
 - [Extension installation](#extension-installation)
 - [Tiles, presentations and profiles](#tiles-presentations-and-profiles)
@@ -110,6 +111,15 @@ Failed legacy expose migration preserves its source files and restores the previ
 - Backups are ZIP files on the Symcon server, not automatic browser downloads.
 - Install codes are masked in the form but are not encrypted in the bridge attribute or Symcon backups.
 - Run only one active OTA update at a time. Battery devices may need waking for checks/planning; a scheduled update is not necessarily an immediately executing update.
+
+## Upgrading from dev_V6 to 6.1
+
+1. Create a complete backup of the Symcon 9.0 installation.
+2. Upgrade Symcon to 9.1 and verify that the existing instances load.
+3. Change the branch of the existing module library from `dev_V6` to `Symcon-9.1` and update the library.
+4. Check the extension version in the bridge. If necessary, manually confirm the update to 6.11 for Zigbee2MQTT 2.x or 6.09 for 1.x. Then check the bridge, existing devices, and groups.
+
+See the [6.1 release notes](docs/BETA_RELEASE_NOTES.md) for the changes. To return to Symcon 9.0, restore the backup taken before the upgrade.
 
 ## Earlier 4.x installations
 

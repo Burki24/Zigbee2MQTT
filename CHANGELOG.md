@@ -2,12 +2,21 @@
 
 [Deutsch](CHANGELOG.md) | [English](CHANGELOG.en.md)
 
-Vergleichsbasis: die zuletzt veröffentlichte Beta **5.43**, Commit `ce8aba0de27c8e9a6ffbaa91759009fb34d11806`. Die folgenden Punkte fassen die benutzersichtbaren Änderungen des 6.0-Zweigs gegenüber dieser Basis zusammen. Zwischenzeitlich hinzugefügte und wieder entfernte Funktionen werden nicht als neue Funktionen angekündigt. Version, Build und Veröffentlichungsdatum werden hierdurch nicht geändert.
+Dieser Changelog beschreibt Version **6.1** für Symcon 9.1. Die Ausgangsbasis für die gemeinsame Entwicklung der 6.x-Reihe war die veröffentlichte Beta **5.43** (`ce8aba0de27c8e9a6ffbaa91759009fb34d11806`).
 
 > [!CAUTION]
-> **BETA 6.0 – „ERKENNEN“ WIRD ALS NEUE VARIABLE ANGELEGT!** Die neue String-Variable erwartet `identify` statt `true`. Bestehende Skripte, Links und Automationen müssen bei Bedarf auf die neue Variablen-ID umgestellt werden. Die alte Bool-Variable bleibt mit ihrer ID, ihrem Wert, ihrer bisherigen Sichtbarkeit und ihren Benutzeranpassungen erhalten; nur die veraltete Modul-Standardaktion wird deaktiviert. Benutzerdefinierte Aktionen bleiben erhalten. Es gibt keine automatische Weiterleitung alter Modulaufrufe.
+> **Beim Wechsel von 5.x wird „Erkennen“ als neue String-Variable angelegt.** Die neue Variable erwartet `identify` statt `true`. Bestehende Skripte, Links und Automationen müssen bei Bedarf auf die neue Variablen-ID umgestellt werden. Die alte Bool-Variable bleibt mit ihrer ID, ihrem Wert, ihrer bisherigen Sichtbarkeit und ihren Benutzeranpassungen erhalten; nur die veraltete Modul-Standardaktion wird deaktiviert. Benutzerdefinierte Aktionen bleiben erhalten. Es gibt keine automatische Weiterleitung alter Modulaufrufe.
 
 Bereits durch ältere Testing-Versionen ausgeblendete Variablen oder entfernte Benutzeraktionen werden nicht automatisch wiederhergestellt: Die vorherigen Einstellungen sind nicht gespeichert und müssen bei Bedarf anhand eines Backups geprüft werden.
+
+## 6.1 gegenüber dev_V6
+
+- `Symcon-9.1` setzt Symcon 9.1 voraus. Unter Symcon 9.0 kann `dev_V6` weiter genutzt werden. Beim Wechsel zuerst Symcon aktualisieren und dann die vorhandene Modulbibliothek auf den neuen Zweig umstellen.
+- Zeilenauswahl übernimmt das Gerät und den Endpoint für Gruppenmitglieder sowie die Angaben für Gruppenszenen, Gruppenoptionen, Geräteoptionen, Bindings, Reportings und Netzwerksicherheit. Änderungen werden über eigene Aktionen ausgeführt.
+- Die Assistenten für Binding und Reporting senden erst nach der letzten Bestätigung. Erweiterte Reporting-Parameter in JSON werden nur bei eingeblendeten erweiterten Optionen mitgesendet.
+- Die Netzwerkkarte nutzt natives Vollbild und zeigt die Verbindungen des ausgewählten Geräts in beiden Richtungen. Sie kann die zugehörige Geräteinstanz öffnen und bei unterstützten Routern eine Routing-Tabelle gezielt abfragen. Die Geräteauswahl verwendet gespeicherte Daten und startet keinen Scan.
+- Der zuletzt beobachtete Weg zum Koordinator erscheint mit Zeitstempel in Gerätedetails und Netzwerkkarte, sobald die Extension einen Pfad erfasst hat. Z-Stack wird ab Extension 6.10 und Ember ab 6.11 unterstützt. Mitgeliefert sind 6.11 für Zigbee2MQTT 2.x und 6.09 für 1.x.
+- Start und Planung eines OTA-Updates zeigen im selben Bestätigungsdialog das Gerät, die Aktion und die beiden Firmware-Versionen. Der Auftrag wird erst nach Bestätigung übertragen.
 
 ## Neu
 
@@ -48,7 +57,7 @@ Bereits durch ältere Testing-Versionen ausgeblendete Variablen oder entfernte B
 - Weitere deutsche Geräte-, Energie-, Schutz-, Wetter- und Modusübersetzungen wurden ergänzt. Fehlende Enum-/Preset-Übersetzungen werden wieder erkannt; Diagnoseberichte enthalten die nötigen Informationen ohne die vorgesehenen Geheimnisse offenzulegen.
 - Der Extension-Installationspfad wurde korrigiert; Lesefehler brechen die Installation ab. Zusätzliche MQTT-Abonnements der Extension wurden entfernt. Installation und Aktualisierung erfolgen ausschließlich nach Anwenderaktion.
 
-- Beide Symcon-Extensions sind auf Version 6.09 angehoben. Fehlende Gerätedefinitionen und Fehler einzelner Mitglieder beim Ermitteln der Gruppen-Exposes brechen die Gruppenabfrage nicht mehr ab. Gruppendaten und verfügbare Funktionen der übrigen Mitglieder werden weiterhin geliefert; betroffene Geräte werden protokolliert und bei der nächsten Abfrage erneut berücksichtigt.
+- Seit Extension 6.09 brechen fehlende Gerätedefinitionen und Fehler einzelner Mitglieder beim Ermitteln der Gruppen-Exposes die Gruppenabfrage nicht mehr ab. Gruppendaten und verfügbare Funktionen der übrigen Mitglieder werden weiterhin geliefert; betroffene Geräte werden protokolliert und bei der nächsten Abfrage erneut berücksichtigt.
 
 - Beide Symcon-Extensions sind auf Version 6.08 angehoben. Gruppenabfragen verwenden die von Zigbee2MQTT für das jeweilige Gerät und seine Optionen aufgelösten Exposes. Dynamische Funktionen fehlen dadurch nicht mehr in den Gruppen; ältere Definitionen bleiben unterstützt.
 - Die OTA-Erkennung beider Extensions berücksichtigt das aktuelle Definitionsfeld `ota`, einschließlich einer ausdrücklich deaktivierten Unterstützung. Nur bei fehlendem Feld wird das ältere `supports_ota` verwendet. Das Extension-Update wird weiterhin manuell über die Bridge bestätigt.
